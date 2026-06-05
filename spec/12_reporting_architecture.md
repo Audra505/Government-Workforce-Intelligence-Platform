@@ -369,17 +369,13 @@ Compliance Review Created
 
 # Report Storage
 
-Generated reports stored in:
-
-```text
-MinIO
-```
-
-Metadata stored in:
+Metadata and report records stored in:
 
 ```text
 PostgreSQL
 ```
+
+Generated report file exports (PDF, CSV, Excel): Storage approach deferred to Phase 3 planning when file storage infrastructure is scoped. In Phases 1–2, report data is returned directly from API responses or generated on demand without persistent file storage.
 
 ---
 

@@ -29,7 +29,7 @@ This document defines the frontend architecture.
 
 It establishes:
 
-- React application structure
+- Next.js application structure
 - Routing architecture
 - Authentication flow
 - State management
@@ -48,7 +48,7 @@ This document is authoritative for frontend implementation.
 Framework:
 
 ```text
-React
+Next.js
 ```
 
 Language:
@@ -60,13 +60,13 @@ TypeScript
 Build Tool:
 
 ```text
-Vite
+Next.js built-in (Turbopack / Webpack)
 ```
 
 Routing:
 
 ```text
-React Router
+Next.js App Router
 ```
 
 Forms:
@@ -120,20 +120,27 @@ Lucide React
 apps/web/
 
 src/
-
-├── app/
-├── routes/
-├── layouts/
-├── pages/
-├── features/
-├── components/
-├── services/
-├── hooks/
-├── store/
-├── types/
-├── utils/
-├── assets/
-└── styles/
+├── app/                   # Next.js App Router — route segments
+│   ├── (auth)/            # Public auth route group
+│   │   └── login/
+│   ├── (dashboard)/       # Protected route group
+│   │   ├── layout.tsx     # Auth guard, sidebar, nav
+│   │   ├── dashboard/
+│   │   ├── workforce/
+│   │   ├── scheduling/
+│   │   ├── recruiting/
+│   │   ├── intelligence/
+│   │   ├── compliance/
+│   │   └── admin/
+│   ├── unauthorized/
+│   └── not-found.tsx
+├── components/            # Shared domain-independent components
+├── features/              # Feature-scoped modules
+├── hooks/                 # Custom React hooks
+├── lib/                   # API client, auth utilities
+├── store/                 # Zustand global state
+├── types/                 # Frontend-specific TypeScript types
+└── utils/                 # Pure utility functions
 ```
 
 ---
@@ -698,7 +705,7 @@ audit.service.ts
 Single shared client:
 
 ```text
-axios
+fetch (native) or axios
 ```
 
 Responsibilities:
@@ -870,6 +877,6 @@ This document will define:
 - DTO strategy
 - Validation architecture
 - Event architecture
-- Background jobs
+- Background processing strategy
 - Integration strategy
 - API implementation patterns

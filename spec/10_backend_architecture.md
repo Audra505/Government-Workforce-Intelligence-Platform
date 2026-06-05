@@ -87,20 +87,16 @@ Swagger OpenAPI
 Background Processing:
 
 ```text
-BullMQ
-Redis
+NestJS Scheduled Tasks (Phase 1–2)
+PostgreSQL-based job tracking
 ```
+
+Note: BullMQ with Redis may be introduced in a later phase if processing volume requires a dedicated queue. This decision is deferred until Phase 2+ requirements are confirmed.
 
 Database:
 
 ```text
 PostgreSQL
-```
-
-Cache:
-
-```text
-Redis
 ```
 
 ---
@@ -405,8 +401,8 @@ Services may call:
 ```text
 Repositories
 Events
-Jobs
-AI Services
+Jobs (scheduled tasks)
+Intelligence Module (OpenAI API via NestJS Intelligence Module)
 ```
 
 Services may not call:
@@ -524,16 +520,17 @@ Subscribers Execute
 
 # Background Jobs
 
-Framework:
+Phase 1–2 Approach:
 
 ```text
-BullMQ
+NestJS @Cron Scheduled Tasks
+PostgreSQL-based job state tracking
 ```
 
-Queue:
+Future (if required by Phase 2+ volume):
 
 ```text
-Redis
+BullMQ with Redis — introduced via approved architectural decision
 ```
 
 ---
@@ -797,8 +794,7 @@ Checks:
 
 ```text
 Database
-Redis
-AI Service
+OpenAI API connectivity (Intelligence Module)
 ```
 
 ---
@@ -880,7 +876,7 @@ spec/11_ai_architecture.md
 
 This document will define:
 
-- FastAPI architecture
+- NestJS Intelligence Module architecture
 - OpenAI integration
 - Prompt management
 - Forecasting engine

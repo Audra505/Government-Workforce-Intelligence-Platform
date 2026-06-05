@@ -107,9 +107,8 @@ Docker Compose
 Characteristics:
 
 - Local PostgreSQL
-- Local Redis
-- Local MinIO
-- Local AI Service
+- Local Next.js frontend
+- Local NestJS API
 
 ---
 
@@ -183,39 +182,35 @@ Recommended Initial Specs:
              │
              ▼
 
-┌─────────────────────────┐
-│        Traefik          │
-└────────────┬────────────┘
-             │
-
  ┌───────────┼─────────────┐
  ▼           ▼             ▼
 
-Frontend     API      AI Service
+Frontend     API      (future: integration services)
+(Next.js) (NestJS)
 
              │
              ▼
 
-   ┌─────────┼──────────┐
-   ▼         ▼          ▼
-
-PostgreSQL  Redis     MinIO
+        PostgreSQL
 ```
 
 ---
 
 # Docker Services
 
-Mandatory Services:
+Phase 1–2 Services:
 
 ```text
-traefik
 frontend
 api
-ai-service
 postgres
-redis
-minio
+```
+
+Future services (added when required by later phases):
+
+```text
+worker        (background processing — if dedicated worker becomes necessary)
+file-storage  (object storage — deferred to Phase 3 planning)
 ```
 
 ---
@@ -224,31 +219,12 @@ minio
 
 ---
 
-## traefik
-
-Purpose:
-
-```text
-Reverse Proxy
-SSL Termination
-Routing
-```
-
-Ports:
-
-```text
-80
-443
-```
-
----
-
 ## frontend
 
 Purpose:
 
 ```text
-React Application
+Next.js Application
 ```
 
 Internal Port:
@@ -275,24 +251,6 @@ Internal Port:
 
 ---
 
-## ai-service
-
-Purpose:
-
-```text
-Forecasting
-Matching
-Attrition Analysis
-```
-
-Internal Port:
-
-```text
-8000
-```
-
----
-
 ## postgres
 
 Purpose:
@@ -309,38 +267,6 @@ Internal Port:
 
 ---
 
-## redis
-
-Purpose:
-
-```text
-Cache
-Queue
-Session Storage
-```
-
-Internal Port:
-
-```text
-6379
-```
-
----
-
-## minio
-
-Purpose:
-
-```text
-Object Storage
-```
-
-Internal Port:
-
-```text
-9000
-```
-
 ---
 
 # Docker Network Architecture
@@ -349,24 +275,18 @@ Public Network:
 
 ```text
 frontend
-traefik
+api
 ```
 
 Private Network:
 
 ```text
-api
-ai-service
 postgres
-redis
-minio
 ```
 
 Rules:
 
 - Database never exposed publicly.
-- Redis never exposed publicly.
-- MinIO never exposed publicly.
 
 ---
 
@@ -399,7 +319,8 @@ Let's Encrypt
 Managed By:
 
 ```text
-Traefik
+Cloud provider certificate management or nginx (Phase 1)
+Traefik may be introduced in later phases if routing complexity requires it
 ```
 
 Requirements:
@@ -472,29 +393,9 @@ Permanent
 
 ---
 
-## MinIO
+## File Storage
 
-Persistent Volume:
-
-```text
-minio_data
-```
-
-Retention:
-
-```text
-Permanent
-```
-
----
-
-## Redis
-
-Persistent Volume:
-
-Optional
-
-Used for cache and transient state.
+Deferred to Phase 3 planning. Object storage for resumes, report exports, and attachments will be scoped when Phase 3 is implemented.
 
 ---
 
@@ -518,19 +419,9 @@ Retention:
 
 ---
 
-## MinIO
+## File Storage Backups
 
-Frequency:
-
-```text
-Daily
-```
-
-Retention:
-
-```text
-30 Days
-```
+Deferred to Phase 3. Backup strategy for object storage will be defined when file storage is scoped.
 
 ---
 
@@ -541,7 +432,6 @@ Backed Up:
 ```text
 docker-compose.yml
 .env.production
-traefik configuration
 ```
 
 Stored:
@@ -585,9 +475,8 @@ RTO:
 1. Provision server
 2. Restore Docker volumes
 3. Restore PostgreSQL
-4. Restore MinIO
-5. Restore configuration
-6. Validate services
+4. Restore configuration
+5. Validate services
 
 ---
 
@@ -637,8 +526,6 @@ Memory
 Disk
 API Latency
 Database Health
-Queue Health
-AI Health
 ```
 
 ---
@@ -648,16 +535,10 @@ AI Health
 Frontend:
 
 ```text
-/health
+/health (or Next.js /api/health route)
 ```
 
 API:
-
-```text
-/health
-```
-
-AI Service:
 
 ```text
 /health
@@ -714,16 +595,11 @@ Mandatory:
 
 - Docker Compose
 - Hetzner Hosting
-- Traefik
 - PostgreSQL
-- Redis
-- MinIO
 
 Prohibited:
 
 - Public database access
-- Public Redis access
-- Public MinIO access
 
 ---
 
@@ -744,7 +620,7 @@ Dedicated Database Server
 Phase 3
 
 ```text
-Dedicated AI Workers
+File Storage Infrastructure (when scoped)
 ```
 
 Phase 4
@@ -784,7 +660,7 @@ spec/09_frontend_architecture.md
 
 This document will define:
 
-- React architecture
+- Next.js application architecture
 - Feature organization
 - State management
 - Routing

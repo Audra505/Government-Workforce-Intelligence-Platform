@@ -146,9 +146,7 @@ Scope:
 
 ```text
 API → Database
-API → AI Service
-API → Redis
-API → MinIO
+API → OpenAI (Intelligence Module)
 ```
 
 Frameworks:
@@ -558,8 +556,7 @@ Validate:
 ```text
 Service Restart
 Database Recovery
-Queue Recovery
-AI Service Recovery
+OpenAI API Failure Handling
 ```
 
 ---
@@ -577,7 +574,6 @@ Requirements:
 ```text
 Backup Restore
 Database Recovery
-MinIO Recovery
 Environment Recovery
 ```
 

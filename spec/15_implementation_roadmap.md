@@ -136,10 +136,8 @@ Infrastructure:
 
 ```text
 Docker Compose
-Traefik
 PostgreSQL
-Redis
-MinIO
+CI/CD Pipeline
 ```
 
 Backend:
@@ -155,17 +153,16 @@ Tenant Context
 Frontend:
 
 ```text
-React Setup
-Routing
+Next.js Setup
+App Router
 Authentication Flow
 Layout Framework
 ```
 
-AI:
+AI Connectivity:
 
 ```text
-FastAPI Service Skeleton
-OpenAI Connectivity
+OpenAI API Integration via NestJS Intelligence Module
 ```
 
 ---

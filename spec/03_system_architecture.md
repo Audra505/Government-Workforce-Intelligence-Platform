@@ -76,27 +76,28 @@ Architecture must support future compliance expansion.
 
 ```text
 ┌────────────────────────────┐
-│         React UI           │
+│     Next.js Frontend       │
 └─────────────┬──────────────┘
               │
               ▼
 ┌────────────────────────────┐
-│        Traefik Proxy       │
+│   Docker Compose Network   │
 └─────────────┬──────────────┘
               │
       ┌───────┼────────┐
-      ▼       ▼        ▼
+      ▼                ▼
 
-┌─────────┐ ┌─────────┐ ┌─────────────┐
-│ NestJS  │ │ FastAPI │ │ Integration │
-│ API     │ │ AI      │ │ Services    │
-└────┬────┘ └────┬────┘ └──────┬──────┘
-     │           │             │
-     ▼           ▼             ▼
+┌─────────────────┐  ┌─────────────┐
+│    NestJS API   │  │ Integration │
+│ (incl. AI Intel │  │ Services    │
+│    Module)      │  │ (future)    │
+└────────┬────────┘  └─────────────┘
+         │
+         ▼
 
-┌─────────┐ ┌─────────┐ ┌─────────────┐
-│Postgres │ │ Redis   │ │ MinIO       │
-└─────────┘ └─────────┘ └─────────────┘
+┌─────────┐
+│Postgres │
+└─────────┘
 ```
 
 ---
@@ -115,9 +116,10 @@ Responsibilities:
 
 Technology:
 
-- React
+- Next.js
 - TypeScript
-- Vite
+- Tailwind CSS
+- shadcn/ui
 
 ---
 
@@ -147,9 +149,11 @@ Responsibilities:
 
 Technology:
 
-- Python
-- FastAPI
-- OpenAI
+- TypeScript
+- NestJS Intelligence Module
+- OpenAI API
+
+Note: AI capabilities are implemented as a dedicated module within the NestJS API application. No separate AI service is deployed. All OpenAI API calls originate from the NestJS Intelligence Module.
 
 ---
 
@@ -163,8 +167,10 @@ Responsibilities:
 
 Technology:
 
-- PostgreSQL
-- MinIO
+- PostgreSQL (primary)
+- Prisma ORM
+
+Note: File and document storage (resumes, report exports, attachments) is deferred to Phase 3 planning. PostgreSQL handles all persistence in Phases 1 and 2.
 
 ---
 
@@ -180,7 +186,8 @@ Responsibilities:
 Technology:
 
 - Docker Compose
-- Traefik
+- CI/CD Pipelines
+- Hetzner Cloud
 
 ---
 
@@ -388,19 +395,21 @@ Requirements:
 
 # AI Architecture
 
+AI capabilities are implemented as a dedicated module within the NestJS API. No separate service is deployed.
+
 Directory Structure
 
 ```text
-apps/ai-service/
+apps/api/src/modules/intelligence/
 
-src/
-├── forecasting/
-├── matching/
-├── attrition/
-├── vacancy-risk/
-├── prompts/
 ├── services/
-└── api/
+│   ├── forecasting.service.ts
+│   ├── matching.service.ts
+│   ├── attrition.service.ts
+│   └── vacancy-risk.service.ts
+├── prompts/
+├── explainability/
+└── intelligence.module.ts
 ```
 
 ---
@@ -519,24 +528,17 @@ audit
 
 ---
 
-# Redis Usage
+# Background Processing
 
-Responsibilities:
+Phase 1–2: Background job processing uses a PostgreSQL-based approach via scheduled NestJS tasks. No external queue infrastructure is required in Phases 1 or 2.
 
-- Session storage
-- Queue processing
-- Cache management
+Future: If processing volume requires a dedicated queue, BullMQ with Redis may be introduced in a later phase via an approved architectural decision.
 
 ---
 
-# MinIO Usage
+# File and Document Storage
 
-Responsibilities:
-
-- Resume storage
-- Reports
-- Attachments
-- Audit exports
+Deferred to Phase 3 planning. File storage decisions (resume storage, report export storage, audit export storage) will be scoped when Phase 3 recruiting and reporting capabilities are implemented.
 
 ---
 
@@ -665,14 +667,19 @@ Docker Compose
 
 # Services
 
+Phase 1–2 Services:
+
 ```text
-traefik
 frontend
 api
-ai-service
 postgres
-redis
-minio
+```
+
+Future services (introduced when required by later phases):
+
+```text
+worker        (background job processing — if volume requires dedicated worker)
+file-storage  (cloud object storage — deferred to Phase 3)
 ```
 
 ---
@@ -681,14 +688,12 @@ minio
 
 Public:
 
-- Frontend
-- API Gateway
+- Frontend (Next.js)
+- API (NestJS — exposed via Docker Compose port mapping)
 
 Private:
 
 - PostgreSQL
-- Redis
-- MinIO
 
 ---
 
@@ -736,11 +741,12 @@ ORM Access
 
 ---
 
-API → Redis
+API → OpenAI
 
 ```text
-Cache
-Queue
+HTTPS
+REST
+JSON
 ```
 
 ---
@@ -787,16 +793,16 @@ Dedicated tenant deployments
 
 | Area | Decision |
 |--------|----------|
-| Frontend | React |
-| Backend | NestJS |
-| AI | FastAPI |
+| Frontend | Next.js + TypeScript + Tailwind CSS + shadcn/ui |
+| Backend | NestJS + TypeScript + Prisma ORM |
+| AI | NestJS Intelligence Module + OpenAI API |
 | Database | PostgreSQL |
-| Cache | Redis |
-| Storage | MinIO |
-| Gateway | Traefik |
+| Cache | Deferred — PostgreSQL-based approach for Phases 1–2 |
+| Storage | Deferred to Phase 3 planning |
+| Gateway | Docker Compose networking; cloud LB for production |
 | Deployment | Docker Compose |
-| Hosting | Hetzner |
-| AI Provider | OpenAI |
+| Hosting | Hetzner Cloud |
+| AI Provider | OpenAI API |
 | Tenant Model | Hybrid |
 
 ---

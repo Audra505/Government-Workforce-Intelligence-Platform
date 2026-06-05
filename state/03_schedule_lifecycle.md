@@ -140,7 +140,7 @@ No Compliance Violations
 Approval:
 
 ```text
-Department Manager
+Hiring Manager
 HR Director
 ```
 

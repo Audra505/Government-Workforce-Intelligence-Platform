@@ -81,41 +81,43 @@ Human approval is required for all workforce actions.
 
 # AI Service Architecture
 
+AI capabilities are implemented as a dedicated module within the NestJS API. No separate AI service is deployed.
+
 Deployment:
 
 ```text
-apps/ai-service
+apps/api/src/modules/intelligence
 ```
 
 Technology:
 
 ```text
-Python
-FastAPI
-OpenAI
+TypeScript
+NestJS
+OpenAI API
 ```
 
 ---
 
-# Service Structure
+# Module Structure
 
 ```text
-apps/ai-service/
+apps/api/src/modules/intelligence/
 
-src/
-
-├── api/
 ├── services/
+│   ├── forecasting.service.ts
+│   ├── matching.service.ts
+│   ├── attrition.service.ts
+│   └── vacancy-risk.service.ts
 ├── prompts/
-├── forecasting/
-├── matching/
-├── attrition/
-├── vacancy_risk/
+│   ├── candidate_matching.md
+│   ├── forecast_explanation.md
+│   ├── vacancy_risk.md
+│   └── attrition_analysis.md
 ├── explainability/
 ├── governance/
-├── models/
-├── schemas/
-└── config/
+├── dtos/
+└── intelligence.module.ts
 ```
 
 ---
@@ -131,11 +133,11 @@ NestJS API
     │
     ▼
 
-AI Service (FastAPI)
+Intelligence Module (NestJS)
     │
     ▼
 
-OpenAI
+OpenAI API
 ```
 
 ---
@@ -179,7 +181,7 @@ Staffing Approvals
 Directory:
 
 ```text
-prompts/
+apps/api/src/modules/intelligence/prompts/
 ```
 
 Examples:
@@ -524,7 +526,7 @@ Before prompt execution.
 
 # AI Failure Handling
 
-If AI service unavailable:
+If OpenAI API unavailable or returns an error:
 
 ```text
 Return Controlled Error
@@ -697,7 +699,7 @@ Explainability Validation
 
 Architecture is approved when:
 
-1. AI isolated in dedicated service.
+1. AI isolated in dedicated NestJS intelligence module.
 2. OpenAI integration abstracted.
 3. Explainability implemented.
 4. Human approval enforced.
@@ -732,7 +734,7 @@ Prohibited:
 
 Next file:
 
-spec/12_testing_strategy.md
+spec/12_reporting_architecture.md
 
 This document will define:
 

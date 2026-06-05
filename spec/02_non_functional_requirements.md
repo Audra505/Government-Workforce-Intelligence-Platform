@@ -329,9 +329,9 @@ Critical business data shall be recoverable.
 
 Daily backups
 
-### MinIO
+### File Storage
 
-Daily backups
+Backup strategy deferred to Phase 3 when file storage infrastructure is scoped.
 
 ### Configuration
 

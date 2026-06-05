@@ -376,9 +376,10 @@ Protected:
 
 ```text
 PostgreSQL
-MinIO
 Backups
 ```
+
+Note: File storage encryption will be addressed when Phase 3 file storage infrastructure is scoped.
 
 ---
 
@@ -573,18 +574,14 @@ Requirements:
 Public:
 
 ```text
-Traefik
-Frontend
+Frontend (Next.js)
+API (NestJS)
 ```
 
 Private:
 
 ```text
-API
-AI Service
 PostgreSQL
-Redis
-MinIO
 ```
 
 ---
@@ -858,7 +855,7 @@ This document will define:
 
 - Hetzner deployment topology
 - Docker Compose architecture
-- Traefik configuration
+- Docker Compose configuration
 - Networking
 - Environment management
 - Backup strategy

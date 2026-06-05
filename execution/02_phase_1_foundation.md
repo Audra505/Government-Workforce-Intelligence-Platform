@@ -298,9 +298,9 @@ System Administrator
 HR Director
 Workforce Planner
 Recruiter
-Department Manager
+Hiring Manager
 Compliance Officer
-Employee
+Executive User
 ```
 
 ---

@@ -652,7 +652,7 @@ multipart/form-data
 
 Storage:
 
-MinIO
+Deferred to Phase 3 planning. Resume file storage infrastructure will be scoped when Phase 3 recruiting is implemented.
 
 ---
 

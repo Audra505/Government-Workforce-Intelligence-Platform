@@ -276,31 +276,31 @@ No Kubernetes dependency exists in the initial blueprint.
 
 ## Frontend
 
-- React
+- Next.js
 - TypeScript
-- Vite
+- Tailwind CSS
+- shadcn/ui
 
 ## Backend
 
 - NestJS
-- Node.js
+- TypeScript
+
+## Database
+
 - PostgreSQL
-- Redis
+- Prisma ORM
 
-## AI Services
+## AI
 
-- Python
-- FastAPI
 - OpenAI API
 
 ## Infrastructure
 
 - Docker
 - Docker Compose
-- Traefik
-- MinIO
-- PostgreSQL
-- Redis
+- CI/CD Pipelines
+- Cloud Deployment
 
 ---
 

@@ -306,13 +306,19 @@ User Invitations
 
 # Document Storage Integrations
 
-Phase 1:
+Phase 1–2:
 
 ```text
-MinIO
+Deferred — file storage not implemented in Phases 1 or 2
 ```
 
-Future:
+Phase 3+:
+
+```text
+Cloud object storage (scoped during Phase 3 planning)
+```
+
+Future integrations:
 
 ```text
 SharePoint

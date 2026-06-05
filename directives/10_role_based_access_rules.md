@@ -90,9 +90,9 @@ System Administrator
 HR Director
 Workforce Planner
 Recruiter
-Department Manager
+Hiring Manager
 Compliance Officer
-Employee
+Executive User
 ```
 
 ---
@@ -150,7 +150,7 @@ Offers
 
 ---
 
-## Department Manager
+## Hiring Manager
 
 Capabilities:
 
@@ -158,6 +158,10 @@ Capabilities:
 Schedule Approval
 Department Reporting
 Vacancy Requests
+Candidate Review
+Hiring Approvals
+Interview Management
+Offer Management
 ```
 
 ---
@@ -174,14 +178,16 @@ Compliance Reporting
 
 ---
 
-## Employee
+## Executive User
 
 Capabilities:
 
 ```text
-View Own Assignments
-View Own Notifications
-View Own Profile
+View Executive Reports
+View Strategic Forecasts
+View Workforce Intelligence Dashboards
+View Compliance Status
+View Readiness Dashboards
 ```
 
 ---
@@ -386,6 +392,7 @@ Candidate management allowed for:
 
 ```text
 Recruiter
+Hiring Manager
 HR Director
 ```
 
@@ -396,8 +403,14 @@ HR Director
 Hiring approval requires:
 
 ```text
-Recruiter
+Hiring Manager
 HR Director
+```
+
+Recruiting coordination allowed for:
+
+```text
+Recruiter
 ```
 
 depending on workflow configuration.
@@ -427,6 +440,31 @@ Audit access restricted to:
 Compliance Officer
 System Administrator
 ```
+
+---
+
+# Executive Authorization Rules
+
+## RBAC-950
+
+Executive dashboard and intelligence access restricted to:
+
+```text
+Executive User
+HR Director
+```
+
+---
+
+## RBAC-951
+
+Executive Users may view but not modify workforce data.
+
+---
+
+## RBAC-952
+
+Executive Users may not access individual employee PII records.
 
 ---
 

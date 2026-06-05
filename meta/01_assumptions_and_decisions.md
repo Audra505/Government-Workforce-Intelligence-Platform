@@ -248,24 +248,21 @@ All schemas, data models, and reporting structures assume PostgreSQL.
 
 ### Title
 
-Caching Strategy
+Background Processing and Caching Strategy
 
 ### Decision
 
-Redis
+PostgreSQL-based scheduled tasks for Phases 1–2. Redis deferred.
 
 ### Status
 
-Approved
+Superseded — see D-023
 
 ### Impact
 
-Supports:
+Background jobs use NestJS @Cron with PostgreSQL job state tracking.
 
-* Sessions
-* Queues
-* Forecast caching
-* Background processing
+BullMQ with Redis may be introduced in a later phase if processing volume requires it, via a new approved architectural decision at that time.
 
 ---
 
@@ -273,24 +270,19 @@ Supports:
 
 ### Title
 
-Object Storage
+File and Document Storage
 
 ### Decision
 
-MinIO
+Deferred to Phase 3 planning.
 
 ### Status
 
-Approved
+Deferred — see D-024
 
 ### Impact
 
-Supports:
-
-* Documents
-* Attachments
-* Reports
-* Audit exports
+Resume storage, report exports, attachments, and audit exports will use a cloud-compatible object storage solution scoped during Phase 3. PostgreSQL handles all persistence in Phases 1 and 2.
 
 ---
 
@@ -762,6 +754,54 @@ The following constraints are binding.
 * **Constraint C-005:** No domain may bypass compliance controls.
 * **Constraint C-006:** No module may require Kubernetes.
 * **Constraint C-007:** All blueprint documents must remain consistent with `meta/00_project_classification.md`.
+
+---
+
+## DECISION D-023
+
+### Title
+
+Frontend Framework
+
+### Decision
+
+Next.js with TypeScript, Tailwind CSS, and shadcn/ui.
+
+### Status
+
+Approved
+
+### Rationale
+
+Next.js provides App Router, server-side rendering, built-in build tooling, and TypeScript support. Replaces the earlier React + Vite approach recorded in prior blueprint versions.
+
+### Impact
+
+All frontend architecture, routing, and build configuration must conform to Next.js App Router conventions.
+
+---
+
+## DECISION D-024
+
+### Title
+
+AI Integration Architecture
+
+### Decision
+
+AI capabilities are implemented as a dedicated NestJS Intelligence Module within the API application. No separate AI service (Python/FastAPI) is deployed.
+
+### Status
+
+Approved
+
+### Rationale
+
+Eliminates a separate service deployment, simplifies infrastructure, and keeps TypeScript as the sole application language. All OpenAI API calls originate from the NestJS Intelligence Module.
+
+### Impact
+
+spec/11_ai_architecture.md governs AI capability design. All AI features are built as NestJS services within the intelligence module. No Python or FastAPI dependencies.
 
 ---
 
