@@ -96,8 +96,7 @@ through forecasting, workforce analytics, AI-assisted recommendations, and execu
 ## Current Status
 
 ```text
-Blueprint Complete
-Implementation Starting
+Phase 1 Foundation — In Progress
 ```
 
 Blueprint Completion:
@@ -109,8 +108,12 @@ Blueprint Completion:
 Implementation Status:
 
 ```text
-Phase 1 Foundation
+Milestone 1 — Repository Foundation: Complete
+Milestone 2 — Database Foundation: Pending
+Milestone 3 — Backend Foundation: Pending
 ```
+
+Developer setup: see [SETUP.md](SETUP.md)
 
 ---
 

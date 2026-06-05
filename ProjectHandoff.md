@@ -388,6 +388,213 @@ Do not make assumptions.
 
 ---
 
+# Decision-Making Framework
+
+When reviewing work, proposing changes, or evaluating implementation decisions:
+
+Always evaluate in the following order:
+
+1. Does it block the current phase?
+2. Does it violate an approved architecture decision?
+3. Does it violate a requirement, directive, or constraint?
+4. Does it create unnecessary complexity?
+5. Does it provide measurable value now?
+
+Only elevate issues that materially affect implementation.
+
+Do not treat every improvement opportunity as a blocker.
+
+Do not redesign approved architecture unless there is evidence that the architecture cannot satisfy a requirement.
+
+Prefer execution over optimization.
+
+Prefer simplicity over theoretical flexibility.
+
+Prefer approved decisions over alternative possibilities.
+
+---
+
+# Question Framework
+
+Before making recommendations, determine which category applies:
+
+A. Blocking Question
+
+Implementation cannot proceed safely without an answer.
+
+Ask immediately.
+
+Example:
+
+- Which role names are authoritative?
+- Which database should be used?
+- Is tenant isolation required?
+
+B. Future Phase Question
+
+The answer is needed later but not now.
+
+Document it.
+Do not block current work.
+
+Example:
+
+- Redis vs BullMQ
+- Object storage strategy
+- AI scaling architecture
+
+C. Optimization Question
+
+Multiple valid approaches exist.
+
+Recommend one.
+Explain tradeoffs.
+Do not block progress.
+
+Example:
+
+- npm vs pnpm
+- Husky vs no Husky
+- Vitest vs Jest
+
+---
+
+# Escalation Matrix
+
+Level 1 - Blocker
+
+Must stop implementation.
+
+Examples:
+
+- Architecture contradiction
+- Security violation
+- Missing requirement
+- Missing approval
+
+Level 2 - Phase Dependency
+
+Must be resolved before a future phase.
+
+Examples:
+
+- Recruiting state machine before recruiting implementation
+- AI governance before AI implementation
+
+Level 3 - Recommendation
+
+Improvement opportunity.
+
+Implementation may continue.
+
+Examples:
+
+- Package manager preference
+- Testing framework preference
+- Folder naming preference
+
+Level 4 - Observation
+
+Document only.
+
+No action required.
+
+---
+# Required Review Format
+
+When reviewing plans, architecture, implementation, or documentation:
+
+All findings must be classified as:
+
+1. Must Be Completed Before Current Phase
+2. Must Be Completed Before Future Phase
+3. Recommended But Non-Blocking
+
+Do not present all findings as blockers.
+
+Do not assume missing artifacts require immediate creation.
+
+Explain why each finding belongs in its category.
+
+---
+
+# Architecture Protection Rule
+
+The architecture has already been approved.
+
+Future sessions should:
+
+- Validate implementation against architecture.
+- Clarify ambiguities.
+- Identify contradictions.
+
+Future sessions should not:
+
+- Redesign architecture.
+- Replace approved technologies.
+- Introduce major infrastructure changes.
+
+unless a documented implementation issue proves the current architecture cannot satisfy requirements.
+
+---
+# Execution Bias
+
+The project has completed blueprinting.
+
+Default behavior should be:
+
+Build
+Validate
+Document
+Continue
+
+not:
+
+Re-architect
+Re-design
+Re-plan
+
+Planning must justify itself by reducing implementation risk.
+
+---
+
+When in doubt, optimize for progressing the current phase rather than solving future-phase problems early.
+
+---
+# Architectural Challenge Threshold
+
+Before challenging an approved decision, ask:
+
+1. Does the approved decision prevent implementation?
+2. Does the approved decision violate a requirement?
+3. Does the approved decision create measurable risk?
+
+If all answers are No:
+
+Document the alternative as a recommendation.
+
+Do not elevate it to a blocker.
+
+---
+
+# Default Assumption
+
+If an implementation decision has already been approved
+and does not:
+
+- violate requirements
+- violate directives
+- violate architecture
+- create measurable implementation risk
+
+assume the approved decision remains valid.
+
+The burden of proof is on changing a decision,
+not on preserving it.
+
+---
+
+
 # Next Action
 
 Execute Phase 1 Foundation implementation.

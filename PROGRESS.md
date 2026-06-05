@@ -10,18 +10,18 @@
 ---
 
 Last Updated: 2026-06-05
-Updated By: Claude Code (session: role alignment + Phase 1 readiness)
+Updated By: Claude Code (session: Milestone 1 — Repository Foundation)
 
 ## Repository Status
 
-Current Phase: Phase 1 — Foundation (Ready to Begin)
-Overall Classification: Planned — Blueprint Complete, Implementation Not Started
-Active Sprint / Milestone: Phase 1 — Foundation
-Implementation Started: No
+Current Phase: Phase 1 — Foundation (Milestone 1 Complete)
+Overall Classification: Scaffolded — Monorepo structure established, no business logic implemented
+Active Sprint / Milestone: Milestone 2 — Database Foundation
+Implementation Started: Yes (2026-06-05)
 
 ## Phase Summary
 
-All 12 blueprint documentation layers are complete. The Phase 1 hard blocker (role name discrepancy across three blueprint documents) has been resolved. The authoritative 7-role set is now consistent across spec, directive, execution plan, and state model. A secondary tech stack discrepancy was identified in meta/00_project_classification.md during the alignment sweep — it does not block Phase 1 but must be corrected. Phase 1 implementation can begin.
+Milestone 1 (Repository Foundation) is complete and validated. The npm workspace monorepo is operational — `npm install`, `npm run build`, and `npm run lint` all pass across all five workspaces. Next.js and NestJS applications scaffold successfully. Three shared packages (shared, ui, config) are established as empty barrels ready for progressive population. Phase 1 Milestone 2 (Database Foundation) is next.
 
 ---
 
@@ -53,7 +53,7 @@ Source: spec/01_requirements.md — Global Acceptance Criteria
 
 | Domain | ID | FRs | Overall Maturity | Code | Tests | Critical Notes |
 |--------|----|-----|-----------------|------|-------|----------------|
-| Identity & Access | D-001 | 5 | Planned | None | None | Required before all other domains can integrate |
+| Identity & Access | D-001 | 5 | Scaffolded | Stub only | None | Workspace exists; modules implemented Milestones 3–8 |
 | Organization Management | D-002 | 4 | Planned | None | None | Required before Employee and Workforce domains |
 | Employee Management | D-003 | 5 | Planned | None | None | No dedicated directive — gap |
 | Workforce Planning | D-004 | 4 | Planned | None | None | — |
@@ -550,6 +550,84 @@ Source: spec/01_requirements.md — Global Acceptance Criteria
 > This section is append-only. Entries are prepended (most recent first).
 > No entry is ever modified or deleted after it is written.
 > Every meaningful repository change produces one entry.
+
+---
+
+### Entry: 2026-06-05 — Milestone 1: Repository Foundation
+
+Phase: Phase 1 — Foundation
+Status: Milestone 1 Complete / Scaffolded
+Capability Affected: All domains (monorepo infrastructure; no domain business logic)
+FR References: None — infrastructure milestone, no functional requirements implemented
+
+#### What Changed
+
+**New files created (39):**
+
+Root:
+- `package.json` — npm workspace config; 5 workspaces; scripts: build, lint, format, test, db:up, db:down, db:logs, setup
+- `tsconfig.base.json` — shared strict TypeScript config inherited by all workspaces
+- `.eslintrc.js` — shared ESLint rules (TypeScript + Prettier); consistent-type-imports enforced
+- `.prettierrc` — formatting config; LF line endings; singleQuote; trailingComma all
+- `.prettierignore` — excludes node_modules, .next, dist, coverage, prisma migrations
+- `.nvmrc` — pins Node.js 20
+- `.env.example` — documents all required env vars with per-milestone population notes
+- `SETUP.md` — cross-platform developer onboarding guide using npm scripts
+
+apps/web (Next.js 14, App Router, Tailwind CSS, shadcn/ui):
+- `apps/web/package.json`, `tsconfig.json`, `next.config.mjs`, `tailwind.config.ts`, `postcss.config.js`, `.eslintrc.js`
+- `apps/web/src/app/layout.tsx` — root layout stub with metadata
+- `apps/web/src/app/page.tsx` — root page stub
+- `apps/web/src/app/globals.css` — Tailwind directives
+
+apps/api (NestJS 10, TypeScript):
+- `apps/api/package.json`, `tsconfig.json`, `tsconfig.build.json`, `nest-cli.json`, `.eslintrc.js`
+- `apps/api/src/main.ts` — NestJS bootstrap stub
+- `apps/api/src/app.module.ts` — root module stub with milestone sequencing comments
+- `apps/api/test/app.e2e-spec.ts` — bootstrap validation test (passes without DB)
+- `apps/api/test/jest-e2e.json` — e2e Jest config
+
+packages (all empty barrels with milestone population roadmaps):
+- `packages/shared/` — @gov-platform/shared (types, constants, validators)
+- `packages/ui/` — @gov-platform/ui (shadcn/ui wrappers)
+- `packages/config/` — @gov-platform/config (env var schemas)
+
+infrastructure:
+- `infrastructure/docker/docker-compose.yml` — postgres service (Phase 1–2)
+- `infrastructure/docker/docker-compose.override.yml` — local dev overrides
+- `infrastructure/scripts/setup.sh` — CI/CD setup script
+
+CI/CD:
+- `.github/workflows/ci.yml` — GitHub Actions: Install → Lint → Build → Test
+
+**Modified:**
+- `.gitignore` — added Node.js/TypeScript/Next.js/NestJS/Docker entries
+- `README.md` — updated phase status to "Phase 1 Foundation — In Progress"
+
+**Deleted:**
+- `apps/web/next.config.ts` — Next.js 14.2.3 does not support `.ts` config extension; replaced with `next.config.mjs`
+
+**Auto-modified by Next.js lint (expected):**
+- `apps/web/tsconfig.json` — Next.js added `noEmit: true` and `isolatedModules: true` (required by SWC)
+
+#### Validation
+
+- `npm install`: EXIT 0 — 886 packages installed across all workspaces (5 min)
+- `npm run lint`: EXIT 0 — all 5 workspaces clean, no warnings or errors
+- `npm run build`: EXIT 0 — NestJS compiles to dist/; Next.js produces 4 static pages (/, /_not-found); packages type-check clean
+- `npm run test`: EXIT 0 — API: no unit tests found (passWithNoTests); web: placeholder passes
+
+#### Risks / Limitations
+
+- 28 npm audit vulnerabilities (3 low, 13 moderate, 11 high, 1 critical) from scaffolding packages. These are library-level vulnerabilities; no application code is at risk in the current stub state. Will re-assess when application packages are added in Milestones 3–4.
+- Tailwind warning: "No utility classes detected in source files" — expected at this stage; resolved when UI components are built in Milestone 4.
+- Node.js 22.20.0 active on developer machine vs `.nvmrc` pinning 20 — both are supported by all current packages. `.nvmrc` targets LTS 20; `engines` field enforces ≥20. No functional impact.
+
+#### Next Actions
+
+- Proceed to Milestone 2 — Database Foundation
+- Milestone 2 scope: docker-compose.yml already provides postgres; Prisma schema, migrations, and 7-role seed are the deliverables
+- No approval gates outstanding for Milestone 2 (sequencing confirmed: DB before Backend)
 
 ---
 

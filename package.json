@@ -1,0 +1,33 @@
+{
+  "name": "gov-workforce-platform",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "npm run build --workspaces --if-present",
+    "lint": "npm run lint --workspaces --if-present",
+    "format": "prettier --write \"**/*.{ts,tsx,js,json,md}\" --ignore-path .prettierignore",
+    "format:check": "prettier --check \"**/*.{ts,tsx,js,json,md}\" --ignore-path .prettierignore",
+    "test": "npm run test --workspaces --if-present",
+    "db:up": "docker compose -f infrastructure/docker/docker-compose.yml up -d postgres",
+    "db:down": "docker compose -f infrastructure/docker/docker-compose.yml down",
+    "db:logs": "docker compose -f infrastructure/docker/docker-compose.yml logs -f postgres",
+    "setup": "npm install && npm run db:up"
+  },
+  "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "^7.11.0",
+    "@typescript-eslint/parser": "^7.11.0",
+    "eslint": "^8.57.0",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-prettier": "^5.1.3",
+    "prettier": "^3.3.0",
+    "typescript": "^5.4.5"
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "npm": ">=10.0.0"
+  }
+}

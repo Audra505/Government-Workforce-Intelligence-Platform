@@ -1,0 +1,9 @@
+# Local development overrides
+# Automatically merged with docker-compose.yml by docker compose
+# Do not commit local customizations — use .env instead
+
+services:
+  postgres:
+    # Expose postgres directly during development for database tools (DBeaver, TablePlus, etc.)
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"

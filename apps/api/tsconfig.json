@@ -1,0 +1,21 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "target": "ES2021",
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "baseUrl": "./",
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "paths": {
+      "@gov-platform/shared": ["../../packages/shared/src"],
+      "@gov-platform/config": ["../../packages/config/src"]
+    }
+  },
+  "include": ["src/**/*", "test/**/*"],
+  "exclude": ["node_modules", "dist"]
+}
