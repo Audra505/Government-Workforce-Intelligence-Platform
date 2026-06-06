@@ -10,18 +10,18 @@
 ---
 
 Last Updated: 2026-06-05
-Updated By: Claude Code (session: Milestone 2 — Database Foundation)
+Updated By: Claude Code (session: Milestone 3 — Backend Foundation)
 
 ## Repository Status
 
-Current Phase: Phase 1 — Foundation (Milestone 2 Complete and Validated)
-Overall Classification: Scaffolded — Monorepo operational; database foundation live and validated
-Active Sprint / Milestone: Milestone 3 — Backend Foundation (pending approval)
+Current Phase: Phase 1 — Foundation (Milestone 3 Complete and Validated)
+Overall Classification: Integrated Foundation — Application live; DB connected; health endpoint serving; API foundation operational
+Active Sprint / Milestone: Milestone 4 — Audit Foundation (pending approval)
 Implementation Started: Yes (2026-06-05)
 
 ## Phase Summary
 
-Milestone 1 (Repository Foundation) is complete and validated. Milestone 2 (Database Foundation) is complete and validated: Prisma 5.22.0 installed; migration `20260605233955_init_foundation` applied to `gov_workforce_dev`; three PostgreSQL schemas (identity, organization, audit), 7 tables, 15 indexes, and 5 FK constraints confirmed live; 7 authoritative roles seeded and verified against the live database; 6 unit tests passing. Milestone 3 (Backend Foundation — ConfigModule, PrismaModule, HealthModule) is next, pending approval.
+Milestones 1–3 are complete and validated. The NestJS API is running with a full backend foundation: `ConfigModule` validates environment at startup; `PrismaModule` maintains a live PostgreSQL connection pool; `HealthModule` serves `GET /health` returning HTTP 200 with database connectivity confirmation; `main.ts` enforces global `ValidationPipe` (whitelist, forbidNonWhitelisted, transform), `/api` route prefix with `/health` exclusion, and environment-gated Swagger at `GET /api/docs`. 26 unit tests pass across 4 test suites. Milestone 4 (Audit Foundation — AuditModule, AuditService) is next, pending approval.
 
 ---
 
@@ -39,10 +39,10 @@ Source: spec/01_requirements.md — Global Acceptance Criteria
 | 6 | Compliance controls functioning | Not Started | — |
 | 7 | Forecasting and analytics explainable | Not Started | — |
 | 8 | Documentation complete | Satisfied | All 12 blueprint layers documented |
-| 9 | Tests pass | Not Started | No executable tests exist |
-| 10 | No critical security issues | Not Started | No implementation to assess |
+| 9 | Tests pass | In Progress | 26 unit tests passing across 4 suites (platform-roles, env-validation, prisma-service, health-controller); integration and E2E tests pending domain implementation |
+| 10 | No critical security issues | In Progress | Sensitive data (DATABASE_URL, passwords) confirmed absent from logs, health responses, and Swagger output; full security review deferred to Milestone 6+ |
 
-**Platform Acceptance: NOT MET** (1 of 10 criteria satisfied)
+**Platform Acceptance: NOT MET** (1 of 10 criteria satisfied — criterion 9 progressed to In Progress)
 
 ---
 
@@ -53,15 +53,15 @@ Source: spec/01_requirements.md — Global Acceptance Criteria
 
 | Domain | ID | FRs | Overall Maturity | Code | Tests | Critical Notes |
 |--------|----|-----|-----------------|------|-------|----------------|
-| Identity & Access | D-001 | 5 | Scaffolded | DB layer only — users, roles, permissions, user_roles tables live | 6 unit tests (role set) | DB schema validated; NestJS modules implemented Milestones 3–8 |
-| Organization Management | D-002 | 4 | Scaffolded | DB layer only — tenants table live | None | Required before Employee and Workforce domains |
+| Identity & Access | D-001 | 5 | Scaffolded | DB layer live; PrismaService available globally; ConfigService available globally; no identity business logic | 6 unit tests (role set) | Infrastructure foundation ready; IdentityModule implemented Milestone 6 |
+| Organization Management | D-002 | 4 | Scaffolded | DB layer live; PrismaService available; no org business logic | None | Required before Employee and Workforce domains |
 | Employee Management | D-003 | 5 | Planned | None | None | No dedicated directive — gap |
 | Workforce Planning | D-004 | 4 | Planned | None | None | — |
 | Scheduling | D-005 | 3 | Planned | None | None | — |
 | Talent Acquisition | D-006 | 4 | Planned | None | None | No dedicated hiring state file |
 | Workforce Intelligence | D-007 | 4 | Planned | None | None | Depends on AI Governance constraints |
 | Skills & Certifications | D-008 | 4 | Planned | None | None | No dedicated state model |
-| Compliance & Governance | D-009 | 3 | Scaffolded | DB layer only — audit_events table live | None | Cross-cutting; must be integrated early |
+| Compliance & Governance | D-009 | 3 | Scaffolded | DB layer live; PrismaService available for AuditService injection; no AuditModule yet | None | AuditModule is Milestone 4 — next milestone |
 | Approval Management | D-010 | 4 | Planned | None | None | — |
 | Notification Management | D-011 | 4 | Planned | None | None | No dedicated state model |
 | Reporting & Intelligence | D-012 | 14 | Planned | None | None | No dedicated directive — gap |
@@ -625,8 +625,86 @@ CI/CD:
 
 #### Next Actions
 
-- Milestone 2 implementation artifacts are complete — see entry below
-- Developer must run DB setup and migration before Milestone 3 begins
+- Milestone 3 complete — see entry below
+
+---
+
+### Entry: 2026-06-05 — Milestone 3: Backend Foundation (Complete and Validated)
+
+Phase: Phase 1 — Foundation
+Status: Complete and Validated
+Capability Affected: Cross-cutting infrastructure — ConfigModule, PrismaModule, HealthModule, ValidationPipe, global prefix, Swagger
+
+#### Capability / Deliverable Alignment
+
+- Capability: Backend Foundation
+- Deliverable Status: Required (execution/02_phase_1_foundation.md — Deliverable 3)
+- Requirements: Defined — spec/10_backend_architecture.md (Configuration, Health Checks, Validation, API Documentation)
+- Specs: Aligned — spec/03_system_architecture.md (Prisma ORM, NestJS), spec/07_security_architecture.md (SEC-004, SEC-007)
+- Directives: Aligned — directives/10_role_based_access_rules.md (7 roles accessible via PrismaService)
+- Execution Plan: Implemented — execution/02_phase_1_foundation.md Deliverable 3 complete
+- State Model: Not applicable at this infrastructure layer
+- Test Scenarios: 26 unit tests passing across 4 suites
+- System Loop: Integrated — NestJS application starts, PrismaService connects, HealthModule responds
+- Failure Playbook: Partial — fail-fast on missing DATABASE_URL; graceful health 503 on DB failure; full playbook deferred
+- Environment Model: Integrated — NODE_ENV gates Swagger; DATABASE_URL validated at startup
+- Data Lifecycle: Not applicable at this infrastructure layer
+- Evolution Strategy: ConfigModule namespaced factories ready for JwtConfig addition (Milestone 6)
+- Overall Maturity: **Integrated**
+
+#### What Changed
+
+**Created:**
+- `packages/config/src/app.config.ts` — `AppConfig` interface: `{ port, nodeEnv }`
+- `packages/config/src/database.config.ts` — `DatabaseConfig` interface: `{ url }`
+- `apps/api/src/config/app.config.ts` — `registerAs('app')` factory
+- `apps/api/src/config/database.config.ts` — `registerAs('database')` factory
+- `apps/api/src/config/env.validation.ts` — class-validator startup gate; aborts on empty/missing `DATABASE_URL`
+- `apps/api/src/config/env.validation.spec.ts` — 10 unit tests for validate()
+- `apps/api/src/database/prisma.service.ts` — extends PrismaClient; onModuleInit/$connect; onModuleDestroy/$disconnect; DATABASE_URL never logged
+- `apps/api/src/database/prisma.module.ts` — @Global() module; exports PrismaService
+- `apps/api/src/database/prisma.service.spec.ts` — 3 unit tests: defined, connect once, disconnect once
+- `apps/api/src/health/prisma-health.indicator.ts` — custom Terminus indicator; SELECT 1 ping; no-binding catch prevents raw error exposure
+- `apps/api/src/health/health.controller.ts` — GET /health; delegates to HealthCheckService; no auth guard
+- `apps/api/src/health/health.module.ts` — imports TerminusModule; provides controller and indicator
+- `apps/api/src/health/health.controller.spec.ts` — 7 unit tests: indicator up/down/sanitization (4), controller delegation (2), defined (1)
+
+**Modified:**
+- `packages/config/src/index.ts` — exports AppConfig, DatabaseConfig via export type
+- `apps/api/src/app.module.ts` — ConfigModule.forRoot(), PrismaModule, HealthModule registered
+- `apps/api/src/main.ts` — ValidationPipe; setGlobalPrefix('api') with /health exclusion; environment-gated Swagger at /api/docs; ConfigService for port; Logger for startup
+- `apps/api/package.json` — 6 runtime deps added; setupFiles: ["reflect-metadata"] in jest config
+- `apps/api/tsconfig.build.json` — rootDir: "./src" maintained
+- `apps/api/tsconfig.json` — types: ["jest", "node"] confirmed
+
+#### Key Architectural Decisions Made During Implementation
+
+1. **Cross-package import type not used in tsconfig.build.json files** — TS6059 conflict between rootDir: "./src" and path-alias imports to packages/config/src/. Config factories use inferred return types. packages/config interfaces serve apps/web, spec files, and documentation. Noted in factory comments.
+2. **prisma-health.indicator.ts added as a separate file** — Extracted from controller to enable isolation testing of the error-sanitization contract (security-critical path).
+3. **@IsNotEmpty() added to DATABASE_URL** — @IsString() alone accepts empty strings; test identified the gap. Added to ensure empty DATABASE_URL fails at startup.
+4. **setupFiles: ["reflect-metadata"] in jest config** — Required for class-validator/class-transformer decorators in Jest's isolated environment.
+
+#### Validation
+
+- `npm run type-check` (api): EXIT 0
+- `npm run build` (root, all 5 workspaces): EXIT 0
+- `npm test` (api): EXIT 0 — 26 tests, 4 suites, 0 failures
+- `GET /health`: HTTP 200 — `{"status":"ok","info":{"database":{"status":"up"}},...}`
+- `GET /api/health`: HTTP 404 — prefix exclusion confirmed
+- `GET /api/docs`: HTTP 200 — Swagger UI HTML
+- `GET /api/docs-json`: HTTP 200 — openapi 3.0.0, title and paths confirmed
+- Fail-fast test (`DATABASE_URL="" node dist/main.js`): aborts immediately — `Environment validation failed: DATABASE_URL should not be empty`
+
+#### Risks / Limitations
+
+- Cross-package type sharing (packages/config → apps/api build files) constrained by rootDir: "./src". Addressed by inferred return types; no TypeScript project references implemented.
+- Swagger is environment-gated; Swagger decorators on future endpoints still need to be authored.
+- AuditModule (Milestone 4) is the next dependency: PrismaService globally available; no audit events written until Milestone 4.
+
+#### Next Actions
+
+- Proceed to Milestone 4 — Audit Foundation (AuditModule, AuditService, audit_events write path)
+- No outstanding blockers
 
 ---
 

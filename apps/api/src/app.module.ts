@@ -1,12 +1,29 @@
 import { Module } from '@nestjs/common';
+import { ConfigModule } from '@nestjs/config';
+import appConfig from './config/app.config';
+import databaseConfig from './config/database.config';
+import { validate } from './config/env.validation';
+import { PrismaModule } from './database/prisma.module';
+import { HealthModule } from './health/health.module';
 
-// Phase 1 Foundation — root module scaffold
-// Modules added progressively per execution/02_phase_1_foundation.md:
-//   Milestone 3: ConfigModule, PrismaModule, HealthModule
-//   Milestone 4: AuditModule (precedes Authentication — see corrected sequencing)
+// Reference: execution/02_phase_1_foundation.md — Deliverable 3 (Backend Foundation)
+// Reference: spec/10_backend_architecture.md — Module Organization
+//
+// Module registration order follows dependency sequencing:
+//   Milestone 3: ConfigModule (global), PrismaModule (global), HealthModule
+//   Milestone 4: AuditModule (precedes Authentication — established before auth layer)
 //   Milestone 6: IdentityModule (Authentication, RBAC)
+
 @Module({
-  imports: [],
+  imports: [
+    ConfigModule.forRoot({
+      isGlobal: true,
+      validate,
+      load: [appConfig, databaseConfig],
+    }),
+    PrismaModule,
+    HealthModule,
+  ],
   controllers: [],
   providers: [],
 })
