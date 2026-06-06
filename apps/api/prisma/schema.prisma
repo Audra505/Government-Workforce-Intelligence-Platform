@@ -1,0 +1,151 @@
+// =============================================================================
+// Government Workforce Intelligence Platform — Prisma Schema
+// Milestone 2: Database Foundation
+// Reference: spec/05_database_schema.md, execution/02_phase_1_foundation.md
+// =============================================================================
+//
+// PostgreSQL schemas declared here (Milestone 2 scope):
+//   organization — tenants (multi-tenant root; spec: organization.agencies)
+//   identity     — users, roles, permissions, role_permissions, user_roles
+//   audit        — audit_events (immutable audit trail)
+//
+// Future schemas added progressively as domains are implemented:
+//   workforce, scheduling, recruiting, intelligence, compliance, integration
+// =============================================================================
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["multiSchema"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  schemas  = ["identity", "organization", "audit"]
+}
+
+// ---------------------------------------------------------------------------
+// Schema: organization
+// Tenant root entity. Every tenant-scoped table carries tenant_id UUID
+// referencing this table.
+// Spec reference: spec/05_database_schema.md — Schema: organization / agencies
+// The platform treats agency and tenant as the same concept at the DB level.
+// ---------------------------------------------------------------------------
+
+model Tenant {
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String   @db.VarChar(255)
+  code      String   @unique @db.VarChar(100)
+  status    String   @default("ACTIVE") @db.VarChar(50)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  users User[]
+
+  @@map("tenants")
+  @@schema("organization")
+}
+
+// ---------------------------------------------------------------------------
+// Schema: identity
+// Spec reference: spec/05_database_schema.md — Schema: identity
+// ---------------------------------------------------------------------------
+
+model User {
+  id           String    @id @default(uuid()) @db.Uuid
+  tenantId     String    @map("tenant_id") @db.Uuid
+  email        String    @db.VarChar(255)
+  passwordHash String    @map("password_hash") @db.Text
+  firstName    String    @map("first_name") @db.VarChar(100)
+  lastName     String    @map("last_name") @db.VarChar(100)
+  status       String    @default("INVITED") @db.VarChar(50)
+  lastLoginAt  DateTime? @map("last_login_at") @db.Timestamptz(6)
+  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  deletedAt    DateTime? @map("deleted_at") @db.Timestamptz(6)
+
+  tenant    Tenant     @relation(fields: [tenantId], references: [id])
+  userRoles UserRole[]
+
+  @@unique([tenantId, email], map: "idx_users_tenant_email")
+  @@index([tenantId], map: "idx_users_tenant")
+  @@map("users")
+  @@schema("identity")
+}
+
+model Role {
+  id          String   @id @default(uuid()) @db.Uuid
+  name        String   @unique @db.VarChar(100)
+  description String?  @db.Text
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  userRoles       UserRole[]
+  rolePermissions RolePermission[]
+
+  @@map("roles")
+  @@schema("identity")
+}
+
+model Permission {
+  id          String   @id @default(uuid()) @db.Uuid
+  resource    String   @db.VarChar(100)
+  action      String   @db.VarChar(100)
+  description String?  @db.Text
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  rolePermissions RolePermission[]
+
+  @@unique([resource, action])
+  @@map("permissions")
+  @@schema("identity")
+}
+
+// Role → Permission assignment (many-to-many)
+model RolePermission {
+  roleId       String @map("role_id") @db.Uuid
+  permissionId String @map("permission_id") @db.Uuid
+
+  role       Role       @relation(fields: [roleId], references: [id])
+  permission Permission @relation(fields: [permissionId], references: [id])
+
+  @@id([roleId, permissionId])
+  @@map("role_permissions")
+  @@schema("identity")
+}
+
+// User → Role assignment (many-to-many)
+model UserRole {
+  userId String @map("user_id") @db.Uuid
+  roleId String @map("role_id") @db.Uuid
+
+  user User @relation(fields: [userId], references: [id])
+  role Role @relation(fields: [roleId], references: [id])
+
+  @@id([userId, roleId])
+  @@map("user_roles")
+  @@schema("identity")
+}
+
+// ---------------------------------------------------------------------------
+// Schema: audit
+// Append-only immutable audit trail. tenantId/userId are plain UUID columns
+// with no Prisma relations — cascading deletes must never affect audit records.
+// Spec reference: spec/05_database_schema.md — Schema: audit / audit_events
+// ---------------------------------------------------------------------------
+
+model AuditEvent {
+  id         String   @id @default(uuid()) @db.Uuid
+  tenantId   String   @map("tenant_id") @db.Uuid
+  userId     String   @map("user_id") @db.Uuid
+  entityType String?  @map("entity_type") @db.VarChar(100)
+  entityId   String?  @map("entity_id") @db.Uuid
+  action     String   @db.VarChar(100)
+  metadata   Json?    @db.JsonB
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([tenantId], map: "idx_audit_tenant")
+  @@index([userId], map: "idx_audit_user")
+  @@index([createdAt], map: "idx_audit_created")
+  @@map("audit_events")
+  @@schema("audit")
+}

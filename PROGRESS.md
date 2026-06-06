@@ -10,18 +10,18 @@
 ---
 
 Last Updated: 2026-06-05
-Updated By: Claude Code (session: Milestone 1 — Repository Foundation)
+Updated By: Claude Code (session: Milestone 2 — Database Foundation)
 
 ## Repository Status
 
-Current Phase: Phase 1 — Foundation (Milestone 1 Complete)
-Overall Classification: Scaffolded — Monorepo structure established, no business logic implemented
-Active Sprint / Milestone: Milestone 2 — Database Foundation
+Current Phase: Phase 1 — Foundation (Milestone 2 Complete and Validated)
+Overall Classification: Scaffolded — Monorepo operational; database foundation live and validated
+Active Sprint / Milestone: Milestone 3 — Backend Foundation (pending approval)
 Implementation Started: Yes (2026-06-05)
 
 ## Phase Summary
 
-Milestone 1 (Repository Foundation) is complete and validated. The npm workspace monorepo is operational — `npm install`, `npm run build`, and `npm run lint` all pass across all five workspaces. Next.js and NestJS applications scaffold successfully. Three shared packages (shared, ui, config) are established as empty barrels ready for progressive population. Phase 1 Milestone 2 (Database Foundation) is next.
+Milestone 1 (Repository Foundation) is complete and validated. Milestone 2 (Database Foundation) is complete and validated: Prisma 5.22.0 installed; migration `20260605233955_init_foundation` applied to `gov_workforce_dev`; three PostgreSQL schemas (identity, organization, audit), 7 tables, 15 indexes, and 5 FK constraints confirmed live; 7 authoritative roles seeded and verified against the live database; 6 unit tests passing. Milestone 3 (Backend Foundation — ConfigModule, PrismaModule, HealthModule) is next, pending approval.
 
 ---
 
@@ -53,15 +53,15 @@ Source: spec/01_requirements.md — Global Acceptance Criteria
 
 | Domain | ID | FRs | Overall Maturity | Code | Tests | Critical Notes |
 |--------|----|-----|-----------------|------|-------|----------------|
-| Identity & Access | D-001 | 5 | Scaffolded | Stub only | None | Workspace exists; modules implemented Milestones 3–8 |
-| Organization Management | D-002 | 4 | Planned | None | None | Required before Employee and Workforce domains |
+| Identity & Access | D-001 | 5 | Scaffolded | DB layer only — users, roles, permissions, user_roles tables live | 6 unit tests (role set) | DB schema validated; NestJS modules implemented Milestones 3–8 |
+| Organization Management | D-002 | 4 | Scaffolded | DB layer only — tenants table live | None | Required before Employee and Workforce domains |
 | Employee Management | D-003 | 5 | Planned | None | None | No dedicated directive — gap |
 | Workforce Planning | D-004 | 4 | Planned | None | None | — |
 | Scheduling | D-005 | 3 | Planned | None | None | — |
 | Talent Acquisition | D-006 | 4 | Planned | None | None | No dedicated hiring state file |
 | Workforce Intelligence | D-007 | 4 | Planned | None | None | Depends on AI Governance constraints |
 | Skills & Certifications | D-008 | 4 | Planned | None | None | No dedicated state model |
-| Compliance & Governance | D-009 | 3 | Planned | None | None | Cross-cutting; must be integrated early |
+| Compliance & Governance | D-009 | 3 | Scaffolded | DB layer only — audit_events table live | None | Cross-cutting; must be integrated early |
 | Approval Management | D-010 | 4 | Planned | None | None | — |
 | Notification Management | D-011 | 4 | Planned | None | None | No dedicated state model |
 | Reporting & Intelligence | D-012 | 14 | Planned | None | None | No dedicated directive — gap |
@@ -625,9 +625,77 @@ CI/CD:
 
 #### Next Actions
 
-- Proceed to Milestone 2 — Database Foundation
-- Milestone 2 scope: docker-compose.yml already provides postgres; Prisma schema, migrations, and 7-role seed are the deliverables
-- No approval gates outstanding for Milestone 2 (sequencing confirmed: DB before Backend)
+- Milestone 2 implementation artifacts are complete — see entry below
+- Developer must run DB setup and migration before Milestone 3 begins
+
+---
+
+### Entry: 2026-06-05 — Milestone 2: Database Foundation (Complete and Validated)
+
+Phase: Phase 1 — Foundation
+Status: Complete and Validated
+Capability Affected: D-001 Identity & Access (users, roles, user_roles), D-002 Organization Management (tenants), D-009 Compliance & Governance (audit_events); cross-cutting tenant isolation and RBAC foundation
+
+#### Capability / Deliverable Alignment
+
+- Capability: Database Foundation
+- Deliverable Status: Required (execution/02_phase_1_foundation.md — Deliverable 2)
+- Requirements: Defined — spec/05_database_schema.md (Tenant Strategy, Schema: identity, organization, audit)
+- Specs: Authoritative — three-schema design confirmed against spec/05_database_schema.md
+- Directives: Aligned — directives/10_role_based_access_rules.md (7 authoritative roles seeded)
+- Execution Plan: Implemented — Prisma 5.22.0, schema.prisma, migration scaffold, seed
+- State Model: Not yet formalized as a dedicated document (tenant lifecycle not yet codified)
+- Test Scenarios: Unit tests present (6 passing); integration tests pending migration
+- System Loop: Not yet integrated — NestJS PrismaModule added in Milestone 3
+- Failure Playbook: Not yet integrated
+- Environment Model: DATABASE_URL configured in root .env and apps/api/.env; postgres service is native PostgreSQL 18 (not Docker on this machine)
+- Data Lifecycle: Not yet implemented
+- Evolution Strategy: Not yet formalized
+- Overall Maturity: **Integrated** (schema live, migration applied, seed validated, unit tests passing)
+
+#### What Changed
+
+**Created:**
+- `.env` — root-level local development environment file (not committed; mirrors .env.example)
+- `apps/api/.env` — Prisma-specific DATABASE_URL for CLI operations (not committed)
+- `apps/api/prisma/schema.prisma` — Prisma 5.22.0 schema with multiSchema preview feature; three PostgreSQL schemas (identity, organization, audit); 7 models: Tenant, User, Role, Permission, RolePermission, UserRole, AuditEvent; all indexes aligned with spec/05_database_schema.md
+- `apps/api/prisma/seed.ts` — idempotent upsert seed for 7 authoritative platform roles; exports PLATFORM_ROLES constant
+- `apps/api/prisma/migrations/20260605233955_init_foundation/migration.sql` — generated migration SQL; creates 3 schemas, 7 tables, 15 indexes, 5 FK constraints; applied and verified
+- `apps/api/src/platform-roles.spec.ts` — 6 unit tests validating the authoritative role set (no DB required)
+
+**Modified:**
+- `apps/api/package.json` — added `@prisma/client ^5.22.0` (dependency), `prisma ^5.22.0` (devDependency); added `prebuild: prisma generate`; added scripts: `db:generate`, `db:migrate`, `db:migrate:deploy`, `db:seed`, `db:reset`; added `prisma.seed` configuration entry
+
+#### Schema Architecture Decision
+
+Tenant entity placed in `organization` schema (not `identity`) per spec/05_database_schema.md which places the agency/tenant record under `organization`. This aligns with the spec's schema taxonomy and avoids a correction migration in Phase 2. Decision approved during Milestone 2 implementation.
+
+AuditEvent intentionally has no Prisma relations to Tenant or User — plain UUID columns only. Cascading deletes must never corrupt the audit trail (spec/05_database_schema.md — Schema: audit).
+
+#### Validation
+
+- `npx prisma generate`: EXIT 0 — Prisma client generated for all 7 models; multiSchema preview feature confirmed active
+- `npx prisma migrate dev --name init_foundation`: EXIT 0 — migration `20260605233955_init_foundation` applied; 1 step; `_prisma_migrations` table confirms `finished_at: 2026-06-05`
+- `npx prisma db seed`: EXIT 0 — 7 roles upserted: System Administrator, HR Director, Workforce Planner, Recruiter, Hiring Manager, Compliance Officer, Executive User
+- Live DB queries (govplatform user against gov_workforce_dev):
+  - Schemas: audit, identity, organization — 3 rows confirmed
+  - Tables: audit_events, permissions, role_permissions, roles, user_roles, users, tenants — 7 rows confirmed
+  - Indexes: 15 indexes confirmed (per spec, including all named indexes)
+  - FK constraints: 5 constraints confirmed including cross-schema `identity.users → organization.tenants`
+  - Role count: `SELECT COUNT(*) FROM identity.roles` → 7
+- `npm test`: EXIT 0 — 6/6 unit tests pass
+- Environment note: govplatform user required `CREATEDB` privilege for Prisma shadow database during `migrate dev`. This is a dev-only requirement; `migrate deploy` (used in CI/CD and production) does not require `CREATEDB`.
+
+#### Risks / Limitations
+
+- Docker not available on developer machine (Docker Desktop and WSL not installed); `infrastructure/docker/docker-compose.yml` remains the canonical deployment target for CI and other environments; Milestone 9 (Docker Environment) will validate this path
+- AuditEvent.tenantId and AuditEvent.userId are plain UUID columns with no Prisma FK — intentional design; application layer must enforce referential validity for audit events
+- govplatform requires CREATEDB for local development with `prisma migrate dev`; CI pipeline must either grant this privilege to the test DB user or use `--shadow-database-url` pointing to a superuser connection
+
+#### Next Actions
+
+- Proceed to Milestone 3 — Backend Foundation (ConfigModule, PrismaModule, HealthModule, NestJS module wiring)
+- No outstanding blockers for Milestone 3
 
 ---
 
