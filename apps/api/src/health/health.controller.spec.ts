@@ -1,5 +1,5 @@
 import { HealthCheckError, HealthCheckService } from '@nestjs/terminus';
-import { Test, TestingModule } from '@nestjs/testing';
+import { Test, type TestingModule } from '@nestjs/testing';
 import { PrismaService } from '../database/prisma.service';
 import { HealthController } from './health.controller';
 import { PrismaHealthIndicator } from './prisma-health.indicator';
