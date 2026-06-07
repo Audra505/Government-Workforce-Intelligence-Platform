@@ -34,17 +34,116 @@ Implementation Readiness:
 
 Approved
 
-Current Phase:
 
-Phase 1 Foundation
+### Current Phase
 
-Authorization Status:
+Phase 1 — Foundation
 
-Approved To Begin Implementation
+### Current Milestone
 
-Code Generation Status:
+Milestone 4 — Audit Foundation (Pending Approval)
 
-Not Started
+### Completed Milestones
+
+#### Milestone 1 — Repository Foundation
+
+Completed and validated.
+
+Key outcomes:
+
+* Monorepo established
+* Next.js application scaffolded
+* NestJS application scaffolded
+* Shared package structure created
+* Docker infrastructure created
+* GitHub Actions CI created
+
+#### Milestone 2 — Database Foundation
+
+Completed and validated.
+
+Key outcomes:
+
+* PostgreSQL operational
+* Prisma ORM configured
+* Three-schema architecture implemented:
+
+  * identity
+  * organization
+  * audit
+* Migration applied successfully
+* Role seed completed
+* Database validation completed
+
+#### Milestone 3 — Backend Foundation
+
+Completed and validated.
+
+Key outcomes:
+
+* ConfigModule implemented
+* Environment validation implemented
+* PrismaModule implemented
+* HealthModule implemented
+* ValidationPipe configured globally
+* Global API prefix configured
+* Health endpoint exclusion configured
+* Swagger documentation configured
+* Startup validation implemented
+
+Runtime validation completed:
+
+* GET /health → HTTP 200
+* GET /api/health → HTTP 404
+* GET /api/docs → HTTP 200
+* GET /api/docs-json → HTTP 200
+
+### Current Runtime Status
+
+Backend API operational.
+
+Validated services:
+
+* PostgreSQL
+* Prisma
+* NestJS
+* Swagger
+* Health endpoint
+
+Startup log confirms:
+
+* Prisma connected
+* Swagger mounted
+* Application listening on port 3001
+
+### Current Test Status
+
+Passing:
+
+* 26 tests
+* 4 test suites
+
+Suites:
+
+* platform-roles.spec.ts
+* env.validation.spec.ts
+* prisma.service.spec.ts
+* health.controller.spec.ts
+
+Validation status:
+
+* Type-check passing
+* Build passing
+* Unit tests passing
+* Runtime validation passing
+
+Important constraints:
+
+* AuditEvent intentionally has no Prisma foreign keys
+* Swagger enabled only outside production
+* DATABASE_URL validated at startup
+* Health endpoint exposed at /health
+* Health endpoint intentionally excluded from /api prefix
 
 ---
 
@@ -155,6 +254,20 @@ infrastructure/
 
 Blueprint documentation remains separate from implementation code.
 
+## Audit Before Authentication
+
+Status:
+Approved
+
+Reason:
+Authentication events must be auditable from day one.
+
+Type:
+Implementation sequencing decision
+
+Impact:
+No blueprint changes required.
+
 ---
 
 # Authoritative Roles
@@ -237,6 +350,26 @@ Implementation Readiness Review:
 
 Complete
 
+Tenant Strategy
+
+Status:
+
+Approved and Implemented
+
+Decision:
+
+organization.tenants
+
+Rationale:
+
+Matches spec/05_database_schema.md authoritative schema taxonomy.
+
+Tenant and agency concepts are aligned at the database layer.
+
+Future sessions should treat this decision as implemented and validated.
+
+Do not reopen unless a requirement, directive, or measurable implementation risk requires it.
+
 Remaining Blockers:
 
 None
@@ -283,21 +416,23 @@ No Python services.
 
 # Current Objective
 
-Begin Phase 1 Foundation implementation.
+Continue Phase 1 Foundation implementation.
+
+Current Milestone:
+
+Milestone 4 — Audit Foundation
 
 Deliverables:
 
-* Monorepo Structure
-* Next.js Application
-* NestJS API
-* PostgreSQL
-* Prisma
-* Authentication
-* RBAC
-* Tenant Isolation
-* Audit Foundation
-* Docker Environment
-* CI/CD Foundation
+* AuditModule
+* AuditService
+* Audit event persistence
+* Audit infrastructure
+* Compliance logging foundation
+
+Milestones 1–3 are complete and validated.
+
+Future sessions should continue execution from Milestone 4 unless PROGRESS.md indicates otherwise.
 
 No business features are implemented during Phase 1.
 
@@ -385,6 +520,40 @@ If uncertainty exists:
 Ask clarifying questions before changing architecture.
 
 Do not make assumptions.
+
+---
+
+# Document Authority Hierarchy
+
+When evaluating implementation work, use the following order of authority:
+
+1. Blueprint Artifacts (Highest Authority)
+
+   * Requirements
+   * Directives
+   * Architecture
+   * State Models
+   * Execution Documents
+
+2. CLAUDE.md
+
+   Implementation governance.
+
+3. PROGRESS.md
+
+   Current implementation status and sequencing.
+
+4. ProjectHandoff.md
+
+   Review methodology and session continuity.
+
+5. README.md
+
+   Informational only.
+
+ProjectHandoff.md explains how to review work.
+
+It does not override blueprint artifacts, CLAUDE.md, or PROGRESS.md.
 
 ---
 
@@ -599,17 +768,31 @@ not on preserving it.
 
 Execute Phase 1 Foundation implementation.
 
-Implementation Plan Status:
 
-Approved
+### Next Approved Milestone
 
-Expected First Deliverable:
+Milestone 4 — Audit Foundation
 
-Monorepo scaffold creation:
-- apps/web
-- apps/api
-- packages/shared
-- infrastructure
+Planned deliverables:
+
+* AuditModule
+* AuditService
+* Audit event persistence foundation
+* Cross-cutting audit infrastructure
+
+### Resume Point For Future Sessions
+
+The project is currently ready to begin Milestone 4.
+
+Milestones 1–3 are complete, validated, committed, and pushed to GitHub.
+
+Any future session should:
+
+1. Review CLAUDE.md
+2. Review PROGRESS.md
+3. Review this ProjectHandoff.md
+4. Treat PROGRESS.md as the authoritative implementation ledger
+5. Continue from Milestone 4 without re-architecting previously approved decisions
 
 Generate code only after presenting the specific implementation step and receiving approval.
 

@@ -9,19 +9,19 @@
 
 ---
 
-Last Updated: 2026-06-05
-Updated By: Claude Code (session: Milestone 3 — Backend Foundation)
+Last Updated: 2026-06-07
+Updated By: Claude Code (session: Milestone 4 — Audit Foundation)
 
 ## Repository Status
 
-Current Phase: Phase 1 — Foundation (Milestone 3 Complete and Validated)
-Overall Classification: Integrated Foundation — Application live; DB connected; health endpoint serving; API foundation operational
-Active Sprint / Milestone: Milestone 4 — Audit Foundation (pending approval)
+Current Phase: Phase 1 — Foundation (Milestone 4 Complete and Validated)
+Overall Classification: Integrated Foundation — Application live; DB connected; health endpoint serving; API foundation operational; audit write infrastructure globally registered
+Active Sprint / Milestone: Milestone 5 — Authentication Foundation (pending)
 Implementation Started: Yes (2026-06-05)
 
 ## Phase Summary
 
-Milestones 1–3 are complete and validated. The NestJS API is running with a full backend foundation: `ConfigModule` validates environment at startup; `PrismaModule` maintains a live PostgreSQL connection pool; `HealthModule` serves `GET /health` returning HTTP 200 with database connectivity confirmation; `main.ts` enforces global `ValidationPipe` (whitelist, forbidNonWhitelisted, transform), `/api` route prefix with `/health` exclusion, and environment-gated Swagger at `GET /api/docs`. 26 unit tests pass across 4 test suites. Milestone 4 (Audit Foundation — AuditModule, AuditService) is next, pending approval.
+Milestones 1–4 are complete and validated. The NestJS API is running with a full backend foundation: `ConfigModule` validates environment at startup; `PrismaModule` maintains a live PostgreSQL connection pool; `HealthModule` serves `GET /health` returning HTTP 200 with database connectivity confirmation; `main.ts` enforces global `ValidationPipe` (whitelist, forbidNonWhitelisted, transform), `/api` route prefix with `/health` exclusion, and environment-gated Swagger at `GET /api/docs`. `AuditModule` (Milestone 4) is registered globally — `AuditService.logEvent()` is injectable across all domain modules; `AuditEventType` covers 42 events (AUD-200 through AUD-900); `SYSTEM_USER_ID` sentinel established; `result` column added to `audit.audit_events`. 37 unit tests pass across 5 test suites. Milestone 5 (Authentication Foundation — IdentityModule, FR-001, FR-002) is next, pending approval.
 
 ---
 
@@ -33,16 +33,16 @@ Source: spec/01_requirements.md — Global Acceptance Criteria
 |---|-----------|--------|----------|
 | 1 | All traceable requirements implemented | Not Started | — |
 | 2 | Tenant isolation validated | Not Started | — |
-| 3 | Audit logging operational | Not Started | — |
+| 3 | Audit logging operational | In Progress | AuditService.logEvent() operational; AuditModule registered globally; 42-event taxonomy defined; no domain module calls logEvent() yet |
 | 4 | RBAC enforced | Not Started | — |
 | 5 | AI recommendations remain advisory | Not Started | — |
 | 6 | Compliance controls functioning | Not Started | — |
 | 7 | Forecasting and analytics explainable | Not Started | — |
 | 8 | Documentation complete | Satisfied | All 12 blueprint layers documented |
-| 9 | Tests pass | In Progress | 26 unit tests passing across 4 suites (platform-roles, env-validation, prisma-service, health-controller); integration and E2E tests pending domain implementation |
+| 9 | Tests pass | In Progress | 37 unit tests passing across 5 suites (platform-roles, env-validation, prisma-service, health-controller, audit-service); integration and E2E tests pending domain implementation |
 | 10 | No critical security issues | In Progress | Sensitive data (DATABASE_URL, passwords) confirmed absent from logs, health responses, and Swagger output; full security review deferred to Milestone 6+ |
 
-**Platform Acceptance: NOT MET** (1 of 10 criteria satisfied — criterion 9 progressed to In Progress)
+**Platform Acceptance: NOT MET** (1 of 10 criteria satisfied — criteria 3 and 9 progressed to In Progress)
 
 ---
 
@@ -61,7 +61,7 @@ Source: spec/01_requirements.md — Global Acceptance Criteria
 | Talent Acquisition | D-006 | 4 | Planned | None | None | No dedicated hiring state file |
 | Workforce Intelligence | D-007 | 4 | Planned | None | None | Depends on AI Governance constraints |
 | Skills & Certifications | D-008 | 4 | Planned | None | None | No dedicated state model |
-| Compliance & Governance | D-009 | 3 | Scaffolded | DB layer live; PrismaService available for AuditService injection; no AuditModule yet | None | AuditModule is Milestone 4 — next milestone |
+| Compliance & Governance | D-009 | 3 | Partially Implemented | AuditModule @Global() registered; AuditService.logEvent() writes to audit.audit_events; SYSTEM_USER_ID sentinel; AuditEventType (42 values); CreateAuditEventDto; result column in schema | 11 unit tests (AuditService: write path, AUD-1300 suppression, PII restriction, SYSTEM_USER_ID) | Domain callers not yet wired (Milestone 5+); FR-501/FR-502 remain Planned; retention directive conflict documented (AUD-1200 7yr vs data/03 10yr — 10yr applied) |
 | Approval Management | D-010 | 4 | Planned | None | None | — |
 | Notification Management | D-011 | 4 | Planned | None | None | No dedicated state model |
 | Reporting & Intelligence | D-012 | 14 | Planned | None | None | No dedicated directive — gap |
@@ -312,11 +312,11 @@ Source: spec/01_requirements.md — Global Acceptance Criteria
 
 ## Domain: Compliance & Governance (D-009)
 
-**Dependency note:** Audit logging (FR-500) is a cross-cutting requirement. It must be implemented early and wired into every domain that records create/update/delete events. It cannot be deferred to Phase 5.
+**Dependency note:** Audit logging (FR-500) was implemented in Milestone 4 ahead of Authentication Foundation per approved sequencing. AuditService is globally injectable — all domain modules wired in Milestone 5+ can call logEvent() without importing AuditModule.
 
 | FR | Title | Maturity |
 |----|-------|----------|
-| FR-500 | Audit Logging | Planned |
+| FR-500 | Audit Logging | Partially Implemented |
 | FR-501 | Compliance Reporting | Planned |
 | FR-502 | Policy Enforcement | Planned |
 
@@ -324,18 +324,18 @@ Source: spec/01_requirements.md — Global Acceptance Criteria
 - Deliverable Status: Required
 - Requirements: Defined — spec/01_requirements.md (FR-500 through FR-502)
 - Specs: Defined — spec/07_security_architecture.md
-- Directives: Present — directives/07_compliance_rules.md, directives/08_audit_rules.md, directives/11_government_policy_rules.md
-- Execution Plan: Planned — execution/06_phase_5_compliance_reporting.md (note: audit logging should move earlier)
+- Directives: Present — directives/07_compliance_rules.md, directives/08_audit_rules.md, directives/11_government_policy_rules.md; known conflict: AUD-1200 states 7-year minimum retention; data/03_retention_policy.md states 10 years for Audit Events and Security Events; 10 years applied (conservative); directive requires update before retention enforcement is implemented
+- Execution Plan: Partially Implemented — FR-500 write infrastructure implemented as Phase 1 Deliverable 8 (execution/02_phase_1_foundation.md); FR-501 and FR-502 remain in execution/06_phase_5_compliance_reporting.md
 - State Model: Present — state/06_compliance_review_states.md
-- Test Scenarios: Specified (docs only) — tests/05_compliance_tests.md, tests/04_security_tests.md; no executable tests
-- System Loop: Specified (docs only) — runtime/02_event_processing.md; not implemented
-- Failure Playbook: Specified (docs only) — failure/01_failure_playbook.md; not integrated
+- Test Scenarios: Partially Covered — 11 unit tests for AuditService (apps/api/src/audit/audit.service.spec.ts); no integration tests; no E2E tests; tests/05_compliance_tests.md and tests/04_security_tests.md remain specification documents only
+- System Loop: Partially Integrated — AuditService registered globally via @Global() AuditModule and injectable; no domain module calls logEvent() yet; first domain callers expected in Milestone 5 (Authentication events)
+- Failure Playbook: Partially Integrated — AUD-1300 non-blocking catch block implemented in AuditService.logEvent(); alerting, retry, and outbox pattern (Phase 2 upgrade) not yet implemented; failure/01_failure_playbook.md not yet integrated
 - Environment Model: Specified (docs only) — environment/01_environment_strategy.md; not validated
-- Data Lifecycle: Specified (docs only) — data/04_audit_strategy.md, data/03_retention_policy.md; not implemented
-- Evolution Strategy: Specified (docs only) — evolution/01_versioning_strategy.md; not formalized
-- Overall Maturity: **Planned**
-- Remaining Gaps: All implementation; audit logging must be cross-cutting infrastructure (not a Phase 5 afterthought); no compliance reporting, no policy enforcement engine, no executable tests
-- Next Recommended Step: Flag audit logging (FR-500) for Phase 1 implementation — it must be a shared infrastructure component wired in from the start, not a later add-on
+- Data Lifecycle: Partially — audit.audit_events schema present with result column; write path operational; retention enforcement not implemented; known directive-spec conflict on retention period (AUD-1200 7yr vs data/03_retention_policy.md 10yr)
+- Evolution Strategy: Partial — metadata column promotion schedule documented in code (AuditMetadata interface and comments in audit.service.ts): actorType/ipAddress → Milestone 5; correlationId → Phase 2; no formal audit schema evolution document
+- Overall Maturity: **Partially Implemented** (advanced from Planned — Milestone 4, 2026-06-07)
+- Remaining Gaps: No domain module calls logEvent() yet (System Loop not fully integrated); no integration test for end-to-end write path; no outbox pattern (silent loss on Prisma failure); FR-501 and FR-502 have no implementation; retention enforcement not implemented; AUD-1200 directive requires update to align with 10-year retention
+- Next Recommended Step: Milestone 5 — Authentication Foundation; wire AUTH_LOGIN_SUCCESS, AUTH_LOGIN_FAILURE, AUTH_LOGOUT, AUTH_PASSWORD_RESET, AUTH_ACCOUNT_LOCKOUT events to AuditService.logEvent() from AuthService
 
 ---
 
@@ -550,6 +550,85 @@ Source: spec/01_requirements.md — Global Acceptance Criteria
 > This section is append-only. Entries are prepended (most recent first).
 > No entry is ever modified or deleted after it is written.
 > Every meaningful repository change produces one entry.
+
+---
+
+### Entry: 2026-06-07 — Milestone 4: Audit Foundation (Complete and Validated)
+
+Phase: Phase 1 — Foundation
+Status: Complete and Validated
+Capability Affected: D-009 Compliance & Governance (FR-500 Audit Logging — write infrastructure)
+FR References: FR-500 (Partially Implemented); FR-501, FR-502 unchanged (Planned)
+
+#### Capability / Deliverable Alignment
+
+- Capability: Compliance & Governance — Audit Logging Infrastructure
+- Deliverable Status: Required (execution/02_phase_1_foundation.md — Deliverable 8)
+- Architectural Sequencing Decision: Audit Foundation implemented before Authentication Foundation (approved); rationale: authentication, authorization, and user-management events must be auditable from their first implementation; no blueprint changes; implementation sequencing only
+- Requirements: Defined — spec/01_requirements.md (FR-500 through FR-502; AUD-001 through AUD-1300)
+- Specs: Aligned — spec/07_security_architecture.md, spec/10_backend_architecture.md
+- Directives: Present and governing — directives/08_audit_rules.md (AUD-001 through AUD-1300), directives/07_compliance_rules.md, directives/11_government_policy_rules.md
+- Execution Plan: Partially Implemented — Deliverable 8 write path complete; domain event generation pending Milestone 5+
+- State Model: Present — state/06_compliance_review_states.md
+- Test Scenarios: Partially Covered — 11 unit tests for AuditService; no integration or E2E tests
+- System Loop: Partially Integrated — AuditService globally injectable via @Global() AuditModule; no domain module calls logEvent() yet
+- Failure Playbook: Partially Integrated — AUD-1300 non-blocking catch block implemented; alerting, retry, and outbox pattern not yet implemented
+- Environment Model: Specified (docs only) — environment/01_environment_strategy.md; not validated
+- Data Lifecycle: Partially — schema present; write path operational; retention enforcement not implemented; directive-spec conflict documented (see Risks)
+- Evolution Strategy: Partial — metadata column promotion schedule documented in code comments; no formal audit schema evolution document
+- Overall Maturity: **Partially Implemented** (advanced from Planned)
+
+#### What Changed
+
+**Files Created (5):**
+
+- `apps/api/src/audit/enums/audit-event-type.enum.ts` — `AuditEventType` enum; 42 string literal values covering AUD-200 through AUD-900 (Authentication, Authorization, Workforce, Recruiting, Scheduling, AI, Reporting, Integration events); values stored verbatim in `audit.audit_events.action`; must remain stable after first use
+- `apps/api/src/audit/dto/create-audit-event.dto.ts` — `CreateAuditEventDto` (internal service contract, not exposed via HTTP); `AuditResult` literal union (`'SUCCESS' | 'FAILURE'`) — single authoritative export; `AuditMetadata` typed JSONB interface with named fields and `[key: string]: unknown` index signature
+- `apps/api/src/audit/audit.service.ts` — `AuditService.logEvent(dto: CreateAuditEventDto): Promise<void>`; `SYSTEM_USER_ID = '00000000-0000-0000-0000-000000000000'` exported sentinel (no FK to identity.users — intentional audit trail independence); AUD-1300 non-blocking try/catch; logger.error on failure; PII (userId, entityId, metadata) excluded from log message
+- `apps/api/src/audit/audit.module.ts` — `@Global() @Module` with `AuditService` in providers and exports; PrismaModule not imported (PrismaService resolved from global scope); dependency graph: Domain Modules → AuditModule → PrismaModule (global)
+- `apps/api/src/audit/audit.service.spec.ts` — 11 unit tests across 6 groups: instantiation (1), successful write path (5), AUD-1300 failure suppression (2), sensitive-data logging restriction (1), SYSTEM_USER_ID constant (1), FAILURE result coverage (1)
+
+**Files Modified (2):**
+
+- `apps/api/prisma/schema.prisma` — `result String @default("SUCCESS") @db.VarChar(50)` added to `AuditEvent` model between `action` and `metadata`; aligns with AUD-100 required fields; additive migration only
+- `apps/api/src/app.module.ts` — `import { AuditModule } from './audit/audit.module'` added; `AuditModule` added to imports array (fourth entry, after ConfigModule/PrismaModule/HealthModule); fulfils the existing module registration comment that anticipated Milestone 4
+
+**Auto-Generated (1):**
+
+- `apps/api/prisma/migrations/20260607215441_add_audit_result/migration.sql` — `ALTER TABLE "audit"."audit_events" ADD COLUMN "result" VARCHAR(50) NOT NULL DEFAULT 'SUCCESS'` — single additive statement; applied and verified in live database
+
+#### Key Architectural Decisions
+
+1. **Audit before Authentication (sequencing):** Approved sequencing places Audit Foundation before Authentication Foundation. All auth events (AUTH_LOGIN_SUCCESS through AUTH_ACCOUNT_LOCKOUT) will be auditable from their first implementation. No blueprint changes; implementation sequencing only.
+2. **SYSTEM_USER_ID sentinel:** Zero UUID `'00000000-0000-0000-0000-000000000000'` for system-initiated events with no human actor. No FK to identity.users — audit trail must never be corrupted by cascading deletes. Reporting layer handles via LEFT JOIN + COALESCE with 'System' label.
+3. **AUD-1300 non-blocking design:** Synchronous write with try/catch suppression. Primary operations (authentication, scheduling, recruiting, reporting) are never blocked by audit subsystem failure. Failed writes are logged for operator visibility but not propagated. Phase 2 upgrade to outbox pattern documented in service comments.
+4. **AuditResult as literal union:** Binary semantics per AUD-100. Promotes to enum only if a third architecturally distinct result state emerges. Single authoritative export from create-audit-event.dto.ts.
+5. **AuditMetadata as typed JSONB interface:** Phase 1 flexibility with compile-time safety. Metadata promotion schedule: actorType/ipAddress → dedicated columns in Milestone 5; correlationId → Phase 2.
+6. **Retention — 10 years applied:** Conservative reconciliation of directive-spec conflict. AUD-1200 in directives/08_audit_rules.md states 7 years; data/03_retention_policy.md states 10 years for Audit Events and Security Events. 10 years applied as the more restrictive value. Directive requires update before any enforcement job is implemented.
+7. **@Global() AuditModule pattern:** Mirrors the established PrismaModule global-provider pattern. Domain modules inject AuditService via constructor without importing AuditModule. Validated by e2e bootstrap test confirming AuditService resolves PrismaService from the global scope.
+
+#### Validation
+
+- `tsc --noEmit` (all steps): EXIT 0 — zero type errors
+- `nest build` (all steps): EXIT 0 — zero build errors
+- `npm test --workspace=apps/api`: EXIT 0 — 37/37 tests pass across 5 suites (26 prior + 11 new); zero regressions
+- `npm run test:e2e --workspace=apps/api`: EXIT 0 — 1/1 pass; full AppModule bootstrap with AuditModule registered confirms AuditService resolves PrismaService from global scope
+- Live DB verification (Step 1): `result` column confirmed in `audit.audit_events` — NOT NULL, DEFAULT `'SUCCESS'::character varying`, VARCHAR(50)
+- `prisma migrate status`: Migration `20260607215441_add_audit_result` confirmed applied
+
+#### Risks / Limitations
+
+1. **No domain callers yet (System Loop gap):** `logEvent()` has never been called in a production context. First real audit events generated in Milestone 5 when AuthService calls logEvent() for authentication events.
+2. **Retention directive-spec conflict (open, requires resolution before enforcement):** `directives/08_audit_rules.md` AUD-1200 states 7-year minimum retention. `data/03_retention_policy.md` states 10 years for Audit Events and Security Events. 10 years applied as the conservative value. AUD-1200 must be updated before any retention enforcement job is implemented.
+3. **No integration test for full write path:** The write path is unit-tested against mocks. A full integration test (HTTP request → NestJS context → Prisma → live DB → audit record confirmed) is deferred to Milestone 5+ when real HTTP endpoints with auth context exist.
+4. **Silent loss on Prisma failure (Phase 1 limitation):** AUD-1300 suppresses errors per spec. Without outbox pattern, a failed Prisma write in logEvent() is logged but the audit event is permanently lost. Phase 2 upgrade to outbox pattern is documented in audit.service.ts comments.
+5. **E2E spec comment outdated (minor documentation gap):** `apps/api/test/app.e2e-spec.ts` comment states "No database connection required." Inaccurate since Milestone 3 added PrismaModule. Test behaviour is correct; only the comment is stale. No functional impact.
+
+#### Next Actions
+
+- Proceed to Milestone 5 — Authentication Foundation (IdentityModule, FR-001 User Registration, FR-002 User Authentication)
+- Milestone 5 will produce the first real callers of `AuditService.logEvent()` — closing the System Loop gap for D-009
+- Update `directives/08_audit_rules.md` AUD-1200 from 7 to 10 years before retention enforcement is implemented (not a Milestone 5 blocker; no enforcement job exists yet)
 
 ---
 

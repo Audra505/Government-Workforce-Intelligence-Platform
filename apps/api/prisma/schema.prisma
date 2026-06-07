@@ -140,6 +140,7 @@ model AuditEvent {
   entityType String?  @map("entity_type") @db.VarChar(100)
   entityId   String?  @map("entity_id") @db.Uuid
   action     String   @db.VarChar(100)
+  result     String   @default("SUCCESS") @db.VarChar(50)
   metadata   Json?    @db.JsonB
   createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
 

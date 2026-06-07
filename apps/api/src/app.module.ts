@@ -3,6 +3,7 @@ import { ConfigModule } from '@nestjs/config';
 import appConfig from './config/app.config';
 import databaseConfig from './config/database.config';
 import { validate } from './config/env.validation';
+import { AuditModule } from './audit/audit.module';
 import { PrismaModule } from './database/prisma.module';
 import { HealthModule } from './health/health.module';
 
@@ -23,6 +24,7 @@ import { HealthModule } from './health/health.module';
     }),
     PrismaModule,
     HealthModule,
+    AuditModule,
   ],
   controllers: [],
   providers: [],
