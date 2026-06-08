@@ -14,14 +14,14 @@ Updated By: Claude Code (session: Milestone 5 — Authentication Foundation)
 
 ## Repository Status
 
-Current Phase: Phase 1 — Foundation (Milestone 5 In Progress — Step 10 In Progress)
-Overall Classification: Integrated Foundation — Application live; DB connected; health endpoint serving; API foundation operational; auth endpoints live at /api/v1/auth/*; JWT issuance, validation, guard, HTTP transport, URI versioning, and dev seed complete; unit and e2e tests in progress
-Active Sprint / Milestone: Milestone 5 — Authentication Foundation (Step 10 In Progress)
+Current Phase: Phase 1 — Foundation (Milestone 5 Complete and Validated)
+Overall Classification: Tested Foundation — Application live; DB connected; health endpoint serving; API foundation operational; auth endpoints live at /api/v1/auth/*; JWT issuance, validation, guard, HTTP transport, URI versioning, and dev seed complete; 88 unit tests + 21 e2e tests all passing
+Active Sprint / Milestone: Milestone 5 — Authentication Foundation (Complete and Validated)
 Implementation Started: Yes (2026-06-05)
 
 ## Phase Summary
 
-Milestones 1–4 are complete and validated. The NestJS API is running with a full backend foundation: `ConfigModule` validates environment at startup; `PrismaModule` maintains a live PostgreSQL connection pool; `HealthModule` serves `GET /health` returning HTTP 200 with database connectivity confirmation; `main.ts` enforces global `ValidationPipe` (whitelist, forbidNonWhitelisted, transform), `/api` route prefix with `/health` exclusion, URI versioning (`/api/v1/`), and environment-gated Swagger with bearer auth at `GET /api/docs`. `AuditModule` (Milestone 4) is registered globally — `AuditService.logEvent()` is injectable across all domain modules; `AuditEventType` covers 42 events (AUD-200 through AUD-900); `SYSTEM_USER_ID` sentinel established; `result` column added to `audit.audit_events`. 37 unit tests pass across 5 test suites. Milestone 5 (Authentication Foundation — IdentityModule, FR-001, FR-002) is in progress — Steps 1–9 complete and validated; dev seed user (`admin@dev.gov`, Development Agency tenant, System Administrator role) is live in the development DB; Step 10 (unit tests) is next.
+Milestones 1–4 are complete and validated. The NestJS API is running with a full backend foundation: `ConfigModule` validates environment at startup; `PrismaModule` maintains a live PostgreSQL connection pool; `HealthModule` serves `GET /health` returning HTTP 200 with database connectivity confirmation; `main.ts` enforces global `ValidationPipe` (whitelist, forbidNonWhitelisted, transform), `/api` route prefix with `/health` exclusion, URI versioning (`/api/v1/`), and environment-gated Swagger with bearer auth at `GET /api/docs`. `AuditModule` (Milestone 4) is registered globally — `AuditService.logEvent()` is injectable across all domain modules; `AuditEventType` covers 42 events (AUD-200 through AUD-900); `SYSTEM_USER_ID` sentinel established; `result` column added to `audit.audit_events`. Milestone 5 (Authentication Foundation — IdentityModule, FR-002) is complete and validated: 10 steps implemented and tested; 88 unit tests pass across 9 suites; 21 e2e tests pass across 2 suites; full authentication flow exercised against real DB; audit records verified in DB; lockout flow verified in DB; dev seed user (`admin@dev.gov`, Development Agency tenant, System Administrator role) is live.
 
 ---
 
@@ -32,43 +32,25 @@ Milestones 1–4 are complete and validated. The NestJS API is running with a fu
 > scanning Zone 5 history. It is overwritten each step — not appended.
 
 Milestone: Milestone 5 — Authentication Foundation
-Last Completed Step: Step 9 — Dev seed (bcrypt-hashed admin user)
+Last Completed Step: Step 10 — Unit tests + e2e tests + PROGRESS.md milestone update
 Last Completed Step Date: 2026-06-08
-Current Step: Step 10 — Unit tests + PROGRESS.md update — IN PROGRESS
-Step 10 Implementation Started: 2026-06-08
-Session Classification: In Progress
+Current Step: None — Milestone 5 Complete and Validated
+Session Classification: Complete and Validated
 
-## Step 10 Recovery Checkpoint
+## Step 10 — Final Validated State
 
-> If execution is interrupted, this section provides a complete recovery path.
-> Sub-steps are updated in place as each test file is completed and validated.
+| File | Type | Tests | Result |
+|------|------|-------|--------|
+| `apps/api/src/identity/identity.service.spec.ts` | Unit | 16 | PASS |
+| `apps/api/src/identity/auth.service.spec.ts` | Unit | 17 | PASS |
+| `apps/api/src/identity/jwt.strategy.spec.ts` | Unit | 6 | PASS |
+| `apps/api/src/identity/auth.controller.spec.ts` | Unit | 12 | PASS |
+| `apps/api/test/auth.e2e-spec.ts` | E2e | 21 | PASS |
+| `apps/api/test/app.e2e-spec.ts` | E2e | 1 (comment update) | PASS |
 
-### Planned Files
-
-| File | Type | Tests Planned | Sub-step Status |
-|------|------|--------------|----------------|
-| `apps/api/src/identity/identity.service.spec.ts` | Unit | 15 | Not Started |
-| `apps/api/src/identity/auth.service.spec.ts` | Unit | 16 | Not Started |
-| `apps/api/src/identity/jwt.strategy.spec.ts` | Unit | 6 | Not Started |
-| `apps/api/src/identity/auth.controller.spec.ts` | Unit | 11 | Not Started |
-| `apps/api/test/auth.e2e-spec.ts` | E2e | 22 | Not Started |
-| `apps/api/test/app.e2e-spec.ts` | E2e | 0 (comment update) | Not Started |
-
-### Validation Targets
-
-| Target | Expected (end of Step 10) |
-|--------|--------------------------|
-| `npm test` unit tests | 85 tests, 9 suites, EXIT 0 |
-| `npm run test:e2e` | 23 tests (22 if seed absent), 2 suites, EXIT 0 |
-| `tsc --noEmit` | EXIT 0 after each file |
-| `npm run build` | EXIT 0 at final check |
-
-### Recovery Instructions
-
-To resume after an interrupt, read this section to determine which sub-steps are already Complete,
-then continue from the first sub-step marked Not Started or In Progress.
-Do not recreate files already marked Complete — they are committed to the repository.
-After resuming: run `npm test` to confirm current passing count before adding the next file.
+**Unit suite (npm test):** 88/88 pass, 9 suites, EXIT 0
+**E2e suite (npm run test:e2e):** 21/21 pass (21 in development env with seed present), 2 suites, EXIT 0
+**Type check (tsc --noEmit):** EXIT 0
 
 ## Step Completion Status
 
@@ -83,7 +65,7 @@ After resuming: run `npm test` to confirm current passing count before adding th
 | 7 | AuthController | Complete | Yes |
 | 8 | main.ts — URI versioning | Complete | Yes |
 | 9 | Dev seed (bcrypt-hashed admin user) | Complete | Yes |
-| 10 | Unit tests + PROGRESS.md update | In Progress | — |
+| 10 | Unit tests + e2e tests + PROGRESS.md update | Complete | Yes |
 
 ## Step 1 Validation Evidence
 
@@ -304,14 +286,14 @@ Source: spec/01_requirements.md — Global Acceptance Criteria
 |---|-----------|--------|----------|
 | 1 | All traceable requirements implemented | Not Started | — |
 | 2 | Tenant isolation validated | Not Started | — |
-| 3 | Audit logging operational | In Progress | AuditService.logEvent() operational; AuditModule registered globally; 42-event taxonomy defined; no domain module calls logEvent() yet |
+| 3 | Audit logging operational | In Progress | AuditService.logEvent() operational; AuditModule registered globally; 42-event taxonomy defined; AUTH audit events now written and DB-verified (AUTH_LOGIN_SUCCESS, AUTH_LOGIN_FAILURE, AUTH_LOGOUT, AUTH_ACCOUNT_LOCKOUT) |
 | 4 | RBAC enforced | Not Started | — |
 | 5 | AI recommendations remain advisory | Not Started | — |
 | 6 | Compliance controls functioning | Not Started | — |
 | 7 | Forecasting and analytics explainable | Not Started | — |
 | 8 | Documentation complete | Satisfied | All 12 blueprint layers documented |
-| 9 | Tests pass | In Progress | 37 unit tests passing across 5 suites (platform-roles, env-validation, prisma-service, health-controller, audit-service); integration and E2E tests pending domain implementation |
-| 10 | No critical security issues | In Progress | Sensitive data (DATABASE_URL, passwords) confirmed absent from logs, health responses, and Swagger output; full security review deferred to Milestone 6+ |
+| 9 | Tests pass | In Progress | 88 unit tests passing across 9 suites; 21 e2e tests passing across 2 suites; full auth flow including lockout, JWT, and audit records exercised against real DB |
+| 10 | No critical security issues | In Progress | Sensitive data (DATABASE_URL, passwords) confirmed absent from logs, health responses, and Swagger output; user enumeration protection verified via e2e; full security review deferred to Milestone 6+ |
 
 **Platform Acceptance: NOT MET** (1 of 10 criteria satisfied — criteria 3 and 9 progressed to In Progress)
 
@@ -324,7 +306,7 @@ Source: spec/01_requirements.md — Global Acceptance Criteria
 
 | Domain | ID | FRs | Overall Maturity | Code | Tests | Critical Notes |
 |--------|----|-----|-----------------|------|-------|----------------|
-| Identity & Access | D-001 | 5 | Scaffolded | DB layer live; PrismaService available globally; ConfigService available globally; no identity business logic | 6 unit tests (role set) | Infrastructure foundation ready; IdentityModule implemented Milestone 6 |
+| Identity & Access | D-001 | 5 | Tested | IdentityModule complete; IdentityService (credential validation, lockout); AuthService (JWT issuance, audit); JwtStrategy; JwtAuthGuard; AuthController (/login, /logout, /me); URI versioning active; dev seed user live | 12 unit (auth.controller) + 16 unit (identity.service) + 17 unit (auth.service) + 6 unit (jwt.strategy) + 21 e2e (auth flow, lockout, audit DB verify) | FR-002 Tested; FR-003 Scaffolded (guard present, no RBAC logic); FR-001/FR-004/FR-005 Planned |
 | Organization Management | D-002 | 4 | Scaffolded | DB layer live; PrismaService available; no org business logic | None | Required before Employee and Workforce domains |
 | Employee Management | D-003 | 5 | Planned | None | None | No dedicated directive — gap |
 | Workforce Planning | D-004 | 4 | Planned | None | None | — |
@@ -359,27 +341,27 @@ Source: spec/01_requirements.md — Global Acceptance Criteria
 | FR | Title | Maturity |
 |----|-------|----------|
 | FR-001 | User Registration | Planned |
-| FR-002 | User Authentication | Planned |
-| FR-003 | Role-Based Authorization | Planned |
-| FR-004 | Session Management | Planned |
-| FR-005 | Tenant Isolation | Planned |
+| FR-002 | User Authentication | Tested |
+| FR-003 | Role-Based Authorization | Scaffolded |
+| FR-004 | Session Management | Partially Implemented |
+| FR-005 | Tenant Isolation | Partially Implemented |
 
 - Capability: Identity & Access
 - Deliverable Status: Required
 - Requirements: Defined — spec/01_requirements.md (FR-001 through FR-005)
 - Specs: Defined — spec/07_security_architecture.md, spec/03_system_architecture.md
-- Directives: Present and aligned — directives/10_role_based_access_rules.md (updated 2026-06-05: role set aligned with spec)
-- Execution Plan: Planned — execution/02_phase_1_foundation.md (updated 2026-06-05: role seed list aligned)
-- State Model: Partially derivable — no dedicated identity state document; user lifecycle (Invited → Active → Suspended → Deactivated) defined in spec/04_domain_model.md; session states not yet formalized
-- Test Scenarios: Specified (docs only) — tests/04_security_tests.md; no executable tests
-- System Loop: Specified (docs only) — runtime/01_runtime_orchestration.md; not implemented
-- Failure Playbook: Specified (docs only) — failure/01_failure_playbook.md; not integrated
-- Environment Model: Specified (docs only) — environment/01_environment_strategy.md; not validated
-- Data Lifecycle: Specified (docs only) — data/06_pii_handling.md; not implemented
-- Evolution Strategy: Specified (docs only) — evolution/01_versioning_strategy.md; not formalized for auth
-- Overall Maturity: **Planned**
-- Remaining Gaps: All implementation; no auth service, no RBAC enforcement, no session management code, no tenant isolation logic, no executable security tests; session states not yet in a dedicated state document
-- Next Recommended Step: Begin Phase 1 Foundation — monorepo scaffold, then FR-001 (User Registration) and FR-002 (User Authentication)
+- Directives: Present and aligned — directives/10_role_based_access_rules.md (role set aligned with spec)
+- Execution Plan: Integrated — execution/02_phase_1_foundation.md; Milestone 5 complete
+- State Model: Partially derivable — user lifecycle (Invited → Active → Suspended → Deactivated) defined in spec/04_domain_model.md; lockout state modeled and tested; session states not yet formalized in a dedicated document
+- Test Scenarios: Tested — 51 unit tests (identity.service, auth.service, jwt.strategy, auth.controller) + 21 e2e tests (auth flow, lockout, audit DB verify); tests/04_security_tests.md specification also present
+- System Loop: Integrated — full request path exercised: HTTP → AuthController → AuthService → IdentityService + JwtService + AuditService → DB
+- Failure Playbook: Integrated — 401 for all auth failures (user enumeration protected and e2e verified); lockout flow implemented and e2e verified; TENANT_COLLISION → 500; expired lock falls through to bcrypt
+- Environment Model: Integrated — JWT_SECRET validated at startup; dev seed allowlist guard confirmed for all environments
+- Data Lifecycle: Partially Implemented — user auth state (failedLoginAttempts, lockedUntil, lastLoginAt) managed; no user creation flow (FR-001 Planned)
+- Evolution Strategy: `RequestUser` interface exported; `JwtPayload` typed; constants in `identity.constants.ts`; all field additions are single-file changes
+- Overall Maturity: **Tested** (FR-002 fully tested; FR-003 guard infrastructure present; FR-001 Planned; FR-004/FR-005 partially covered by JWT implementation)
+- Remaining Gaps: FR-001 (User Registration) not started; FR-003 RBAC enforcement logic not implemented (guard infrastructure only); FR-004 server-side session invalidation not implemented (JWT is stateless); FR-005 full multi-tenant login requires Phase 2 tenant-aware login discriminator
+- Next Recommended Step: FR-001 User Registration (Phase 2) — requires resolving Open Architectural Decision on User Identity Model first
 
 ---
 
@@ -821,6 +803,76 @@ Source: spec/01_requirements.md — Global Acceptance Criteria
 > This section is append-only. Entries are prepended (most recent first).
 > No entry is ever modified or deleted after it is written.
 > Every meaningful repository change produces one entry.
+
+---
+
+### Entry: 2026-06-08 — Milestone 5 Step 10: Unit Tests + E2e Tests (Complete and Validated — Milestone 5 Complete)
+
+Phase: Phase 1 — Foundation
+Status: Complete and Validated — Milestone 5 closes
+Capability Affected: D-001 Identity & Access (FR-002 — maturity advances from Integrated → Tested)
+FR References: FR-002 (Tested — all auth flows, lockout, JWT, audit, user enumeration protection verified by executable tests)
+
+#### Capability / Deliverable Alignment
+
+- Capability: Authentication Test Coverage (FR-002)
+- Deliverable Status: Required — execution/02_phase_1_foundation.md mandates test coverage for all Milestone 5 deliverables
+- Requirements: Defined — all test scenarios trace to spec/07_security_architecture.md (lockout, user enumeration, SEC-003 tenant isolation)
+- Specs: Verified — HTTP response contracts match spec/06_api_contracts.md exactly (verified by e2e assertions)
+- Directives: Verified — AUD-200 through AUD-210 audit events confirmed written to DB (e2e audit record verification tests)
+- Execution Plan: Complete — all 10 Milestone 5 steps implemented and validated
+- State Model: Tested — lockout state machine (attempt count 0→5, lockedUntil null→future) verified by e2e DB reads
+- Test Scenarios: Tested — 51 unit tests + 21 e2e tests = 72 new tests; 88 unit total + 21 e2e total = 109 total passing
+- System Loop: Tested — login → JWT issuance → protected endpoint → logout full round-trip verified against real NestJS app + real DB
+- Failure Playbook: Tested — lockout flow, wrong password, non-existent email, invalid JWT, missing JWT, locked account correct password all return expected HTTP 401
+- Environment Model: Tested — e2e test fixtures are self-contained; supertest uses `getHttpServer()` (no real port binding)
+- Data Lifecycle: Tested — fixture users created in beforeAll and deleted in afterAll; audit_events cleaned up; no test data persists
+- Evolution Strategy: Test fixtures use timestamped suffixes for uniqueness; fixture pattern reproducible for future domain tests
+- Overall Maturity: **Tested**
+
+#### What Changed
+
+**Files Created (3):**
+
+- `apps/api/src/identity/identity.service.spec.ts` — 16 unit tests: EMAIL_NOT_FOUND, TENANT_COLLISION, ACCOUNT_LOCKED (active/expired), INVALID_PASSWORD (below/at threshold, lockedUntil written), SUCCESS (failedLoginAttempts reset, lockedUntil cleared, lastLoginAt set); `jest.mock('bcrypt')` pattern established for non-configurable module exports
+- `apps/api/src/identity/auth.service.spec.ts` — 17 unit tests: SUCCESS outcome + JWT payload + expiresIn constant + audit event; EMAIL_NOT_FOUND / ACCOUNT_LOCKED / INVALID_PASSWORD → UNAUTHORIZED with correct sentinel IDs; lockout event ordering (AUTH_LOGIN_FAILURE first, AUTH_ACCOUNT_LOCKOUT second); TENANT_COLLISION → INTERNAL_ERROR with no audit; logout audit event
+- `apps/api/src/identity/jwt.strategy.spec.ts` — 6 unit tests: instantiation; validate() field mappings (sub→userId, tenantId→tenantId, email→email, roles→roles); SEC-003 structural enforcement verified
+- `apps/api/src/identity/auth.controller.spec.ts` — 12 unit tests: login SUCCESS response shape; login UNAUTHORIZED exception type + body structure; login INTERNAL_ERROR; logout service call + response; me response shape + tenantId exclusion + userId mapping + roles array
+- `apps/api/test/auth.e2e-spec.ts` — 21 e2e tests: POST /login (valid, data shape, wrong password, non-existent email, missing fields); GET /me (valid, response shape with tenantId exclusion, no JWT, invalid JWT); POST /logout (valid, no JWT); lockout flow (4 attempts + DB verify, 5th attempt + DB lockedUntil verify, correct password on locked); audit DB verification (AUTH_LOGIN_SUCCESS, AUTH_LOGIN_FAILURE, AUTH_LOGOUT, AUTH_ACCOUNT_LOCKOUT); dev seed conditional test
+
+**Files Modified (1):**
+
+- `apps/api/test/app.e2e-spec.ts` — comment updated: "Milestone 6" → "Milestone 5 Step 10"
+
+#### Technical Notes
+
+- **`jest.mock('bcrypt')` pattern:** `jest.spyOn(bcrypt, 'compare')` fails with `TypeError: Cannot redefine property: compare` because bcrypt's native C++ binding exports are non-configurable. `jest.mock('bcrypt')` at module level (hoisted by Jest) is the correct pattern. All future specs mocking native/third-party modules with non-configurable exports must use this pattern.
+- **`import request from 'supertest'`:** Namespace import (`import * as request`) fails TS2349 with `@types/supertest ^6.x` because the callable export is the default export. `esModuleInterop: true` is set in `tsconfig.base.json`; default import works correctly.
+- **E2e fixture isolation:** Two fixture users (main and lockout) created per run with timestamped email/tenant suffixes; lockout flow uses the dedicated lockout user so the main user's auth state is not disrupted by the 5-attempt test sequence.
+- **Audit record cleanup:** `AuditEvent` model has no Prisma FK relations to User or Tenant (plain UUID columns — append-only immutable audit trail design); audit events are cleaned in `afterAll` by `userId`; deletion order does not matter.
+
+#### Validation
+
+- `identity.service.spec.ts` isolated: EXIT 0 — 16/16 pass
+- `auth.service.spec.ts` isolated: EXIT 0 — 17/17 pass
+- `jwt.strategy.spec.ts` isolated: EXIT 0 — 6/6 pass
+- `auth.controller.spec.ts` isolated: EXIT 0 — 12/12 pass
+- `npm test` (full unit suite): EXIT 0 — **88/88 pass, 9 suites** — zero regressions across all milestones
+- `npm run test:e2e` (full e2e suite): EXIT 0 — **21/21 pass, 2 suites** (NODE_ENV=development; dev seed user present)
+- `tsc --noEmit`: EXIT 0 — zero type errors
+
+#### Risks / Limitations
+
+1. **FR-001 (User Registration) not implemented:** The authentication stack is complete but there is no user creation API. New users can only be created via DB seed or direct Prisma operations. Phase 2 prerequisite.
+2. **Server-side session invalidation not implemented:** JWT tokens remain valid until expiry (3600s). Logout records an audit event but does not invalidate the token. Stateless JWT is the Phase 1 design; token blacklisting is a Phase 2 concern.
+3. **Open Architectural Decision unresolved:** User Identity Model (global vs tenant-scoped email uniqueness) must be resolved before FR-001 implementation. Recorded in PROGRESS.md Active Execution State.
+4. **TENANT_COLLISION → HTTP 500:** Correct per governance rules. Triggered only by a DB integrity violation (duplicate email in a tenant). In the current single-tenant dev DB this cannot occur in practice.
+
+#### Next Actions
+
+- Milestone 6 scope: FR-001 User Registration
+- Open Architectural Decision: Resolve User Identity Model before FR-001 implementation begins
+- Phase 2: Tenant-aware login discriminator (required before second tenant onboarded)
 
 ---
 

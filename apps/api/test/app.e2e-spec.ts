@@ -5,7 +5,7 @@ import { AppModule } from '../src/app.module';
 
 // Milestone 1 validation: confirms NestJS application bootstraps without errors.
 // No database connection required — AppModule has no DB dependency at this stage.
-// Additional e2e tests added in Milestone 6 (Authentication) and beyond.
+// Additional e2e tests added in Milestone 5 Step 10 (auth.e2e-spec.ts) and beyond.
 describe('Application bootstrap', () => {
   let app: INestApplication;
 
