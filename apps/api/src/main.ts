@@ -1,4 +1,4 @@
-import { Logger, RequestMethod, ValidationPipe } from '@nestjs/common';
+import { Logger, RequestMethod, ValidationPipe, VersioningType } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
@@ -28,6 +28,14 @@ async function bootstrap(): Promise<void> {
     exclude: [{ path: 'health', method: RequestMethod.GET }],
   });
 
+  // URI versioning — inserts /v{n}/ between the global prefix and controller path
+  // spec/06_api_contracts.md — API Versioning Strategy: /api/v1 current, /api/v2 for breaking changes
+  // AuthController uses @Controller({ version: '1', path: 'auth' }) — resolves to /api/v1/auth/*
+  // Controllers without a version annotation are unaffected.
+  app.enableVersioning({
+    type: VersioningType.URI,
+  });
+
   // Swagger — gated on non-production per SEC-004 (Defense in Depth)
   // In production NODE_ENV, GET /api/docs returns 404 — API surface not exposed
   // createDocument is called after setGlobalPrefix so route paths include the /api prefix
@@ -38,6 +46,7 @@ async function bootstrap(): Promise<void> {
         'Phase 1 Foundation API — workforce planning and intelligence for government agencies',
       )
       .setVersion('0.1.0')
+      .addBearerAuth()  // activates @ApiBearerAuth() lock icons on protected routes (Step 7)
       .build();
 
     const document = SwaggerModule.createDocument(app, swaggerConfig);

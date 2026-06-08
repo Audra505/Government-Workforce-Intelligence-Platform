@@ -3,9 +3,12 @@ import { ConfigService } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 
+import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { JWT_ACCESS_EXPIRES_IN_SECONDS } from './identity.constants';
 import { IdentityService } from './identity.service';
+import { JwtAuthGuard } from './jwt-auth.guard';
+import { JwtStrategy } from './jwt.strategy';
 
 // Reference: spec/10_backend_architecture.md — Identity Module (D-001)
 // Reference: spec/07_security_architecture.md — Authentication Architecture, JWT Architecture
@@ -16,9 +19,9 @@ import { IdentityService } from './identity.service';
 //
 // Steps adding to this module:
 //   Step 4: IdentityService
-//   Step 5 (this update): AuthService, PassportModule, JwtModule
+//   Step 5: AuthService, PassportModule, JwtModule
 //   Step 6: JwtStrategy, JwtAuthGuard
-//   Step 7: AuthController
+//   Step 7 (this update): AuthController
 
 @Module({
   imports: [
@@ -34,7 +37,8 @@ import { IdentityService } from './identity.service';
       }),
     }),
   ],
-  providers: [IdentityService, AuthService],
-  exports: [IdentityService, AuthService],
+  controllers: [AuthController],
+  providers: [IdentityService, AuthService, JwtStrategy, JwtAuthGuard],
+  exports: [IdentityService, AuthService, JwtAuthGuard],
 })
 export class IdentityModule {}

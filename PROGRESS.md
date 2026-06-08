@@ -14,14 +14,14 @@ Updated By: Claude Code (session: Milestone 5 — Authentication Foundation)
 
 ## Repository Status
 
-Current Phase: Phase 1 — Foundation (Milestone 5 In Progress — Step 5 Complete)
-Overall Classification: Integrated Foundation — Application live; DB connected; health endpoint serving; API foundation operational; audit write infrastructure globally registered; IdentityModule + AuthService registered; JWT issuance and audit integration complete
-Active Sprint / Milestone: Milestone 5 — Authentication Foundation (Step 5 Complete and Validated)
+Current Phase: Phase 1 — Foundation (Milestone 5 In Progress — Step 10 In Progress)
+Overall Classification: Integrated Foundation — Application live; DB connected; health endpoint serving; API foundation operational; auth endpoints live at /api/v1/auth/*; JWT issuance, validation, guard, HTTP transport, URI versioning, and dev seed complete; unit and e2e tests in progress
+Active Sprint / Milestone: Milestone 5 — Authentication Foundation (Step 10 In Progress)
 Implementation Started: Yes (2026-06-05)
 
 ## Phase Summary
 
-Milestones 1–4 are complete and validated. The NestJS API is running with a full backend foundation: `ConfigModule` validates environment at startup; `PrismaModule` maintains a live PostgreSQL connection pool; `HealthModule` serves `GET /health` returning HTTP 200 with database connectivity confirmation; `main.ts` enforces global `ValidationPipe` (whitelist, forbidNonWhitelisted, transform), `/api` route prefix with `/health` exclusion, and environment-gated Swagger at `GET /api/docs`. `AuditModule` (Milestone 4) is registered globally — `AuditService.logEvent()` is injectable across all domain modules; `AuditEventType` covers 42 events (AUD-200 through AUD-900); `SYSTEM_USER_ID` sentinel established; `result` column added to `audit.audit_events`. 37 unit tests pass across 5 test suites. Milestone 5 (Authentication Foundation — IdentityModule, FR-001, FR-002) is in progress — Steps 1–5 complete and validated; Step 6 (JwtStrategy + JwtAuthGuard) is next.
+Milestones 1–4 are complete and validated. The NestJS API is running with a full backend foundation: `ConfigModule` validates environment at startup; `PrismaModule` maintains a live PostgreSQL connection pool; `HealthModule` serves `GET /health` returning HTTP 200 with database connectivity confirmation; `main.ts` enforces global `ValidationPipe` (whitelist, forbidNonWhitelisted, transform), `/api` route prefix with `/health` exclusion, URI versioning (`/api/v1/`), and environment-gated Swagger with bearer auth at `GET /api/docs`. `AuditModule` (Milestone 4) is registered globally — `AuditService.logEvent()` is injectable across all domain modules; `AuditEventType` covers 42 events (AUD-200 through AUD-900); `SYSTEM_USER_ID` sentinel established; `result` column added to `audit.audit_events`. 37 unit tests pass across 5 test suites. Milestone 5 (Authentication Foundation — IdentityModule, FR-001, FR-002) is in progress — Steps 1–9 complete and validated; dev seed user (`admin@dev.gov`, Development Agency tenant, System Administrator role) is live in the development DB; Step 10 (unit tests) is next.
 
 ---
 
@@ -32,10 +32,43 @@ Milestones 1–4 are complete and validated. The NestJS API is running with a fu
 > scanning Zone 5 history. It is overwritten each step — not appended.
 
 Milestone: Milestone 5 — Authentication Foundation
-Last Completed Step: Step 5 — AuthService (JWT issuance + Audit integration)
+Last Completed Step: Step 9 — Dev seed (bcrypt-hashed admin user)
 Last Completed Step Date: 2026-06-08
-Next Step: Step 6 — JwtStrategy + JwtAuthGuard — Not Started
+Current Step: Step 10 — Unit tests + PROGRESS.md update — IN PROGRESS
+Step 10 Implementation Started: 2026-06-08
 Session Classification: In Progress
+
+## Step 10 Recovery Checkpoint
+
+> If execution is interrupted, this section provides a complete recovery path.
+> Sub-steps are updated in place as each test file is completed and validated.
+
+### Planned Files
+
+| File | Type | Tests Planned | Sub-step Status |
+|------|------|--------------|----------------|
+| `apps/api/src/identity/identity.service.spec.ts` | Unit | 15 | Not Started |
+| `apps/api/src/identity/auth.service.spec.ts` | Unit | 16 | Not Started |
+| `apps/api/src/identity/jwt.strategy.spec.ts` | Unit | 6 | Not Started |
+| `apps/api/src/identity/auth.controller.spec.ts` | Unit | 11 | Not Started |
+| `apps/api/test/auth.e2e-spec.ts` | E2e | 22 | Not Started |
+| `apps/api/test/app.e2e-spec.ts` | E2e | 0 (comment update) | Not Started |
+
+### Validation Targets
+
+| Target | Expected (end of Step 10) |
+|--------|--------------------------|
+| `npm test` unit tests | 85 tests, 9 suites, EXIT 0 |
+| `npm run test:e2e` | 23 tests (22 if seed absent), 2 suites, EXIT 0 |
+| `tsc --noEmit` | EXIT 0 after each file |
+| `npm run build` | EXIT 0 at final check |
+
+### Recovery Instructions
+
+To resume after an interrupt, read this section to determine which sub-steps are already Complete,
+then continue from the first sub-step marked Not Started or In Progress.
+Do not recreate files already marked Complete — they are committed to the repository.
+After resuming: run `npm test` to confirm current passing count before adding the next file.
 
 ## Step Completion Status
 
@@ -46,11 +79,11 @@ Session Classification: In Progress
 | 3 | LoginDto | Complete | Yes |
 | 4 | IdentityModule + IdentityService | Complete | Yes |
 | 5 | AuthService (JWT + Audit integration) | Complete | Yes |
-| 6 | JwtStrategy + JwtAuthGuard | Not Started | — |
-| 7 | AuthController | Not Started | — |
-| 8 | main.ts — URI versioning | Not Started | — |
-| 9 | Dev seed (bcrypt-hashed admin user) | Not Started | — |
-| 10 | Unit tests + PROGRESS.md update | Not Started | — |
+| 6 | JwtStrategy + JwtAuthGuard | Complete | Yes |
+| 7 | AuthController | Complete | Yes |
+| 8 | main.ts — URI versioning | Complete | Yes |
+| 9 | Dev seed (bcrypt-hashed admin user) | Complete | Yes |
+| 10 | Unit tests + PROGRESS.md update | In Progress | — |
 
 ## Step 1 Validation Evidence
 
@@ -142,6 +175,86 @@ Neither column is exposed in any API response. They are internal authentication 
 - `npm run build --workspace=apps/api`: EXIT 0 — `identity.constants.ts`, `auth.service.ts`, `identity.module.ts` compile cleanly
 - `npm test --workspace=apps/api`: EXIT 0 — 37/37 tests pass across 5 suites; zero regressions
 - `npm run test:e2e --workspace=apps/api`: EXIT 0 — 1/1 pass; `AppModule` bootstraps with `IdentityModule` registered; `AuthService` resolves `JwtService` (from `JwtModule.registerAsync`), `IdentityService`, and `AuditService` (from global `AuditModule`) without error
+
+## Step 9 Validation Evidence
+
+- `npm run build --workspace=apps/api`: EXIT 0 — `import * as bcrypt from 'bcrypt'`, Prisma compound keys `tenantId_email` and `userId_roleId`, and `findUniqueOrThrow` all resolve without error
+- `npm test --workspace=apps/api`: EXIT 0 — 37/37 tests pass; 5 suites; zero regressions
+- `npm run test:e2e --workspace=apps/api`: EXIT 0 — 1/1 pass; `AppModule` bootstraps correctly; seed changes do not affect application startup
+- Seed run 1 (`NODE_ENV=development`): EXIT 0 — Tenant `Development Agency` created (id: `a4c143d8-...`); User `admin@dev.gov` created (id: `ee52bdf1-...`); Role `System Administrator` assigned
+- Seed run 2 (`NODE_ENV=development`): EXIT 0 — Same tenant and user UUIDs returned; upserts executed update clause; no duplicate records created (idempotency confirmed)
+- Guard check — `NODE_ENV` unset: "Dev user seed skipped — not in development environment." (EXIT 0; roles seeded; user section skipped)
+- Guard check — `NODE_ENV=production`: "Dev user seed skipped — not in development environment." (EXIT 0; roles seeded; user section skipped)
+- Guard check — `NODE_ENV=staging`: "Dev user seed skipped — not in development environment." (EXIT 0; roles seeded; user section skipped)
+- DB state verified: `status: ACTIVE`, `failedLoginAttempts: 0`, `lockedUntil: null`, `tenant.code: DEV`, `role: System Administrator`
+- Recovery behavior verified: simulated lockout (`failedLoginAttempts: 5`, `lockedUntil: future`, `status: INVITED`); re-seed with `NODE_ENV=development` restored `status: ACTIVE`, `failedLoginAttempts: 0`, `lockedUntil: null`
+
+## Step 9 — Dev Seed Design Decisions
+
+| Decision | Value | Rationale |
+|----------|-------|-----------|
+| Re-seed behavior | Recovery-oriented — `update` clause resets `passwordHash`, `failedLoginAttempts`, `lockedUntil`, `status` | Lockout testing will break an immutable fixture silently; recovery must be one-command without manual SQL |
+| Development safeguard | Allowlist: `NODE_ENV !== 'development'` → skip | Default-deny; unknown/unset environments are safe; exclusion-list approach (`NODE_ENV === 'production'`) has staging/CI failure modes |
+| bcrypt rounds | 12 | Consistent with spec/07_security_architecture.md and `IdentityService` |
+| Seed email | `admin@dev.gov` | `.gov` TLD signals government context; clearly dev-scoped |
+| Seed password | `DevAdmin1234!` | 13 chars; satisfies spec/07 requirements (uppercase, lowercase, number, special); clearly dev-only naming |
+| `findUniqueOrThrow` for role | Hard failure if role missing | Makes seed ordering dependency visible immediately rather than creating a user with no role assignment silently |
+| Plaintext password in source | Dev fixture pattern; acceptable | Not a production secret; no value outside dev DB; hashed before storage; dev credential committed per standard seed pattern; documented and auditable |
+
+## Step 8 Validation Evidence
+
+- `tsc --noEmit`: EXIT 0 — `VersioningType` import and `enableVersioning({ type: VersioningType.URI })` call resolve without error
+- `npm run build --workspace=apps/api`: EXIT 0 — zero build errors
+- `npm test --workspace=apps/api`: EXIT 0 — 37/37 tests pass; 5 suites; zero regressions
+- `npm run test:e2e --workspace=apps/api`: EXIT 0 — 1/1 pass; `AppModule` bootstraps correctly with URI versioning active
+
+## Step 7 Validation Evidence
+
+- `tsc --noEmit`: EXIT 0 — `AuthController`, `CurrentUser` decorator, `LoginResponseDto`, all imports resolve without error
+- `npm run build --workspace=apps/api`: EXIT 0 — zero build errors
+- `npm test --workspace=apps/api`: EXIT 0 — 37/37 tests pass; 5 suites; zero regressions
+- `npm run test:e2e --workspace=apps/api`: EXIT 0 — 1/1 pass; `AppModule` bootstrap confirms `AuthController` is registered in `IdentityModule`; all route handlers, guard bindings, and decorator dependencies resolve via DI
+
+## Step 7 — AuthController Design Decisions
+
+| Decision | Value | Rationale |
+|----------|-------|-----------|
+| `tenantId` omitted from `GET /auth/me` | Omitted | Spec contract (`spec/06_api_contracts.md`) does not include it; clients never supply or reference `tenantId` explicitly; server-side enforcement model makes client-side `tenantId` awareness unnecessary |
+| User enumeration protection | All failure outcomes produce identical 401 body | `AuthService` collapses `EMAIL_NOT_FOUND`, `ACCOUNT_LOCKED`, `INVALID_PASSWORD` → `UNAUTHORIZED`; controller maps to one body — no information leakage about failure cause |
+| `@HttpCode(200)` on `POST /auth/logout` | Explicit | NestJS default for POST is 201; spec contract expects 200 for logout |
+| `@CurrentUser()` custom decorator | Created in `decorators/current-user.decorator.ts` | Avoids coupling route handlers to the raw Express `Request` type; cleaner parameter signature |
+| `@ApiBearerAuth()` on protected routes | Applied now | Metadata present for Swagger rendering; `DocumentBuilder.addBearerAuth()` in `main.ts` (Step 8) completes the Swagger UI display |
+| `version: '1'` in `@Controller` | Applied now | Route annotation in place; `/api/v1/` prefix activates after `app.enableVersioning()` in Step 8; before Step 8 routes accessible at `/api/auth/*` |
+| No direct `AuditService` call | Correct separation | All audit events (`AUTH_LOGIN_SUCCESS`, `AUTH_LOGIN_FAILURE`, `AUTH_ACCOUNT_LOCKOUT`, `AUTH_LOGOUT`) emitted inside `AuthService`; controller is HTTP transport only |
+
+## Step 6 Validation Evidence
+
+- `tsc --noEmit`: EXIT 0 — `JwtStrategy` (PassportStrategy generic, `RequestUser`, `JwtPayload` import), `JwtAuthGuard` (AuthGuard('jwt') extension), and `identity.module.ts` additions all resolve without error
+- `npm run build --workspace=apps/api`: EXIT 0 — zero build errors
+- `npm test --workspace=apps/api`: EXIT 0 — 37/37 tests pass; 5 suites pass; zero regressions
+- `npm run test:e2e --workspace=apps/api`: EXIT 0 — 1/1 pass; `AppModule` bootstrap confirms `JwtStrategy` resolves `ConfigService` from global `ConfigModule`; `JwtAuthGuard` resolves as a provider from `IdentityModule`
+
+## Step 6 — Deviation From Presentation
+
+One deviation from the approved presentation occurred during implementation:
+
+| Deviation | Cause | Fix Applied |
+|-----------|-------|-------------|
+| `config.get<string>('JWT_SECRET')` typed as `string \| undefined` — not assignable to `secretOrKey: string \| Buffer` | TypeScript strict mode; `ConfigService.get<T>()` returns `T \| undefined` by design | Added non-null assertion: `config.get<string>('JWT_SECRET')!` — safe because `env.validation.ts` aborts startup if `JWT_SECRET` is absent or empty, guaranteeing the value exists at strategy construction time |
+
+The non-null assertion follows the same pattern used by `JwtModule.registerAsync` in `identity.module.ts` for the same value. It does not introduce a runtime risk.
+
+## Step 6 — JwtStrategy + JwtAuthGuard Design Decisions
+
+| Decision | Value | Rationale |
+|----------|-------|-----------|
+| `validate()` performs no DB call | Pure payload mapping | JWT is self-contained for Phase 1; role data baked in at login; DB round-trip per request is unnecessary overhead |
+| `tenantId` from `payload.tenantId` only | `RequestUser.tenantId = payload.tenantId` | Structural enforcement of SEC-003: tenant isolation contract; no code path allows caller-supplied tenantId |
+| `ignoreExpiration: false` | Default — expired tokens rejected | Passport-jwt handles expiry before `validate()` is called; no additional check needed |
+| `JwtAuthGuard` in providers AND exports | Both registered | Correctness: export of an unregistered provider is a no-op in NestJS DI; registered in providers so NestJS owns the lifecycle and future constructor dependencies require no module change |
+| `JwtAuthGuard` not global | Per-route application | Phase 1 has two protected endpoints; global guard would require `@Public()` exemptions on `/health` and `POST /auth/login`; per-route is simpler |
+| `!` non-null assertion on `JWT_SECRET` | Startup gate guarantees presence | `env.validation.ts` aborts before any module initialises if `JWT_SECRET` is absent; assertion is safe and communicates the contract |
+| Flat file placement | `jwt.strategy.ts`, `jwt-auth.guard.ts` in `src/identity/` | Consistent with existing module files; subdirectory deferred until a second strategy or guard warrants it |
 
 ## Step 5 Remediation Evidence
 
@@ -708,6 +821,259 @@ Source: spec/01_requirements.md — Global Acceptance Criteria
 > This section is append-only. Entries are prepended (most recent first).
 > No entry is ever modified or deleted after it is written.
 > Every meaningful repository change produces one entry.
+
+---
+
+### Entry: 2026-06-08 — Milestone 5 Step 9: Dev Seed User (Complete and Validated)
+
+Phase: Phase 1 — Foundation
+Status: Complete and Validated
+Capability Affected: D-001 Identity & Access (FR-002 User Authentication — dev fixture enables happy-path login testing)
+FR References: FR-002 (Integrated — all HTTP endpoints and auth infrastructure live; dev seed user enables end-to-end login; endpoint tests pending Step 10)
+
+#### Capability / Deliverable Alignment
+
+- Capability: Development Fixture — Login-Ready Admin User
+- Deliverable Status: Required (execution/02_phase_1_foundation.md — Deliverable 7: seed data for development environment)
+- Requirements: Defined — spec/07_security_architecture.md (bcrypt 12 rounds, password requirements)
+- Specs: Aligned — spec/05_database_schema.md (Tenant, User, UserRole models)
+- Directives: Governing — directives/10_role_based_access_rules.md (System Administrator role)
+- Execution Plan: Integrated — `apps/api/prisma/seed.ts` extended; `npm run db:seed` with `NODE_ENV=development` is the one-command setup
+- State Model: Integrated — user created with `status: ACTIVE`; seed recovery resets lockout state on every run
+- Test Scenarios: Partially Covered — seed idempotency and recovery confirmed manually; endpoint login e2e tests are Step 10 scope
+- System Loop: Integrated — seed provides the fixture required for `POST /api/v1/auth/login` → `GET /api/v1/auth/me` → `POST /api/v1/auth/logout` happy-path flow
+- Failure Playbook: Integrated — recovery-oriented re-seed resets auth state; `findUniqueOrThrow` fails fast if role is missing
+- Environment Model: Integrated — allowlist guard (`NODE_ENV !== 'development'` → skip) confirmed working for unset, `production`, and `staging` environments
+- Data Lifecycle: Integrated — dev fixture data created; plaintext credential is a dev fixture, not a production secret; documented and auditable
+- Evolution Strategy: Seed constants are named and grouped; adding fields to the seed requires only changes to `seedDevUser()`
+- Overall Maturity: **Integrated** (full auth stack live with working dev fixture; endpoint e2e tests pending Step 10)
+
+#### What Changed
+
+**Files Modified (1):**
+
+- `apps/api/prisma/seed.ts` — extended with:
+  1. `import * as bcrypt from 'bcrypt'` added at top
+  2. Dev-only constant block: `DEV_SEED_EMAIL`, `DEV_SEED_PASSWORD`, `DEV_SEED_FIRST_NAME`, `DEV_SEED_LAST_NAME`, `DEV_SEED_ROLE`, `DEV_TENANT_NAME`, `DEV_TENANT_CODE`
+  3. `seedDevUser()` async function: allowlist guard (`NODE_ENV !== 'development'`), tenant upsert (by `code`), bcrypt hash at 12 rounds, user upsert (by `tenantId_email`, recovery-oriented update clause), role `findUniqueOrThrow`, UserRole upsert (by `userId_roleId`)
+  4. `await seedDevUser()` call added at end of `main()` — runs after roles are seeded
+
+**Files Not Modified:**
+
+- `apps/api/src/identity/*.ts` — no application code changed
+- `apps/api/prisma/schema.prisma` — no schema changes; no migration required
+- `apps/api/package.json` — `db:seed` script unchanged (`ts-node --transpile-only prisma/seed.ts`)
+
+#### Seed Fixture Values
+
+| Field | Value |
+|-------|-------|
+| Email | `admin@dev.gov` |
+| Password (dev only) | `DevAdmin1234!` |
+| Tenant code | `DEV` |
+| Tenant name | `Development Agency` |
+| Role | `System Administrator` |
+| User status | `ACTIVE` |
+| Tenant UUID (dev DB) | `a4c143d8-2725-4eeb-9682-ddabba3a438d` |
+| User UUID (dev DB) | `ee52bdf1-e717-4c16-a4fc-078d93a21fb9` |
+
+#### Validation
+
+- `npm run build --workspace=apps/api`: EXIT 0 — zero build errors
+- `npm test --workspace=apps/api`: EXIT 0 — 37/37 pass; 5 suites; zero regressions
+- `npm run test:e2e --workspace=apps/api`: EXIT 0 — 1/1 pass
+- Seed first run (`NODE_ENV=development`): EXIT 0 — tenant, user, role assignment created
+- Seed second run (`NODE_ENV=development`): EXIT 0 — same UUIDs; update clause applied; no duplicates (idempotency confirmed)
+- Guard: `NODE_ENV` unset → skipped (allowlist confirmed)
+- Guard: `NODE_ENV=production` → skipped (allowlist confirmed)
+- Guard: `NODE_ENV=staging` → skipped (allowlist confirmed)
+- DB state verified: `status: ACTIVE`, `failedLoginAttempts: 0`, `lockedUntil: null`, `tenant.code: DEV`, `role: System Administrator`
+- Recovery test: lockout simulated (`failedLoginAttempts: 5`, `lockedUntil: future`, `status: INVITED`) → re-seed restored known-good state
+
+#### Risks / Limitations
+
+1. **No endpoint e2e tests yet:** The dev seed is the prerequisite fixture. Login, logout, and `/me` endpoint tests are Step 10 scope.
+2. **Recovery resets password on every run:** The `passwordHash` in the update clause means every `NODE_ENV=development` seed run (~300ms for bcrypt at 12 rounds) resets the password to `DevAdmin1234!`. Minor overhead; no correctness risk.
+3. **Single dev tenant:** A second tenant requires resolving the Open Architectural Decision on User Identity Model (recorded in Active Execution State) before Phase 2 multi-tenant login.
+
+#### Next Actions
+
+- Step 10 — Unit tests + PROGRESS.md milestone update (not started; requires approval)
+
+---
+
+### Entry: 2026-06-08 — Milestone 5 Step 8: main.ts URI Versioning (Complete and Validated)
+
+Phase: Phase 1 — Foundation
+Status: Complete and Validated
+Capability Affected: D-001 Identity & Access (FR-002 — auth endpoints now at canonical `/api/v1/auth/*` paths); cross-cutting (all future versioned controllers benefit immediately)
+FR References: FR-002 (Integrated — canonical paths active); API versioning contract from spec/06_api_contracts.md now enforced at runtime
+
+#### What Changed
+
+**Files Modified (1):**
+
+- `apps/api/src/main.ts` — three targeted changes:
+  1. `VersioningType` added to `@nestjs/common` import
+  2. `app.enableVersioning({ type: VersioningType.URI })` inserted between `setGlobalPrefix` and Swagger setup
+  3. `.addBearerAuth()` added to `DocumentBuilder` chain — activates `@ApiBearerAuth()` lock icons and Authorize button in Swagger UI for protected routes
+
+#### Route Changes
+
+| Endpoint | Before Step 8 | After Step 8 |
+|----------|--------------|-------------|
+| `POST /auth/login` | `/api/auth/login` | `/api/v1/auth/login` |
+| `POST /auth/logout` | `/api/auth/logout` | `/api/v1/auth/logout` |
+| `GET /auth/me` | `/api/auth/me` | `/api/v1/auth/me` |
+| `GET /health` | `/health` | `/health` — unchanged |
+| `GET /api/docs` | `/api/docs` | `/api/docs` — unchanged |
+
+#### Swagger Changes
+
+- `DocumentBuilder.addBearerAuth()` added — registers bearer auth security scheme in the OpenAPI document
+- `@ApiBearerAuth()` decorators on `POST /auth/logout` and `GET /auth/me` (applied in Step 7) now render in Swagger UI: lock icons on protected routes, "Authorize" button in the UI header
+- No route path changes in Swagger document — versioned paths were already reflected once `enableVersioning` activated the routing layer
+
+#### Validation
+
+- `tsc --noEmit`: EXIT 0
+- `npm run build --workspace=apps/api`: EXIT 0
+- `npm test --workspace=apps/api`: EXIT 0 — 37/37; 5 suites; zero regressions
+- `npm run test:e2e --workspace=apps/api`: EXIT 0 — 1/1 pass
+
+#### Risks / Limitations
+
+1. **No endpoint e2e tests yet:** Routes are at canonical paths but no test exercises them over HTTP. Endpoint e2e tests (login, logout, me) are Step 10 scope and require the seed user from Step 9.
+2. **Swagger bearer auth requires manual token entry:** No OAuth2 flow; developers testing via Swagger UI must paste the JWT from a successful login response into the Authorize dialog.
+
+#### Next Actions
+
+- Step 9 — Dev seed: bcrypt-hashed admin user (not started; requires approval before implementation)
+
+---
+
+### Entry: 2026-06-08 — Milestone 5 Step 7: AuthController (Complete and Validated)
+
+Phase: Phase 1 — Foundation
+Status: Complete and Validated
+Capability Affected: D-001 Identity & Access (FR-002 User Authentication — HTTP surface live); D-009 Compliance & Governance (FR-500 Audit Logging — AUTH events now wired to live HTTP requests)
+FR References: FR-002 (Integrated — login, logout, and current-user endpoints registered; seed user pending Step 9 before happy-path e2e possible); FR-003 (Scaffolded — routes protected by `JwtAuthGuard`; role-based permission enforcement deferred to Phase 2)
+
+#### Capability / Deliverable Alignment
+
+- Capability: User Authentication HTTP Surface (FR-002)
+- Deliverable Status: Required
+- Requirements: Defined — spec/01_requirements.md (FR-002), spec/06_api_contracts.md (login/logout/me contracts), spec/07_security_architecture.md (user enumeration protection, tenant isolation)
+- Specs: Aligned — `POST /auth/login`, `POST /auth/logout`, `GET /auth/me` match spec/06_api_contracts.md response shapes exactly
+- Directives: Governing — directives/08_audit_rules.md (AUD-200 through AUD-210 — all wired via AuthService); directives/10_role_based_access_rules.md (roles in JWT payload; RBAC enforcement Phase 2)
+- Execution Plan: Integrated — HTTP transport layer complete; URI versioning pending Step 8
+- State Model: Not applicable at controller layer
+- Test Scenarios: Partially Covered — bootstrap e2e confirms DI resolution; endpoint-level unit and e2e tests deferred to Step 10 (requires seed user from Step 9 for login happy path)
+- System Loop: Integrated — full request path now traceable: HTTP → AuthController → AuthService → IdentityService + JwtService + AuditService
+- Failure Playbook: Integrated at HTTP layer — 401 for all auth failures (user enumeration protected); 400 for validation errors; 500 for TENANT_COLLISION (INTERNAL_ERROR path)
+- Environment Model: Not applicable — no new environment variables
+- Data Lifecycle: Not applicable at controller layer
+- Evolution Strategy: `@CurrentUser()` decorator isolates `RequestUser` extraction — adding fields to `RequestUser` requires only `jwt.strategy.ts` change; controllers do not reference `req.user` directly
+- Overall Maturity: **Integrated** (HTTP surface complete; endpoint-level tests pending Step 10)
+
+#### What Changed
+
+**Files Created (3):**
+
+- `apps/api/src/identity/decorators/current-user.decorator.ts` — `@CurrentUser()` custom parameter decorator; extracts `RequestUser` from `req.user` (populated by `JwtStrategy.validate()`); avoids coupling handlers to raw Express Request type
+- `apps/api/src/identity/dto/login-response.dto.ts` — `LoginResponseDto` and `LoginResponseDataDto`; typed response shape for Swagger schema and `@ApiResponse` type reference
+- `apps/api/src/identity/auth.controller.ts` — `AuthController`; three routes: `POST /auth/login` (public), `POST /auth/logout` (guarded), `GET /auth/me` (guarded); full `LoginResult` discriminated union mapping; `@ApiTags`, `@ApiOperation`, `@ApiResponse`, `@ApiBearerAuth` Swagger decorators; `version: '1'` in `@Controller`
+
+**Files Modified (1):**
+
+- `apps/api/src/identity/identity.module.ts` — `AuthController` added to `controllers` array; `AuthController` import added
+
+#### Key Architectural Decisions
+
+1. **`tenantId` omitted from `GET /auth/me` response (pre-implementation clarification, approved):** The spec contract does not include it. Clients never supply or reference `tenantId` explicitly — the server-side enforcement model makes client awareness of the tenant UUID unnecessary. Adding it would be speculative scope. If Phase 2 requires it, it is a deliberate, documented addition.
+2. **User enumeration protection structural enforcement:** `AuthService` collapses all credential failure outcomes to `LoginResult.UNAUTHORIZED`. `AuthController` maps that single outcome to one identical 401 body. There is no branching on failure type at the HTTP layer — the protection is structural, not conditional.
+3. **`@CurrentUser()` decorator:** Small utility that decouples all protected handlers from the raw `Request` type. Located in `decorators/current-user.decorator.ts` — consistent location for future parameter decorators.
+4. **`@ApiBearerAuth()` applied now:** The decorator metadata is present. The Swagger UI "Authorize" button and lock icons for protected routes will render after `DocumentBuilder.addBearerAuth()` is called in Step 8.
+
+#### Validation
+
+- `tsc --noEmit`: EXIT 0 — zero type errors
+- `npm run build --workspace=apps/api`: EXIT 0 — zero build errors
+- `npm test --workspace=apps/api`: EXIT 0 — 37/37 tests pass; 5 suites; zero regressions
+- `npm run test:e2e --workspace=apps/api`: EXIT 0 — 1/1 pass; `AppModule` bootstrap confirms `AuthController` registered and all dependencies resolve
+
+#### Risks / Limitations
+
+1. **Routes accessible at `/api/auth/*` until Step 8:** `version: '1'` annotation is in place; `app.enableVersioning()` has not been called yet (`main.ts` is Step 8). The versioned `/api/v1/auth/*` path activates in Step 8.
+2. **`@ApiBearerAuth()` not visible in Swagger UI until Step 8:** `DocumentBuilder.addBearerAuth()` is a `main.ts` concern. Swagger decorator metadata is present and will render after Step 8.
+3. **No endpoint-level tests yet:** `AuthController` unit tests and login/logout/me e2e tests are deferred to Step 10. Happy-path login e2e requires a seeded user (Step 9).
+4. **No seed user yet:** `POST /auth/login` with valid credentials returns `EMAIL_NOT_FOUND → UNAUTHORIZED` on every call until Step 9 seeds the admin user.
+
+#### Next Actions
+
+- Step 8 — main.ts URI versioning (not started; requires approval before implementation)
+- No new blockers introduced
+
+---
+
+### Entry: 2026-06-08 — Milestone 5 Step 6: JwtStrategy + JwtAuthGuard (Complete and Validated)
+
+Phase: Phase 1 — Foundation
+Status: Complete and Validated
+Capability Affected: D-001 Identity & Access (FR-002 User Authentication — JWT validation infrastructure; FR-003 Role-Based Authorization — guard infrastructure)
+FR References: FR-002 (Partially Implemented — JWT validation layer complete; HTTP transport pending Step 7); FR-003 (Scaffolded — guard infrastructure ready; RBAC enforcement logic pending Phase 2)
+
+#### Capability / Deliverable Alignment
+
+- Capability: JWT Validation Infrastructure + Route Guard Foundation
+- Deliverable Status: Required
+- Requirements: Defined — spec/07_security_architecture.md (JWT Architecture, SEC-003 Tenant Isolation), spec/01_requirements.md (FR-002, FR-003)
+- Specs: Aligned — spec/10_backend_architecture.md (Identity Module D-001)
+- Directives: Governing — directives/10_role_based_access_rules.md (RBAC foundation; roles present in JWT payload)
+- Execution Plan: Partially Implemented — guard infrastructure complete; protected endpoints pending Step 7
+- State Model: Not applicable — guard/strategy have no state lifecycle
+- Test Scenarios: Partially Covered — DI resolution verified via e2e bootstrap; dedicated unit tests for JwtStrategy and JwtAuthGuard deferred to Step 10
+- System Loop: Progressed — JWT issuance (Step 5) and JWT validation (Step 6) are now both implemented; round-trip is complete once AuthController (Step 7) exposes the HTTP surface
+- Failure Playbook: Integrated — `JwtAuthGuard` returns HTTP 401 for missing, malformed, or expired tokens; Passport handles failure before `validate()` is invoked
+- Environment Model: Not applicable — no new environment variables
+- Data Lifecycle: Not applicable at guard layer
+- Evolution Strategy: `RequestUser` interface exported from `jwt.strategy.ts`; adding fields requires only a single-file change
+- Overall Maturity: **Partially Implemented** (JWT infrastructure complete; no protected HTTP endpoint exists until Step 7)
+
+#### What Changed
+
+**Files Created (2):**
+
+- `apps/api/src/identity/jwt.strategy.ts` — `JwtStrategy extends PassportStrategy(Strategy)`; `RequestUser` interface exported; `validate()` maps `JwtPayload` to `RequestUser` (no DB call); `secretOrKey` uses non-null assertion — safe because `env.validation.ts` startup gate guarantees `JWT_SECRET` presence
+- `apps/api/src/identity/jwt-auth.guard.ts` — `JwtAuthGuard extends AuthGuard('jwt')`; registered as provider in `IdentityModule`; apply to protected routes via `@UseGuards(JwtAuthGuard)`; returns HTTP 401 for invalid/missing/expired tokens
+
+**Files Modified (1):**
+
+- `apps/api/src/identity/identity.module.ts` — `JwtStrategy` and `JwtAuthGuard` added to `providers`; `JwtAuthGuard` added to `exports`; imports for both added; module comment updated to reflect Step 6 completion
+
+#### Key Architectural Decisions
+
+1. **`validate()` is a pure transformation — no DB lookup:** JWT payload is self-contained. `RequestUser` is derived from `JwtPayload` fields in memory. A DB round-trip per authenticated request is deferred to Phase 2 if per-request permission fetching is required.
+2. **`JwtAuthGuard` in both `providers` and `exports`:** Registering only in `exports` without `providers` is a NestJS anti-pattern — the export would be a no-op in DI. Provider registration gives NestJS lifecycle ownership and makes future constructor dependencies safe to add without module changes.
+3. **`!` non-null assertion on `JWT_SECRET`:** `ConfigService.get<T>()` returns `T | undefined` in TypeScript strict mode. The non-null assertion is safe because `env.validation.ts` aborts application bootstrap if `JWT_SECRET` is absent. This is the correct approach — the startup gate is the contract; the assertion documents it.
+
+#### Validation
+
+- `tsc --noEmit`: EXIT 0 — zero type errors (after `!` assertion fix)
+- `npm run build --workspace=apps/api`: EXIT 0 — zero build errors
+- `npm test --workspace=apps/api`: EXIT 0 — 37/37 tests pass; 5 suites; zero regressions
+- `npm run test:e2e --workspace=apps/api`: EXIT 0 — 1/1 pass; DI resolution of `JwtStrategy` and `JwtAuthGuard` confirmed via `AppModule` bootstrap
+
+#### Risks / Limitations
+
+1. **No protected HTTP endpoint yet:** `JwtAuthGuard` is registered and functional but cannot be exercised until `AuthController` (Step 7) is implemented and applies `@UseGuards(JwtAuthGuard)` to protected routes.
+2. **No JwtStrategy or JwtAuthGuard unit tests yet:** Deferred to Step 10 per the established milestone pattern. Current coverage is DI resolution via e2e bootstrap.
+3. **`RequestUser.roles` carries names only:** Permission-based authorization requires a separate RBAC guard that resolves permissions from the database. `roles[]` in the JWT payload is available for basic role checks in Phase 1; full RBAC is Phase 2.
+
+#### Next Actions
+
+- Step 7 — AuthController (not started; requires approval before implementation)
+- No new blockers introduced
 
 ---
 
