@@ -10,18 +10,147 @@
 ---
 
 Last Updated: 2026-06-07
-Updated By: Claude Code (session: Milestone 4 — Audit Foundation)
+Updated By: Claude Code (session: Milestone 5 — Authentication Foundation)
 
 ## Repository Status
 
-Current Phase: Phase 1 — Foundation (Milestone 4 Complete and Validated)
-Overall Classification: Integrated Foundation — Application live; DB connected; health endpoint serving; API foundation operational; audit write infrastructure globally registered
-Active Sprint / Milestone: Milestone 5 — Authentication Foundation (pending)
+Current Phase: Phase 1 — Foundation (Milestone 5 In Progress — Step 4 Complete)
+Overall Classification: Integrated Foundation — Application live; DB connected; health endpoint serving; API foundation operational; audit write infrastructure globally registered; IdentityModule registered
+Active Sprint / Milestone: Milestone 5 — Authentication Foundation (Step 4 Complete and Validated)
 Implementation Started: Yes (2026-06-05)
 
 ## Phase Summary
 
-Milestones 1–4 are complete and validated. The NestJS API is running with a full backend foundation: `ConfigModule` validates environment at startup; `PrismaModule` maintains a live PostgreSQL connection pool; `HealthModule` serves `GET /health` returning HTTP 200 with database connectivity confirmation; `main.ts` enforces global `ValidationPipe` (whitelist, forbidNonWhitelisted, transform), `/api` route prefix with `/health` exclusion, and environment-gated Swagger at `GET /api/docs`. `AuditModule` (Milestone 4) is registered globally — `AuditService.logEvent()` is injectable across all domain modules; `AuditEventType` covers 42 events (AUD-200 through AUD-900); `SYSTEM_USER_ID` sentinel established; `result` column added to `audit.audit_events`. 37 unit tests pass across 5 test suites. Milestone 5 (Authentication Foundation — IdentityModule, FR-001, FR-002) is next, pending approval.
+Milestones 1–4 are complete and validated. The NestJS API is running with a full backend foundation: `ConfigModule` validates environment at startup; `PrismaModule` maintains a live PostgreSQL connection pool; `HealthModule` serves `GET /health` returning HTTP 200 with database connectivity confirmation; `main.ts` enforces global `ValidationPipe` (whitelist, forbidNonWhitelisted, transform), `/api` route prefix with `/health` exclusion, and environment-gated Swagger at `GET /api/docs`. `AuditModule` (Milestone 4) is registered globally — `AuditService.logEvent()` is injectable across all domain modules; `AuditEventType` covers 42 events (AUD-200 through AUD-900); `SYSTEM_USER_ID` sentinel established; `result` column added to `audit.audit_events`. 37 unit tests pass across 5 test suites. Milestone 5 (Authentication Foundation — IdentityModule, FR-001, FR-002) is in progress — Steps 1–4 complete and validated; Step 5 (AuthService) is next.
+
+---
+
+# Active Execution State — Milestone 5
+
+> This section is updated in place after each approved and validated implementation step.
+> Its purpose is crash/session recovery: the current step state is always readable without
+> scanning Zone 5 history. It is overwritten each step — not appended.
+
+Milestone: Milestone 5 — Authentication Foundation
+Last Completed Step: Step 4 — IdentityModule + IdentityService
+Last Completed Step Date: 2026-06-08
+Next Step: Step 5 — AuthService (JWT issuance + Audit integration)
+Session Classification: In Progress
+
+## Step Completion Status
+
+| Step | Name | Status | Validated |
+|------|------|--------|-----------|
+| 1 | Package Dependencies | Complete | Yes |
+| 2 | Database Migration | Complete | Yes |
+| 3 | LoginDto | Complete | Yes |
+| 4 | IdentityModule + IdentityService | Complete | Yes |
+| 5 | AuthService (JWT + Audit integration) | Not Started | — |
+| 6 | JwtStrategy + JwtAuthGuard | Not Started | — |
+| 7 | AuthController | Not Started | — |
+| 8 | main.ts — URI versioning | Not Started | — |
+| 9 | Dev seed (bcrypt-hashed admin user) | Not Started | — |
+| 10 | Unit tests + PROGRESS.md update | Not Started | — |
+
+## Step 1 Validation Evidence
+
+- `npm install --workspace=apps/api` (runtime): EXIT 0 — 23 packages added
+- `npm install --workspace=apps/api -D` (dev types): EXIT 0 — 4 packages added
+- `npm ls` (all 5 runtime packages): resolved without MISSING
+- `tsc --noEmit`: EXIT 0 — zero type errors
+- `npm test --workspace=apps/api`: EXIT 0 — 37/37 tests pass; 5 suites pass; zero regressions
+- `npm run build --workspace=apps/api`: EXIT 0 — zero build errors
+
+## Resolved Package Versions (Step 1)
+
+| Package | Resolved Version |
+|---------|-----------------|
+| `@nestjs/jwt` | 11.0.2 |
+| `@nestjs/passport` | 11.0.5 |
+| `passport` | 0.7.0 |
+| `passport-jwt` | 4.0.1 |
+| `bcrypt` | 6.0.0 |
+
+Dev type packages installed: `@types/passport`, `@types/passport-jwt`, `@types/bcrypt` — versions recorded in `package-lock.json`.
+
+Note: `npm audit` reports 26 vulnerabilities (3 low, 16 moderate, 7 high). These are pre-existing in the workspace dependency tree — the count did not change after installing auth packages. No new vulnerabilities introduced by Step 1. Audit remediation is a separate governance task outside Milestone 5 scope.
+
+## Step 2 Validation Evidence
+
+- `prisma migrate dev --name add_account_lockout`: EXIT 0 — migration `20260608005045_add_account_lockout` created and applied
+- Generated SQL reviewed: two `ADD COLUMN` statements only; no `DROP`, no `ALTER COLUMN`, no destructive operations
+- `prisma generate`: EXIT 0 — Prisma Client v5.22.0 regenerated; `failedLoginAttempts: number` and `lockedUntil: Date | null` now present on `User` type
+- `tsc --noEmit`: EXIT 0 — zero type errors
+- `npm test --workspace=apps/api`: EXIT 0 — 37/37 tests pass; 5 suites pass; zero regressions
+- `npm run build --workspace=apps/api`: EXIT 0 — zero build errors
+- Live DB: migration `20260608005045_add_account_lockout` applied to `gov_workforce_dev`; columns confirmed in `identity.users`
+
+## Step 2 — Lockout Column Behavior Contract
+
+These columns implement the lockout policy from `spec/07_security_architecture.md` (5 failed attempts → 15-minute lock).
+`IdentityService` (Step 4) is the sole writer of these columns.
+
+| Column | Reset on Successful Login | Set on Lockout Threshold |
+|--------|--------------------------|-------------------------|
+| `failed_login_attempts` | Reset to `0` | Incremented per failure; triggers lockout at `5` |
+| `locked_until` | Cleared to `NULL` | Set to `NOW() + INTERVAL '15 minutes'` |
+
+Both columns are updated atomically in the same `prisma.user.update()` call on successful login.
+Neither column is exposed in any API response. They are internal authentication state only.
+
+## Step 3 Validation Evidence
+
+- `tsc --noEmit`: EXIT 0 — `LoginDto`, `@IsEmail`, `@MaxLength`, `@IsString`, `@IsNotEmpty`, `@ApiProperty` all resolve without error
+- `npm test --workspace=apps/api`: EXIT 0 — 37/37 tests pass; 5 suites pass; zero regressions
+- `npm run build --workspace=apps/api`: EXIT 0 — `LoginDto` compiles cleanly; no errors
+
+## Step 3 — LoginDto Design Decisions
+
+| Decision | Value | Rationale |
+|----------|-------|-----------|
+| `email @MaxLength(254)` | Included | RFC 5321 limit; aligns with `identity.users.email VarChar(255)`; explicit over implicit |
+| `password @MaxLength(1000)` | Included | Prevents bcrypt DoS via extremely long inputs |
+| `password @MinLength` | Omitted | Complexity rules apply at creation, not login; enforcing at login reveals requirements and could block legacy passwords |
+| `tenantId` field | Omitted | Derived from JWT post-login; client never supplies tenant identity (approved Phase 1 design) |
+| `@ApiProperty()` on both fields | Included | HTTP-facing DTO; Swagger UI reflects spec contract examples |
+| Standalone unit test | Deferred | Runtime validation tested at `AuthController` layer in Step 10; same pattern as `CreateAuditEventDto` |
+
+## Step 4 Validation Evidence
+
+- `tsc --noEmit`: EXIT 0 — `IdentityService`, `UserWithRoles` (Prisma utility type), `IdentityValidationResult` discriminated union, `bcrypt` types all resolve without error
+- `npm test --workspace=apps/api`: EXIT 0 — 37/37 tests pass; 5 suites pass; zero regressions
+- `npm run build --workspace=apps/api`: EXIT 0 — `IdentityModule` and `IdentityService` compile cleanly
+- `npm run test:e2e --workspace=apps/api`: EXIT 0 — 1/1 pass; `AppModule` bootstraps with `IdentityModule` registered; `IdentityService` resolves `PrismaService` from global scope
+
+## Step 4 — IdentityService Design Decisions
+
+| Decision | Value | Rationale |
+|----------|-------|-----------|
+| `findMany` (not `findFirst`) for email lookup | Used | Enables TENANT_COLLISION detection when `users.length > 1` |
+| `deletedAt: null` filter | Applied | Soft-deleted users are excluded; receive same `EMAIL_NOT_FOUND` result |
+| Status filter (`status: 'ACTIVE'`) | Deferred | Phase 2 gap — INVITED/SUSPENDED users get 401; seed user (Step 9) is ACTIVE |
+| `failedLoginAttempts` reset on lockout expiry | Not implemented | Step 2 contract names successful login as the sole reset trigger; conservative posture for government platform |
+| `LOCKOUT_THRESHOLD = 5` | Named constant | Spec source traceable; single change point |
+| `LOCKOUT_DURATION_MS = 15 * 60 * 1000` | Named constant | Spec source traceable; single change point |
+| `UserWithRoles` via `Prisma.UserGetPayload` | Utility type | Compile-time safe; no manual interface duplication |
+| Permission loading in JWT payload | Deferred to Phase 2 | Roles only in Phase 1 JWT; permission loading added when RBAC guard implemented |
+| AppModule registration in Step 4 | Yes | Follows AuditModule pattern; e2e bootstrap confirms module loads with global PrismaService |
+
+## Open Architectural Decision: User Identity Model
+
+**Status:** Open — not a blocker for Phase 1 or Milestone 5
+
+**Must be resolved before:** FR-001 (User Registration) and Phase 2 tenant-aware login implementation
+
+**Background:** The database enforces per-tenant email uniqueness only (`@@unique([tenantId, email])`). The same email address is permitted across different tenants. Phase 1 global email lookup is safe only because a single tenant exists. When a second tenant is onboarded, the `TENANT_COLLISION` guard becomes load-bearing until Phase 2 tenant-aware login is implemented.
+
+**Option A — Global email uniqueness (application-enforced)**
+The user creation service (`FR-001`) checks that the email does not exist in any tenant before inserting. One email = one person across all agencies. Appropriate if the platform treats employees as platform-wide entities who may serve across multiple agencies.
+
+**Option B — Tenant-scoped email uniqueness (DB-enforced)**
+The user creation service checks uniqueness only within the tenant. Same email can exist in multiple tenants. Requires Phase 2 tenant-aware login (tenant discriminator in `LoginDto`) as a hard prerequisite before a second tenant is onboarded.
+
+**Decision owner:** Product / compliance review before FR-001 implementation
 
 ---
 

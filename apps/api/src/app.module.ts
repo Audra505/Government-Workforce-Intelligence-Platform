@@ -6,6 +6,7 @@ import { validate } from './config/env.validation';
 import { AuditModule } from './audit/audit.module';
 import { PrismaModule } from './database/prisma.module';
 import { HealthModule } from './health/health.module';
+import { IdentityModule } from './identity/identity.module';
 
 // Reference: execution/02_phase_1_foundation.md — Deliverable 3 (Backend Foundation)
 // Reference: spec/10_backend_architecture.md — Module Organization
@@ -13,7 +14,7 @@ import { HealthModule } from './health/health.module';
 // Module registration order follows dependency sequencing:
 //   Milestone 3: ConfigModule (global), PrismaModule (global), HealthModule
 //   Milestone 4: AuditModule (precedes Authentication — established before auth layer)
-//   Milestone 6: IdentityModule (Authentication, RBAC)
+//   Milestone 5: IdentityModule (Authentication, RBAC)
 
 @Module({
   imports: [
@@ -25,6 +26,7 @@ import { HealthModule } from './health/health.module';
     PrismaModule,
     HealthModule,
     AuditModule,
+    IdentityModule,
   ],
   controllers: [],
   providers: [],
