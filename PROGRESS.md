@@ -9,19 +9,19 @@
 
 ---
 
-Last Updated: 2026-06-07
+Last Updated: 2026-06-08
 Updated By: Claude Code (session: Milestone 5 — Authentication Foundation)
 
 ## Repository Status
 
-Current Phase: Phase 1 — Foundation (Milestone 5 In Progress — Step 4 Complete)
-Overall Classification: Integrated Foundation — Application live; DB connected; health endpoint serving; API foundation operational; audit write infrastructure globally registered; IdentityModule registered
-Active Sprint / Milestone: Milestone 5 — Authentication Foundation (Step 4 Complete and Validated)
+Current Phase: Phase 1 — Foundation (Milestone 5 In Progress — Step 5 Complete)
+Overall Classification: Integrated Foundation — Application live; DB connected; health endpoint serving; API foundation operational; audit write infrastructure globally registered; IdentityModule + AuthService registered; JWT issuance and audit integration complete
+Active Sprint / Milestone: Milestone 5 — Authentication Foundation (Step 5 Complete and Validated)
 Implementation Started: Yes (2026-06-05)
 
 ## Phase Summary
 
-Milestones 1–4 are complete and validated. The NestJS API is running with a full backend foundation: `ConfigModule` validates environment at startup; `PrismaModule` maintains a live PostgreSQL connection pool; `HealthModule` serves `GET /health` returning HTTP 200 with database connectivity confirmation; `main.ts` enforces global `ValidationPipe` (whitelist, forbidNonWhitelisted, transform), `/api` route prefix with `/health` exclusion, and environment-gated Swagger at `GET /api/docs`. `AuditModule` (Milestone 4) is registered globally — `AuditService.logEvent()` is injectable across all domain modules; `AuditEventType` covers 42 events (AUD-200 through AUD-900); `SYSTEM_USER_ID` sentinel established; `result` column added to `audit.audit_events`. 37 unit tests pass across 5 test suites. Milestone 5 (Authentication Foundation — IdentityModule, FR-001, FR-002) is in progress — Steps 1–4 complete and validated; Step 5 (AuthService) is next.
+Milestones 1–4 are complete and validated. The NestJS API is running with a full backend foundation: `ConfigModule` validates environment at startup; `PrismaModule` maintains a live PostgreSQL connection pool; `HealthModule` serves `GET /health` returning HTTP 200 with database connectivity confirmation; `main.ts` enforces global `ValidationPipe` (whitelist, forbidNonWhitelisted, transform), `/api` route prefix with `/health` exclusion, and environment-gated Swagger at `GET /api/docs`. `AuditModule` (Milestone 4) is registered globally — `AuditService.logEvent()` is injectable across all domain modules; `AuditEventType` covers 42 events (AUD-200 through AUD-900); `SYSTEM_USER_ID` sentinel established; `result` column added to `audit.audit_events`. 37 unit tests pass across 5 test suites. Milestone 5 (Authentication Foundation — IdentityModule, FR-001, FR-002) is in progress — Steps 1–5 complete and validated; Step 6 (JwtStrategy + JwtAuthGuard) is next.
 
 ---
 
@@ -32,9 +32,9 @@ Milestones 1–4 are complete and validated. The NestJS API is running with a fu
 > scanning Zone 5 history. It is overwritten each step — not appended.
 
 Milestone: Milestone 5 — Authentication Foundation
-Last Completed Step: Step 4 — IdentityModule + IdentityService
+Last Completed Step: Step 5 — AuthService (JWT issuance + Audit integration)
 Last Completed Step Date: 2026-06-08
-Next Step: Step 5 — AuthService (JWT issuance + Audit integration)
+Next Step: Step 6 — JwtStrategy + JwtAuthGuard — Not Started
 Session Classification: In Progress
 
 ## Step Completion Status
@@ -45,7 +45,7 @@ Session Classification: In Progress
 | 2 | Database Migration | Complete | Yes |
 | 3 | LoginDto | Complete | Yes |
 | 4 | IdentityModule + IdentityService | Complete | Yes |
-| 5 | AuthService (JWT + Audit integration) | Not Started | — |
+| 5 | AuthService (JWT + Audit integration) | Complete | Yes |
 | 6 | JwtStrategy + JwtAuthGuard | Not Started | — |
 | 7 | AuthController | Not Started | — |
 | 8 | main.ts — URI versioning | Not Started | — |
@@ -135,6 +135,35 @@ Neither column is exposed in any API response. They are internal authentication 
 | `UserWithRoles` via `Prisma.UserGetPayload` | Utility type | Compile-time safe; no manual interface duplication |
 | Permission loading in JWT payload | Deferred to Phase 2 | Roles only in Phase 1 JWT; permission loading added when RBAC guard implemented |
 | AppModule registration in Step 4 | Yes | Follows AuditModule pattern; e2e bootstrap confirms module loads with global PrismaService |
+
+## Step 5 Validation Evidence
+
+- `tsc --noEmit`: EXIT 0 — zero type errors; `AuthService`, `JwtPayload`, `LoginResult`, `SYSTEM_TENANT_ID`, `JWT_ACCESS_EXPIRES_IN_SECONDS` all resolve correctly
+- `npm run build --workspace=apps/api`: EXIT 0 — `identity.constants.ts`, `auth.service.ts`, `identity.module.ts` compile cleanly
+- `npm test --workspace=apps/api`: EXIT 0 — 37/37 tests pass across 5 suites; zero regressions
+- `npm run test:e2e --workspace=apps/api`: EXIT 0 — 1/1 pass; `AppModule` bootstraps with `IdentityModule` registered; `AuthService` resolves `JwtService` (from `JwtModule.registerAsync`), `IdentityService`, and `AuditService` (from global `AuditModule`) without error
+
+## Step 5 Remediation Evidence
+
+During Step 5 validation, two test-environment defects were identified and resolved:
+
+| Defect | Classification | Root Cause | Fix Applied |
+|--------|---------------|------------|-------------|
+| `env.validation.spec.ts` — 6 tests failing | Test-environment defect | `JWT_SECRET` added as required field but 6 valid test payloads were not updated to include it | Added `JWT_SECRET: 'test-jwt-secret'` to 6 positive test payloads; negative-case tests unchanged |
+| `app.e2e-spec.ts` — 1 test failing | Configuration defect | `apps/api/.env` (created in Milestone 2 for Prisma CLI use) contained only `DATABASE_URL`; `JWT_SECRET` was added to root `.env` only; dotenv resolves from `apps/api/` during Jest execution | Added `JWT_SECRET` to `apps/api/.env` matching the value in root `.env` |
+
+Neither defect was in production code. Both fixes are within Step 5 scope. No architectural decisions required.
+
+## Step 5 — AuthService Design Decisions
+
+| Decision | Value | Rationale |
+|----------|-------|-----------|
+| Transport-agnostic `LoginResult` | No HTTP exceptions thrown; no HTTP responses returned | AuthService may be called from any transport; HTTP mapping is `AuthController`'s sole responsibility (Step 7) |
+| `SYSTEM_TENANT_ID` sentinel | Zero UUID — same value as `SYSTEM_USER_ID`; distinct semantic meaning | `EMAIL_NOT_FOUND` has no resolvable tenant; zero UUID preserves AUD-100 required-field contract without nullable column; distinct name prevents semantic confusion |
+| `identity.constants.ts` as single source of truth | `JWT_ACCESS_EXPIRES_IN_SECONDS = 3600` | `JwtModule.registerAsync` and `AuthService` login response both consume the same constant; drift between the two values is compile-time impossible |
+| `TENANT_COLLISION` → no audit event | `{ outcome: 'INTERNAL_ERROR' }` returned immediately | No valid `userId` or `tenantId` exists to attach to an audit record; `IdentityService` already logged the collision (no PII) |
+| AUTH_ACCOUNT_LOCKOUT emitted after AUTH_LOGIN_FAILURE | Both events emitted on 5th consecutive failure | AUTH_LOGIN_FAILURE is the immediate event (password was wrong); AUTH_ACCOUNT_LOCKOUT is the state transition; ordering is intentional |
+| `logout()` accepts `userId` and `tenantId` as parameters | Caller supplies values derived from JWT | AuthService has no access to the request context; AuthController (Step 7) extracts these from the validated JWT payload via JwtAuthGuard |
 
 ## Open Architectural Decision: User Identity Model
 
@@ -679,6 +708,81 @@ Source: spec/01_requirements.md — Global Acceptance Criteria
 > This section is append-only. Entries are prepended (most recent first).
 > No entry is ever modified or deleted after it is written.
 > Every meaningful repository change produces one entry.
+
+---
+
+### Entry: 2026-06-08 — Milestone 5 Step 5: AuthService (Complete and Validated)
+
+Phase: Phase 1 — Foundation
+Status: Complete and Validated
+Capability Affected: D-001 Identity & Access (FR-002 User Authentication — service layer); D-009 Compliance & Governance (FR-500 Audit Logging — first domain caller)
+FR References: FR-002 (Partially Implemented — service layer complete, HTTP transport pending Step 7); FR-500 (System Loop progressed — first real audit event callers implemented)
+
+#### Capability / Deliverable Alignment
+
+- Capability: User Authentication (FR-002) + Audit Logging System Loop closure (FR-500)
+- Deliverable Status: Required
+- Requirements: Defined — spec/01_requirements.md (FR-002), spec/07_security_architecture.md (JWT Architecture, Account Lockout, User Enumeration Protection, Transport-Agnostic Service Design)
+- Specs: Aligned — spec/06_api_contracts.md (POST /api/v1/auth/login, POST /api/v1/auth/logout), spec/10_backend_architecture.md (Identity Module D-001)
+- Directives: Governing — directives/08_audit_rules.md (AUD-200 through AUD-210), directives/07_compliance_rules.md
+- Execution Plan: Partially Implemented — AuthService layer complete; HTTP transport (AuthController) and guard (JwtStrategy + JwtAuthGuard) pending Steps 6–7
+- State Model: Partially Implemented — lockout state transitions implemented (INVALID_PASSWORD → lockedUntil set; SUCCESS → lockedUntil cleared); user lifecycle states (INVITED, SUSPENDED) deferred to Phase 2
+- Test Scenarios: Partially Covered — unit tests for env validation updated; dedicated AuthService unit tests deferred to Step 10 (same pattern as IdentityService)
+- System Loop: Progressed — `AuditService.logEvent()` called from `AuthService.login()` for all 5 authentication outcome branches (AUTH_LOGIN_SUCCESS, AUTH_LOGIN_FAILURE × 3, AUTH_ACCOUNT_LOCKOUT); `AUTH_LOGOUT` called from `AuthService.logout()`; first real domain callers of AuditModule
+- Failure Playbook: Partial — AUD-1300 non-blocking audit writes in all branches; TENANT_COLLISION suppressed and returned as INTERNAL_ERROR; no retry or outbox
+- Environment Model: Integrated — `JWT_SECRET` validated at startup via `env.validation.ts`; both `apps/api/.env` and root `.env` now carry the secret for test and runtime respectively
+- Data Lifecycle: Not applicable at service layer
+- Evolution Strategy: Single constant (`JWT_ACCESS_EXPIRES_IN_SECONDS`) drives both `JwtModule` and `AuthService` response — drift-proof by design
+- Overall Maturity: **Partially Implemented** (service logic complete; HTTP transport and guards pending)
+
+#### What Changed
+
+**Files Created (2):**
+
+- `apps/api/src/identity/identity.constants.ts` — `JWT_ACCESS_EXPIRES_IN_SECONDS = 3600`; single source of truth for JWT access token lifetime; consumed by `JwtModule.registerAsync` and `AuthService.login()` response; spec ref: spec/07_security_architecture.md — Access Token: 1 Hour
+- `apps/api/src/identity/auth.service.ts` — `AuthService`; transport-agnostic `login(email, password): Promise<LoginResult>` and `logout(userId, tenantId): Promise<void>`; `LoginResult` discriminated union (`SUCCESS | UNAUTHORIZED | INTERNAL_ERROR`); `JwtPayload` interface (`sub`, `tenantId`, `email`, `roles[]`); all 5 `IdentityValidationResult` branches handled; audit events written for all branches; `SYSTEM_TENANT_ID` and `SYSTEM_USER_ID` sentinels used for `EMAIL_NOT_FOUND` case
+
+**Files Modified (5):**
+
+- `apps/api/src/audit/audit.service.ts` — `SYSTEM_TENANT_ID = '00000000-0000-0000-0000-000000000000'` export added alongside `SYSTEM_USER_ID`; distinct semantic meaning documented (actor indeterminate vs tenant indeterminate); import from this file; do not redefine elsewhere
+- `apps/api/src/identity/identity.module.ts` — `PassportModule` and `JwtModule.registerAsync({ inject: [ConfigService], useFactory })` added to imports; `AuthService` added to providers and exports; `JWT_ACCESS_EXPIRES_IN_SECONDS` used in `signOptions.expiresIn`
+- `apps/api/src/config/env.validation.ts` — `JWT_SECRET @IsString() @IsNotEmpty()` added to `EnvironmentVariables`; application bootstrap now aborts if `JWT_SECRET` is absent or empty
+- `.env` (repo root) — `JWT_SECRET` populated with 128-character hex dev value; `JWT_REFRESH_SECRET` intentionally absent (no refresh tokens in Phase 1)
+- `.env.example` — Milestone reference corrected from "Milestone 6" to "Milestone 5"
+
+**Files Modified (Step 5 Remediation — 2):**
+
+- `apps/api/src/config/env.validation.spec.ts` — `JWT_SECRET: 'test-jwt-secret'` added to all 6 valid test payloads; negative-case tests unchanged (still throw as expected); test count unchanged at 10
+- `apps/api/.env` — `JWT_SECRET` added; now carries both `DATABASE_URL` and `JWT_SECRET` so Jest e2e process (`process.cwd() = apps/api/`) finds both required fields via `dotenv.config()`
+
+#### Key Architectural Decisions
+
+1. **Transport-agnostic AuthService (approved pre-implementation):** `AuthService` throws no HTTP exceptions and returns no HTTP responses. `LoginResult` discriminated union carries structured outcomes only. `AuthController` (Step 7) performs all HTTP mapping. This preserves future transport flexibility and cleanly separates concerns.
+2. **SYSTEM_TENANT_ID sentinel (approved pre-implementation):** Zero UUID for pre-authentication contexts where tenant is indeterminate (`EMAIL_NOT_FOUND`). Same value as `SYSTEM_USER_ID` but distinct semantics — `SYSTEM_TENANT_ID` means "tenant unknown"; `SYSTEM_USER_ID` means "actor is the system". Both must be imported from `audit.service.ts`; neither may be redefined.
+3. **JWT_ACCESS_EXPIRES_IN_SECONDS single source of truth (approved pre-implementation):** Integer constant in `identity.constants.ts`. `JwtModule.registerAsync` consumes it for `signOptions.expiresIn`; `AuthService.login()` response includes the same value. One change updates both consumers atomically.
+4. **apps/api/.env carries JWT_SECRET:** The `apps/api/.env` file was originally a Prisma-only file containing `DATABASE_URL`. It now also carries `JWT_SECRET` because dotenv resolves relative to `process.cwd()` (`apps/api/`) during Jest execution. This is the established pattern (same reason `DATABASE_URL` was placed there in Milestone 2). The file is gitignored; it mirrors the relevant subset of root `.env`.
+5. **TENANT_COLLISION produces no audit event:** No audit record can be attached without a valid `userId` and `tenantId`. `IdentityService` already logs the collision (without PII). `AuthService` returns `{ outcome: 'INTERNAL_ERROR' }`. `AuthController` (Step 7) maps this to HTTP 500.
+
+#### Validation
+
+- `tsc --noEmit`: EXIT 0 — zero type errors
+- `npm run build --workspace=apps/api`: EXIT 0 — zero build errors
+- `npm test --workspace=apps/api`: EXIT 0 — 37/37 tests pass; 5 suites pass; zero regressions
+- `npm run test:e2e --workspace=apps/api`: EXIT 0 — 1/1 pass; `AppModule` bootstraps with `IdentityModule` registered; `AuthService`, `IdentityService`, `JwtService`, `AuditService` all resolve from the DI container
+
+#### Risks / Limitations
+
+1. **No HTTP surface yet:** `AuthService` and `IdentityService` are complete but no HTTP endpoint exists. Authentication is not reachable until Step 7 (`AuthController`) is implemented.
+2. **No JwtStrategy or guard yet:** Protected routes cannot enforce JWT authentication until Step 6 (`JwtStrategy + JwtAuthGuard`) is complete.
+3. **No AuthService unit tests yet:** Dedicated unit tests for `AuthService` (mocking `IdentityService`, `JwtService`, `AuditService`) are deferred to Step 10, consistent with the `IdentityService` pattern. Current coverage is limited to compile-time verification and DI resolution.
+4. **User status filter deferred:** `IdentityService` does not filter by `status`. INVITED and SUSPENDED users receive the same credential validation path as ACTIVE users. The seed user (Step 9) is seeded as ACTIVE. Full status enforcement is a Phase 2 task.
+5. **TENANT_COLLISION is a Phase 1 design constraint:** Safe only with a single tenant. Becomes load-bearing when a second tenant is onboarded. Must be resolved before FR-001 (User Registration) and Phase 2 tenant-aware login per the Open Architectural Decision recorded above.
+
+#### Next Actions
+
+- Step 6 — JwtStrategy + JwtAuthGuard (not started; requires approval before implementation)
+- No new blockers introduced
+- Open Architectural Decision: User Identity Model remains open; not a blocker for Steps 6–10
 
 ---
 

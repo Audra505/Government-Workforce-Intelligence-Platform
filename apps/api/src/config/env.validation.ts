@@ -7,16 +7,17 @@ import { IsInt, IsNotEmpty, IsOptional, IsString, Max, Min, validateSync } from 
 // Called once by ConfigModule.forRoot({ validate }) before application bootstrap.
 // Startup is aborted immediately if any required variable fails validation.
 //
-// JWT_SECRET / JWT_REFRESH_SECRET are intentionally absent from this schema.
-// They are empty in .env until Milestone 6 (Authentication). Adding them here
-// with @IsString() would crash startup now; adding with @IsOptional() would
-// silently permit an invalid auth configuration later. They will be added with
-// @IsString() (required, no default) when Milestone 6 wires the auth module.
+// JWT_REFRESH_SECRET is intentionally absent — no refresh token implementation in Phase 1.
+// It will be added when Phase 2 introduces refresh token issuance and revocation.
 
 class EnvironmentVariables {
   @IsString()
   @IsNotEmpty()
   DATABASE_URL!: string;
+
+  @IsString()
+  @IsNotEmpty()
+  JWT_SECRET!: string;
 
   @IsOptional()
   @IsInt()

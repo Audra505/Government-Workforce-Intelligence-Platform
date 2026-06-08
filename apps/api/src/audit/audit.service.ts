@@ -11,6 +11,16 @@ import { CreateAuditEventDto } from './dto/create-audit-event.dto';
 // Import this constant; do not redefine it elsewhere.
 export const SYSTEM_USER_ID = '00000000-0000-0000-0000-000000000000';
 
+// Sentinel UUID for audit events where the tenant context cannot be determined.
+// Used exclusively for pre-authentication failures (e.g. EMAIL_NOT_FOUND) where
+// no tenant is known and no DB round-trip can safely resolve one.
+// Distinct semantic meaning from SYSTEM_USER_ID despite sharing the same value:
+//   SYSTEM_USER_ID  → actor is the system (not a human)
+//   SYSTEM_TENANT_ID → tenant is indeterminate (pre-authentication context)
+// audit_events.tenant_id carries no FK constraint — zero UUID is safe.
+// Import this constant; do not redefine it elsewhere.
+export const SYSTEM_TENANT_ID = '00000000-0000-0000-0000-000000000000';
+
 @Injectable()
 export class AuditService {
   private readonly logger = new Logger(AuditService.name);
