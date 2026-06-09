@@ -9,6 +9,7 @@ import { JWT_ACCESS_EXPIRES_IN_SECONDS } from './identity.constants';
 import { IdentityService } from './identity.service';
 import { JwtAuthGuard } from './jwt-auth.guard';
 import { JwtStrategy } from './jwt.strategy';
+import { RolesGuard } from './roles.guard';
 
 // Reference: spec/10_backend_architecture.md — Identity Module (D-001)
 // Reference: spec/07_security_architecture.md — Authentication Architecture, JWT Architecture
@@ -21,7 +22,8 @@ import { JwtStrategy } from './jwt.strategy';
 //   Step 4: IdentityService
 //   Step 5: AuthService, PassportModule, JwtModule
 //   Step 6: JwtStrategy, JwtAuthGuard
-//   Step 7 (this update): AuthController
+//   Step 7: AuthController
+//   Milestone 6 Step 4 (this update): RolesGuard
 
 @Module({
   imports: [
@@ -38,7 +40,7 @@ import { JwtStrategy } from './jwt.strategy';
     }),
   ],
   controllers: [AuthController],
-  providers: [IdentityService, AuthService, JwtStrategy, JwtAuthGuard],
-  exports: [IdentityService, AuthService, JwtAuthGuard],
+  providers: [IdentityService, AuthService, JwtStrategy, JwtAuthGuard, RolesGuard],
+  exports: [IdentityService, AuthService, JwtAuthGuard, RolesGuard],
 })
 export class IdentityModule {}

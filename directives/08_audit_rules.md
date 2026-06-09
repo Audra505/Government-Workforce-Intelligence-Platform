@@ -131,6 +131,27 @@ Account Lockout
 
 ---
 
+# User Management Audit Rules
+
+## AUD-250
+
+Audit required for:
+
+```text
+User Created
+User Updated
+User Deactivated
+User Invited
+User Activated
+User Password Changed
+User Suspended
+```
+
+Reference: spec/07_security_architecture.md — Mandatory Audit Events (Administration: User Creation)
+Note: Role assignment and permission changes are covered under AUD-300 (Authorization Audit Rules).
+
+---
+
 # Authorization Audit Rules
 
 ## AUD-300

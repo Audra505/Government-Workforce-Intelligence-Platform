@@ -7,6 +7,7 @@ import { AuditModule } from './audit/audit.module';
 import { PrismaModule } from './database/prisma.module';
 import { HealthModule } from './health/health.module';
 import { IdentityModule } from './identity/identity.module';
+import { UsersModule } from './users/users.module';
 
 // Reference: execution/02_phase_1_foundation.md — Deliverable 3 (Backend Foundation)
 // Reference: spec/10_backend_architecture.md — Module Organization
@@ -15,6 +16,7 @@ import { IdentityModule } from './identity/identity.module';
 //   Milestone 3: ConfigModule (global), PrismaModule (global), HealthModule
 //   Milestone 4: AuditModule (precedes Authentication — established before auth layer)
 //   Milestone 5: IdentityModule (Authentication, RBAC)
+//   Milestone 6: UsersModule (User Registration — FR-001)
 
 @Module({
   imports: [
@@ -27,6 +29,7 @@ import { IdentityModule } from './identity/identity.module';
     HealthModule,
     AuditModule,
     IdentityModule,
+    UsersModule,
   ],
   controllers: [],
   providers: [],

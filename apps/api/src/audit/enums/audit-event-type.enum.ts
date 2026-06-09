@@ -19,6 +19,13 @@ export enum AuditEventType {
   AUTH_ACCOUNT_LOCKOUT = 'AUTH_ACCOUNT_LOCKOUT',
 
   // -------------------------------------------------------------------------
+  // AUD-250: Identity User Management Events
+  // Reference: directives/08_audit_rules.md — AUD-250
+  // Reference: spec/07_security_architecture.md — Mandatory Audit Events (Administration: User Creation)
+  // -------------------------------------------------------------------------
+  IDENTITY_USER_CREATED = 'IDENTITY_USER_CREATED',
+
+  // -------------------------------------------------------------------------
   // AUD-300: Authorization Events
   // -------------------------------------------------------------------------
   AUTHZ_ROLE_ASSIGNED = 'AUTHZ_ROLE_ASSIGNED',
