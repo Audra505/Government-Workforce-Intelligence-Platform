@@ -9,34 +9,113 @@
 
 ---
 
-Last Updated: 2026-06-09
-Updated By: Claude Code (session: Milestone 6 — User Registration Foundation)
+Last Updated: 2026-06-10
+Updated By: Claude Code (session: Milestone 7 — Organization Management Foundation)
 
 ## Repository Status
 
-Current Phase: Phase 1 — Foundation (Milestone 6 — Complete and Validated)
-Overall Classification: Tested Foundation — Application live; DB connected; health endpoint serving; API foundation operational; auth endpoints live at /api/v1/auth/*; users endpoints live at /api/v1/users; JWT issuance, validation, guard, HTTP transport, URI versioning, and dev seed complete; 140 unit tests + 48 e2e tests all passing; Milestone 6 User Registration Foundation complete and validated
-Active Sprint / Milestone: Milestone 6 — User Registration Foundation (Complete and Validated)
+Current Phase: Phase 1 — Foundation (Milestone 7 — Complete and Validated)
+Overall Classification: Tested Foundation — Application live; DB connected; health endpoint serving; API foundation operational; auth endpoints live at /api/v1/auth/*; users endpoints live at /api/v1/users; organization (departments + agencies) endpoints live at /api/v1/departments/* and /api/v1/agencies/current; JWT issuance, validation, guard, HTTP transport, URI versioning, and dev seed complete; 187 unit tests + 35 e2e tests (organization suite) all passing; Milestone 7 Organization Management Foundation complete and validated
+Active Sprint / Milestone: Milestone 7 — Organization Management Foundation (Complete and Validated)
 Implementation Started: Yes (2026-06-05)
 
 ## Phase Summary
 
-Milestones 1–4 are complete and validated. The NestJS API is running with a full backend foundation: `ConfigModule` validates environment at startup; `PrismaModule` maintains a live PostgreSQL connection pool; `HealthModule` serves `GET /health` returning HTTP 200 with database connectivity confirmation; `main.ts` enforces global `ValidationPipe` (whitelist, forbidNonWhitelisted, transform), `/api` route prefix with `/health` exclusion, URI versioning (`/api/v1/`), and environment-gated Swagger with bearer auth at `GET /api/docs`. `AuditModule` (Milestone 4) is registered globally — `AuditService.logEvent()` is injectable across all domain modules; `AuditEventType` covers 42 events (AUD-200 through AUD-900); `SYSTEM_USER_ID` sentinel established; `result` column added to `audit.audit_events`. Milestone 5 (Authentication Foundation — IdentityModule, FR-002) is complete and validated: 10 steps implemented and tested; 88 unit tests pass across 9 suites; 21 e2e tests pass across 2 suites; full authentication flow exercised against real DB; audit records verified in DB; lockout flow verified in DB; dev seed user (`admin@dev.gov`, Development Agency tenant, System Administrator role) is live.
+Milestones 1–6 are complete and validated. The NestJS API is running with a full backend foundation: `ConfigModule` validates environment at startup; `PrismaModule` maintains a live PostgreSQL connection pool; `HealthModule` serves `GET /health` returning HTTP 200 with database connectivity confirmation; `main.ts` enforces global `ValidationPipe` (whitelist, forbidNonWhitelisted, transform), `/api` route prefix with `/health` exclusion, URI versioning (`/api/v1/`), and environment-gated Swagger with bearer auth at `GET /api/docs`. `AuditModule` (Milestone 4) is registered globally — `AuditService.logEvent()` is injectable across all domain modules; `AuditEventType` covers 42 events (AUD-200 through AUD-900); `SYSTEM_USER_ID` sentinel established; `result` column added to `audit.audit_events`. Milestone 5 (Authentication Foundation — IdentityModule, FR-002) is complete and validated: 10 steps implemented and tested; 88 unit tests pass across 9 suites; 21 e2e tests pass across 2 suites; full authentication flow exercised against real DB; audit records verified in DB; lockout flow verified in DB; dev seed user (`admin@dev.gov`, Development Agency tenant, System Administrator role) is live. Milestone 6 (User Registration Foundation — FR-001) complete and validated: 140 unit tests + 48 e2e tests; POST/GET/GET:id for /api/v1/users; RBAC enforced (SA + HR Director); SEC-003 tenant isolation enforced. Milestone 7 (Organization Management Foundation — FR-050, FR-051) complete and validated: DepartmentService + AgencyService transport-agnostic with discriminated unions; OrganizationController routes departments and agencies; RBAC enforced per ORG-AUTH-001/002/003; AUD-350 audit events emitted; SEC-003 tenant isolation enforced; soft-delete filter active; 187 unit tests + 35 e2e tests all passing.
 
 ---
 
-# Active Execution State — Milestone 6
+# Active Execution State — Milestone 7
 
 > This section is updated in place after each approved and validated implementation step.
 > Its purpose is crash/session recovery: the current step state is always readable without
 > scanning Zone 5 history. It is overwritten each step — not appended.
 
-Milestone: Milestone 6 — User Registration Foundation
-Last Completed Milestone: Milestone 6 — User Registration Foundation (Complete and Validated, 2026-06-09)
-Last Completed Step: Step 8 — Unit tests + e2e tests (Complete and Validated)
-Last Completed Step Date: 2026-06-09
-Current Step: None — Milestone 6 complete; awaiting direction for next milestone
-Session Classification: Milestone 6 Complete and Validated
+Milestone: Milestone 7 — Organization Management Foundation
+Last Completed Milestone: Milestone 7 — Organization Management Foundation (Complete and Validated, 2026-06-10)
+Last Completed Step: Step 9 — Unit tests + e2e tests (Complete and Validated)
+Last Completed Step Date: 2026-06-10
+Current Step: None — Milestone 7 complete; awaiting direction for next milestone
+Session Classification: Milestone 7 Complete and Validated
+
+## Milestone 7 — Approved Architectural Decisions
+
+| # | Decision | Option Chosen | Rationale |
+|---|----------|--------------|-----------|
+| 1 | Department Code Uniqueness | Tenant-scoped unique constraint | Departments within one tenant must have unique codes; cross-tenant code reuse permitted; DB-level enforcement via Prisma P2002 |
+| 2 | Department Soft Delete | `deletedAt` timestamp field | No hard-delete endpoint in Phase 1; soft-delete filter (`deletedAt: null`) applied to all reads; status API (PATCH status=INACTIVE) is the deactivation path |
+| 3 | Agency Model (ORG-006) | Tenant IS Agency — read from `Tenant` table | No separate `Agency` table needed; `tenantId` from JWT used as PK for `prisma.tenant.findUnique`; single source of truth |
+| 4 | Agency Endpoint Auth (ORG-AUTH-003) | Auth-only (no role restriction) | Any authenticated user may read their own agency; achieved by omitting `@RequireRoles` — `RolesGuard` returns true when no metadata present |
+| 5 | Controller Path Strategy | `@Controller({ version: '1' })` with no class path | Single controller handles both `/departments/*` and `/agencies/*` resources with distinct route-level RBAC; class-level `@RequireRoles` would not work for mixed auth profiles |
+| 6 | Agency Response Shape (AGY-003) | No `id` field in response | Internal identifiers excluded at both service and controller level; `AGENCY_READ_SELECT` constant enforces this at query time |
+
+## Milestone 7 — Step 9 Validation Evidence
+
+- `tsc --noEmit`: EXIT 0 — all four new spec files type-check cleanly; `Prisma.PrismaClientKnownRequestError` constructor, `overrideGuard` chain, `PrismaClient` direct usage in e2e `beforeAll/afterAll`, `import type` for type-only identifiers, all resolve without error
+- `eslint "src/organization/**/*.ts" "test/organization.e2e-spec.ts"`: EXIT 0 — no lint errors across all organization files and e2e spec
+- Unit tests (organization suites only): EXIT 0 — **47/47 pass, 3 suites** (`department.service.spec.ts` 24, `agency.service.spec.ts` 5, `organization.controller.spec.ts` 18)
+- Full unit test suite: EXIT 0 — **187/187 pass, 15 suites** (was 140/12 before Milestone 7; zero regressions across all pre-existing suites)
+- ERROR log lines in unit output: expected — service error-path tests (INTERNAL_ERROR outcomes) intentionally trigger `this.logger.error()` inside services; these are not test failures
+- `npm run test:e2e` (full suite): EXIT 0 — **83/83 pass, 4 suites** (organization.e2e-spec.ts 35 new + users.e2e-spec.ts 27 + auth.e2e-spec.ts 21 + app.e2e-spec.ts 1; zero regressions)
+
+## Milestone 7 — Step 9 Files Created
+
+| File | Tests | Purpose |
+|------|-------|---------|
+| `apps/api/src/organization/department.service.spec.ts` | 24 | createDepartment (6), listDepartments (6), getDepartmentById (4), updateDepartment (8) |
+| `apps/api/src/organization/agency.service.spec.ts` | 5 | getAgency — SUCCESS, NOT_FOUND, INTERNAL_ERROR, no id field, findUnique call verification |
+| `apps/api/src/organization/organization.controller.spec.ts` | 18 | POST/GET/GET:id/PATCH department HTTP mappings + GET agency HTTP mapping; ISO dates; SEC-003 tenantId-from-JWT |
+| `apps/api/test/organization.e2e-spec.ts` | 35 | POST dept (6), GET depts (7), GET dept/:id (6), PATCH dept/:id (7), GET agencies/current (4), Audit verify (3), Soft-delete (2); self-contained fixtures; real NestJS + real DB |
+
+## Milestone 7 — Step 9 Deviations from Approved Presentation
+
+None. All test groups, behavioral coverage, fixture patterns, and architectural decisions match the approved presentation exactly.
+
+## Milestone 7 — Capability Maturity Assessment (FR-050 + FR-051)
+
+**Capability: Agency Management (FR-050)**
+- Deliverable status: Required
+- Requirements: Defined (spec/01_requirements.md)
+- Specs: Defined (ORG-006, AGY-001, AGY-002, AGY-003, ORG-AUTH-003)
+- Directives: Present (directives/12_organization_management_rules.md)
+- Execution Plan: Implemented — `AgencyService.getAgency()`, `OrganizationController.getAgency()`
+- State Model: Implicit — Agency state inherited from Tenant model (ACTIVE/INACTIVE)
+- Test Scenarios: Covered — 5 unit + 4 e2e tests
+- System Loop: Integrated — live at `GET /api/v1/agencies/current`
+- Failure Playbook: Discriminated union NOT_FOUND + INTERNAL_ERROR; HTTP 404/500 mapping complete
+- Environment Model: Dev seed tenant available; test fixtures self-contained
+- Data Lifecycle: Read-only in Phase 1 (AGY-001); write operations deferred
+- Evolution Strategy: Phase 1 write operations intentionally deferred; additive per AGY-001
+- **Overall maturity: Integrated / Tested**
+- **Remaining gaps**: Agency write operations (deferred to future milestone per AGY-001)
+
+**Capability: Department Management (FR-051)**
+- Deliverable status: Required
+- Requirements: Defined (spec/01_requirements.md)
+- Specs: Defined (DEP-001 through DEP-008, ORG-AUTH-001, ORG-AUTH-002)
+- Directives: Present (directives/12_organization_management_rules.md)
+- Execution Plan: Implemented — `DepartmentService` (create/list/getById/update), `OrganizationController` (POST/GET/GET:id/PATCH)
+- State Model: Implemented — ACTIVE/INACTIVE lifecycle; soft-delete (`deletedAt`) for logical deletion
+- Test Scenarios: Covered — 24 service unit + 18 controller unit + 35 e2e = 77 tests
+- System Loop: Integrated — live at `/api/v1/departments/*`
+- Failure Playbook: Discriminated union CODE_CONFLICT + NOT_FOUND + INTERNAL_ERROR; HTTP 409/404/500 mapping complete; SEC-003 cross-tenant isolation enforced at query level
+- Environment Model: Dev seed tenant available; test fixtures self-contained; soft-delete exercised via Prisma direct fixture (no DELETE endpoint needed)
+- Data Lifecycle: Create, read (list + getById), update (including deactivation) implemented; hard-delete deferred by design
+- Evolution Strategy: Hard-delete endpoint and DELETE endpoint not in Phase 1 scope; additive extension path clear
+- AUD-350 Audit: ORG_DEPARTMENT_CREATED, ORG_DEPARTMENT_UPDATED, ORG_DEPARTMENT_DEACTIVATED — all emitted and verified in e2e
+- **Overall maturity: Integrated / Tested**
+- **Remaining gaps**: Hard-delete endpoint (out of Phase 1 scope); department-to-position association (future milestone)
+
+## Milestone 7 — Steps 4–8 Summary
+
+| Step | What | Files |
+|------|------|-------|
+| 4 | DepartmentService | `apps/api/src/organization/department.service.ts` (created), `apps/api/src/organization/dto/create-department.dto.ts`, `apps/api/src/organization/dto/update-department.dto.ts`, `apps/api/src/organization/dto/list-departments-query.dto.ts` |
+| 5 | AgencyService | `apps/api/src/organization/agency.service.ts` (created), `apps/api/src/organization/dto/agency-response.dto.ts` (created) |
+| 6 | OrganizationController | `apps/api/src/organization/organization.controller.ts` (created) |
+| 7 | OrganizationModule + AppModule | `apps/api/src/organization/organization.module.ts` (created), `apps/api/src/app.module.ts` (modified — OrganizationModule added) |
+| 8 | Dev seed assessment | No changes — existing seed sufficient; all roles available via `findUniqueOrThrow`; e2e fixtures designed as self-contained |
+| 9 | Full test suite | 4 test files created (see Step 9 table above) |
 
 ## Milestone 6 — Approved Architectural Decisions
 
