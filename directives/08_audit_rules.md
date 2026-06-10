@@ -167,6 +167,22 @@ Privilege Escalation Attempts
 
 ---
 
+# Organization Management Audit Rules
+
+## AUD-350
+
+Audit required for:
+
+```text
+Department Created
+Department Updated
+Department Deactivated
+```
+
+Reference: directives/12_organization_management_rules.md — ORG-003
+
+---
+
 # Workforce Audit Rules
 
 ## AUD-400

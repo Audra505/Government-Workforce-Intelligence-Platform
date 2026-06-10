@@ -34,6 +34,15 @@ export enum AuditEventType {
   AUTHZ_PRIVILEGE_ESCALATION_ATTEMPT = 'AUTHZ_PRIVILEGE_ESCALATION_ATTEMPT',
 
   // -------------------------------------------------------------------------
+  // AUD-350: Organization Management Events
+  // Reference: directives/08_audit_rules.md — AUD-350
+  // Reference: directives/12_organization_management_rules.md — ORG-003
+  // -------------------------------------------------------------------------
+  ORG_DEPARTMENT_CREATED = 'ORG_DEPARTMENT_CREATED',
+  ORG_DEPARTMENT_UPDATED = 'ORG_DEPARTMENT_UPDATED',
+  ORG_DEPARTMENT_DEACTIVATED = 'ORG_DEPARTMENT_DEACTIVATED',
+
+  // -------------------------------------------------------------------------
   // AUD-400: Workforce Events
   // -------------------------------------------------------------------------
   WORKFORCE_POSITION_CREATED = 'WORKFORCE_POSITION_CREATED',

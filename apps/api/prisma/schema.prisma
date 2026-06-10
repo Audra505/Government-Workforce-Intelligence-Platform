@@ -40,9 +40,40 @@ model Tenant {
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  users User[]
+  users       User[]
+  departments Department[]
 
   @@map("tenants")
+  @@schema("organization")
+}
+
+// ---------------------------------------------------------------------------
+// Schema: organization — Department
+// Spec reference: spec/05_database_schema.md — Schema: organization / departments
+// Approved decisions:
+//   - code VARCHAR(100) with tenant-scoped unique constraint (Decision 2)
+//   - deleted_at per platform soft-delete convention (Decision 3)
+//   - agencyId column omitted: Tenant IS Agency (ORG-006); tenantId serves both
+//     tenant isolation and agency association roles — adding a separate agencyId
+//     FK to the same Tenant row would be redundant.
+// ---------------------------------------------------------------------------
+
+model Department {
+  id          String    @id @default(uuid()) @db.Uuid
+  tenantId    String    @map("tenant_id") @db.Uuid
+  name        String    @db.VarChar(255)
+  code        String    @db.VarChar(100)
+  description String?   @db.Text
+  status      String    @default("ACTIVE") @db.VarChar(50)
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  deletedAt   DateTime? @map("deleted_at") @db.Timestamptz(6)
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+
+  @@unique([tenantId, code], map: "idx_departments_tenant_code")
+  @@index([tenantId], map: "idx_departments_tenant")
+  @@map("departments")
   @@schema("organization")
 }
 
