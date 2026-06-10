@@ -21,7 +21,7 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
-  schemas  = ["identity", "organization", "audit"]
+  schemas  = ["identity", "organization", "audit", "workforce"]
 }
 
 // ---------------------------------------------------------------------------
@@ -69,12 +69,45 @@ model Department {
   updatedAt   DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
   deletedAt   DateTime? @map("deleted_at") @db.Timestamptz(6)
 
-  tenant Tenant @relation(fields: [tenantId], references: [id])
+  tenant    Tenant     @relation(fields: [tenantId], references: [id])
+  positions Position[]
 
   @@unique([tenantId, code], map: "idx_departments_tenant_code")
   @@index([tenantId], map: "idx_departments_tenant")
   @@map("departments")
   @@schema("organization")
+}
+
+// ---------------------------------------------------------------------------
+// Schema: workforce
+// Spec reference: spec/05_database_schema.md — Schema: workforce / positions
+// Milestone 8: Position Management Foundation (FR-100)
+// Approved decisions:
+//   - status default DRAFT per full 4-state lifecycle (Decision 1: DRAFT/ACTIVE/FROZEN/CLOSED)
+//   - tenantId as bare scalar (no Prisma relation to Tenant) — isolation enforced at query level
+//   - departmentId FK to organization.departments — cross-schema relation (multiSchema preview)
+//   - deleted_at per platform soft-delete convention
+//   - skills/certifications deferred (Decision 3)
+// ---------------------------------------------------------------------------
+
+model Position {
+  id             String    @id @default(uuid()) @db.Uuid
+  tenantId       String    @map("tenant_id") @db.Uuid
+  departmentId   String    @map("department_id") @db.Uuid
+  title          String    @db.VarChar(255)
+  classification String?   @db.VarChar(100)
+  salaryBand     String?   @map("salary_band") @db.VarChar(100)
+  status         String    @default("DRAFT") @db.VarChar(50)
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  deletedAt      DateTime? @map("deleted_at") @db.Timestamptz(6)
+
+  department Department @relation(fields: [departmentId], references: [id])
+
+  @@index([tenantId], map: "idx_positions_tenant")
+  @@index([departmentId], map: "idx_positions_department")
+  @@map("positions")
+  @@schema("workforce")
 }
 
 // ---------------------------------------------------------------------------

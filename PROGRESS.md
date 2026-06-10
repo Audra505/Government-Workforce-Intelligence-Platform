@@ -10,33 +10,262 @@
 ---
 
 Last Updated: 2026-06-10
-Updated By: Claude Code (session: Milestone 7 — Organization Management Foundation)
+Updated By: Claude Code (session: Milestone 8 — Position Management Foundation, Step 7)
 
 ## Repository Status
 
-Current Phase: Phase 1 — Foundation (Milestone 7 — Complete and Validated)
-Overall Classification: Tested Foundation — Application live; DB connected; health endpoint serving; API foundation operational; auth endpoints live at /api/v1/auth/*; users endpoints live at /api/v1/users; organization (departments + agencies) endpoints live at /api/v1/departments/* and /api/v1/agencies/current; JWT issuance, validation, guard, HTTP transport, URI versioning, and dev seed complete; 187 unit tests + 35 e2e tests (organization suite) all passing; Milestone 7 Organization Management Foundation complete and validated
-Active Sprint / Milestone: Milestone 7 — Organization Management Foundation (Complete and Validated)
+Current Phase: Phase 1 — Foundation (Milestone 8 — Complete and Validated)
+Overall Classification: Tested Foundation — Application live; DB connected; health endpoint serving; API foundation operational; auth, users, organization, workforce endpoints live; `workforce.positions` table live in DB; 244 unit tests + 122 e2e tests passing; all 17 unit suites + 5 e2e suites passing; Milestone 7 and Milestone 8 complete and validated
+Active Sprint / Milestone: Milestone 8 — Position Management Foundation (ALL STEPS COMPLETE — awaiting final review)
 Implementation Started: Yes (2026-06-05)
 
 ## Phase Summary
 
-Milestones 1–6 are complete and validated. The NestJS API is running with a full backend foundation: `ConfigModule` validates environment at startup; `PrismaModule` maintains a live PostgreSQL connection pool; `HealthModule` serves `GET /health` returning HTTP 200 with database connectivity confirmation; `main.ts` enforces global `ValidationPipe` (whitelist, forbidNonWhitelisted, transform), `/api` route prefix with `/health` exclusion, URI versioning (`/api/v1/`), and environment-gated Swagger with bearer auth at `GET /api/docs`. `AuditModule` (Milestone 4) is registered globally — `AuditService.logEvent()` is injectable across all domain modules; `AuditEventType` covers 42 events (AUD-200 through AUD-900); `SYSTEM_USER_ID` sentinel established; `result` column added to `audit.audit_events`. Milestone 5 (Authentication Foundation — IdentityModule, FR-002) is complete and validated: 10 steps implemented and tested; 88 unit tests pass across 9 suites; 21 e2e tests pass across 2 suites; full authentication flow exercised against real DB; audit records verified in DB; lockout flow verified in DB; dev seed user (`admin@dev.gov`, Development Agency tenant, System Administrator role) is live. Milestone 6 (User Registration Foundation — FR-001) complete and validated: 140 unit tests + 48 e2e tests; POST/GET/GET:id for /api/v1/users; RBAC enforced (SA + HR Director); SEC-003 tenant isolation enforced. Milestone 7 (Organization Management Foundation — FR-050, FR-051) complete and validated: DepartmentService + AgencyService transport-agnostic with discriminated unions; OrganizationController routes departments and agencies; RBAC enforced per ORG-AUTH-001/002/003; AUD-350 audit events emitted; SEC-003 tenant isolation enforced; soft-delete filter active; 187 unit tests + 35 e2e tests all passing.
+Milestones 1–7 are complete and validated. The NestJS API is running with a full backend foundation: `ConfigModule` validates environment at startup; `PrismaModule` maintains a live PostgreSQL connection pool; `HealthModule` serves `GET /health` returning HTTP 200 with database connectivity confirmation; `main.ts` enforces global `ValidationPipe` (whitelist, forbidNonWhitelisted, transform), `/api` route prefix with `/health` exclusion, URI versioning (`/api/v1/`), and environment-gated Swagger with bearer auth at `GET /api/docs`. `AuditModule` (Milestone 4) is registered globally — `AuditService.logEvent()` is injectable across all domain modules; `AuditEventType` covers 42 events (AUD-200 through AUD-900); `SYSTEM_USER_ID` sentinel established; `result` column added to `audit.audit_events`. Milestone 5 (Authentication Foundation — IdentityModule, FR-002) is complete and validated: 10 steps implemented and tested; 88 unit tests pass across 9 suites; 21 e2e tests pass across 2 suites; full authentication flow exercised against real DB; audit records verified in DB; lockout flow verified in DB; dev seed user (`admin@dev.gov`, Development Agency tenant, System Administrator role) is live. Milestone 6 (User Registration Foundation — FR-001) complete and validated: 140 unit tests + 48 e2e tests; POST/GET/GET:id for /api/v1/users; RBAC enforced (SA + HR Director); SEC-003 tenant isolation enforced. Milestone 7 (Organization Management Foundation — FR-050, FR-051) complete and validated: DepartmentService + AgencyService transport-agnostic with discriminated unions; OrganizationController routes departments and agencies; RBAC enforced per ORG-AUTH-001/002/003; AUD-350 audit events emitted; SEC-003 tenant isolation enforced; soft-delete filter active; 187 unit tests + 83 e2e tests all passing. Milestone 8 Step 1 (Schema Extension): `workforce` PostgreSQL schema created; `workforce.positions` table live with cross-schema FK to `organization.departments`; Position model in Prisma; full 4-state lifecycle (DRAFT/ACTIVE/FROZEN/CLOSED) established in schema.
 
 ---
 
-# Active Execution State — Milestone 7
+# Active Execution State — Milestone 8
 
 > This section is updated in place after each approved and validated implementation step.
 > Its purpose is crash/session recovery: the current step state is always readable without
 > scanning Zone 5 history. It is overwritten each step — not appended.
 
-Milestone: Milestone 7 — Organization Management Foundation
+Milestone: Milestone 8 — Position Management Foundation
 Last Completed Milestone: Milestone 7 — Organization Management Foundation (Complete and Validated, 2026-06-10)
-Last Completed Step: Step 9 — Unit tests + e2e tests (Complete and Validated)
+Last Completed Step: Step 7 — Test Suite (Complete and Validated, 2026-06-10)
 Last Completed Step Date: 2026-06-10
-Current Step: None — Milestone 7 complete; awaiting direction for next milestone
-Session Classification: Milestone 7 Complete and Validated
+Current Step: Milestone 8 complete — all 7 steps validated; 244 unit tests + 122 e2e tests passing
+Session Classification: Milestone 8 In Progress
+
+## Milestone 8 — Approved Architectural Decisions
+
+| # | Decision | Option Chosen | Rationale |
+|---|----------|--------------|-----------|
+| 1 | Position lifecycle scope | Option A — Full 4-state (DRAFT/ACTIVE/FROZEN/CLOSED), deferred vacancy/employee gates | Correct state enum from day one; avoids future schema migration |
+| 2 | Close endpoint scope | Option A — Include `POST /positions/:id/close`, employee/recruitment guards deferred | Keeps position model complete; POS-501/502 fully implementable now |
+| 3 | Skills/certifications on positions | Option A — Deferred | No join tables defined in spec schema; Skills domain is a separate bounded context |
+| 4 | Cross-module department validation | Option A — Prisma-direct in PositionService | Module isolation preserved; SEC-003 tenant filter applied at query level |
+| 5 | RBAC matrix | POS-AUTH-001 through POS-AUTH-005 as proposed | Formalized in directives/02_position_management_rules.md before schema work |
+
+## Milestone 8 — Step 1 Validation Evidence
+
+- Prisma migration `20260610201814_add_workforce_positions`: EXIT 0 — `workforce` schema created; `workforce.positions` table created; `idx_positions_tenant` and `idx_positions_department` indexes created; cross-schema FK `positions_department_id_fkey` references `organization.departments(id)` with ON DELETE RESTRICT
+- Migration SQL reviewed — all columns, types, constraints, and indexes match spec/05_database_schema.md
+- `tsc --noEmit`: EXIT 0 — Position model, cross-schema relation, and `positions Position[]` back-reference on Department all resolve without error
+- `nest build`: EXIT 0 — no build regressions
+- Unit tests (`npx jest --no-coverage`): EXIT 0 — **187/187 pass, 15 suites** — zero regressions
+
+## Milestone 8 — Step 1 Files Created
+
+| File | Purpose |
+|------|---------|
+| `apps/api/prisma/migrations/20260610201814_add_workforce_positions/migration.sql` | Creates `workforce` schema, `workforce.positions` table, indexes, and FK constraint |
+
+## Milestone 8 — Step 1 Files Modified
+
+| File | Change |
+|------|--------|
+| `directives/02_position_management_rules.md` | Added Authorization Rules section with POS-AUTH-001 through POS-AUTH-005 (per-endpoint RBAC matrix) |
+| `apps/api/prisma/schema.prisma` | Added `"workforce"` to datasource schemas; added `Position` model; added `positions Position[]` back-reference to `Department` model |
+
+## Milestone 8 — Step 7 Validation Evidence
+
+- `tsc --noEmit`: EXIT 0 — all three test files (service spec, controller spec, e2e spec) type-check cleanly
+- `eslint "src/workforce/**/*.ts" "test/position.e2e-spec.ts"`: EXIT 0 — no lint errors
+- Unit tests (`npx jest --no-coverage`): EXIT 0 — **244/244 pass, 17 suites** (57 new tests across 2 new suites)
+- E2E tests (`npm run test:e2e`): EXIT 0 — **122/122 pass, 5 suites** (39 new e2e tests in 1 new suite)
+
+## Milestone 8 — Step 7 Files Created
+
+| File | Tests | Coverage |
+|------|-------|---------|
+| `apps/api/src/workforce/position.service.spec.ts` | 37 | All 5 service methods; all discriminated-union outcomes; AUD-400 event assertions; SEC-003 where-clause verification; POS-201 departmentId exclusion |
+| `apps/api/src/workforce/position.controller.spec.ts` | 20 | All 5 controller methods; all exception types; ISO 8601 serialization; totalPages calculation; SEC-003 actor forwarding |
+| `apps/api/test/position.e2e-spec.ts` | 39 | 7 test groups; real DB; self-contained beforeAll/afterAll; all 5 HTTP endpoints; POS-AUTH-001–005 RBAC; SEC-003 tenant isolation; AUD-400 audit verification; soft-delete filter |
+
+## Milestone 8 — Step 7 Test Breakdown
+
+### position.service.spec.ts (37 tests)
+| Group | Tests |
+|-------|-------|
+| createPosition | 9 (SUCCESS, DRAFT default, null classification, DEPARTMENT_NOT_FOUND, dept tenantId filter, dept throws, create throws, CREATED audit, no audit on NOT_FOUND) |
+| listPositions | 7 (SUCCESS+pagination, skip formula, status filter, departmentId filter, search OR, tenantId+deletedAt, throws) |
+| getPositionById | 4 (SUCCESS, NOT_FOUND, throws, where-clause SEC-003) |
+| updatePosition | 11 (SUCCESS, NOT_FOUND, POSITION_CLOSED, ACTIVATED event, FROZEN event, UPDATED event, partial fields, no departmentId, throws, no audit on NOT_FOUND, no audit on POSITION_CLOSED) |
+| closePosition | 6 (SUCCESS+CLOSED, NOT_FOUND, ALREADY_CLOSED, CLOSED event, throws, no audit on ALREADY_CLOSED) |
+
+### position.controller.spec.ts (20 tests)
+| Group | Tests |
+|-------|-------|
+| createPosition | 5 (SUCCESS shape, createdAt ISO, DEPT_NOT_FOUND→404, INTERNAL→500, SEC-003 forwarding) |
+| listPositions | 3 (SUCCESS envelope, totalPages, INTERNAL→500) |
+| getPositionById | 4 (SUCCESS, NOT_FOUND→404, INTERNAL→500, SEC-003 forwarding) |
+| updatePosition | 4 (SUCCESS, NOT_FOUND→404, POSITION_CLOSED→409, INTERNAL→500) |
+| closePosition | 4 (SUCCESS+CLOSED, NOT_FOUND→404, ALREADY_CLOSED→409, INTERNAL→500) |
+
+### position.e2e-spec.ts (39 tests)
+| Group | Tests |
+|-------|-------|
+| POST /api/v1/positions | 7 (SA 201, HR 201, WP 403, Recruiter 403, 401, cross-tenant dept 404, missing field 400) |
+| GET /api/v1/positions | 7 (SA 200, HR 200, WP 200, Recruiter 403, 401, cross-tenant excluded, status filter) |
+| GET /api/v1/positions/:id | 6 (found 200, cross-tenant 404, absent 404, malformed UUID 400, 401, Recruiter 403) |
+| PUT /api/v1/positions/:id | 7 (SA 200, HR 200, WP 403, 401, absent 404, status=ACTIVE 200, CLOSED→409) |
+| POST /api/v1/positions/:id/close | 6 (SA 200+CLOSED, HR 200, WP 403, 401, absent 404, already-closed 409) |
+| Audit record verification | 4 (CREATED, UPDATED, ACTIVATED, CLOSED events in DB) |
+| Soft-delete visibility | 2 (excluded from list, 404 on GET) |
+
+## Milestone 8 — Capability Maturity Summary
+
+| Layer | Status |
+|-------|--------|
+| Requirements | Defined (FR-100) |
+| Specs | Complete (spec/05, spec/06) |
+| Directives | Complete (directives/02, POS-AUTH-001–005, AUD-400) |
+| Execution Plan | Implemented |
+| State Model | Full 4-state (DRAFT/ACTIVE/FROZEN/CLOSED) |
+| Test Scenarios | Complete — 96 new tests, all passing |
+| System Loop | Integrated (WorkforceModule registered in AppModule) |
+| Failure Playbook | Partial — discriminated unions cover all error paths; POS-500 gate deferred |
+| Environment Model | Dev validated; migration applied |
+| Data Lifecycle | Create, read, update (field + state), close implemented; no hard-delete in Phase 1 |
+| Evolution Strategy | POS-500 gate documented for when Employee/Vacancy domains are added |
+| **Overall maturity** | **Tested / Production-Ready for Phase 1 scope** |
+
+## Milestone 8 — Step 5 Validation Evidence
+
+- `tsc --noEmit`: EXIT 0 — `WorkforceModule` DI graph (PositionController + PositionService + IdentityModule), `AppModule` import of `WorkforceModule`, all cross-module type references resolve without error
+- `eslint "src/workforce/**/*.ts" "src/app.module.ts"`: EXIT 0 — no lint errors
+- `nest build`: EXIT 0 — full NestJS compilation confirms module graph and DI wiring are valid end-to-end
+- Unit tests (`npx jest --no-coverage`): EXIT 0 — **187/187 pass, 15 suites** — zero regressions
+
+## Milestone 8 — Step 5 Files Created
+
+| File | Purpose |
+|------|---------|
+| `apps/api/src/workforce/workforce.module.ts` | NestJS module — declares PositionController, provides PositionService, imports IdentityModule for guard chain |
+
+## Milestone 8 — Step 5 Files Modified
+
+| File | Change |
+|------|--------|
+| `apps/api/src/app.module.ts` | Added `WorkforceModule` import and registration; updated module registration comment to include Milestone 8 |
+
+## Milestone 8 — Step 5 Design Decisions
+
+| Decision | Value | Rationale |
+|----------|-------|-----------|
+| `WorkforceModule` not `@Global()` | Domain service module pattern | Consistent with UsersModule and OrganizationModule; only cross-cutting infrastructure (@Global) |
+| No exports in Phase 1 | `exports: []` (omitted) | PositionService has no cross-module consumers; export added when vacancy planning requires position lookup |
+| `IdentityModule` imported (not `JwtAuthGuard`/`RolesGuard` directly) | Full module import | Guards require `Reflector` via DI — resolved through IdentityModule's provider scope; matches UsersModule + OrganizationModule pattern |
+| `WorkforceModule` last in AppModule imports | After OrganizationModule | Follows dependency order; workforce positions depend on organization departments (cross-schema FK) |
+
+## Milestone 8 — Step 4 Validation Evidence
+
+- `tsc --noEmit`: EXIT 0 — `PositionController`, all discriminated union switch branches, `ParseUUIDPipe`, `@RequireRoles`, `@CurrentUser`, `Put`, `toPositionShape()` mapper, and all DTO parameter types resolve without error
+- `eslint "src/workforce/**/*.ts"`: EXIT 0 — no lint errors
+- Unit tests (`npx jest --no-coverage`): EXIT 0 — **187/187 pass, 15 suites** — zero regressions (PositionController not yet in any module; no controller spec added in Step 4)
+
+## Milestone 8 — Step 4 Files Created
+
+| File | Purpose |
+|------|---------|
+| `apps/api/src/workforce/position.controller.ts` | HTTP transport layer for positions — 5 endpoints; maps PositionService discriminated unions to HTTP status codes; POS-AUTH-001 through POS-AUTH-005 enforced via `@RequireRoles` |
+
+## Milestone 8 — Step 4 Design Decisions
+
+| Decision | Value | Rationale |
+|----------|-------|-----------|
+| `@Put` for update endpoint | `PUT /positions/:id` | Matches spec/06_api_contracts.md contract exactly |
+| `POSITION_CLOSED` → 409 ConflictException | `ConflictException` with code `POSITION_CLOSED` | Business state prevents the operation — most precise HTTP semantic; consistent with `CODE_CONFLICT` 409 in OrganizationController |
+| `ALREADY_CLOSED` → 409 ConflictException | `ConflictException` with code `ALREADY_CLOSED` | Same rationale; distinguishable from `POSITION_CLOSED` by `error.code` in the response body |
+| Route-level `@RequireRoles` (not class-level) | One decorator per handler | Read endpoints allow Workforce Planner; write endpoints restrict to SA + HR Director — different role sets per endpoint |
+| `toPositionShape()` helper at module scope | Maps `PositionRecord` → plain object, `Date` → ISO string | Mirrors `toDepartmentShape()` in OrganizationController; single serialization point for all 5 handlers |
+| `POST /positions/:id/close` decorated with `@HttpCode(200)` | Explicit 200 | NestJS POST defaults to 201; close is an action, not a resource creation — 200 is the correct semantic |
+
+## Milestone 8 — Step 4 Deviations from Approved Presentation
+
+None. All 5 endpoints, RBAC decorators, HTTP status codes, and outcome-to-exception mappings match the approved presentation.
+
+## Milestone 8 — Step 3 Validation Evidence
+
+- `tsc --noEmit`: EXIT 0 — `PositionService`, all discriminated union types, `Prisma.PositionWhereInput`, `POSITION_READ_SELECT as const`, `PositionRow` helper type, `toPositionRecord()`, all DTO parameter types, and `this.prisma.position.*` / `this.prisma.department.*` cross-schema access all resolve without error
+- `eslint "src/workforce/**/*.ts"`: EXIT 0 — no lint errors
+- Unit tests (`npx jest --no-coverage`): EXIT 0 — **187/187 pass, 15 suites** — zero regressions (PositionService not yet in any module; no test suite added in Step 3)
+
+## Milestone 8 — Step 3 Files Created
+
+| File | Purpose |
+|------|---------|
+| `apps/api/src/workforce/position.service.ts` | Transport-agnostic PositionService — createPosition, listPositions, getPositionById, updatePosition, closePosition; all discriminated-union outcomes; AUD-400 audit events |
+
+## Milestone 8 — Step 3 Design Decisions
+
+| Decision | Value | Rationale |
+|----------|-------|-----------|
+| Department validation: two separate try/catch blocks | DB check + create each wrapped independently | Allows clean DEPARTMENT_NOT_FOUND vs INTERNAL_ERROR distinction without nested try/catch |
+| Conditional audit event selection in `updatePosition` | `WORKFORCE_POSITION_ACTIVATED` / `WORKFORCE_POSITION_FROZEN` / `WORKFORCE_POSITION_UPDATED` based on `dto.status` | Most specific event emitted per AUD-400 and directive; mirrors `ORG_DEPARTMENT_DEACTIVATED` pattern in DepartmentService |
+| `POSITION_CLOSED` (409) returned from `updatePosition` | Checked before update attempt | POS-202: closed positions are read-only; service enforces this at application layer |
+| `ALREADY_CLOSED` (409) returned from `closePosition` | Separate outcome from NOT_FOUND | Distinguishes "the position exists but is already closed" from "the position doesn't exist" — different caller actions required |
+| POS-500 gate documented but not enforced | Comment in `closePosition` | Employee/Vacancy domains don't exist; the guard is additive; documented as an explicit approved deferral |
+
+## Milestone 8 — Audit Event Correction (Post-Step-3, Pre-Step-4)
+
+**Gap identified**: `directives/02_position_management_rules.md` (Audit Rules section) requires five events: Position Created, Position Updated, Position Activated, Position Frozen, Position Closed. `AuditEventType` (Milestone 4) only contained CREATED/UPDATED/CLOSED. ACTIVATED and FROZEN were missing. All state transitions via `updatePosition` were emitting `WORKFORCE_POSITION_UPDATED`.
+
+**Correction applied before Step 4** (controller implementation) to ensure the test suite in Step 7 can assert the correct specific event per transition.
+
+### Audit Event Correction — Files Modified
+
+| File | Change |
+|------|--------|
+| `apps/api/src/audit/enums/audit-event-type.enum.ts` | Added `WORKFORCE_POSITION_ACTIVATED` and `WORKFORCE_POSITION_FROZEN` to AUD-400 block |
+| `apps/api/src/workforce/position.service.ts` | `updatePosition` now selects event conditionally: `dto.status === 'ACTIVE'` → ACTIVATED, `dto.status === 'FROZEN'` → FROZEN, otherwise → UPDATED |
+
+### Audit Event Correction — Validation Evidence
+
+- `tsc --noEmit`: EXIT 0 — no type errors
+- `eslint "src/audit/enums/audit-event-type.enum.ts" "src/workforce/position.service.ts"`: EXIT 0 — no lint errors
+- Unit tests (`npx jest --no-coverage`): EXIT 0 — **187/187 pass, 15 suites** — zero regressions
+
+### Audit Event Correction — Directive Alignment
+
+`directives/02_position_management_rules.md` Audit Rules section lists five required events. `AuditEventType` now contains all five: WORKFORCE_POSITION_CREATED, WORKFORCE_POSITION_UPDATED, WORKFORCE_POSITION_ACTIVATED, WORKFORCE_POSITION_FROZEN, WORKFORCE_POSITION_CLOSED. Directive and implementation are now aligned. No previously passing tests were affected.
+
+## Milestone 8 — Step 2 Validation Evidence
+
+- `tsc --noEmit`: EXIT 0 — all four DTO files resolve cleanly; `@IsUUID`, `@IsIn`, `@IsInt`, `@Min`, `@Max`, `@Type(() => Number)`, `@ApiProperty`, `@ApiPropertyOptional` all resolve without error
+- `eslint "src/workforce/**/*.ts"`: EXIT 0 — no lint errors
+- Unit tests (`npx jest --no-coverage`): EXIT 0 — **187/187 pass, 15 suites** — zero regressions (DTOs contain no executable logic; type-check is the validation)
+
+## Milestone 8 — Step 2 Files Created
+
+| File | Purpose |
+|------|---------|
+| `apps/api/src/workforce/dto/create-position.dto.ts` | Validated create request — title (max 200), departmentId (UUID), classification?, salaryBand? |
+| `apps/api/src/workforce/dto/update-position.dto.ts` | All-optional update request — title?, classification?, salaryBand?, status (DRAFT/ACTIVE/FROZEN only; CLOSED excluded) |
+| `apps/api/src/workforce/dto/list-positions-query.dto.ts` | Paginated list query — page, pageSize, status (all 4 states), classification, departmentId, search |
+| `apps/api/src/workforce/dto/position-response.dto.ts` | Swagger-decorated response shape — id, departmentId, title, classification?, salaryBand?, status, createdAt (ISO string) |
+
+## Milestone 8 — Step 2 Design Decisions
+
+| Decision | Value | Rationale |
+|----------|-------|-----------|
+| `status` excluded from `UpdatePositionDto.@IsIn` values for CLOSED | `['DRAFT', 'ACTIVE', 'FROZEN']` only | CLOSED is a dedicated endpoint operation (Decision 2); DTO enforces this boundary |
+| `departmentId` excluded from `UpdatePositionDto` | Omitted | POS-201: department changes require approval; approval workflow deferred |
+| `title @MaxLength(200)` | 200 not 255 | POS-101 states max 200 characters; DB column is VARCHAR(255); business rule is more restrictive |
+| `classification` and `departmentId` as list filters | Included | Matches spec/06_api_contracts.md filter list for GET /api/v1/positions |
+| `search` targets title and classification | Documented in DTO | Positions have no `description` field; search scoped to indexable text fields |
+
+## Milestone 8 — Step 2 Deviations from Approved Presentation
+
+None. No `description` field introduced (per approved clarification). All fields and validator choices match the approved presentation and spec/05_database_schema.md.
+
+## Milestone 8 — Step 1 Deviations from Approved Presentation
+
+None. Directive amendment preceded schema work as required. Position model exactly matches spec/05_database_schema.md columns and indexes. Cross-schema FK to `organization.departments` matches domain model. `description` column not added — not present in spec schema (presentation noted it as tentative with `?`).
+
+Note on `description`: The spec/05_database_schema.md does not define a `description` column for `workforce.positions`. It was marked tentative (`?`) in the presentation. It was not added to the schema in Step 1. If a description field is wanted, it should be raised as a decision before Step 2 (DTOs) rather than added silently.
 
 ## Milestone 7 — Approved Architectural Decisions
 

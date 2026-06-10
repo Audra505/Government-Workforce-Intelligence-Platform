@@ -310,6 +310,77 @@ Tenant Validation
 
 ---
 
+# Authorization Rules
+
+## POS-AUTH-001
+
+Position creation restricted to:
+
+```text
+System Administrator
+HR Director
+```
+
+Endpoint: POST /api/v1/positions
+
+---
+
+## POS-AUTH-002
+
+Position list access restricted to:
+
+```text
+System Administrator
+HR Director
+Workforce Planner
+```
+
+Endpoint: GET /api/v1/positions
+
+---
+
+## POS-AUTH-003
+
+Position detail access restricted to:
+
+```text
+System Administrator
+HR Director
+Workforce Planner
+```
+
+Endpoint: GET /api/v1/positions/:id
+
+---
+
+## POS-AUTH-004
+
+Position update restricted to:
+
+```text
+System Administrator
+HR Director
+```
+
+Endpoint: PUT /api/v1/positions/:id
+
+---
+
+## POS-AUTH-005
+
+Position closure restricted to:
+
+```text
+System Administrator
+HR Director
+```
+
+Endpoint: POST /api/v1/positions/:id/close
+
+Rationale: Closure is irreversible. HR Director and Administrator authority required (POS-601).
+
+---
+
 # Reporting Rules
 
 Position metrics must support:
