@@ -10,33 +10,37 @@
 ---
 
 Last Updated: 2026-06-10
-Updated By: Claude Code (session: Milestone 8 — Position Management Foundation, Step 7)
+Updated By: Claude Code (session: Roadmap Reconciliation + M9 Environment Assessment)
 
 ## Repository Status
 
-Current Phase: Phase 1 — Foundation (Milestone 8 — Complete and Validated)
-Overall Classification: Tested Foundation — Application live; DB connected; health endpoint serving; API foundation operational; auth, users, organization, workforce endpoints live; `workforce.positions` table live in DB; 244 unit tests + 122 e2e tests passing; all 17 unit suites + 5 e2e suites passing; Milestone 7 and Milestone 8 complete and validated
-Active Sprint / Milestone: Milestone 8 — Position Management Foundation (ALL STEPS COMPLETE — awaiting final review)
+Current Phase: Phase 1 — Foundation (M9 Environment Preparation — WSL installed; system reboot pending; Docker Desktop not yet installed)
+Overall Classification: Tested Foundation — Backend API complete and validated; 244 unit tests + 122 e2e tests passing; all 17 unit suites + 5 e2e suites passing; Milestones 1–8 complete and validated; Phase 1 exit criteria NOT YET MET (D4 Frontend, D9 Docker, D10 CI/CD remain incomplete); M9 and M10 corrective milestones approved; M9 implementation blocked pending Docker Desktop installation
+Active Sprint / Milestone: Milestone 9 — Phase 1 Infrastructure Completion (Environment preparation in progress — implementation not yet started)
 Implementation Started: Yes (2026-06-05)
 
 ## Phase Summary
 
-Milestones 1–7 are complete and validated. The NestJS API is running with a full backend foundation: `ConfigModule` validates environment at startup; `PrismaModule` maintains a live PostgreSQL connection pool; `HealthModule` serves `GET /health` returning HTTP 200 with database connectivity confirmation; `main.ts` enforces global `ValidationPipe` (whitelist, forbidNonWhitelisted, transform), `/api` route prefix with `/health` exclusion, URI versioning (`/api/v1/`), and environment-gated Swagger with bearer auth at `GET /api/docs`. `AuditModule` (Milestone 4) is registered globally — `AuditService.logEvent()` is injectable across all domain modules; `AuditEventType` covers 42 events (AUD-200 through AUD-900); `SYSTEM_USER_ID` sentinel established; `result` column added to `audit.audit_events`. Milestone 5 (Authentication Foundation — IdentityModule, FR-002) is complete and validated: 10 steps implemented and tested; 88 unit tests pass across 9 suites; 21 e2e tests pass across 2 suites; full authentication flow exercised against real DB; audit records verified in DB; lockout flow verified in DB; dev seed user (`admin@dev.gov`, Development Agency tenant, System Administrator role) is live. Milestone 6 (User Registration Foundation — FR-001) complete and validated: 140 unit tests + 48 e2e tests; POST/GET/GET:id for /api/v1/users; RBAC enforced (SA + HR Director); SEC-003 tenant isolation enforced. Milestone 7 (Organization Management Foundation — FR-050, FR-051) complete and validated: DepartmentService + AgencyService transport-agnostic with discriminated unions; OrganizationController routes departments and agencies; RBAC enforced per ORG-AUTH-001/002/003; AUD-350 audit events emitted; SEC-003 tenant isolation enforced; soft-delete filter active; 187 unit tests + 83 e2e tests all passing. Milestone 8 Step 1 (Schema Extension): `workforce` PostgreSQL schema created; `workforce.positions` table live with cross-schema FK to `organization.departments`; Position model in Prisma; full 4-state lifecycle (DRAFT/ACTIVE/FROZEN/CLOSED) established in schema.
+Phase 1 exit criteria have not yet been met. D4 (Frontend Foundation), D9 (Docker Environment), and D10 (CI/CD Foundation) remain incomplete. Milestones 9 and 10 are approved corrective milestones that close Phase 1 before Phase 2 domain work resumes. Milestones 1–8 are complete and validated. The NestJS API is running with a full backend foundation: `ConfigModule` validates environment at startup; `PrismaModule` maintains a live PostgreSQL connection pool; `HealthModule` serves `GET /health` returning HTTP 200 with database connectivity confirmation; `main.ts` enforces global `ValidationPipe` (whitelist, forbidNonWhitelisted, transform), `/api` route prefix with `/health` exclusion, URI versioning (`/api/v1/`), and environment-gated Swagger with bearer auth at `GET /api/docs`. `AuditModule` (Milestone 4) is registered globally — `AuditService.logEvent()` is injectable across all domain modules; `AuditEventType` covers 42 events (AUD-200 through AUD-900); `SYSTEM_USER_ID` sentinel established; `result` column added to `audit.audit_events`. Milestone 5 (Authentication Foundation — IdentityModule, FR-002) is complete and validated: 10 steps implemented and tested; 88 unit tests pass across 9 suites; 21 e2e tests pass across 2 suites; full authentication flow exercised against real DB; audit records verified in DB; lockout flow verified in DB; dev seed user (`admin@dev.gov`, Development Agency tenant, System Administrator role) is live. Milestone 6 (User Registration Foundation — FR-001) complete and validated: 140 unit tests + 48 e2e tests; POST/GET/GET:id for /api/v1/users; RBAC enforced (SA + HR Director); SEC-003 tenant isolation enforced. Milestone 7 (Organization Management Foundation — FR-050, FR-051) complete and validated: DepartmentService + AgencyService transport-agnostic with discriminated unions; OrganizationController routes departments and agencies; RBAC enforced per ORG-AUTH-001/002/003; AUD-350 audit events emitted; SEC-003 tenant isolation enforced; soft-delete filter active; 187 unit tests + 83 e2e tests all passing. Milestone 8 (Position Management Foundation — FR-100) complete and validated: PositionService (5 methods) + PositionController (5 endpoints) + WorkforceModule registered in AppModule; full 4-state position lifecycle (DRAFT/ACTIVE/FROZEN/CLOSED); POS-AUTH-001 through POS-AUTH-005 RBAC enforced; AUD-400 audit events (CREATED, UPDATED, ACTIVATED, FROZEN, CLOSED) all emitted and DB-verified; SEC-003 tenant isolation enforced; soft-delete filter active; 244 unit tests + 122 e2e tests all passing across 17 unit suites + 5 e2e suites; committed, pushed, and GitHub CI confirmed passing.
 
 ---
 
-# Active Execution State — Milestone 8
+# Active Execution State — Milestone 9
 
 > This section is updated in place after each approved and validated implementation step.
 > Its purpose is crash/session recovery: the current step state is always readable without
 > scanning Zone 5 history. It is overwritten each step — not appended.
 
-Milestone: Milestone 8 — Position Management Foundation
-Last Completed Milestone: Milestone 7 — Organization Management Foundation (Complete and Validated, 2026-06-10)
-Last Completed Step: Step 7 — Test Suite (Complete and Validated, 2026-06-10)
+Milestone: Milestone 9 — Phase 1 Infrastructure Completion (Docker Environment + CI/CD)
+Last Completed Milestone: Milestone 8 — Position Management Foundation (Complete and Validated, 2026-06-10)
+Last Completed Step: Milestone 8 Step 7 — Test Suite (Complete and Validated, 2026-06-10)
 Last Completed Step Date: 2026-06-10
-Current Step: Milestone 8 complete — all 7 steps validated; 244 unit tests + 122 e2e tests passing
-Session Classification: Milestone 8 In Progress
+Current Step: Pre-implementation — environment preparation in progress; WSL installed; system reboot pending; Docker Desktop not yet installed; no M9 implementation steps started
+Session Classification: Milestone 9 Not Yet Started — blocked on Docker Desktop installation
+
+## Milestone 8 Historical Step Records
+
+> The following step records are retained from Milestone 8 for reference. See Zone 5 for the milestone completion summary.
 
 ## Milestone 8 — Approved Architectural Decisions
 
@@ -1334,6 +1338,97 @@ Source: spec/01_requirements.md — Global Acceptance Criteria
 > This section is append-only. Entries are prepended (most recent first).
 > No entry is ever modified or deleted after it is written.
 > Every meaningful repository change produces one entry.
+
+---
+
+### Entry: 2026-06-10 — Milestone 9 Environment Assessment (Pre-Implementation — Blocked)
+
+Phase: Phase 1 — Foundation
+Status: Pre-Implementation — blocked on environment prerequisites
+Capability Affected: D-009 Docker Environment; D-010 CI/CD Foundation
+FR References: None — infrastructure milestone
+
+#### What Changed
+
+- No application code modified
+- No directives modified
+- No specs modified
+- No execution plans modified
+- PROGRESS.md repository status and active execution state updated to reflect M9 environment assessment findings and Phase 1 roadmap reconciliation
+
+#### Environment Assessment Findings
+
+- WSL 2 installation: Completed (2026-06-10)
+- System reboot: Required — not yet performed; WSL 2 not yet active
+- Docker Desktop: Not yet installed — blocked on WSL 2 activation
+- Docker validation: Not yet performed (`docker --version`, `docker compose version`, `docker run hello-world` all pending)
+- GitHub Actions: Status not yet confirmed
+- GitHub Secret (JWT_SECRET): Not yet created
+- Postgres port conflict strategy: Not yet decided (native Postgres on 5432 may conflict with docker-compose)
+- M9 implementation: NOT STARTED
+
+#### Risks / Limitations
+
+- Milestone 9 implementation cannot proceed until Docker Desktop is installed and validated
+- WSL 2 reboot required before Docker Desktop installation is possible
+- No Dockerfiles exist in the repository — all Docker scaffolding is net-new work
+- `docker-compose.yml` currently contains postgres service only; api and web services are not yet defined
+- ci.yml has no PostgreSQL service container; e2e tests have never run in CI; JWT_SECRET not stored as a GitHub Actions secret
+- `apps/api/src/main.ts` is missing `app.enableCors()` — only production code change in M9
+- `apps/web/next.config.mjs` is missing `output: 'standalone'` — required for Next.js multi-stage Docker build
+
+#### Next Actions
+
+1. Reboot system to activate WSL 2
+2. Install Docker Desktop (WSL 2 backend)
+3. Validate: `docker --version`, `docker compose version`, `docker run hello-world`
+4. Confirm GitHub Actions enabled on repository
+5. Create GitHub Secret: JWT_SECRET
+6. Decide Postgres port conflict strategy
+7. Begin M9 Step 1 (CORS enablement in main.ts)
+
+---
+
+### Entry: 2026-06-10 — Phase 1 Roadmap Reconciliation (Assessment Only — No Code Changes)
+
+Phase: Phase 1 — Foundation
+Status: Assessment Complete — no implementation changes; corrective sequence approved
+Capability Affected: All Phase 1 deliverables (D1–D10)
+FR References: None — governance and planning entry
+
+#### What Changed
+
+- No application code modified
+- No directives modified
+- No specs modified
+- No execution plans modified
+- Roadmap reconciliation performed: spec/15_implementation_roadmap.md, execution/01_implementation_roadmap.md, execution/02_phase_1_foundation.md compared against PROGRESS.md M1–M8 and current repository state
+
+#### Reconciliation Findings
+
+- Phase 1 exit criteria (execution/02_phase_1_foundation.md) require D4 (Frontend Foundation), D9 (Docker Environment), and D10 (CI/CD Foundation) to be complete before Phase 1 closes
+- D4, D9, and D10 remain incomplete
+- M7 (Organization Management) and M8 (Position Management) were implemented before Phase 1 exit criteria were satisfied — classified as undocumented deviation rooted in roadmap interpretation error, not intentional reprioritization
+- M7 and M8 are valid completed milestones and are not renamed or reversed
+- Phase 1 cannot be formally closed until D4, D9, and D10 are complete
+
+#### Corrective Sequence Approved
+
+- Milestone 9: Phase 1 Infrastructure Completion — D9 (Docker Environment) + D10 (CI/CD Foundation), tightly coupled (Docker provides the Postgres service that CI e2e tests require)
+- Milestone 10: Frontend Foundation — D4 (Next.js App Router, login/dashboard/unauthorized/404 pages, httpOnly cookie auth, middleware route protection), significantly larger scope, separate milestone
+- Milestone 11: Vacancy Management Foundation — first Phase 2 domain capability; previously planned as M9 before reconciliation
+
+#### Milestone Numbering Clarification
+
+- PROGRESS.md M1–M8 are granular implementation steps (not phase gates)
+- spec/15 Milestones 1–7 are phase-gate achievements — entirely different numbering systems
+- No renaming of either system is required; the two numbering systems are parallel and non-conflicting
+
+#### Risks / Limitations
+
+- Phase 1 status: Tested Foundation (backend) — NOT production-ready due to missing D4/D9/D10
+- Zone 2 D-002 and D-004 capability maturity entries are stale (not updated since M7/M8 completion) — to be corrected at M9 session start per CLAUDE.md Session Startup Rule
+- execution/01_implementation_roadmap.md states "No phase skipping permitted" — Phase 2 domain work must not resume until Phase 1 exit criteria are satisfied
 
 ---
 
