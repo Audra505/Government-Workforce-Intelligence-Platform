@@ -1,9 +1,15 @@
 # Government Workforce Intelligence Platform — Docker Compose
 # References: spec/08_deployment_architecture.md, environment/01_environment_strategy.md
 #
-# Phase 1 services: postgres only
-# Full service stack (frontend, api) added in Milestone 9 (Docker Environment)
-# when both applications build successfully and DB schema is established.
+# Phase 1 full service stack — postgres + api + web
+# postgres added in Milestone 2 (Database Foundation)
+# api and web added in Milestone 9 Step 6 (Docker Environment)
+#
+# Prerequisites: copy .env.example to .env and set JWT_SECRET before running the full stack.
+# Developer workflows:
+#   db only:    npm run db:up        (postgres only — unchanged from Milestone 2)
+#   full stack: npm run stack:up     (all three services in dependency order)
+#   teardown:   npm run db:down      (stops and removes all containers)
 
 services:
   postgres:
@@ -23,6 +29,63 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 10s
+
+  api:
+    build:
+      context: ../..
+      dockerfile: apps/api/Dockerfile
+    container_name: gov_workforce_api
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: "3001"
+      # DATABASE_URL uses the postgres service name as host.
+      # The .env file value (localhost:5432) is intentionally NOT used here —
+      # container-to-container traffic must reference the service name, not localhost.
+      DATABASE_URL: postgresql://${POSTGRES_USER:-govplatform}:${POSTGRES_PASSWORD:-devpassword}@postgres:5432/${POSTGRES_DB:-gov_workforce_dev}
+      JWT_SECRET: ${JWT_SECRET}
+      # CORS_ORIGIN must match the browser-visible origin of the web service.
+      # Web maps to host port 3000 — the browser accesses it at http://localhost:3000.
+      # Reference: M9 Step 1 (main.ts enableCors) and Step 2 (.env.example CORS_ORIGIN).
+      CORS_ORIGIN: http://localhost:3000
+    ports:
+      - "3001:3001"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3001/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  web:
+    build:
+      context: ../..
+      dockerfile: apps/web/Dockerfile
+    container_name: gov_workforce_web
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      # Docker sets HOSTNAME to the container ID by default; Next.js standalone reads
+      # process.env.HOSTNAME as its bind address. Without this override, the server
+      # binds only to the container's network IP, not 127.0.0.1, so the health check
+      # (wget localhost:3000) gets connection refused. Bind to all interfaces instead.
+      HOSTNAME: "0.0.0.0"
+    ports:
+      - "3000:3000"
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      # Alpine Linux resolves 'localhost' to ::1 (IPv6) but Next.js standalone binds
+      # to 0.0.0.0 (IPv4 only). Use 127.0.0.1 explicitly to avoid IPv6 mismatch.
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3000/ || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
       start_period: 10s
 
 volumes:

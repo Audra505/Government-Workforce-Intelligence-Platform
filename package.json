@@ -15,6 +15,7 @@
     "db:up": "docker compose -f infrastructure/docker/docker-compose.yml up -d postgres",
     "db:down": "docker compose -f infrastructure/docker/docker-compose.yml down",
     "db:logs": "docker compose -f infrastructure/docker/docker-compose.yml logs -f postgres",
+    "stack:up": "docker compose -f infrastructure/docker/docker-compose.yml --env-file .env up -d",
     "setup": "npm install && npm run db:up"
   },
   "devDependencies": {

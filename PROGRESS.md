@@ -9,14 +9,14 @@
 
 ---
 
-Last Updated: 2026-06-10
-Updated By: Claude Code (session: Roadmap Reconciliation + M9 Environment Assessment)
+Last Updated: 2026-06-11
+Updated By: Claude Code (session: M9 Step 7 — CI/CD pipeline extension)
 
 ## Repository Status
 
-Current Phase: Phase 1 — Foundation (M9 Environment Preparation — WSL installed; system reboot pending; Docker Desktop not yet installed)
-Overall Classification: Tested Foundation — Backend API complete and validated; 244 unit tests + 122 e2e tests passing; all 17 unit suites + 5 e2e suites passing; Milestones 1–8 complete and validated; Phase 1 exit criteria NOT YET MET (D4 Frontend, D9 Docker, D10 CI/CD remain incomplete); M9 and M10 corrective milestones approved; M9 implementation blocked pending Docker Desktop installation
-Active Sprint / Milestone: Milestone 9 — Phase 1 Infrastructure Completion (Environment preparation in progress — implementation not yet started)
+Current Phase: Phase 1 — Foundation (M9 Implementation In Progress — Steps 1–7 of 8 complete)
+Overall Classification: Tested Foundation — Backend API complete and validated; 244 unit tests + 122 e2e tests passing; all 17 unit suites + 5 e2e suites passing; Milestones 1–8 complete and validated; Phase 1 exit criteria NOT YET MET (D4 Frontend, D9 Docker partially complete, D10 CI/CD partially complete); M9 implementation in progress (Steps 1–7 complete and validated; full Docker stack operational; CI now validates lint + build + unit tests + migrations + seed + e2e against ephemeral PostgreSQL service; e2e suite confirmed passing in local CI-equivalent run: 122 tests, 5 suites)
+Active Sprint / Milestone: Milestone 9 — Phase 1 Infrastructure Completion (Steps 1–7 complete; Step 8 pending)
 Implementation Started: Yes (2026-06-05)
 
 ## Phase Summary
@@ -33,10 +33,203 @@ Phase 1 exit criteria have not yet been met. D4 (Frontend Foundation), D9 (Docke
 
 Milestone: Milestone 9 — Phase 1 Infrastructure Completion (Docker Environment + CI/CD)
 Last Completed Milestone: Milestone 8 — Position Management Foundation (Complete and Validated, 2026-06-10)
-Last Completed Step: Milestone 8 Step 7 — Test Suite (Complete and Validated, 2026-06-10)
-Last Completed Step Date: 2026-06-10
-Current Step: Pre-implementation — environment preparation in progress; WSL installed; system reboot pending; Docker Desktop not yet installed; no M9 implementation steps started
-Session Classification: Milestone 9 Not Yet Started — blocked on Docker Desktop installation
+Last Completed Step: Milestone 9 Step 7 — CI/CD pipeline extension (Complete and Validated, 2026-06-11)
+Last Completed Step Date: 2026-06-11
+Current Step: Step 8 — Full-stack validation (local Docker + CI)
+Session Classification: Milestone 9 In Progress — Step 7 of 8 complete
+
+## Milestone 9 — Step 7 Validation Evidence
+
+- `npm run test` (unit tests): **244 tests passed, 17 suites, 0 failures** — confirmed no regression from workflow-only change
+- `npm run db:migrate:deploy --workspace=apps/api`: **5 migrations found, 0 pending** — migration step is idempotent on existing database; on a fresh CI database this applies all 5 migrations
+- `npm run db:seed --workspace=apps/api`: **7 platform roles upserted** (`System Administrator`, `HR Director`, `Workforce Planner`, `Recruiter`, `Hiring Manager`, `Compliance Officer`, `Executive User`); **dev user skipped** — `NODE_ENV` not set in environment → `process.env['NODE_ENV'] !== 'development'` evaluates to `true` → seed skips dev fixture (matches expected CI behavior)
+- `npm run test:e2e --workspace=apps/api`: **122 tests passed, 5 suites, 0 failures** — all e2e suites pass with seeded roles present: `app.e2e-spec.ts` (bootstrap), `auth.e2e-spec.ts` (21 tests), `users.e2e-spec.ts` (48 tests), `organization.e2e-spec.ts` (30 tests), `position.e2e-spec.ts` (23 tests)
+- Execution times: organization 19s, position 20s, users 21s, auth 5s, app <1s — total 25.8s; within acceptable CI budget
+
+## Milestone 9 — Step 7 Files Modified
+
+| File | Change |
+|------|--------|
+| `.github/workflows/ci.yml` | Added postgres service container; added DATABASE_URL + JWT_SECRET job-level env vars; renamed "Test" → "Unit tests"; added "Migrate database", "Seed database", "E2E tests" steps |
+
+## Milestone 9 — Step 7 Deviations from Approved Design
+
+None. The implementation matches the approved presentation exactly.
+
+## Milestone 9 — Step 7 Architectural Notes
+
+- **`NODE_ENV` unset in CI is load-bearing for seed correctness**: `seed.ts` reads `process.env['NODE_ENV']` directly (not through NestJS ConfigModule). The dev user guard evaluates `undefined !== 'development'` → `true` → skip. This is consistent with how the seed behaves locally when run without explicitly setting `NODE_ENV` in the shell (even when `.env` has `NODE_ENV=development`, ts-node does not load `.env`). Confirmed by local validation output: "Dev user seed skipped — not in development environment."
+- **`CI_JWT_SECRET` is a hard prerequisite**: `JWT_SECRET` is `@IsNotEmpty()` in `env.validation.ts`. If the secret is absent from GitHub Actions, `${{ secrets.CI_JWT_SECRET }}` resolves to empty string and every e2e AppModule bootstrap fails. The secret must be provisioned before the Step 7 commit is pushed or the CI run will fail at "E2E tests."
+- **Migration command uses workspace flag**: `npm run db:migrate:deploy --workspace=apps/api` runs `prisma migrate deploy` in the `apps/api/` directory. Prisma reads `prisma/schema.prisma` relative to that directory. No explicit `--schema` flag is needed.
+- **Seed command requires `ts-node`**: `npm run db:seed --workspace=apps/api` runs `ts-node --transpile-only prisma/seed.ts`. `ts-node` is a devDependency of `apps/api`, hoisted to root `node_modules/.bin/` by npm workspaces. Available after `npm ci` — confirmed by local execution.
+- **E2E tests run in-process (no Docker)**: CI runs the NestJS app via Supertest (`createNestApplication()` → `getHttpServer()`), not in a Docker container. This is correct and expected. Docker image correctness is validated separately by Step 6 local validation and Step 8.
+
+## Milestone 9 — Step 6 Validation Evidence
+
+- `npm run stack:up` (with `--env-file .env` fix): all three containers reach `healthy` status — `gov_workforce_postgres (healthy)`, `gov_workforce_api (healthy)`, `gov_workforce_web (healthy)`
+- `GET http://localhost:3001/health` → **HTTP 200** `{"status":"ok","info":{"database":{"status":"up"}}}` — API healthy, database reachable
+- `GET http://localhost:3001/api/v1/users` → **HTTP 401** — auth enforcement confirmed in Docker
+- `GET http://localhost:3000/` → **HTTP 200** — web home page served correctly from standalone server
+- Static CSS chunk (`GET http://localhost:3000/_next/static/css/113443fcfe40379c.css`) → **HTTP 200** — static assets served correctly
+- CORS preflight: `OPTIONS /api/v1/users` with `Origin: http://localhost:3000` → `Access-Control-Allow-Origin: http://localhost:3000`, `Access-Control-Allow-Credentials: true`, `Access-Control-Allow-Methods: GET,HEAD,PUT,PATCH,POST,DELETE` — CORS correctly scoped to web origin
+- Developer workflow: `npm run db:down` stops all containers; `npm run db:up` starts **only** `gov_workforce_postgres` — api and web not started
+- API user: `docker exec gov_workforce_api whoami` → `node`
+- Web user: `docker exec gov_workforce_web whoami` → `node`
+- Prisma migrations: all 5 migrations applied idempotently against Docker postgres on first `stack:up` run (Milestone 2–8 migrations — confirmed during initial JWT_SECRET failure diagnosis before fix was applied)
+
+## Milestone 9 — Step 6 Files Modified
+
+| File | Change |
+|------|--------|
+| `infrastructure/docker/docker-compose.yml` | Added `api` and `web` services; `api` depends on postgres healthy; `web` depends on api healthy; health checks for both; CORS_ORIGIN and JWT_SECRET wired; DATABASE_URL uses postgres service name |
+| `package.json` | Added `stack:up` script |
+
+## Milestone 9 — Step 6 Deviations from Approved Design
+
+Three deviations discovered during implementation and validation (all required fixes):
+
+| # | Deviation | Root Cause | Impact |
+|---|-----------|------------|--------|
+| 1 | `stack:up` uses `--env-file .env` flag | Docker Compose v2 sets its project directory to the compose file's directory (`infrastructure/docker/`); it reads `.env` from there, not the repo root. `JWT_SECRET` was blank, causing NestJS `env.validation.ts` to abort with `JWT_SECRET should not be empty`. Fix: explicit `--env-file .env` (relative to cwd, which is repo root when running `npm run stack:up`) | Required — without this, `stack:up` always fails on first run |
+| 2 | `HOSTNAME: "0.0.0.0"` added to web service environment | Docker automatically sets the container's `HOSTNAME` env var to the container ID. Next.js standalone reads `process.env.HOSTNAME` as the bind address — resulting in binding only to the container's network IP, not 127.0.0.1. The health check (`wget localhost:3000`) then gets connection refused | Required — without this, the web health check always fails |
+| 3 | Web health check uses `127.0.0.1` instead of `localhost` | Alpine Linux resolves `localhost` to `::1` (IPv6 loopback) first; Next.js standalone binds to IPv4 `0.0.0.0` only. Even with `HOSTNAME=0.0.0.0`, wget resolving to IPv6 gets connection refused. `wget 127.0.0.1:3000` works; `wget localhost:3000` does not | Required — Alpine IPv4/IPv6 behaviour; applies to any Next.js standalone health check on Alpine |
+
+Note on deviation 1: `db:down` and `db:up` do not include `--env-file .env`. The JWT_SECRET warning (`"The JWT_SECRET variable is not set"`) appears in output but is cosmetically harmless — postgres does not use JWT_SECRET. The warning occurs because Docker Compose interpolates all service env block variables when parsing the compose file, including api's `${JWT_SECRET}`, even when only starting the postgres service.
+
+## Milestone 9 — Step 6 Architectural Notes
+
+- **Docker Compose project directory vs cwd**: Docker Compose v2 uses the compose file's directory as the "project directory" for `.env` resolution, not the shell's current working directory. Any `npm run` script that uses `-f` with a non-root compose file path must also use `--env-file` to load the repo root `.env`. This applies to any future compose commands that need env vars from the root `.env`.
+- **Next.js standalone + Alpine HOSTNAME behaviour**: The standalone server.js reads `process.env.HOSTNAME` to determine its bind address. Docker sets HOSTNAME to the container ID. Without an explicit `HOSTNAME=0.0.0.0` override, the server binds to only the container's network IP. Health checks and any internal service probes must use `127.0.0.1` rather than `localhost` on Alpine, due to IPv6-first DNS resolution.
+- **Prisma migration idempotency in Docker confirmed**: All 5 migrations applied successfully on first `stack:up` run against a fresh Docker postgres volume. Subsequent runs with existing data would show `No pending migrations to apply.` — idempotent as expected.
+- **Service dependency chain validated**: `web → api (service_healthy) → postgres (service_healthy)` startup order enforced correctly. Web did not start until api passed its health check.
+
+## Milestone 9 — Step 5 Validation Evidence
+
+- `docker build -f apps/web/Dockerfile -t gov-web:step5 .`: EXIT 0 — both builder and runner stages complete without error; image produced (238 MB)
+- Builder stage: `npm ci` installed 946 packages; `next build` produced `✓ Compiled successfully` and `✓ Generating static pages (4/4)`; build traces collected; standalone output produced
+- Runner stage: 4 steps only (FROM, WORKDIR, COPY standalone, COPY static) — no `npm ci`; export completed in 3.1 seconds (vs 119.2 seconds for API image); confirms standalone output eliminates runner-stage dependency install
+- Container startup: `docker run -d -p 3001:3000 gov-web:step5` → `✓ Starting... ✓ Ready in 172ms`; server bound on `0.0.0.0:3000` — visible in log as `Network: http://172.17.0.2:3000`
+- `GET /` from container → HTTP 200; response contains rendered HTML with `<p>Government Workforce Intelligence Platform</p>` and correct `<title>` metadata
+- Static JS chunk (`GET /_next/static/chunks/webpack-*.js`) → HTTP 200 — confirms `.next/static/` COPY to `apps/web/.next/static/` placed files at the correct path relative to `server.js`
+- Static CSS (`GET /_next/static/css/113443fcfe40379c.css`) → HTTP 200 — CSS served correctly
+- Running user: `node` (non-root, UID 1000) — confirmed via `docker inspect` (Config.User = "node") and `docker exec whoami`
+- `git status --short`: `?? apps/web/Dockerfile` appears as new untracked file; no existing files modified by this step
+- Actual image size: **238 MB** (measured via `docker images gov-web:step5 --format "{{.Size}}"`)
+
+## Milestone 9 — Step 5 Files Created
+
+| File | Purpose |
+|------|---------|
+| `apps/web/Dockerfile` | Multi-stage Docker image: builder (Alpine, npm ci, next build with standalone output) → runner (Alpine, COPY standalone output, COPY static assets, USER node) |
+
+## Milestone 9 — Step 5 Deviations from Approved Design
+
+| # | Deviation | Root Cause | Impact |
+|---|-----------|------------|--------|
+| 1 | `ENV HOSTNAME="0.0.0.0"` and `ENV PORT="3000"` omitted from runner | Correction made during pre-approval verification (Step 5 verification findings); corrected runner stage design shown to user before approval; Next.js 14 standalone defaults to 0.0.0.0 in production | None — confirmed by startup log: `Network: http://172.17.0.2:3000` shows server bound on all interfaces without explicit HOSTNAME setting |
+| 2 | `RUN chown -R node:node /app` omitted from runner | Approved correction — pre-approval verification confirmed it is not required for a static Next.js page; no Prisma write-check equivalent exists for Next.js standalone | Positive — removes 20–30 second build step; runner export completed in 3.1 seconds vs 119+ seconds for API image |
+
+Both deviations were identified, presented, and approved before implementation. Neither is an undisclosed change.
+
+## Milestone 9 — Step 5 Architectural Notes
+
+- **Next.js 14 standalone defaults to 0.0.0.0**: The standalone server.js binds on all interfaces in production mode without requiring `HOSTNAME=0.0.0.0`. This was confirmed empirically during validation. The `ENV HOSTNAME` instruction is not required for Docker accessibility.
+- **No `chown` required for static Next.js runner**: The standalone server for a fully static page is read-only at runtime. The `node` user has read+traverse access to root-owned files under Docker's default COPY permissions (644/755). `chown` becomes necessary only if ISR, server actions, or image optimization cache writes are added in M10.
+- **Runner stage export time**: 3.1 seconds vs 119+ seconds for the API image. The absence of `chown -R node:node /app` (which takes 100–200 seconds on the API image) and `npm ci` in the runner stage is responsible for this difference.
+- **Standalone node_modules includes webpack**: The `.next/standalone/node_modules/` includes webpack and associated packages (tapable, enhanced-resolve, loader-runner, @webassemblyjs/*). This is expected Next.js 14 behaviour — the server imports webpack for module resolution in certain code paths. These packages do not cause filesystem writes at runtime.
+- **Image size 238 MB vs 211 MB estimate**: 27 MB difference is explained by Docker image metadata overhead and Linux vs Windows filesystem differences in measuring the standalone output (measured as 35 MB on Windows NTFS; actual Linux layer is slightly larger).
+
+## Milestone 9 — Step 4 Validation Evidence
+
+- `docker build -f apps/api/Dockerfile -t gov-api:step4 .`: EXIT 0 — both builder and runner stages complete without error; image produced (392 MB)
+- Docker layer cache: all npm ci and nest build layers cached on second build; only `apk add openssl` and `chown -R node:node /app` layers recomputed
+- `prisma migrate deploy` at container startup: `5 migrations found in prisma/migrations` → `No pending migrations to apply.` — idempotent; all migrations already applied
+- NestJS startup: all 8 modules initialized (AppModule, PrismaModule, PassportModule, AuditModule, ConfigModule, HealthModule, JwtModule, UsersModule, OrganizationModule, WorkforceModule, IdentityModule); all 15 routes mapped correctly
+- `GET /health` from container → HTTP 200 `{"status":"ok","info":{"database":{"status":"up"}}}`  — database connectivity confirmed inside Docker
+- `GET /api/docs` from container → HTTP 404 — Swagger correctly suppressed in `NODE_ENV=production`
+- Running user: `node` (non-root, UID 1000) — confirmed via `docker inspect`
+- Git diff: `apps/api/Dockerfile` appears as untracked new file only; no existing files modified
+
+## Milestone 9 — Step 4 Files Created
+
+| File | Purpose |
+|------|---------|
+| `apps/api/Dockerfile` | Multi-stage Docker image: builder (Alpine+OpenSSL, npm ci, prisma generate, nest build) → runner (Alpine+OpenSSL, npm ci --omit=dev, Prisma artifacts from builder, dist from builder, USER node) |
+
+## Milestone 9 — Step 4 Deviations from Approved Design
+
+Two deviations discovered during validation (both are required fixes, not scope changes):
+
+| # | Deviation | Root Cause | Fix Applied |
+|---|-----------|------------|-------------|
+| 1 | `RUN chown -R node:node /app` added before `USER node` | Prisma checks write permission on `node_modules/@prisma/engines/` at startup even when binaries are present; root-owned files are unwritable by the `node` user | Added `RUN chown -R node:node /app` immediately before `USER node` in runner stage |
+| 2 | `RUN apk add --no-cache openssl` added to both stages | `node:20-alpine` does not include OpenSSL by default; the Prisma schema engine binary (used by `prisma migrate deploy`) requires it; builder stage also benefits to eliminate the SSL detection warning during `prisma generate` | Added `RUN apk add --no-cache openssl` as first instruction in both builder and runner stages |
+
+Both deviations match Risk 5 (USER node permissions) and a newly discovered dependency (OpenSSL on Alpine) noted as a risk during the pre-implementation verification phase. Neither deviation changes application logic, schema, or API behaviour.
+
+## Milestone 9 — Step 4 Architectural Notes
+
+- **OpenSSL on Alpine is a standard Prisma requirement**: Any Prisma-based Alpine Docker image that runs `prisma migrate deploy` or uses native engine binaries requires `apk add --no-cache openssl`. This applies to the web Dockerfile (Step 5) if it ever uses Prisma (it does not in Phase 1), and is noted here for future reference.
+- **`chown -R node:node /app` is required when using `USER node` with Prisma**: The `@prisma/engines` directory must be writable by the process user even when engines are pre-installed. This is a Prisma startup write-check behaviour, not a runtime write requirement.
+- **`npm ci --omit=dev` with `@prisma/client` peer dep warning**: npm warns about unmet peer dep `prisma: *` when `--omit=dev` excludes `prisma`. The warning does not cause install failure. The Prisma CLI is satisfied via the four COPY instructions from the builder stage.
+
+## Milestone 9 — Step 3 Validation Evidence
+
+- `npm run build --workspace=apps/web`: EXIT 0 — ✓ Compiled successfully; 4 static pages generated (`/`, `/_not-found`); Build traces collected; standalone output produced
+- `.next/standalone/` directory confirmed created at `apps/web/.next/standalone/`
+- **server.js confirmed at: `apps/web/.next/standalone/apps/web/server.js`** (monorepo path mirrored inside standalone root — required for Step 5 web Dockerfile CMD)
+- Standalone root contents: `apps/`, `node_modules/`, `package.json` — complete self-contained bundle
+- Root `npm run build` (all workspaces): EXIT 0 — API prebuild (prisma generate) + API build (nest build) + Web build (next build) + config/shared/ui type checks — zero regressions
+- `outputFileTracingRoot` not required — build completed without tracing errors; assumption confirmed correct for current stub
+- Only file modified: `apps/web/next.config.mjs` (confirmed via git diff)
+
+## Milestone 9 — Step 3 Files Modified
+
+| File | Change |
+|------|--------|
+| `apps/web/next.config.mjs` | Added `output: 'standalone'` as first property in `nextConfig` object |
+
+## Milestone 9 — Step 3 Architectural Note
+
+Confirmed `server.js` path: `apps/web/.next/standalone/apps/web/server.js`. Step 5b is now resolved — the web Dockerfile CMD must reference this path. `COPY tsconfig.base.json ./` and no `public/` COPY remain in effect per approved plan corrections.
+
+## Milestone 9 — Step 2 Validation Evidence
+
+- File inspection: `CORS_ORIGIN=http://localhost:3000` added to Frontend section of `.env.example`, immediately after `NEXT_PUBLIC_API_URL=http://localhost:3001`
+- No automated test applicable — documentation-only file; not executed or imported by application code
+- No build or type-check required
+
+## Milestone 9 — Step 2 Files Modified
+
+| File | Change |
+|------|--------|
+| `.env.example` | Added `CORS_ORIGIN=http://localhost:3000` to Frontend section, after `NEXT_PUBLIC_API_URL` |
+
+## Milestone 9 — Step 1 Validation Evidence
+
+- `tsc --noEmit`: EXIT 0 — no type errors; CORS option types resolve cleanly
+- `nest build`: EXIT 0 — no build regressions
+- Unit tests (`npx jest --no-coverage`): EXIT 0 — **244/244 pass, 17 suites** — zero regressions
+
+## Milestone 9 — Step 1 Files Modified
+
+| File | Change |
+|------|--------|
+| `apps/api/src/main.ts` | Added `app.enableCors({ origin: process.env['CORS_ORIGIN'] ?? 'http://localhost:3000', credentials: true })` after `useGlobalPipes`, before `setGlobalPrefix` |
+
+## Milestone 9 — Approved Plan (Corrected)
+
+| Step | Description | Status |
+|------|-------------|--------|
+| 1 | CORS enablement — `apps/api/src/main.ts` | Complete |
+| 2 | `.env.example` — add `CORS_ORIGIN` | Complete |
+| 3 | Next.js standalone output — `apps/web/next.config.mjs` | Complete |
+| 4 | API Dockerfile — `apps/api/Dockerfile` (node:20-alpine; includes `COPY tsconfig.base.json ./`) | Complete |
+| 5 | Web Dockerfile — `apps/web/Dockerfile` (node:20-alpine; includes `COPY tsconfig.base.json ./`; no public COPY) | Complete |
+| 5b | Validate standalone server.js path from actual build output | Complete — `apps/web/.next/standalone/apps/web/server.js` |
+| 6 | docker-compose.yml — add api + web services | Pending |
+| 7 | `.github/workflows/ci.yml` — add postgres service + e2e step | Pending |
+| 8 | Full-stack validation (local Docker + CI) | Pending |
 
 ## Milestone 8 Historical Step Records
 
@@ -842,9 +1035,9 @@ Source: spec/01_requirements.md — Global Acceptance Criteria
 | Domain | ID | FRs | Overall Maturity | Code | Tests | Critical Notes |
 |--------|----|-----|-----------------|------|-------|----------------|
 | Identity & Access | D-001 | 5 | Tested | IdentityModule complete; IdentityService (credential validation, lockout); AuthService (JWT issuance, audit); JwtStrategy; JwtAuthGuard; RolesGuard + @RequireRoles; AuthController (/login, /logout, /me); UsersController (/api/v1/users POST/GET/GET:id); UsersService (createUser, listUsers, getUserById); UsersModule wired; URI versioning active; dev seed user live | 15 unit (users.controller) + 27 unit (users.service) + 9 unit (roles.guard) + 12 unit (auth.controller) + 16 unit (identity.service) + 17 unit (auth.service) + 6 unit (jwt.strategy) + 21 e2e (auth) + 27 e2e (users) = 140 unit / 48 e2e | FR-001 Tested (Milestone 6 complete); FR-002 Tested; FR-003 Tested (RolesGuard, @RequireRoles, dual-role guard verified e2e); FR-004/FR-005 Partially Implemented |
-| Organization Management | D-002 | 4 | Scaffolded | DB layer live; PrismaService available; no org business logic | None | Required before Employee and Workforce domains |
+| Organization Management | D-002 | 4 | Tested | DepartmentService + AgencyService + OrganizationController; RBAC (ORG-AUTH-001/002/003); AUD-350 audit events; SEC-003 tenant isolation; soft-delete filter; POST/GET/GET:id for departments and agencies (M7 complete) | 47 unit (dept.service, agency.service, org.controller) + 35 e2e (org.e2e-spec) | FR-050/FR-051 Tested; D-003 and D-004 unblocked |
 | Employee Management | D-003 | 5 | Planned | None | None | No dedicated directive — gap |
-| Workforce Planning | D-004 | 4 | Planned | None | None | — |
+| Workforce Planning | D-004 | 4 | Partially Implemented | FR-100 (Position Management): PositionService + PositionController; 4-state lifecycle (DRAFT/ACTIVE/FROZEN/CLOSED); POS-AUTH-001–005 RBAC; AUD-400 events (CREATED/UPDATED/ACTIVATED/FROZEN/CLOSED); SEC-003 tenant isolation; 5 endpoints (M8 complete) | 57 unit (position.service.spec, position.controller.spec) + 39 e2e (position.e2e-spec) | FR-101+ (Vacancy, Scheduling, etc.) remain Planned |
 | Scheduling | D-005 | 3 | Planned | None | None | — |
 | Talent Acquisition | D-006 | 4 | Planned | None | None | No dedicated hiring state file |
 | Workforce Intelligence | D-007 | 4 | Planned | None | None | Depends on AI Governance constraints |

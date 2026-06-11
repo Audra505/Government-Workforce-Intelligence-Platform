@@ -22,6 +22,15 @@ async function bootstrap(): Promise<void> {
     }),
   );
 
+  // CORS — origin resolved from environment; credentials: true required for Authorization header.
+  // CORS_ORIGIN must match the origin seen by the browser (http://localhost:3000 in local dev
+  // and Docker Compose). Override via env var for staging/production without a code change.
+  // Reference: spec/07_security_architecture.md — SEC-004: Defense in Depth
+  app.enableCors({
+    origin: process.env['CORS_ORIGIN'] ?? 'http://localhost:3000',
+    credentials: true,
+  });
+
   // Global route prefix with /health excluded
   // GET /health must remain at root path for Docker Compose healthcheck and load balancer probes
   app.setGlobalPrefix('api', {
