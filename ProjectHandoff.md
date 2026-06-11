@@ -41,7 +41,7 @@ Phase 1 — Foundation
 
 ### Current Milestone
 
-Milestone 7 — Organization Management Foundation
+Milestone 8 — Position Management Foundation
 
 Completed and validated.
 
@@ -184,6 +184,31 @@ Key outcomes:
 • FR-051 validated
 
 
+#### Milestone 8 — Position Management Foundation
+
+Completed and validated.
+
+Key outcomes:
+
+• WorkforceModule implemented
+• PositionService implemented
+• PositionController implemented
+• workforce PostgreSQL schema created
+• workforce.positions table created
+• Cross-schema FK to organization.departments established
+• Position creation endpoint implemented
+• Position listing endpoint implemented
+• Position retrieval endpoint implemented
+• Position update endpoint implemented
+• Position close endpoint implemented
+• Full 4-state position lifecycle implemented (DRAFT / ACTIVE / FROZEN / CLOSED)
+• Position RBAC implemented (POS-AUTH-001 through POS-AUTH-005)
+• Position audit integration implemented (AUD-400 events)
+• Tenant isolation enforcement implemented
+• Soft-delete filter active
+• FR-100 validated
+
+
 ### Current Runtime Status
 
 Backend API operational.
@@ -205,6 +230,8 @@ Validated services:
 * Organization management operational
 * Department management operational
 * Agency management operational
+* Position management operational
+* Position lifecycle management operational (DRAFT / ACTIVE / FROZEN / CLOSED)
 
 Startup log confirms:
 
@@ -229,16 +256,22 @@ Authenticated Endpoints Operational
 
 • GET /api/v1/agencies/current
 
+• POST /api/v1/positions
+• GET /api/v1/positions
+• GET /api/v1/positions/{id}
+• PUT /api/v1/positions/{id}
+• POST /api/v1/positions/{id}/close
+
 
 ### Current Test Status
 
 Passing:
 
-* 187 unit tests
-* 15 unit test suites
+* 244 unit tests
+* 17 unit test suites
 
-* 83 e2e tests
-* 4 e2e test suites
+* 122 e2e tests
+* 5 e2e test suites
 
 
 ### Unit Test Suites
@@ -258,6 +291,8 @@ Passing:
 • department.service.spec.ts
 • agency.service.spec.ts
 • organization.controller.spec.ts
+• position.service.spec.ts
+• position.controller.spec.ts
 
 ### E2E Test Suites
 
@@ -265,6 +300,7 @@ Passing:
 • auth.e2e-spec.ts
 • users.e2e-spec.ts
 • organization.e2e-spec.ts
+• position.e2e-spec.ts
 
 
 Validation status:
@@ -283,6 +319,10 @@ Validation status:
 * RBAC validation completed
 * Tenant isolation validation completed
 * Organization audit validation completed
+* Position management validation completed
+* Position lifecycle validation completed
+* Position RBAC validation completed
+* Position audit validation completed
 
 Important constraints:
 
@@ -583,18 +623,23 @@ No Python services.
 
 Continue Phase 1 Foundation implementation.
 
-Milestones 1–7 are complete and validated.
+Milestones 1–8 are complete and validated.
+
+Phase 1 exit criteria have not yet been met.
+
+D4 (Frontend Foundation), D9 (Docker Environment), and D10 (CI/CD Foundation) remain incomplete.
+
+Milestones 9 and 10 are approved corrective milestones that close Phase 1 before Phase 2 domain work resumes.
 
 ## Current Milestone:
 
-Milestone 8 — Pending Presentation
+Milestone 9 — Phase 1 Infrastructure Completion (Docker Environment + CI/CD)
 
 Status:
 
-Ready for presentation and architecture review.
+Not yet started. Environment preparation in progress. WSL installed. System reboot pending. Docker Desktop not yet installed.
 
-
-Future sessions should continue execution from Milestone 8 unless PROGRESS.md indicates otherwise.
+Future sessions should continue execution from Milestone 9 unless PROGRESS.md indicates otherwise.
 
 No business features are implemented during Phase 1.
 
@@ -926,6 +971,36 @@ not on preserving it.
 ---
 
 
+---
+
+# Roadmap Reconciliation Findings
+
+Status:
+
+Completed — 2026-06-10
+
+Findings:
+
+Phase 1 exit criteria (execution/02_phase_1_foundation.md) require D4, D9, and D10 to be complete before Phase 1 closes.
+
+Milestones 7 and 8 were implemented before D4/D9/D10 were satisfied. This is an undocumented deviation rooted in roadmap interpretation error. It is not intentional reprioritization. Milestones 7 and 8 are valid completed milestones and are not reversed or renamed.
+
+Corrective sequence approved:
+
+* Milestone 9 — Phase 1 Infrastructure Completion: D9 (Docker Environment) + D10 (CI/CD Foundation), tightly coupled. Docker provides the PostgreSQL service that CI end-to-end tests require.
+* Milestone 10 — Frontend Foundation: D4 (Next.js App Router, login/dashboard/unauthorized/404 pages, authentication flow, middleware route protection). Significantly larger scope. Separate milestone.
+* Milestone 11 — Vacancy Management Foundation: First Phase 2 domain capability. Previously planned as Milestone 9 before reconciliation.
+
+Milestone numbering note:
+
+PROGRESS.md milestones (M1–M9+) are granular implementation steps.
+spec/15_implementation_roadmap.md milestones are phase-gate achievements (Milestone 1 = Foundation Complete, Milestone 2 = Workforce Core Complete, etc.).
+These are two parallel numbering systems. No renaming is required.
+
+Phase 1 cannot be formally closed until Milestones 9 and 10 are complete and validated.
+
+---
+
 # Next Action
 
 Execute Phase 1 Foundation implementation.
@@ -933,17 +1008,26 @@ Execute Phase 1 Foundation implementation.
 
 ### Next Approved Milestone
 
-Milestone 8 — Employee Management Foundation
+Milestone 9 — Phase 1 Infrastructure Completion (Docker Environment + CI/CD)
 
 Status:
 
-Pending presentation and approval.
+Approved. Environment preparation in progress. Implementation not yet started. Blocked on Docker Desktop installation.
 
 ### Resume Point For Future Sessions
 
-The project is currently ready to begin Milestone 8.
+The project is currently preparing to begin Milestone 9.
 
-Milestones 1–7 are complete, validated, committed, and pushed.
+Milestones 1–8 are complete, validated, committed, and pushed. GitHub CI is passing.
+
+Phase 1 exit criteria are not yet met. D4, D9, and D10 remain incomplete.
+
+Environment prerequisite status:
+
+• WSL 2 installation: Complete
+• System reboot: Required — not yet performed; WSL 2 not yet active
+• Docker Desktop: Not yet installed — blocked on WSL 2 activation
+• Docker validation: Not yet performed
 
 Current repository status:
 
@@ -951,15 +1035,21 @@ Current repository status:
 • Authentication Foundation complete
 • User Registration Foundation complete
 • Organization Management Foundation complete
+• Position Management Foundation complete
 • RBAC operational
 • Tenant isolation validated
 • Department management operational
 • Agency management operational
-• 187 unit tests passing
-• 83 e2e tests passing
+• Position management operational (DRAFT / ACTIVE / FROZEN / CLOSED lifecycle)
+• 244 unit tests passing (17 suites)
+• 122 e2e tests passing (5 suites)
 • User management API operational
 • Organization management API operational
+• Position management API operational
 • Swagger documentation operational
+• Docker environment not yet operational
+• CI/CD pipeline does not yet run e2e tests
+• Frontend not yet implemented
 
 Before implementation begins:
 
@@ -967,10 +1057,10 @@ Before implementation begins:
 2. Review PROGRESS.md
 3. Review ProjectHandoff.md
 4. Treat PROGRESS.md as the authoritative implementation ledger
-5. Present Milestone 8
-6. Follow approval workflow before implementation
+5. Complete environment prerequisites (reboot, Docker Desktop install, Docker validation)
+6. Present Milestone 9
+7. Follow approval workflow before implementation
 
 Generate code only after presenting the specific implementation step and receiving approval.
-
 
 Follow CLAUDE.md approval workflow at all times.
