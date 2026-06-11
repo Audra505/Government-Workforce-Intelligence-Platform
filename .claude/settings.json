@@ -20,8 +20,7 @@
       "Bash(curl -s -o /dev/null -w \"HTTP %{http_code}\" http://localhost:3000/)",
       "Bash(curl -s http://localhost:3000/)",
       "Bash(xargs -I{} sh -c 'echo \"Testing: {}\"; curl -s -o /dev/null -w \"HTTP %{http_code}\" \"http://localhost:3000{}\"')",
-      "Bash(curl -s -i -X OPTIONS http://localhost:3001/api/v1/users -H \"Origin: http://localhost:3000\" -H \"Access-Control-Request-Method: GET\")",
-      "Bash(git check-ignore *)"
+      "Bash(curl -s -i -X OPTIONS http://localhost:3001/api/v1/users -H \"Origin: http://localhost:3000\" -H \"Access-Control-Request-Method: GET\")"
     ]
   }
 }
