@@ -271,3 +271,17 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# =============================================================================
+# Monorepo source overrides — negate Python boilerplate lib/ exclusion above
+# =============================================================================
+# shadcn/ui source utilities live in apps/web/src/lib/ — this is source code,
+# not a Python packaging artifact. Must be un-excluded after the lib/ rule above.
+!apps/web/src/lib/
+
+# =============================================================================
+# Claude Code — agent session state
+# =============================================================================
+# .claude/settings.json holds per-session tool permissions. It is auto-modified
+# on every session and contains no project configuration that belongs in source control.
+.claude/settings.json

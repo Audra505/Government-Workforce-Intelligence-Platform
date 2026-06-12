@@ -74,6 +74,9 @@ services:
       # binds only to the container's network IP, not 127.0.0.1, so the health check
       # (wget localhost:3000) gets connection refused. Bind to all interfaces instead.
       HOSTNAME: "0.0.0.0"
+      # Route Handler → NestJS API (server-side only; uses Compose service name for container-to-container DNS)
+      # Local equivalent: API_URL=http://localhost:3001 in .env
+      API_URL: http://api:3001
     ports:
       - "3000:3000"
     depends_on:

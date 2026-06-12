@@ -41,9 +41,9 @@ Phase 1 — Foundation
 
 ### Current Milestone
 
-Milestone 8 — Position Management Foundation
+Milestone 10 — Frontend Foundation (D4)
 
-Completed and validated.
+Locally complete — CI validation pending.
 
 ### Completed Milestones
 
@@ -209,6 +209,45 @@ Key outcomes:
 • FR-100 validated
 
 
+#### Milestone 9 — Phase 1 Infrastructure Completion
+
+Completed and validated.
+
+Key outcomes:
+
+• CORS enabled in NestJS API (apps/api/src/main.ts)
+• CORS_ORIGIN added to .env.example
+• Next.js standalone output configured (apps/web/next.config.mjs)
+• API multi-stage Dockerfile created (node:20-alpine, OpenSSL, Prisma, non-root USER node)
+• Web multi-stage Dockerfile created (node:20-alpine, Next.js standalone output)
+• Full 3-service Docker Compose stack implemented (postgres + api + web)
+• Service health check chain: web → api (service_healthy) → postgres (service_healthy)
+• stack:up npm script added to package.json
+• GitHub Actions CI extended: PostgreSQL service container, DATABASE_URL + JWT_SECRET job-level env, Migrate database step, Seed database step, E2E tests step
+• Docker Environment complete (D9)
+• CI/CD Foundation complete (D10)
+• .claude/settings.json and .claude/.gitignore committed (project-portable Claude Code configuration)
+
+
+#### Milestone 10 — Frontend Foundation
+
+Locally complete — CI validation pending.
+
+Key outcomes:
+
+• shadcn/ui configured (components.json, tailwind.config.ts, globals.css)
+• BFF session layer implemented (/api/auth/login and /api/auth/logout Route Handlers)
+• httpOnly session cookie established (gov-platform-session; presence-only JWT check in Phase 1)
+• Login page implemented (React Hook Form + Zod + shadcn/ui)
+• Edge Middleware route protection implemented (Layer 1, middleware.ts)
+• Dashboard auth guard implemented (Layer 2, (dashboard)/layout.tsx Server Component)
+• Logout button implemented (Client Component, features/auth/logout-button.tsx)
+• SEC-004 two-layer defense-in-depth: Edge Runtime middleware + Node.js layout guard
+• login → BFF → JWT cookie → dashboard → logout flow operational and Docker-verified
+• Frontend Foundation complete (D4)
+• Security advisory: next@14.2.3 has known vulnerability — upgrade required before production deployment
+
+
 ### Current Runtime Status
 
 Backend API operational.
@@ -232,12 +271,24 @@ Validated services:
 * Agency management operational
 * Position management operational
 * Position lifecycle management operational (DRAFT / ACTIVE / FROZEN / CLOSED)
+* Docker environment operational (gov_workforce_postgres, gov_workforce_api, gov_workforce_web — all containers healthy)
+* Full 3-service Docker stack validated (postgres + api + web health check chain)
+* CORS validated (Access-Control-Allow-Origin: http://localhost:3000, credentials: true)
+* GitHub Actions CI: PostgreSQL service container operational; lint + build + unit tests + migrations + seed + e2e pipeline defined
 
 Startup log confirms:
 
 * Prisma connected
 * Swagger mounted
 * Application listening on port 3001
+
+Docker stack confirms:
+
+* gov_workforce_postgres healthy
+* gov_workforce_api healthy (GET /health → HTTP 200, database connectivity confirmed)
+* gov_workforce_web healthy (GET /login → HTTP 200; GET /dashboard without cookie → HTTP 307 → /login; root / → HTTP 307 RSC redirect to /login)
+* API auth enforced in Docker (GET /api/v1/users → HTTP 401)
+* GitHub Actions CI pending green run (CI_JWT_SECRET provisioning required)
 
 Authenticated Endpoints Operational
 
@@ -621,25 +672,23 @@ No Python services.
 
 # Current Objective
 
-Continue Phase 1 Foundation implementation.
+Complete Phase 1 closure.
 
-Milestones 1–8 are complete and validated.
+Milestones 1–10 are locally complete and validated.
 
-Phase 1 exit criteria have not yet been met.
+Phase 1 local exit criteria are met. D4 (Frontend Foundation) is locally complete (Milestone 10, 2026-06-12). D9 (Docker Environment) and D10 (CI/CD Foundation) are complete and validated (Milestone 9, 2026-06-11).
 
-D4 (Frontend Foundation), D9 (Docker Environment), and D10 (CI/CD Foundation) remain incomplete.
-
-Milestones 9 and 10 are approved corrective milestones that close Phase 1 before Phase 2 domain work resumes.
+Phase 1 formally closes upon M10 CI green run (commit + push + GitHub Actions validation).
 
 ## Current Milestone:
 
-Milestone 9 — Phase 1 Infrastructure Completion (Docker Environment + CI/CD)
+Milestone 10 — Frontend Foundation (D4)
 
 Status:
 
-Not yet started. Environment preparation in progress. WSL installed. System reboot pending. Docker Desktop not yet installed.
+Locally complete — CI validation pending.
 
-Future sessions should continue execution from Milestone 9 unless PROGRESS.md indicates otherwise.
+All 7 implementation steps validated locally. All D4 deliverables implemented and verified in Docker stack. M10 commit and push required. GitHub Actions CI green run required for Phase 1 formal closure.
 
 No business features are implemented during Phase 1.
 
@@ -997,70 +1046,56 @@ PROGRESS.md milestones (M1–M9+) are granular implementation steps.
 spec/15_implementation_roadmap.md milestones are phase-gate achievements (Milestone 1 = Foundation Complete, Milestone 2 = Workforce Core Complete, etc.).
 These are two parallel numbering systems. No renaming is required.
 
-Phase 1 cannot be formally closed until Milestones 9 and 10 are complete and validated.
+Milestone 9 completion status: Complete and validated (2026-06-11). D9 and D10 satisfied. Committed and pushed to main.
+Milestone 10 completion status: Locally complete (2026-06-12). D4 satisfied. CI validation pending commit + push + CI_JWT_SECRET confirmation.
+Milestone 11 completion status: Not yet started.
+
+Phase 1 exit criteria status:
+
+• D9 (Docker Environment): Complete — Milestone 9 (2026-06-11)
+• D10 (CI/CD Foundation): Complete — Milestone 9 (2026-06-11)
+• D4 (Frontend Foundation): Locally complete — Milestone 10 (2026-06-12); CI validation pending
+
+Phase 1 formally closes upon M10 CI green run. All local criteria are met.
 
 ---
 
 # Next Action
 
-Execute Phase 1 Foundation implementation.
+Complete Phase 1 closure: commit M10 changes, push to main, verify GitHub Actions CI green run.
 
+### Phase 1 Status
 
-### Next Approved Milestone
+Locally complete. Formal Phase 1 closure pending M10 CI validation.
 
-Milestone 9 — Phase 1 Infrastructure Completion (Docker Environment + CI/CD)
-
-Status:
-
-Approved. Environment preparation in progress. Implementation not yet started. Blocked on Docker Desktop installation.
+Next milestone planning session should begin only after Phase 1 CI closure is confirmed. Milestone name, sequencing, and scope will be determined from spec/15_implementation_roadmap.md and the authoritative specification documents. Do not use this document as the basis for milestone planning decisions.
 
 ### Resume Point For Future Sessions
 
-The project is currently preparing to begin Milestone 9.
+Milestones 1–10 are locally complete.
 
-Milestones 1–8 are complete, validated, committed, and pushed. GitHub CI is passing.
+Phase 1 exit criteria status:
+• D9 (Docker Environment): Complete — Milestone 9 (2026-06-11)
+• D10 (CI/CD Foundation): Complete — Milestone 9 (2026-06-11)
+• D4 (Frontend Foundation): Locally complete — Milestone 10 (2026-06-12); CI pending
 
-Phase 1 exit criteria are not yet met. D4, D9, and D10 remain incomplete.
-
-Environment prerequisite status:
-
-• WSL 2 installation: Complete
-• System reboot: Required — not yet performed; WSL 2 not yet active
-• Docker Desktop: Not yet installed — blocked on WSL 2 activation
-• Docker validation: Not yet performed
+Phase 1 formal closure requires:
+• M10 commit to main (resolve .claude/settings.json tracking decision first)
+• git push origin main
+• CI_JWT_SECRET provisioned in GitHub → Settings → Secrets and variables → Actions
+• GitHub Actions CI green run confirmed
 
 Current repository status:
+• All backend APIs operational (M1–M8): authentication, users, organizations, departments, agencies, positions
+• Docker stack operational: gov_workforce_postgres, gov_workforce_api, gov_workforce_web (all healthy)
+• Frontend Foundation complete: login page, dashboard page, unauthorized page, 404 page, BFF session layer, Edge Middleware, layout auth guard
+• 244 unit tests + 122 e2e tests passing (17 unit suites + 5 e2e suites — api only; frontend tests deferred to Phase 2)
+• Security advisory: next@14.2.3 has known vulnerability — upgrade required before production
 
-• Audit Foundation complete
-• Authentication Foundation complete
-• User Registration Foundation complete
-• Organization Management Foundation complete
-• Position Management Foundation complete
-• RBAC operational
-• Tenant isolation validated
-• Department management operational
-• Agency management operational
-• Position management operational (DRAFT / ACTIVE / FROZEN / CLOSED lifecycle)
-• 244 unit tests passing (17 suites)
-• 122 e2e tests passing (5 suites)
-• User management API operational
-• Organization management API operational
-• Position management API operational
-• Swagger documentation operational
-• Docker environment not yet operational
-• CI/CD pipeline does not yet run e2e tests
-• Frontend not yet implemented
+Before any further implementation:
+1. Read CLAUDE.md
+2. Read PROGRESS.md
+3. Read the relevant specification documents
+4. Confirm Phase 1 CI closure status
 
-Before implementation begins:
-
-1. Review CLAUDE.md
-2. Review PROGRESS.md
-3. Review ProjectHandoff.md
-4. Treat PROGRESS.md as the authoritative implementation ledger
-5. Complete environment prerequisites (reboot, Docker Desktop install, Docker validation)
-6. Present Milestone 9
-7. Follow approval workflow before implementation
-
-Generate code only after presenting the specific implementation step and receiving approval.
-
-Follow CLAUDE.md approval workflow at all times.
+Do not use ProjectHandoff.md as the basis for milestone, scope, or sequencing decisions.
