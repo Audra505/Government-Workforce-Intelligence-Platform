@@ -43,8 +43,15 @@ Phase 1 — Foundation
 
 Milestone 10 — Frontend Foundation (D4)
 
-CI confirmed green. Post-Validation Correction applied locally (not yet committed).
-See Post-Validation Correction section below.
+**COMPLETE AND CI-VALIDATED. Phase 1 formally closed.**
+
+Post-Validation Correction committed (97b42e6) and CI-confirmed green (2026-06-12).
+CI workflow: CI / Install, Lint, Build, Test (push) — success in 2m.
+
+> Governance note: ProjectHandoff.md is an AI continuity document only. It is not an authority
+> source for milestone naming, scope, sequencing, or implementation decisions. Authority order:
+> (1) CLAUDE.md, (2) PROGRESS.md, (3) approved spec/roadmap documents, (4) repository state.
+> Phase 2 milestone name, sequencing, and scope have NOT been determined. Do not infer next scope.
 
 ### Completed Milestones
 
@@ -232,7 +239,7 @@ Key outcomes:
 
 #### Milestone 10 — Frontend Foundation
 
-CI confirmed green (run 27398218893, commit c049634, June 2026).
+Complete and CI-validated. Core commit: c049634. Post-Validation Correction commit: 97b42e6 (CI green, 2026-06-12).
 
 Key outcomes:
 
@@ -286,10 +293,9 @@ Files modified (local, not yet committed):
 Validation: Docker rebuilt, login page renders with full Tailwind styling, all functional flows
 (login, dashboard redirect, logout, middleware protection) confirmed working after correction.
 
-Phase 1 closure status:
-All M10 capabilities delivered and functionally validated. Three files are locally modified but
-not yet committed or pushed (Dockerfile, tailwind.config.ts, PROGRESS.md). Phase 1 cannot be
-formally declared closed until the Post-Validation Correction is committed, pushed, and CI-confirmed.
+Phase 1 closure status: **FORMALLY CLOSED.**
+Commit 97b42e6 pushed to origin/main. CI / Install, Lint, Build, Test: success in 2m (2026-06-12).
+Working tree is clean. All Phase 1 milestones (M1–M10) committed, pushed, and CI-validated.
 
 
 ### Current Runtime Status

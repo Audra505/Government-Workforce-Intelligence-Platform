@@ -10,18 +10,18 @@
 ---
 
 Last Updated: 2026-06-12
-Updated By: Claude Code (session: M10 Step 7 — full validation + M10 closure)
+Updated By: Claude Code (session: M10 Post-Validation Correction CI closure — Phase 1 formally closed)
 
 ## Repository Status
 
-Current Phase: Phase 1 — Foundation (M10 Locally Complete — CI Validation Pending commit + push)
-Overall Classification: Tested Foundation — Backend API complete and validated; 244 unit tests + 122 e2e tests passing; all 17 unit suites + 5 e2e suites passing; Milestones 1–9 committed; D4 Frontend Foundation locally complete — M10 Steps 1–7 locally validated: all 4 D4 routes built and verified; login form functional; BFF session layer wired and smoke-tested; Edge Middleware active and verified; SEC-004 two-layer defense-in-depth confirmed in Docker stack; complete login→dashboard→logout flow operational; Docker stack healthy (postgres ✓ api ✓ web ✓); /dashboard middleware redirect verified (HTTP 307 → /login); logout BFF verified (HTTP 200 + Set-Cookie: Max-Age=0); Phase 1 exit criteria LOCAL VALIDATION COMPLETE — CI validation pending M10 commit + push + CI_JWT_SECRET confirmation
-Active Sprint / Milestone: Milestone 10 — Frontend Foundation (Step 7 locally complete — CI pending)
+Current Phase: **Phase 1 — Foundation FORMALLY CLOSED**
+Overall Classification: Tested Foundation — Phase 1 complete and CI-validated; all 10 milestones committed and pushed; 244 unit tests + 122 e2e tests passing (CI-confirmed); D4 Frontend Foundation complete — login→dashboard→logout flow operational with full Tailwind/shadcn styling in Docker; Post-Validation CSS Packaging Correction committed (97b42e6) and CI-confirmed green (CI / Install, Lint, Build, Test — success in 2m)
+Active Sprint / Milestone: Phase 1 Formally Closed — Phase 2 not yet planned
 Implementation Started: Yes (2026-06-05)
 
 ## Phase Summary
 
-Phase 1 local validation is complete. D9 (Docker Environment) and D10 (CI/CD Foundation) were satisfied by Milestone 9 (2026-06-11). D4 (Frontend Foundation) was satisfied by Milestone 10 (2026-06-12, locally validated). Phase 1 formally closes upon M10 CI green run. Milestones 1–10 are complete and locally validated. Milestones 9 and 10 were approved corrective milestones inserted to satisfy Phase 1 exit criteria before Phase 2 domain work begins. The NestJS API is running with a full backend foundation: `ConfigModule` validates environment at startup; `PrismaModule` maintains a live PostgreSQL connection pool; `HealthModule` serves `GET /health` returning HTTP 200 with database connectivity confirmation; `main.ts` enforces global `ValidationPipe` (whitelist, forbidNonWhitelisted, transform), `/api` route prefix with `/health` exclusion, URI versioning (`/api/v1/`), and environment-gated Swagger with bearer auth at `GET /api/docs`. `AuditModule` (Milestone 4) is registered globally — `AuditService.logEvent()` is injectable across all domain modules; `AuditEventType` covers 42 events (AUD-200 through AUD-900); `SYSTEM_USER_ID` sentinel established; `result` column added to `audit.audit_events`. Milestone 5 (Authentication Foundation — IdentityModule, FR-002) is complete and validated: 10 steps implemented and tested; 88 unit tests pass across 9 suites; 21 e2e tests pass across 2 suites; full authentication flow exercised against real DB; audit records verified in DB; lockout flow verified in DB; dev seed user (`admin@dev.gov`, Development Agency tenant, System Administrator role) is live. Milestone 6 (User Registration Foundation — FR-001) complete and validated: 140 unit tests + 48 e2e tests; POST/GET/GET:id for /api/v1/users; RBAC enforced (SA + HR Director); SEC-003 tenant isolation enforced. Milestone 7 (Organization Management Foundation — FR-050, FR-051) complete and validated: DepartmentService + AgencyService transport-agnostic with discriminated unions; OrganizationController routes departments and agencies; RBAC enforced per ORG-AUTH-001/002/003; AUD-350 audit events emitted; SEC-003 tenant isolation enforced; soft-delete filter active; 187 unit tests + 83 e2e tests all passing. Milestone 8 (Position Management Foundation — FR-100) complete and validated: PositionService (5 methods) + PositionController (5 endpoints) + WorkforceModule registered in AppModule; full 4-state position lifecycle (DRAFT/ACTIVE/FROZEN/CLOSED); POS-AUTH-001 through POS-AUTH-005 RBAC enforced; AUD-400 audit events (CREATED, UPDATED, ACTIVATED, FROZEN, CLOSED) all emitted and DB-verified; SEC-003 tenant isolation enforced; soft-delete filter active; 244 unit tests + 122 e2e tests all passing across 17 unit suites + 5 e2e suites; committed, pushed, and GitHub CI confirmed passing.
+Phase 1 is formally closed. D9 (Docker Environment) and D10 (CI/CD Foundation) were satisfied by Milestone 9 (2026-06-11). D4 (Frontend Foundation) was satisfied by Milestone 10 (2026-06-12). The M10 Post-Validation Correction (Dockerfile CSS packaging + Tailwind content path) was committed as 97b42e6 and CI-confirmed green (CI / Install, Lint, Build, Test — success in 2m, 2026-06-12). Milestones 1–10 are complete, committed, pushed, and CI-validated. Milestones 9 and 10 were approved corrective milestones inserted to satisfy Phase 1 exit criteria before Phase 2 domain work begins. The NestJS API is running with a full backend foundation: `ConfigModule` validates environment at startup; `PrismaModule` maintains a live PostgreSQL connection pool; `HealthModule` serves `GET /health` returning HTTP 200 with database connectivity confirmation; `main.ts` enforces global `ValidationPipe` (whitelist, forbidNonWhitelisted, transform), `/api` route prefix with `/health` exclusion, URI versioning (`/api/v1/`), and environment-gated Swagger with bearer auth at `GET /api/docs`. `AuditModule` (Milestone 4) is registered globally — `AuditService.logEvent()` is injectable across all domain modules; `AuditEventType` covers 42 events (AUD-200 through AUD-900); `SYSTEM_USER_ID` sentinel established; `result` column added to `audit.audit_events`. Milestone 5 (Authentication Foundation — IdentityModule, FR-002) is complete and validated: 10 steps implemented and tested; 88 unit tests pass across 9 suites; 21 e2e tests pass across 2 suites; full authentication flow exercised against real DB; audit records verified in DB; lockout flow verified in DB; dev seed user (`admin@dev.gov`, Development Agency tenant, System Administrator role) is live. Milestone 6 (User Registration Foundation — FR-001) complete and validated: 140 unit tests + 48 e2e tests; POST/GET/GET:id for /api/v1/users; RBAC enforced (SA + HR Director); SEC-003 tenant isolation enforced. Milestone 7 (Organization Management Foundation — FR-050, FR-051) complete and validated: DepartmentService + AgencyService transport-agnostic with discriminated unions; OrganizationController routes departments and agencies; RBAC enforced per ORG-AUTH-001/002/003; AUD-350 audit events emitted; SEC-003 tenant isolation enforced; soft-delete filter active; 187 unit tests + 83 e2e tests all passing. Milestone 8 (Position Management Foundation — FR-100) complete and validated: PositionService (5 methods) + PositionController (5 endpoints) + WorkforceModule registered in AppModule; full 4-state position lifecycle (DRAFT/ACTIVE/FROZEN/CLOSED); POS-AUTH-001 through POS-AUTH-005 RBAC enforced; AUD-400 audit events (CREATED, UPDATED, ACTIVATED, FROZEN, CLOSED) all emitted and DB-verified; SEC-003 tenant isolation enforced; soft-delete filter active; 244 unit tests + 122 e2e tests all passing across 17 unit suites + 5 e2e suites; committed, pushed, and GitHub CI confirmed passing.
 
 ---
 
@@ -32,11 +32,11 @@ Phase 1 local validation is complete. D9 (Docker Environment) and D10 (CI/CD Fou
 > scanning Zone 5 history. It is overwritten each step — not appended.
 
 Milestone: Milestone 10 — Frontend Foundation
-Last Completed Milestone: Milestone 9 — Phase 1 Infrastructure Completion (Complete and Validated, 2026-06-11; committed and pushed to main; CI run status unknown — depends on CI_JWT_SECRET provisioning in GitHub Actions)
-Last Completed Step: Milestone 10 Step 7 — Full validation (locally complete, 2026-06-12; CI pending commit + push)
+Last Completed Milestone: Milestone 10 — Frontend Foundation + Post-Validation Correction (Complete and CI-Validated, 2026-06-12; commit 97b42e6 pushed to main; CI / Install, Lint, Build, Test: success in 2m)
+Last Completed Step: M10 Post-Validation Correction CI Closure — commit 97b42e6, push, CI green confirmed
 Last Completed Step Date: 2026-06-12
-Current Step: M10 CI Closure — commit M10 changes, push to main, verify GitHub Actions green run
-Session Classification: Milestone 10 Locally Complete — CI validation pending
+Current Step: N/A — Phase 1 Formally Closed
+Session Classification: Phase 1 Complete and CI-Validated
 
 ## Milestone 10 — Approved Plan
 
@@ -48,7 +48,7 @@ Session Classification: Milestone 10 Locally Complete — CI validation pending
 | 4 | Login page (React Hook Form + Zod + shadcn/ui) | Complete |
 | 5 | middleware.ts route protection (cookie presence check) | Complete |
 | 6 | Dashboard page + (dashboard) layout.tsx auth guard | Complete |
-| 7 | Full validation (tsc, build, Docker stack, CI) | Locally Complete — CI Pending |
+| 7 | Full validation (tsc, build, Docker stack, CI) | **Complete — CI Validated (97b42e6)** |
 
 ## Milestone 10 — Step 7 Validation Evidence
 
@@ -116,9 +116,9 @@ Session Classification: Milestone 10 Locally Complete — CI validation pending
 | Root `npm run build` passes | ✓ Confirmed locally |
 | `npm run test` (api unit tests) | ✓ 244 tests passing (validated in M8); no new api changes in M10 |
 | Web test script (no-op) | ✓ Exits 0 by design (stub: "Web tests configured in Milestone 4") |
-| M10 changes committed | **NOT YET** — all M10 files are unstaged; commit required before push |
-| `CI_JWT_SECRET` in GitHub Actions secrets | **Unverified** — must be confirmed in GitHub → Settings → Secrets |
-| `git push origin main` | **Blocked** — pending commit and CI_JWT_SECRET confirmation |
+| M10 changes committed | ✓ Committed — c049634 (core M10) + 97b42e6 (Post-Validation Correction) |
+| `CI_JWT_SECRET` in GitHub Actions secrets | ✓ Confirmed operational — CI passed without manual intervention |
+| `git push origin main` | ✓ Pushed — both commits on origin/main |
 
 ## Milestone 10 — Step 7 Findings (Deviations from Plan)
 
@@ -356,7 +356,7 @@ Phase 1 spec/15 success criteria:
 
 **Phase 1 local criteria: ALL MET — including Docker CSS rendering (Post-Validation Correction applied).**
 
-**Phase 1 is ready to close upon commit + push + green GitHub Actions CI run.**
+**Phase 1 is FORMALLY CLOSED.** Commit 97b42e6 pushed to origin/main. CI / Install, Lint, Build, Test confirmed green (success in 2m, 2026-06-12).
 
 ## Milestone 10 — Milestone Summary
 
@@ -364,9 +364,9 @@ Phase 1 spec/15 success criteria:
 |---|---|
 | Milestone | 10 — Frontend Foundation |
 | Deliverable | D4 (Frontend Foundation) |
-| Status | Locally Complete — CI Pending |
-| Completion Date | 2026-06-12 (local validation) |
-| CI Validation | Pending: commit + push + GitHub Actions green run |
+| Status | **Complete and CI-Validated** |
+| Completion Date | 2026-06-12 |
+| CI Validation | **Confirmed green** — run: CI / Install, Lint, Build, Test (push); commit 97b42e6; success in 2m |
 
 **D4 Deliverables — All Implemented:**
 - Next.js App Router scaffold — `(auth)` and `(dashboard)` route groups — Step 2
@@ -388,18 +388,47 @@ Phase 1 spec/15 success criteria:
 - `next@14.2.3` security advisory (December 2025) — upgrade required before production deployment
 - Middleware matcher requires explicit extension when Phase 2 route families are added to `(dashboard)/`
 
-## Milestone 10 — Phase 1 Closure Remaining Actions
+## Phase 1 Formal Closure Record (2026-06-12)
 
-Before Phase 1 is formally closed:
+**Phase 1 — Foundation is formally closed.**
 
-1. Commit M10 changes to main (staged carefully — resolve .claude/settings.json tracking decision first)
-2. Push to origin/main
-3. Confirm CI_JWT_SECRET is provisioned in GitHub Actions secrets
-4. Verify GitHub Actions CI run green (lint ✓ build ✓ unit tests ✓ e2e tests ✓)
+| Closure Criterion | Status |
+|---|---|
+| All D4 capabilities implemented | ✓ |
+| Local build, type-check, lint passing | ✓ |
+| Docker stack healthy (postgres + api + web) | ✓ |
+| Login page renders with full Tailwind/shadcn styling | ✓ (Post-Validation Correction applied) |
+| login → dashboard → logout flow operational in Docker | ✓ |
+| SEC-004 two-layer defense confirmed | ✓ |
+| Post-Validation Correction committed | ✓ — 97b42e6 |
+| Pushed to origin/main | ✓ |
+| GitHub Actions CI green | ✓ — CI / Install, Lint, Build, Test: success in 2m |
+| PROGRESS.md updated | ✓ |
+| ProjectHandoff.md updated | ✓ |
 
-Security advisory: next@14.2.3 has a known vulnerability (disclosed December 2025). Upgrade required before production deployment. Flagged for Phase 2 planning.
+**All Phase 1 milestones committed, pushed, and CI-validated:**
 
-Next milestone: pending Phase 1 CI closure and milestone planning session. Milestone name, sequencing, and scope will be determined from spec/15_implementation_roadmap.md and the authoritative specification documents at the start of the next milestone session.
+| Milestone | Commit | CI |
+|---|---|---|
+| M1 — Repository Foundation | committed | validated |
+| M2 — Database Foundation | committed | validated |
+| M3 — Backend Foundation | committed | validated |
+| M4 — Audit Foundation | committed | validated |
+| M5 — Authentication Foundation | committed | validated |
+| M6 — User Registration Foundation | committed | validated |
+| M7 — Organization Management Foundation | committed | validated |
+| M8 — Position Management Foundation | committed | validated |
+| M9 — Phase 1 Infrastructure Completion | committed | validated |
+| M10 — Frontend Foundation (incl. Post-Validation Correction) | c049634 + 97b42e6 | ✓ green |
+
+**Known risks carried into Phase 2:**
+- `next@14.2.3` security advisory (December 2025) — upgrade required before production deployment
+- Middleware matcher requires explicit extension when Phase 2 route families are added
+- Frontend test suite deferred — no web unit/integration/e2e tests yet
+- JWT signature/expiry validation deferred (presence-only check in Phase 1)
+- Native PostgreSQL 18 port 5432 conflict — permanent dev environment constraint (see Post-CI Authentication Correction)
+
+**Next milestone: to be determined.** Milestone name, sequencing, and scope will be determined from `spec/15_implementation_roadmap.md` and the authoritative specification documents at the start of the next session. No Phase 2 planning has been performed.
 
 ## Milestone 10 — Step 6 Validation Evidence
 
