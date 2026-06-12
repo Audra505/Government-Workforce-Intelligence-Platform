@@ -129,6 +129,166 @@ Session Classification: Milestone 10 Locally Complete — CI validation pending
 | 3 | Root `/` uses RSC redirect (no HTTP `Location` header) vs. middleware redirect (has `Location` header) | Low | Both are correct Next.js behaviors. Browser handles RSC redirect via client JS; curl/wget cannot follow it without JavaScript. Health check passes because wget accepts 307 body. Documented as expected behavior. |
 | 4 | `.claude/settings.json` was tracked by git and not in .gitignore | Low | Fixed: added `.claude/settings.json` to .gitignore. Must exclude from M10 commit manually (file is tracked by git; `git rm --cached .claude/settings.json` or explicit file staging needed). |
 | 5 | All M10 changes are uncommitted — CI validation cannot proceed until commit + push | High (blocking CI only) | Local validation is complete. CI validation requires explicit commit of M10 files and push. |
+| 6 | Native PostgreSQL 18 Windows service (`postgresql-x64-18`, PID bound to `0.0.0.0:5432`) prevents Docker Desktop from exposing the Docker postgres container on `localhost:5432`. Host-shell database commands (npm scripts, npx prisma, psql) connect to the native postgres — a different instance than the running application. | High (permanent environment constraint) | Dev seed ran successfully but wrote to native postgres. Docker postgres (application database) remained empty. Authentication returned EMAIL_NOT_FOUND → HTTP 401. Fixed post-CI using docker exec inside the api container. See "Post-CI Authentication Correction" section below. |
+| 7 | `apps/web/Dockerfile` did not COPY `postcss.config.js` or `tailwind.config.ts` into the Docker build context. PostCSS ran with no plugins during `next build`; `@tailwind` directives passed through unprocessed to the output CSS bundle. Additionally, `tailwind.config.ts` content array omitted `./src/features/**`, causing any class used only in feature components to be absent from generated CSS. | High (rendering) | Login page rendered as unstyled HTML in Docker — all Tailwind class names were present in HTML but had no CSS definitions. `next build` exited 0 because PostCSS does not error on absent config. Fixed in M10 Post-Validation Correction (2026-06-12) — see section below. |
+
+## Milestone 10 — Post-CI Authentication Correction (2026-06-12)
+
+### Environment Finding
+
+**Native PostgreSQL 18** (`postgresql-x64-18`) is installed as a Windows service and owns TCP `0.0.0.0:5432` on the host machine. Docker Desktop cannot expose the Docker postgres container to `localhost:5432` when the native service holds that port. The two postgres instances are separate databases with no shared data.
+
+| Connection origin | `localhost:5432` target | `postgres:5432` target |
+|---|---|---|
+| Windows host shell | **Native postgres (postgresql-x64-18)** | Not routable from host |
+| Inside Docker network | Not reachable | **Docker postgres container** |
+
+**Impact:** The development seed (`npm run db:seed --workspace=apps/api`), when run from the Windows host shell, connects to the native postgres — not the Docker postgres that the running application uses. The seed output reports success (writes ARE committed) but to the wrong database instance.
+
+### Root Cause Chain
+
+1. `apps/api/.env` and root `.env` both contain `DATABASE_URL=postgresql://govplatform:devpassword@localhost:5432/gov_workforce_dev`
+2. `localhost:5432` from Windows shell → native postgres (PID 6584, `postgresql-x64-18`)
+3. Docker postgres → empty (0 rows in all tables)
+4. API container uses `postgres:5432` (Docker DNS) → Docker postgres → `findMany()` returns 0 rows
+5. `IdentityService.validateCredentials()` → `EMAIL_NOT_FOUND` → `UNAUTHORIZED` → HTTP 401
+6. BFF passes 401 → LoginForm shows "Invalid email or password"
+
+### Corrective Action Executed
+
+Seed executed against Docker postgres via the api container, which already has the correct `DATABASE_URL=postgresql://govplatform:devpassword@postgres:5432/gov_workforce_dev` in its environment.
+
+**Why docker exec (not host shell):** The api container's DATABASE_URL targets the Docker postgres via Docker internal DNS (`postgres:5432`). Running the seed inside the container guarantees it writes to the correct instance regardless of the host port conflict.
+
+**Why compiled JS (not ts-node):** The production api Docker image does not include `ts-node` (devDependency). The existing `apps/api/prisma/seed.ts` was transpiled to CommonJS JavaScript on the host using the repo's own TypeScript API (`typescript` module, `ts.transpileModule()` — equivalent to `ts-node --transpile-only`). No logic was rewritten; the output is a direct machine translation of the source.
+
+```
+# Commands executed:
+node -e "const ts = require('./node_modules/typescript'); ... ts.transpileModule(seed_ts_source, ...); write tmp/seed.js"
+docker cp tmp\seed.js gov_workforce_api:/app/seed.js
+docker exec -e NODE_ENV=development gov_workforce_api node /app/seed.js
+docker exec gov_workforce_api rm /app/seed.js
+```
+
+**Seed output:**
+```
+Seeding platform roles...
+  [OK] System Administrator
+  [OK] HR Director
+  [OK] Workforce Planner
+  [OK] Recruiter
+  [OK] Hiring Manager
+  [OK] Compliance Officer
+  [OK] Executive User
+
+Seed complete. 7 roles in identity.roles.
+
+Seeding development fixture user...
+  [OK] Tenant: Development Agency (e9633d76-e627-451f-94d5-b58865d5080d)
+  [OK] User: admin@dev.gov (aa970fc2-58c1-4447-a5c0-daf076671278)
+  [OK] Role assigned: System Administrator
+
+Dev fixture ready. Login: admin@dev.gov / DevAdmin1234!
+```
+
+### Validation Evidence
+
+**Database validation (Docker postgres via docker exec psql):**
+
+| Table | Expected | Actual | Pass |
+|---|---|---|---|
+| `identity.roles` | 7 | 7 | ✓ |
+| `organization.tenants` | 1 | 1 | ✓ |
+| `identity.users` | 1 | 1 | ✓ |
+| `identity.user_roles` | admin@dev.gov → System Administrator | email=admin@dev.gov, status=ACTIVE, failed_login_attempts=0, role=System Administrator | ✓ |
+
+**End-to-end login validation (via application BFF):**
+
+- `POST http://localhost:3000/api/auth/login` with `{email:"admin@dev.gov", password:"DevAdmin1234!"}` → **HTTP 200**
+- Response body: `{"success":true}`
+- Cookie set: `gov-platform-session` — `HttpOnly=true`, `SameSite=lax`, `Max-Age=3600`, `Secure=true`
+- JWT payload verified:
+  - `sub`: `aa970fc2-58c1-4447-a5c0-daf076671278` (matches database user ID)
+  - `tenantId`: `e9633d76-e627-451f-94d5-b58865d5080d` (matches database tenant ID)
+  - `email`: `admin@dev.gov`
+  - `roles`: `["System Administrator"]`
+  - `exp`: iat + 3600s
+
+**M10 login authentication: CONFIRMED WORKING.**
+
+### Permanent Development Environment Constraint
+
+**Correct pattern for all future database operations against the Docker postgres:**
+```powershell
+# psql queries
+docker exec gov_workforce_postgres psql -U govplatform -d gov_workforce_dev -c "..."
+
+# Seed / scripts
+docker exec -e NODE_ENV=development gov_workforce_api node /app/<script.js>
+```
+
+**Incorrect pattern (targets native postgres, not application database):**
+```powershell
+$env:NODE_ENV = "development"; npm run db:seed --workspace=apps/api   # Wrong instance
+npx prisma db execute ...                                              # Wrong instance
+```
+
+**Root cause is permanent:** The native postgres owns port 5432 and starts before Docker Desktop. The port conflict will persist unless the native postgres service is stopped (`Stop-Service postgresql-x64-18`) or Docker postgres is exposed on a different port (`POSTGRES_PORT` in `.env`).
+
+---
+
+## Milestone 10 — Post-Validation Correction — Dockerfile CSS Packaging (2026-06-12)
+
+### Root Cause
+
+`apps/web/Dockerfile` did not include COPY instructions for `postcss.config.js` or `tailwind.config.ts`. During `docker build`, Next.js invoked PostCSS with no config file present in the build context. PostCSS ran with zero plugins and passed `globals.css` through unchanged, writing raw `@tailwind base;@tailwind components;@tailwind utilities;` directives verbatim into the output CSS chunk `620bbc50392345ab.css`. Browsers silently discard unknown CSS at-rules — no Tailwind utility class was ever defined. The login page rendered as unstyled HTML with browser defaults only. `next build` returned exit 0 because PostCSS does not error on absent config; the defect was silent.
+
+A secondary issue: `tailwind.config.ts` content array omitted `./src/features/**`, meaning classes used only in `src/features/auth/login-form.tsx` and `src/features/auth/logout-button.tsx` (and all future Phase 2 feature components) would be absent from generated CSS even after the Dockerfile fix. Class `space-y-4` on the login form was the specific at-risk class.
+
+### Files Modified
+
+| File | Change |
+|------|--------|
+| `apps/web/Dockerfile` | Added `COPY apps/web/postcss.config.js ./apps/web/` and `COPY apps/web/tailwind.config.ts ./apps/web/` after tsconfig.json COPY, before src COPY |
+| `apps/web/tailwind.config.ts` | Added `'./src/features/**/*.{js,ts,jsx,tsx,mdx}'` to content array |
+
+### Validation Evidence
+
+**Pre-implementation checks:**
+- `npm run type-check --workspace=apps/web`: **EXIT 0 — 0 errors**
+- `npm run lint --workspace=apps/web`: **EXIT 0 — 0 warnings**
+- `npm run build --workspace=apps/web`: **EXIT 0 — ✓ Compiled successfully** (route table identical to M10)
+
+**Docker build:**
+- `docker compose build web`: **EXIT 0**
+- Build log confirmed new COPY steps executed: `[builder 13/17] COPY apps/web/postcss.config.js` and `[builder 14/17] COPY apps/web/tailwind.config.ts`
+- Total build steps increased from 15 to 17 (2 new COPY instructions)
+- `next build` inside Docker: **✓ Compiled successfully**
+
+**CSS verification (new build `d93cf030a3c8a1ec.css`):**
+
+| Check | Old CSS (`620bbc50392345ab.css`) | New CSS (`d93cf030a3c8a1ec.css`) |
+|-------|----------------------------------|----------------------------------|
+| File starts with | `@tailwind base;@tailwind components;@tailwind utilities;` | `*,:after,:before{--tw-border-spacing-x:0;...}` (compiled reset) |
+| File size | ~600 bytes (raw directives + CSS vars only) | **11,262 bytes** (full Tailwind output) |
+| `flex{display:flex}` present | absent | **✓ present** |
+| `rounded-md{border-radius...}` present | absent | **✓ present** |
+| `font-bold{font-weight:700}` present | absent | **✓ present** |
+| `space-y-4` present | absent | **✓ present** (confirms `src/features/**` glob working) |
+
+**Functional regression checks (Docker stack):**
+
+| Check | Expected | Result |
+|-------|----------|--------|
+| `GET http://localhost:3000/login` | HTTP 200 | ✓ 200 |
+| `GET http://localhost:3000/dashboard` (no cookie) | HTTP 307 → /login | ✓ 307 |
+| `POST /api/auth/login` admin@dev.gov / DevAdmin1234! | HTTP 200 + session cookie | ✓ 200 + `gov-platform-session=[PRESENT]` |
+| `POST /api/auth/logout` | HTTP 200 + `Max-Age=0` | ✓ 200 + cookie cleared |
+| Docker health | postgres ✓ api ✓ web ✓ | ✓ all healthy |
+
+**Visual verification:** Login page at `http://localhost:3000/login` now renders with full Tailwind and shadcn styling — centered card layout, bordered rounded inputs, dark Sign In button, styled typography.
+
+---
 
 ## Milestone 10 — Step 7 Files Modified
 
@@ -189,14 +349,14 @@ All 13 definition-of-done criteria for Step 7 are met for local validation:
 ## Milestone 10 — Phase 1 Completion Assessment
 
 Phase 1 spec/15 success criteria:
-- **User Login Works** — ✓ login form → BFF → JWT cookie → dashboard
+- **User Login Works** — ✓ login form → BFF → JWT cookie → dashboard; Docker-confirmed post Post-Validation Correction
 - **RBAC Works** — ✓ enforced at NestJS layer (frontend defers to backend in Phase 1)
 - **Tenant Isolation Works** — ✓ enforced at NestJS layer (SEC-003)
-- **Deployment Works** — ✓ Docker stack (postgres + api + web) all healthy; smoke tests pass
+- **Deployment Works** — ✓ Docker stack (postgres + api + web) all healthy; login page renders with full Tailwind and shadcn styling confirmed; complete login → dashboard → logout flow verified in Docker (Post-Validation Correction, 2026-06-12)
 
-**Phase 1 local criteria: ALL MET.**
+**Phase 1 local criteria: ALL MET — including Docker CSS rendering (Post-Validation Correction applied).**
 
-**Phase 1 is ready to close upon M10 CI validation (commit + push + green GitHub Actions run).**
+**Phase 1 is ready to close upon commit + push + green GitHub Actions CI run.**
 
 ## Milestone 10 — Milestone Summary
 

@@ -31,6 +31,8 @@ COPY apps/web/next.config.mjs ./apps/web/
 
 # Web TypeScript config and source
 COPY apps/web/tsconfig.json ./apps/web/
+COPY apps/web/postcss.config.js  ./apps/web/
+COPY apps/web/tailwind.config.ts ./apps/web/
 COPY apps/web/src ./apps/web/src
 
 # Workspace package source — packages/shared and packages/ui are listed in

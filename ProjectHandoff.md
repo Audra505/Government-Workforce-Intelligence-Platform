@@ -43,7 +43,8 @@ Phase 1 — Foundation
 
 Milestone 10 — Frontend Foundation (D4)
 
-Locally complete — CI validation pending.
+CI confirmed green. Post-Validation Correction applied locally (not yet committed).
+See Post-Validation Correction section below.
 
 ### Completed Milestones
 
@@ -231,7 +232,7 @@ Key outcomes:
 
 #### Milestone 10 — Frontend Foundation
 
-Locally complete — CI validation pending.
+CI confirmed green (run 27398218893, commit c049634, June 2026).
 
 Key outcomes:
 
@@ -246,6 +247,49 @@ Key outcomes:
 • login → BFF → JWT cookie → dashboard → logout flow operational and Docker-verified
 • Frontend Foundation complete (D4)
 • Security advisory: next@14.2.3 has known vulnerability — upgrade required before production deployment
+
+Post-CI Authentication Correction (applied June 2026):
+
+Root cause: Native Windows PostgreSQL 18 (Windows service postgresql-x64-18) owns host port 5432.
+Docker Desktop cannot bind Docker postgres to localhost:5432 when the native service holds that port.
+Seed executed from the host shell wrote to the native postgres instance, not the Docker instance.
+The application API container uses DATABASE_URL=postgresql://...@postgres:5432/..., which resolves
+to the Docker postgres container. Docker postgres had 0 rows → EMAIL_NOT_FOUND → HTTP 401.
+
+Corrective action: Compiled seed.ts on the host using ts.transpileModule() (typescript package),
+docker cp'd the compiled JS to /app/seed.js inside the api container (not /tmp/ — bcrypt requires
+node_modules/ at the script location), ran with docker exec -e NODE_ENV=development.
+
+Validation: 7 roles, 1 tenant, 1 user, userRole assigned. POST /api/v1/auth/login → HTTP 200.
+
+Permanent environment constraint:
+  CORRECT: docker exec gov_workforce_api node /app/seed.js (targets Docker postgres)
+  INCORRECT: npx ts-node ... from host shell (targets native postgres at localhost:5432)
+  NEVER run: psql from host shell for app-database operations (connects to native postgres)
+  ALWAYS use: docker exec gov_workforce_postgres psql ... for Docker postgres queries
+
+Post-Validation CSS Packaging Correction (applied locally June 2026, not yet committed):
+
+Root cause: apps/web/Dockerfile did not COPY postcss.config.js or tailwind.config.ts into the
+Docker build context. PostCSS ran with zero plugins during next build. @tailwind directives passed
+through raw and were silently discarded by browsers. All Tailwind utility classes were absent from
+the generated CSS. next build exited 0 (PostCSS does not error on unprocessed @tailwind directives).
+
+Secondary: tailwind.config.ts content array omitted ./src/features/**. All Phase 2 feature
+components live under src/features/ — classes used exclusively there would be absent even after
+the Dockerfile fix.
+
+Files modified (local, not yet committed):
+• apps/web/Dockerfile — added COPY for postcss.config.js and tailwind.config.ts
+• apps/web/tailwind.config.ts — added ./src/features/**/*.{js,ts,jsx,tsx,mdx} to content array
+
+Validation: Docker rebuilt, login page renders with full Tailwind styling, all functional flows
+(login, dashboard redirect, logout, middleware protection) confirmed working after correction.
+
+Phase 1 closure status:
+All M10 capabilities delivered and functionally validated. Three files are locally modified but
+not yet committed or pushed (Dockerfile, tailwind.config.ts, PROGRESS.md). Phase 1 cannot be
+formally declared closed until the Post-Validation Correction is committed, pushed, and CI-confirmed.
 
 
 ### Current Runtime Status
@@ -274,7 +318,7 @@ Validated services:
 * Docker environment operational (gov_workforce_postgres, gov_workforce_api, gov_workforce_web — all containers healthy)
 * Full 3-service Docker stack validated (postgres + api + web health check chain)
 * CORS validated (Access-Control-Allow-Origin: http://localhost:3000, credentials: true)
-* GitHub Actions CI: PostgreSQL service container operational; lint + build + unit tests + migrations + seed + e2e pipeline defined
+* GitHub Actions CI: green (run 27398218893, commit c049634) — lint + build + unit tests + migrations + seed + e2e pipeline passing
 
 Startup log confirms:
 
@@ -288,7 +332,7 @@ Docker stack confirms:
 * gov_workforce_api healthy (GET /health → HTTP 200, database connectivity confirmed)
 * gov_workforce_web healthy (GET /login → HTTP 200; GET /dashboard without cookie → HTTP 307 → /login; root / → HTTP 307 RSC redirect to /login)
 * API auth enforced in Docker (GET /api/v1/users → HTTP 401)
-* GitHub Actions CI pending green run (CI_JWT_SECRET provisioning required)
+* GitHub Actions CI confirmed green (run 27398218893, commit c049634)
 
 Authenticated Endpoints Operational
 
