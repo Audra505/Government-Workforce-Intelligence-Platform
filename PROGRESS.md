@@ -9,8 +9,8 @@
 
 ---
 
-Last Updated: 2026-06-12
-Updated By: Claude Code (session: M10 Post-Validation Correction CI closure — Phase 1 formally closed)
+Last Updated: 2026-06-13
+Updated By: Claude Code (session: Post-Phase 1 environment correction — Docker postgres host access via POSTGRES_PORT=5433)
 
 ## Repository Status
 
@@ -31,12 +31,12 @@ Phase 1 is formally closed. D9 (Docker Environment) and D10 (CI/CD Foundation) w
 > Its purpose is crash/session recovery: the current step state is always readable without
 > scanning Zone 5 history. It is overwritten each step — not appended.
 
-Milestone: Milestone 10 — Frontend Foundation
+Milestone: N/A — Phase 1 Formally Closed
 Last Completed Milestone: Milestone 10 — Frontend Foundation + Post-Validation Correction (Complete and CI-Validated, 2026-06-12; commit 97b42e6 pushed to main; CI / Install, Lint, Build, Test: success in 2m)
-Last Completed Step: M10 Post-Validation Correction CI Closure — commit 97b42e6, push, CI green confirmed
-Last Completed Step Date: 2026-06-12
-Current Step: N/A — Phase 1 Formally Closed
-Session Classification: Phase 1 Complete and CI-Validated
+Last Completed Step: Post-Phase 1 environment correction — POSTGRES_PORT=5433 added to .env; Docker postgres now accessible at localhost:5433 for GUI tools and host-side psql; all containers healthy; audit.audit_events confirmed accessible; end-to-end login re-validated
+Last Completed Step Date: 2026-06-13
+Current Step: N/A — Phase 1 Formally Closed; environment corrected
+Session Classification: Phase 1 Complete and CI-Validated; development environment fully operational
 
 ## Milestone 10 — Approved Plan
 
@@ -218,22 +218,99 @@ Dev fixture ready. Login: admin@dev.gov / DevAdmin1234!
 
 ### Permanent Development Environment Constraint
 
-**Correct pattern for all future database operations against the Docker postgres:**
+**Port assignment (current state — 2026-06-13):**
+
+| Port | Instance | Access |
+|---|---|---|
+| `localhost:5432` | Native PostgreSQL 18 (Windows service) | Native postgres only — NOT the application database |
+| `localhost:5433` | Docker PostgreSQL 16 (application database) | ✓ Correct — use this for GUI tools and host-side psql |
+| `postgres:5432` | Docker PostgreSQL 16 (inside Docker network) | Used by `gov_workforce_api` container |
+
+**`POSTGRES_PORT=5433` is set in `.env`** (added 2026-06-13). Docker postgres is now accessible at `localhost:5433` from the host.
+
+**Correct patterns:**
 ```powershell
-# psql queries
+# GUI tools (pgAdmin, TablePlus, DBeaver) — connect to:
+#   Host: localhost  Port: 5433  DB: gov_workforce_dev  User: govplatform  Password: devpassword
+
+# Host-side psql targeting Docker postgres
+$env:PGPASSWORD = "devpassword"; psql -h localhost -p 5433 -U govplatform -d gov_workforce_dev -c "..."
+
+# docker exec psql (always works regardless of port binding)
 docker exec gov_workforce_postgres psql -U govplatform -d gov_workforce_dev -c "..."
 
-# Seed / scripts
+# Seed / scripts (must run inside api container — uses internal DNS)
 docker exec -e NODE_ENV=development gov_workforce_api node /app/<script.js>
 ```
 
-**Incorrect pattern (targets native postgres, not application database):**
+**Incorrect patterns:**
 ```powershell
-$env:NODE_ENV = "development"; npm run db:seed --workspace=apps/api   # Wrong instance
-npx prisma db execute ...                                              # Wrong instance
+$env:NODE_ENV = "development"; npm run db:seed --workspace=apps/api   # Hits native postgres at 5432
+npx prisma db execute ...                                              # Hits native postgres at 5432
+psql -h localhost -p 5432 ...                                          # Hits native postgres, NOT app DB
 ```
 
-**Root cause is permanent:** The native postgres owns port 5432 and starts before Docker Desktop. The port conflict will persist unless the native postgres service is stopped (`Stop-Service postgresql-x64-18`) or Docker postgres is exposed on a different port (`POSTGRES_PORT` in `.env`).
+**Root cause is permanent:** Native postgres owns `0.0.0.0:5432` and starts before Docker Desktop. `POSTGRES_PORT=5433` in `.env` resolves this for host access. Always start the stack via `npm run stack:up` from the project root — that script passes `--env-file .env` and picks up `POSTGRES_PORT=5433` automatically.
+
+---
+
+## Post-Phase 1 — Environment Correction: Docker Postgres Host Access (2026-06-13)
+
+### Change
+
+Added `POSTGRES_PORT=5433` to `.env`. Docker postgres container recreated via:
+```powershell
+docker compose -f infrastructure/docker/docker-compose.yml --env-file .env up -d --force-recreate postgres
+```
+
+No application files modified. No commits required — `.env` is gitignored.
+
+**Root issue discovered:** The first recreation attempt ran from `infrastructure/docker/` without `--env-file`, so docker compose fell back to `POSTGRES_PORT` default (5432) and the port conflict persisted. Second attempt ran from the project root with `--env-file .env` — correct.
+
+### Investigation Findings
+
+| `localhost:5432` response | `PostgreSQL 18.0 on x86_64-windows` | Native postgres — NOT the application database |
+|---|---|---|
+| `docker exec` response | `PostgreSQL 16.14 on x86_64-pc-linux-musl, Alpine` | Docker postgres — application database |
+| Native postgres state | Has `gov_workforce_dev` with 7 roles | Seeded during prior failed host-shell seed attempts |
+| Docker postgres state | Has 7 roles, 1 user, 1 tenant | Seeded correctly via docker exec |
+
+Both instances had seed data, making the discrepancy invisible without version-checking the responding server.
+
+### Validation Evidence
+
+| Test | Result |
+|---|---|
+| `gov_workforce_postgres` port binding | `0.0.0.0:5433->5432/tcp` ✓ |
+| `localhost:5433` server version | PostgreSQL 16.14 on Alpine (Docker) ✓ |
+| `localhost:5432` server version | PostgreSQL 18.0 on Windows (native — unchanged) ✓ |
+| Docker postgres data: roles | 7 ✓ |
+| Docker postgres data: users | 1 (admin@dev.gov) ✓ |
+| Docker postgres data: tenants | 1 ✓ |
+| `GET /health` | HTTP 200 `{"database":{"status":"up"}}` ✓ |
+| End-to-end login | HTTP 200 + `gov-platform-session` cookie ✓ |
+| `audit.audit_events` accessible at `localhost:5433` | 31 events ✓ |
+| All 3 containers healthy | postgres ✓ api ✓ web ✓ |
+
+### Audit Activity Confirmed
+
+The `audit.audit_events` table in Docker postgres contains 31 records covering the current session:
+- `AUTH_LOGIN_SUCCESS` — multiple entries
+- `AUTH_LOGIN_FAILURE` — entries from the port conflict investigation period
+- `AUTH_LOGOUT` — multiple entries
+
+This is the authoritative application activity log. The native postgres at `localhost:5432` is NOT the application database and should not be used for any application activity review.
+
+### GUI Tool Connection (Current)
+
+| Field | Value |
+|---|---|
+| Host | `localhost` |
+| Port | `5433` |
+| Database | `gov_workforce_dev` |
+| Username | `govplatform` |
+| Password | `devpassword` |
+| Schemas | `identity`, `organization`, `workforce`, `audit` |
 
 ---
 

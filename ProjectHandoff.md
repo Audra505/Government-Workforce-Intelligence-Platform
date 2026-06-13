@@ -269,11 +269,18 @@ node_modules/ at the script location), ran with docker exec -e NODE_ENV=developm
 
 Validation: 7 roles, 1 tenant, 1 user, userRole assigned. POST /api/v1/auth/login → HTTP 200.
 
-Permanent environment constraint:
-  CORRECT: docker exec gov_workforce_api node /app/seed.js (targets Docker postgres)
-  INCORRECT: npx ts-node ... from host shell (targets native postgres at localhost:5432)
-  NEVER run: psql from host shell for app-database operations (connects to native postgres)
-  ALWAYS use: docker exec gov_workforce_postgres psql ... for Docker postgres queries
+Development environment — port assignment (updated 2026-06-13):
+  localhost:5432  → Native PostgreSQL 18 (Windows service) — NOT the application database
+  localhost:5433  → Docker PostgreSQL 16 (application database) — use for GUI tools and host psql
+  postgres:5432   → Docker PostgreSQL 16 via Docker internal DNS — used by api container
+
+  POSTGRES_PORT=5433 is set in .env (added 2026-06-13). Docker postgres is now reachable at
+  localhost:5433 from the host. Always start the stack via npm run stack:up from the project root.
+
+  CORRECT (seed/scripts): docker exec -e NODE_ENV=development gov_workforce_api node /app/<script.js>
+  CORRECT (psql):          psql -h localhost -p 5433 -U govplatform -d gov_workforce_dev
+  CORRECT (docker exec):   docker exec gov_workforce_postgres psql -U govplatform -d gov_workforce_dev
+  INCORRECT:               npx ts-node / npm run db:seed from host shell (hits native postgres at 5432)
 
 Post-Validation CSS Packaging Correction (applied locally June 2026, not yet committed):
 
@@ -286,7 +293,7 @@ Secondary: tailwind.config.ts content array omitted ./src/features/**. All Phase
 components live under src/features/ — classes used exclusively there would be absent even after
 the Dockerfile fix.
 
-Files modified (local, not yet committed):
+Files modified and committed (97b42e6, 2026-06-12, CI-confirmed green):
 • apps/web/Dockerfile — added COPY for postcss.config.js and tailwind.config.ts
 • apps/web/tailwind.config.ts — added ./src/features/**/*.{js,ts,jsx,tsx,mdx} to content array
 
@@ -338,7 +345,9 @@ Docker stack confirms:
 * gov_workforce_api healthy (GET /health → HTTP 200, database connectivity confirmed)
 * gov_workforce_web healthy (GET /login → HTTP 200; GET /dashboard without cookie → HTTP 307 → /login; root / → HTTP 307 RSC redirect to /login)
 * API auth enforced in Docker (GET /api/v1/users → HTTP 401)
-* GitHub Actions CI confirmed green (run 27398218893, commit c049634)
+* GitHub Actions CI confirmed green (run 27398218893, commit c049634; Post-Validation Correction CI also green, commit 97b42e6)
+* Docker postgres exposed at localhost:5433 (POSTGRES_PORT=5433 in .env, 2026-06-13) — connect GUI tools to localhost:5433
+* audit.audit_events contains 31 records (auth logins, logouts, failures) — application audit trail operational
 
 Authenticated Endpoints Operational
 
