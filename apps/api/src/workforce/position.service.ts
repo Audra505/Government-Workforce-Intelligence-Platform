@@ -13,9 +13,9 @@
 // Audit events are emitted after write operations, not inside transactions (AUD-400).
 //
 // POS-202: CLOSED positions are read-only. updatePosition returns POSITION_CLOSED.
-// POS-500 deferred gate: "No Active Employees, No Active Recruitment" is not enforced here.
-//   Employee and Vacancy domains do not yet exist. This guard must be added when those
-//   domains are implemented (Decision 2 — approved Milestone 8 scope).
+// POS-500 partial gate (M11 Step 8): "No Active Recruitment" enforced in closePosition().
+//   Predicate: status: { not: 'CLOSED' } — blocks DRAFT, OPEN, and IN_RECRUITMENT vacancies.
+//   "No Active Employees" check remains deferred — Employee domain not yet implemented.
 // POS-201: departmentId is immutable after creation — excluded from all update paths.
 
 import { Injectable, Logger } from '@nestjs/common';
@@ -70,6 +70,7 @@ export type ClosePositionResult =
   | { outcome: 'SUCCESS'; position: PositionRecord }
   | { outcome: 'NOT_FOUND' }
   | { outcome: 'ALREADY_CLOSED' }
+  | { outcome: 'HAS_ACTIVE_VACANCIES' }
   | { outcome: 'INTERNAL_ERROR' };
 
 // Helper type — matches the Prisma row shape returned by POSITION_READ_SELECT.
@@ -317,9 +318,6 @@ export class PositionService {
     tenantId: string,
     actorId: string,
   ): Promise<ClosePositionResult> {
-    // POS-500 deferred gate: "No Active Employees, No Active Recruitment" check omitted.
-    // Employee and Vacancy domains do not yet exist. This guard is additive — it must be
-    // implemented when those domains are introduced (Decision 2 — approved deferral).
     try {
       const existing = await this.prisma.position.findFirst({
         where: { id, tenantId, deletedAt: null },
@@ -328,6 +326,20 @@ export class PositionService {
 
       if (!existing) return { outcome: 'NOT_FOUND' };
       if (existing.status === 'CLOSED') return { outcome: 'ALREADY_CLOSED' };
+
+      // POS-500: No Active Recruitment guard (Governance Decision 8-6 — broad interpretation).
+      // Blocks DRAFT, OPEN, and IN_RECRUITMENT vacancies; prevents POS-300 violations.
+      // Employee check remains deferred — Employee domain not yet implemented.
+      const activeVacancy = await this.prisma.vacancy.findFirst({
+        where: {
+          positionId: id,
+          tenantId,
+          deletedAt: null,
+          status: { not: 'CLOSED' },
+        },
+        select: { id: true },
+      });
+      if (activeVacancy) return { outcome: 'HAS_ACTIVE_VACANCIES' };
 
       const row = await this.prisma.position.update({
         where: { id },

@@ -9,14 +9,14 @@
 
 ---
 
-Last Updated: 2026-06-13
-Updated By: Claude Code (session: Post-Phase 1 environment correction — Docker postgres host access via POSTGRES_PORT=5433)
+Last Updated: 2026-06-18
+Updated By: Claude Code (session: M11 Phase 2 — Steps 1–12 complete; Edit Vacancy + Open Vacancy delivered; BFF PUT handler; VacancyActions Client Component with confirmation modal; EditVacancyForm with pre-population; [id]/edit/page.tsx + error.tsx; JWT role decode for canWrite; CLOSED redirect; cache:no-store fetch bug fixed; 20/20 exit criteria met; 412 unit tests passing)
 
 ## Repository Status
 
 Current Phase: **Phase 1 — Foundation FORMALLY CLOSED**
 Overall Classification: Tested Foundation — Phase 1 complete and CI-validated; all 10 milestones committed and pushed; 244 unit tests + 122 e2e tests passing (CI-confirmed); D4 Frontend Foundation complete — login→dashboard→logout flow operational with full Tailwind/shadcn styling in Docker; Post-Validation CSS Packaging Correction committed (97b42e6) and CI-confirmed green (CI / Install, Lint, Build, Test — success in 2m)
-Active Sprint / Milestone: Phase 1 Formally Closed — Phase 2 not yet planned
+Active Sprint / Milestone: Phase 2 — M11 Vacancy Management (in progress: Steps 1–9 complete; Step 10 — Create Vacancy form pending)
 Implementation Started: Yes (2026-06-05)
 
 ## Phase Summary
@@ -31,12 +31,12 @@ Phase 1 is formally closed. D9 (Docker Environment) and D10 (CI/CD Foundation) w
 > Its purpose is crash/session recovery: the current step state is always readable without
 > scanning Zone 5 history. It is overwritten each step — not appended.
 
-Milestone: N/A — Phase 1 Formally Closed
+Milestone: M11 — Vacancy Management
 Last Completed Milestone: Milestone 10 — Frontend Foundation + Post-Validation Correction (Complete and CI-Validated, 2026-06-12; commit 97b42e6 pushed to main; CI / Install, Lint, Build, Test: success in 2m)
-Last Completed Step: Post-Phase 1 environment correction — POSTGRES_PORT=5433 added to .env; Docker postgres now accessible at localhost:5433 for GUI tools and host-side psql; all containers healthy; audit.audit_events confirmed accessible; end-to-end login re-validated
-Last Completed Step Date: 2026-06-13
-Current Step: N/A — Phase 1 Formally Closed; environment corrected
-Session Classification: Phase 1 Complete and CI-Validated; development environment fully operational
+Last Completed Step: M11 UX Hardening Pass — Closed vacancy visibility; priority badge title-case; stretched-link row discoverability; action area separator; role-gated New Vacancy button; tsc/ESLint clean; all items runtime-verified 2026-06-18
+Last Completed Step Date: 2026-06-18
+Current Step: None — M11 Steps 1–13 + UX Hardening Pass complete
+Session Classification: Phase 2 Active — M11 Vacancy Management Steps 1–13 + UX Hardening complete and runtime-verified; full vacancy lifecycle operational; UI polished and role-correct; 412 unit tests passing
 
 ## Milestone 10 — Approved Plan
 
@@ -505,7 +505,1597 @@ Phase 1 spec/15 success criteria:
 - JWT signature/expiry validation deferred (presence-only check in Phase 1)
 - Native PostgreSQL 18 port 5432 conflict — permanent dev environment constraint (see Post-CI Authentication Correction)
 
-**Next milestone: to be determined.** Milestone name, sequencing, and scope will be determined from `spec/15_implementation_roadmap.md` and the authoritative specification documents at the start of the next session. No Phase 2 planning has been performed.
+**Next milestone:** M11 — Vacancy Management. Phase 2 has begun. Steps 1 and 2 complete. Step 3 (VacancyService) pending approval.
+
+---
+
+## M11 — Vacancy Management — Phase 2 Entry
+
+**Phase:** Phase 2 — Workforce Core
+**Milestone:** M11 — Vacancy Management
+**Phase entry date:** 2026-06-17
+**Status:** In Progress — Steps 1–9 complete; Step 10 (Create Vacancy form) pending
+
+### Capability Summary
+
+| Capability | Deliverable Status | Overall Maturity |
+|---|---|---|
+| Vacancy Management (FR-103, FR-104) | Required | Partially Implemented — service layer, DTO layer, HTTP controller, POS-500 "No Active Recruitment" gate, and VacancyBoard read surface complete and test-verified; Steps 10–13 (write workflows) and Step 14 (e2e) pending |
+
+### Phase 2 Governance Decisions Applied
+
+| Decision | Resolution |
+|---|---|
+| Vacancy lifecycle (6 states) | directives/03 governs: DRAFT → OPEN → IN_RECRUITMENT → FILLED → CANCELLED → CLOSED |
+| Position eligibility status (VAC-102) | Resolved conflict: stored value is 'ACTIVE' (not 'PUBLISHED'); directives/02 4-state lifecycle governs over spec/04 5-state lifecycle; Decision 1 documented in schema.prisma line 87 comment; update-position.dto.ts @IsIn confirms 'PUBLISHED' is not a valid status value |
+| "Frozen" position guard (VAC-103) | Deferred stub — "Frozen" absent from Position model; documented comment following M8 POS-500 pattern |
+| Draft→Open transition endpoint | PUT /{id} with {status: "OPEN"} — state machine validates in VacancyService |
+| Close endpoint behavior | POST /{id}/close with closureType (FILLED\|CANCELLED) |
+| Cancellation RBAC restriction | VAC-602 enforced as RBAC constraint — only Admin and HR Director can cancel |
+| VAC-601 Critical review | UI annotation (requiresReview flag in response) — no approval endpoint in spec/06 |
+| status/priority/reason storage | VARCHAR per platform convention — no Prisma enums |
+| filledAt column | Added beyond spec/05 — required for Time To Fill metric (directives/03 Reporting Rules) |
+| Tenant isolation on Vacancy | Bare scalar tenantId — follows Position model pattern |
+| Vacancy reason values (Step 4) | directives/03 governs over spec/01 — 7 values: NEW_POSITION, RETIREMENT, RESIGNATION, TRANSFER, TERMINATION, EXPANSION, TEMPORARY_COVERAGE; TEMPORARY_NEED is predecessor label for TEMPORARY_COVERAGE and is explicitly rejected |
+| expectedFillDate DTO type (Step 4) | string with @IsDateString() in write DTOs; controller converts to Date before calling service (Governance Decision 8-4 — avoids class-transformer/class-validator sequencing issues with @Transform) |
+| UpdateVacancyDto status values (Step 4) | @IsIn(['OPEN']) only — DRAFT→OPEN transition via PUT; CLOSED via POST /{id}/close; IN_RECRUITMENT excluded (triggered by first application receipt, not caller) |
+| ListVacanciesQueryDto status filter (Step 4) | stored states only: DRAFT, OPEN, IN_RECRUITMENT, CLOSED; FILLED and CANCELLED excluded — they are closure type discriminators, not stored states (Governance Decision 8-5) |
+| RBAC matrix — Vacancy endpoints (Step 5) | Write (POST /vacancies, PUT /vacancies/:id, POST /vacancies/:id/close): System Administrator, HR Director; Read (GET /vacancies, GET /vacancies/:id): + Workforce Planner; Hiring Manager absent from spec/06 RBAC matrix (line 837) — deferred to Phase 3 per prior M11 RBAC reconciliation; approved 2026-06-17 |
+| Role string — System Administrator (Step 5) | `'System Administrator'` is the correct platform role string; `'Super Admin'` does not exist in the platform role model; used in all @RequireRoles() decorators in VacancyController |
+| PUT routing — VacancyController (Step 5) | `dto.status === 'OPEN'` → `openVacancy()` (DRAFT→OPEN lifecycle transition); otherwise → `updateVacancy()` (field update only, status unchanged); unified switch covers full union of both result types; Governance Decision 8-3 applied to controller layer |
+| VacancyController registered in WorkforceModule (Steps 5/6) | workforce.module.ts controllers array: `[PositionController, VacancyController]`; Step 6 completed within Step 5 scope; no separate implementation required for Step 6 |
+| POS-500 "No Active Recruitment" predicate — broad interpretation (Step 8) | Governance Decision 8-6 (approved 2026-06-17): `status: { not: 'CLOSED' }` blocks DRAFT, OPEN, and IN_RECRUITMENT vacancies; prevents orphaned DRAFT vacancies and POS-300 violations; CLOSED vacancies do not block closure; POS-301 auto-cascade out of scope (Phase 3); "No Active Employees" sub-condition deferred (Employee domain not implemented) |
+
+---
+
+## M11 Step 1 — Audit Event Enum Extension (2026-06-16)
+
+### What Changed
+
+**File modified:** `apps/api/src/audit/enums/audit-event-type.enum.ts`
+
+3 audit event enum values added to the AUD-400 Workforce Events block:
+- `WORKFORCE_VACANCY_UPDATED = 'WORKFORCE_VACANCY_UPDATED'`
+- `WORKFORCE_VACANCY_OPENED = 'WORKFORCE_VACANCY_OPENED'`
+- `WORKFORCE_VACANCY_CANCELLED = 'WORKFORCE_VACANCY_CANCELLED'`
+
+These join 3 pre-existing vacancy events (CREATED, FILLED, CLOSED). All 6 events required by
+directives/03 VAC-502 are now present. Enum ordering follows lifecycle sequence:
+CREATED → UPDATED → OPENED → CANCELLED → FILLED → CLOSED.
+
+### Step 1 Audit Event Completeness
+
+| directives/03 Required Event | Enum Value | Status |
+|---|---|---|
+| Vacancy Created | WORKFORCE_VACANCY_CREATED | ✓ pre-existing |
+| Vacancy Updated | WORKFORCE_VACANCY_UPDATED | ✓ added Step 1 |
+| Vacancy Opened | WORKFORCE_VACANCY_OPENED | ✓ added Step 1 |
+| Vacancy Cancelled | WORKFORCE_VACANCY_CANCELLED | ✓ added Step 1 |
+| Vacancy Filled | WORKFORCE_VACANCY_FILLED | ✓ pre-existing |
+| Vacancy Closed | WORKFORCE_VACANCY_CLOSED | ✓ pre-existing |
+
+### Step 1 Validation
+
+| Check | Result |
+|---|---|
+| `tsc --noEmit` | Zero errors |
+| `npm test` (apps/api, 17 suites) | 244 passed, 0 failed |
+| directives/03 audit event coverage | 6/6 required events present |
+
+**Step 1 maturity: Integrated — audit enum coverage complete for M11.**
+
+---
+
+## M11 Step 2 — Prisma Vacancy Model and Migration (2026-06-17)
+
+### What Changed
+
+**Files modified:**
+- `apps/api/prisma/schema.prisma` — Vacancy model added; `vacancies Vacancy[]` relation added to Position
+- `apps/api/prisma/migrations/20260617053917_add_vacancies_table/migration.sql` — auto-generated
+
+**Vacancy model:** 11 fields — id (UUID PK), tenantId (bare scalar, NOT NULL), positionId
+(FK → workforce.positions, NOT NULL), priority (VARCHAR 50, nullable), reason (VARCHAR 100,
+nullable), status (VARCHAR 50, NOT NULL, default DRAFT), expectedFillDate (DATE, nullable),
+filledAt (TIMESTAMPTZ, nullable — governance addition for Time To Fill), createdAt, updatedAt,
+deletedAt (soft-delete convention).
+
+**Indexes:** idx_vacancies_tenant, idx_vacancies_position, idx_vacancies_status, idx_vacancies_created
+
+**FK:** fk_vacancy_position → workforce.positions(id) ON DELETE RESTRICT ON UPDATE CASCADE
+
+### Step 2 Environment Incident
+
+**Incident:** `prisma migrate dev` during Step 2 implementation applied the migration to Native
+PostgreSQL 18 (localhost:5432) instead of Docker PostgreSQL 16 (localhost:5433).
+
+**Root causes (two):**
+1. `DATABASE_URL` in root `.env` pointed to `localhost:5432` — not updated when `POSTGRES_PORT=5433`
+   was added in commit `c3a0f8d`.
+2. `apps/api/.env` exists as a separate Prisma-specific env file (previously unknown). Prisma CLI
+   reads this file when run from `apps/api/`, taking precedence over the root `.env`. This file
+   also had `localhost:5432`. Both files required correction.
+
+**Discovery:** `prisma migrate status` after DATABASE_URL correction in root `.env` still reported
+`localhost:5432` — leading to discovery of `apps/api/.env`.
+
+**Additional finding:** Docker postgres container was bound to `localhost:5432` (not `5433`) because
+`npm run db:up` does not pass `--env-file` explicitly — docker compose reads POSTGRES_PORT from
+`.env` relative to the compose file location, not the CWD. Same issue documented in commit `c3a0f8d`.
+Container recreation with `--env-file .env` from project root was required.
+
+### Environment Reconciliation — Correction Applied
+
+**Step 1 of correction — Update DATABASE_URL in root .env:**
+```
+Before: DATABASE_URL=postgresql://govplatform:devpassword@localhost:5432/gov_workforce_dev
+After:  DATABASE_URL=postgresql://govplatform:devpassword@localhost:5433/gov_workforce_dev
+```
+
+**Step 2 of correction — Update DATABASE_URL in apps/api/.env (newly discovered):**
+```
+Before: DATABASE_URL=postgresql://govplatform:devpassword@localhost:5432/gov_workforce_dev
+After:  DATABASE_URL=postgresql://govplatform:devpassword@localhost:5433/gov_workforce_dev
+```
+
+**Step 3 of correction — Recreate Docker postgres with correct port binding:**
+```powershell
+docker compose -f infrastructure/docker/docker-compose.yml --env-file .env up -d --force-recreate postgres
+```
+Result: Container now binds `0.0.0.0:5433->5432/tcp` ✓
+
+**Step 4 of correction — Apply pending migration to Docker postgres:**
+```powershell
+cd apps/api && npx prisma migrate deploy
+```
+Result: `Applying migration 20260617053917_add_vacancies_table` — `All migrations have been successfully applied.` ✓
+
+### Step 2 Post-Correction Validation Evidence
+
+| Check | Command | Result |
+|---|---|---|
+| Prisma datasource target | `prisma migrate deploy` header | `localhost:5433` ✓ |
+| Docker postgres port binding | `docker ps` | `0.0.0.0:5433->5432/tcp` ✓ |
+| Migration history (Docker) | `_prisma_migrations` query | 6 migrations — all present ✓ |
+| `workforce.vacancies` exists (Docker) | `\dt workforce.*` | positions + vacancies ✓ |
+| Migration status | `prisma migrate status` | `Database schema is up to date!` ✓ |
+| TypeScript | `tsc --noEmit` | Zero errors ✓ |
+| Test suite (Docker postgres) | `npm test` | 244 passed, 0 failed — 17 suites ✓ |
+
+### Migration History — Docker PostgreSQL (Final State)
+
+| Migration | Applied |
+|---|---|
+| 20260605233955_init_foundation | 2026-06-11 18:40:09 UTC |
+| 20260607215441_add_audit_result | 2026-06-11 18:40:09 UTC |
+| 20260608005045_add_account_lockout | 2026-06-11 18:40:09 UTC |
+| 20260610162518_add_departments | 2026-06-11 18:40:09 UTC |
+| 20260610201814_add_workforce_positions | 2026-06-11 18:40:09 UTC |
+| 20260617053917_add_vacancies_table | 2026-06-17 06:29:38 UTC |
+
+**Step 2 maturity: Scaffolded — data layer complete; service/controller not yet implemented.**
+
+---
+
+## M11 Step 3 — VacancyService (2026-06-17)
+
+### What Changed
+
+**Files created:**
+- `apps/api/src/workforce/vacancy.service.ts` — VacancyService with 6 business methods; transport-agnostic; discriminated union result types; VACANCY_READ_SELECT constant with nested position.department join; VacancyRow internal type; toVacancyRecord() mapper with computed fields; AUD-400 pattern throughout
+- `apps/api/src/workforce/vacancy.service.spec.ts` — 63 unit tests across 8 describe blocks covering all methods, all outcome types, all governance assertions
+
+**Files modified:**
+- `apps/api/src/workforce/workforce.module.ts` — `import { VacancyService } from './vacancy.service'` added; `VacancyService` added to providers array
+
+**Service methods implemented:**
+
+| Method | Result Outcomes | Key Rules |
+|---|---|---|
+| `createVacancy(tenantId, actorId, params)` | SUCCESS, POSITION_NOT_ELIGIBLE, INTERNAL_ERROR | VAC-101 (position exists), VAC-102 (position ACTIVE), SEC-003 |
+| `listVacancies(tenantId, actorId, params)` | SUCCESS | SEC-003, soft-delete, departmentId nested filter, Promise.all pagination |
+| `getVacancyById(tenantId, actorId, id)` | SUCCESS, NOT_FOUND | SEC-003, NOT_FOUND covers absent and cross-tenant |
+| `updateVacancy(tenantId, actorId, id, params)` | SUCCESS, NOT_FOUND, VACANCY_CLOSED, INTERNAL_ERROR | VAC-501 (CLOSED read-only), reason locked after DRAFT |
+| `openVacancy(tenantId, actorId, id)` | SUCCESS, NOT_FOUND, VACANCY_CLOSED, INVALID_TRANSITION | DRAFT-only source; CLOSED terminal guard |
+| `closeVacancy(tenantId, actorId, id, closureType)` | SUCCESS, NOT_FOUND, VACANCY_CLOSED, INVALID_TRANSITION, INTERNAL_ERROR | VAC-502 dual-emit; filledAt on FILLED path only |
+
+**Computed fields on VacancyRecord:**
+- `ageInDays` — `Math.floor((Date.now() - createdAt.getTime()) / (1000 * 60 * 60 * 24))`
+- `agingStatus` — `'HIGH_RISK'` (≥90d), `'WARNING'` (≥30d), `'OK'` (<30d) per VAC-701/702
+- `requiresReview` — `priority === 'CRITICAL' && status === 'OPEN'` per VAC-601
+
+**Lifecycle state machine enforced:**
+
+| Transition | Allowed Source States | Rejected States |
+|---|---|---|
+| → OPEN via openVacancy | DRAFT only | OPEN, IN_RECRUITMENT, CLOSED |
+| → CLOSED (FILLED) via closeVacancy | OPEN, IN_RECRUITMENT | DRAFT, CLOSED |
+| → CLOSED (CANCELLED) via closeVacancy | DRAFT, OPEN, IN_RECRUITMENT | CLOSED |
+| All write methods | Any non-CLOSED state | CLOSED (VACANCY_CLOSED returned) |
+
+**Dual audit emission — closeVacancy (VAC-502):**
+1. `WORKFORCE_VACANCY_FILLED` or `WORKFORCE_VACANCY_CANCELLED` (first)
+2. `WORKFORCE_VACANCY_CLOSED` (second)
+Deterministic order verified by `calls[0]` / `calls[1]` test assertions.
+
+**SEC-003 enforcement (three independent points):**
+- `tenantId` sourced from auth context only — never from DTO
+- Position validation where clause: `{ id, tenantId, deletedAt: null, status: 'ACTIVE' }`
+- All vacancy reads where clause: `{ id, tenantId, deletedAt: null }`
+- `NOT_FOUND` for absent and cross-tenant (no enumeration)
+
+**Specification conflict — position status (pre-existing, not introduced by Step 3):**
+- spec/04 "Published" state (5-state lifecycle) has no implementation counterpart
+- directives/02 "Active" state (4-state lifecycle) governs; stored value is `'ACTIVE'`
+- Planning review error ('PUBLISHED') was corrected during implementation; implementation was correct from the start
+- See Governance Decisions table above for authority chain
+
+### Step 3 Validation Evidence
+
+| Check | Result |
+|---|---|
+| `tsc --noEmit` (apps/api) | Zero TypeScript errors |
+| `npm test` | 307 passed, 0 failed — 18 suites (17 pre-existing + 1 new) |
+| New tests: vacancy.service.spec.ts | 63/63 pass |
+| Pre-existing tests preserved | 244/244 pass — zero regressions |
+| All 6 service methods: all discriminated union outcomes | ✓ tested |
+| SEC-003: tenantId where-clause assertions | ✓ — 4 explicit assertion tests |
+| Lifecycle guards: invalid transitions | ✓ — 7 invalid transition tests |
+| Audit event emission: correct type + entity | ✓ — 6 event type tests |
+| Audit emission order (closeVacancy dual-emit) | ✓ — 2 call-order assertion tests |
+| Audit non-emission on non-SUCCESS outcomes | ✓ — 4 tests verify `not.toHaveBeenCalled()` |
+| Computed fields: ageInDays, agingStatus, requiresReview | ✓ — 7 computed field tests |
+| All 12 exit criteria | Met — Exit Review approved 2026-06-17 |
+
+### Step 3 Risks and Minor Defects
+
+| # | Item | Severity | Resolution |
+|---|---|---|---|
+| 1 | `vacancy.service.ts` header comment misattributes CLOSED read-only guard to VAC-202 (correct rule is VAC-501) | Low — behavior correct, comment wrong | Correctable in next file touch (Step 5); no dedicated step required |
+| 2 | VacancyService not reachable via HTTP (no controller) | Expected — by design | Step 5 (VacancyController) |
+| 3 | VAC-602 cancellation RBAC not yet enforced | Expected — by design; documented in closeVacancy header | Step 5 |
+| 4 | POS-500 gate deferred | Expected — approved deferral | Step 8 (Step 3 completion satisfies the prerequisite: VacancyService now exists) |
+
+### Step 3 Capability Maturity — Vacancy Management (FR-103, FR-104)
+
+| Production Blueprint Layer | Status | Evidence |
+|---|---|---|
+| Requirements | Defined | spec/01 FR-103 — all acceptance criteria addressable by implemented service |
+| Specs | Present | spec/04 domain, spec/05 schema, spec/06 API all read and cross-referenced |
+| Directives | Present | directives/03 VAC-001 through VAC-702 — all rules implemented or formally deferred |
+| Execution Plan | Implemented | VacancyService 6 methods; all business logic deterministic and repeatable |
+| State Model | Implemented | 6-state lifecycle enforced; filledAt distinguishes FILLED from CANCELLED closure |
+| Test Scenarios | Tested | 63 unit tests; all outcomes, lifecycle guards, SEC-003, AUD-400, computed fields |
+| System Loop | Scaffolded | Service layer callable from DI; no HTTP exposure yet (Step 5) |
+| Failure Playbook | Partial | Service-level error handling complete; controller-level HTTP mapping pending |
+| Environment Model | Integrated | Docker postgres targeted; DATABASE_URL aligned in both .env files |
+| Data Lifecycle | Partial | Create/read/update/soft-delete enforced; purge/archival policy not yet defined |
+| Evolution Strategy | Not yet formalized | |
+| **Overall** | **Partially Implemented** | Service layer complete and test-verified; DTOs (Step 4), controller (Step 5), frontend (Steps 9–13) pending |
+
+### Step 3 Deferred Work
+
+| Deferred Item | Target Step |
+|---|---|
+| CreateVacancyDto, UpdateVacancyDto, ListVacanciesQueryDto, VacancyResponseDto, CloseVacancyDto | Step 4 |
+| VacancyController (5 endpoints, RBAC guards, result→HTTP mapping) | Step 5 |
+| WorkforceModule controller registration | Step 6 |
+| POS-500 gate activation in PositionService | Step 8 |
+| Frontend vacancy pages (VacancyBoard, CreateVacancy, VacancyDetail, Edit/Open/Close) | Steps 9–13 |
+| End-to-end validation | Step 14 |
+
+**Step 3 maturity: Partially Implemented — service layer complete and test-verified; HTTP layer pending.**
+
+---
+
+## M11 Step 4 — Vacancy DTOs and Validation Layer (2026-06-17)
+
+### What Changed
+
+**Files created (9 total). Zero files modified outside `apps/api/src/workforce/dto/`.**
+
+**DTO implementation files (5):**
+
+| File | Description |
+|---|---|
+| `apps/api/src/workforce/dto/create-vacancy.dto.ts` | 4 required fields: positionId (@IsUUID), priority (@IsIn 4 values), reason (@IsIn 7 values), expectedFillDate (@IsDateString). tenantId and status absent per SEC-003 and creation-always-DRAFT rules. @ApiProperty on all fields. |
+| `apps/api/src/workforce/dto/update-vacancy.dto.ts` | 4 optional fields; all @IsOptional(). status constrained to @IsIn(['OPEN']) only — DRAFT→OPEN transition via PUT. @ApiPropertyOptional on all fields. |
+| `apps/api/src/workforce/dto/list-vacancies-query.dto.ts` | 5 optional filter/pagination fields. @Type(() => Number) on page and pageSize — required for query string coercion. status filter: stored states only (FILLED/CANCELLED excluded). |
+| `apps/api/src/workforce/dto/vacancy-response.dto.ts` | 15 fields: 12 data fields + 3 computed (ageInDays, agingStatus, requiresReview). Nullable types aligned to Prisma schema (String? → string \| null). tenantId and deletedAt excluded. No class-validator decorators. |
+| `apps/api/src/workforce/dto/close-vacancy.dto.ts` | 1 required field: closureType @IsIn(['FILLED','CANCELLED']). CLOSED excluded — it is the resulting status, not the input closure type. |
+
+**DTO spec files (4):**
+
+| File | Tests | Key Coverage |
+|---|---|---|
+| `apps/api/src/workforce/dto/create-vacancy.dto.spec.ts` | 26 | it.each on all 4 priorities; it.each on all 7 reasons; TEMPORARY_NEED rejection explicit |
+| `apps/api/src/workforce/dto/update-vacancy.dto.spec.ts` | 16 | Empty body accepted; OPEN-only status; CLOSED/DRAFT/IN_RECRUITMENT rejected; TERMINATION and TEMPORARY_COVERAGE accepted; TEMPORARY_NEED rejected |
+| `apps/api/src/workforce/dto/list-vacancies-query.dto.spec.ts` | 18 | String '2' coerced to number 2; NaN rejection; FILLED/CANCELLED status rejection; pageSize boundary (1, 100 pass; 101 fail) |
+| `apps/api/src/workforce/dto/close-vacancy.dto.spec.ts` | 7 | FILLED/CANCELLED accepted; CLOSED rejected; lowercase variants rejected; arbitrary string rejected |
+
+### Step 4 Governance Decisions Applied
+
+| Decision ID | Ruling | Implementation | Test |
+|---|---|---|---|
+| 8-2 | directives/03 governs over spec/01 for vacancy reason values | 7 reason values from directives/03 in @IsIn() | ✓ all 7 accepted |
+| 8-2 | TEMPORARY_COVERAGE is stored value; TEMPORARY_NEED is predecessor label | TEMPORARY_NEED absent from @IsIn() | ✓ explicitly rejected in create and update specs |
+| 8-3 | UpdateVacancyDto.status accepts OPEN only | @IsIn(['OPEN']) | ✓ CLOSED/DRAFT/IN_RECRUITMENT all rejected |
+| 8-4 | expectedFillDate as string in DTO; controller converts to Date | @IsDateString() on string; no @Transform() | ✓ date string accepted; non-date string rejected |
+| 8-5 | ListVacanciesQueryDto.status excludes FILLED/CANCELLED | @IsIn(['DRAFT','OPEN','IN_RECRUITMENT','CLOSED']) | ✓ both excluded values explicitly tested |
+
+### Step 4 Validation Evidence
+
+| Check | Result |
+|---|---|
+| `tsc --noEmit` (apps/api) | Zero TypeScript errors |
+| `npm test` (apps/api) | **374 passed, 0 failed — 22 suites** (18 pre-existing + 4 new) |
+| New tests (4 DTO suites) | 67/67 pass |
+| Pre-existing tests preserved | 307/307 pass — zero regressions |
+| Planned vs actual test count | 65 planned → 67 actual (it.each expansion; no defect) |
+| TEMPORARY_NEED rejection | Explicitly tested in create and update spec files ✓ |
+| FILLED/CANCELLED status exclusion | Explicitly tested in list-vacancies-query spec ✓ |
+| All 15 exit criteria | Met — Exit Review approved 2026-06-17 |
+
+### Step 4 Risks
+
+| # | Item | Severity | Resolution |
+|---|---|---|---|
+| 1 | spec/01 FR-103 lists 5 reasons; directives/03 lists 7 | Medium | Resolved — directives/03 governs; governance decision documented |
+| 2 | FR-104 missing from spec/01 (jumps FR-103 → FR-105); spec/06 references FR-104 | Low | Documented — not a blocker; implementation maps to FR-103 and API contracts in spec/06 |
+| 3 | priority and reason are String? (nullable) in schema but required in CreateVacancyDto | Low | Accepted design — DTO enforces required at HTTP boundary; schema nullable for flexibility |
+| 4 | VacancyController and RBAC guards not yet present (VAC-601, VAC-602) | Expected | Deferred to Step 5 |
+
+### Step 4 Capability Maturity — Vacancy Management (FR-103, FR-104)
+
+| Production Blueprint Layer | Status | Evidence |
+|---|---|---|
+| Requirements | Defined | spec/01 FR-103 — all acceptance criteria addressable |
+| Specs | Present | spec/04, spec/05, spec/06 — all read and cross-referenced |
+| Directives | Present | directives/03 VAC-001 through VAC-702 — all rules implemented or formally deferred |
+| Execution Plan | Implemented | VacancyService 6 methods + 5 Vacancy DTOs; all validation logic deterministic and repeatable |
+| State Model | Implemented | 6-state lifecycle enforced at service; FILLED/CANCELLED discriminated by filledAt and CloseVacancyDto.closureType |
+| Test Scenarios | Tested | 374 unit tests (67 new DTO tests + 307 prior); all DTO validation paths, governance decisions, and boundary conditions covered |
+| System Loop | Scaffolded | Service + DTO layer complete; no HTTP exposure yet (Step 5) |
+| Failure Playbook | Partial | Service-level error handling complete; controller-level HTTP mapping pending |
+| Environment Model | Integrated | Docker postgres at localhost:5433; both .env files aligned |
+| Data Lifecycle | Partial | Create/read/update/soft-delete enforced; purge/archival policy not yet defined |
+| Evolution Strategy | Not yet formalized | — |
+| **Overall** | **Partially Implemented** | Service layer and DTO layer complete and test-verified; controller (Step 5), module registration (Step 6), frontend (Steps 9–13) pending |
+
+### Step 4 Deferred Work
+
+| Deferred Item | Target Step |
+|---|---|
+| VacancyController (5 endpoints, RBAC guards, result→HTTP mapping) | Step 5 |
+| WorkforceModule controller registration | Step 6 |
+| VacancyController unit tests | Step 7 |
+| POS-500 gate activation in PositionService | Step 8 |
+| Frontend vacancy pages (VacancyBoard, CreateVacancy, VacancyDetail, Edit/Open/Close) | Steps 9–13 |
+| End-to-end validation | Step 14 |
+
+**Step 4 maturity: Partially Implemented — service layer and DTO layer complete and test-verified; HTTP layer pending.**
+
+---
+
+## M11 Step 5 — VacancyController (2026-06-17)
+
+### What Changed
+
+**Files created (2):**
+
+| File | Description |
+|---|---|
+| `apps/api/src/workforce/vacancy.controller.ts` | VacancyController — 5 HTTP endpoints; class-level `@UseGuards(JwtAuthGuard, RolesGuard)` and `@ApiBearerAuth()`; route-level `@RequireRoles()` per approved RBAC matrix; exhaustive service result switches; `toVacancyShape()` mapper; full Swagger `@ApiOperation`/`@ApiResponse`/`@ApiParam` coverage |
+| `apps/api/src/workforce/vacancy.controller.spec.ts` | 30 unit tests across 7 describe blocks; mock service pattern; both guards overridden with `canActivate: () => true`; SEC-003 call-signature assertions; PUT routing mutual-exclusion tests; filledAt serialization tests |
+
+**Files modified (1):**
+
+| File | Change |
+|---|---|
+| `apps/api/src/workforce/workforce.module.ts` | `import { VacancyController } from './vacancy.controller'` added; `VacancyController` added to `controllers` array alongside `PositionController` |
+
+**Note:** WorkforceModule controller registration (originally Step 6) and VacancyController unit tests (originally Step 7) were both completed within the Step 5 implementation package. Steps 6 and 7 require no additional implementation.
+
+### Endpoints Implemented
+
+| Endpoint | Handler | RBAC | HTTP Codes |
+|---|---|---|---|
+| POST `/api/v1/vacancies` | `createVacancy()` | System Administrator, HR Director | 201, 400, 401, 403, 422, 500 |
+| GET `/api/v1/vacancies` | `listVacancies()` | System Administrator, HR Director, Workforce Planner | 200, 400, 401, 403, 500 |
+| GET `/api/v1/vacancies/:id` | `getVacancyById()` | System Administrator, HR Director, Workforce Planner | 200, 401, 403, 404, 500 |
+| PUT `/api/v1/vacancies/:id` | `updateVacancy()` (dual-routed) | System Administrator, HR Director | 200, 400, 401, 403, 404, 409, 500 |
+| POST `/api/v1/vacancies/:id/close` | `closeVacancy()` | System Administrator, HR Director | 200, 400, 401, 403, 404, 409, 500 |
+
+### RBAC Governance Decision (2026-06-17)
+
+**Approved matrix:**
+- Write operations (POST /vacancies, PUT /vacancies/:id, POST /vacancies/:id/close): System Administrator, HR Director
+- Read operations (GET /vacancies, GET /vacancies/:id): System Administrator, HR Director, Workforce Planner
+- Hiring Manager: Phase 3 — absent from spec/06 RBAC matrix (line 837); deferred per prior M11 RBAC reconciliation
+- Role string confirmed: `'System Administrator'` — `'Super Admin'` does not exist in the platform role model
+
+**Governance clarification performed before implementation:** Initial Step 5 planning (based on user-approved RBAC decision) proposed Hiring Manager for write access to all vacancy endpoints. Clarification review identified conflict with spec/06 RBAC matrix (no Hiring Manager column) and the documented M11 RBAC reconciliation. User re-approved the correct matrix after review. Workforce Planner read-only access is consistent with POS-AUTH-002/003 position management precedent.
+
+### HTTP Outcome Mapping
+
+| Service Outcome | HTTP Status | Exception Class | Endpoints |
+|---|---|---|---|
+| SUCCESS | 201 (createVacancy) / 200 (all others) | — | All 5 |
+| NOT_FOUND | 404 | `NotFoundException` | GET/:id, PUT/:id, POST/:id/close |
+| POSITION_NOT_ELIGIBLE | 422 | `UnprocessableEntityException` | POST /vacancies |
+| VACANCY_CLOSED | 409 | `ConflictException` | PUT/:id, POST/:id/close |
+| INVALID_TRANSITION | 409 | `ConflictException` | PUT/:id (open path), POST/:id/close |
+| INTERNAL_ERROR | 500 | `InternalServerErrorException` | All 5 |
+
+All switches are exhaustive — TypeScript enforces this; `tsc --noEmit` zero errors confirms no missing case.
+
+### PUT Endpoint Internal Routing (Governance Decision 8-3 applied to controller)
+
+`PUT /api/v1/vacancies/:id` routes to one of two service methods:
+- `dto.status === 'OPEN'` → `vacancyService.openVacancy(id, actor.tenantId, actor.userId)` — DRAFT→OPEN lifecycle transition
+- otherwise → `vacancyService.updateVacancy(id, params, actor.tenantId, actor.userId)` — field update only, status unchanged
+
+Both paths share a unified result switch covering all 5 possible outcomes (`SUCCESS`, `NOT_FOUND`, `VACANCY_CLOSED`, `INVALID_TRANSITION`, `INTERNAL_ERROR`). Mutual-exclusion verified by two dedicated routing tests using `.not.toHaveBeenCalled()` assertions.
+
+### Date Conversion (Governance Decision 8-4 applied to controller)
+
+`expectedFillDate` DTO fields contain ISO 8601 strings (validated by `@IsDateString()`); controller converts to `Date` via `new Date(dto.expectedFillDate)` before calling service. Applied at line 93 (`createVacancy`) and line 228 (`updateVacancy`). Avoids class-transformer/class-validator ordering issue where `@Transform` would receive a `Date` object before `@IsDateString()` could validate it.
+
+### Tenant Isolation (SEC-003)
+
+`tenantId` is never accepted from request body, query parameters, or route parameters in any of the 5 handlers. All handlers derive `tenantId` exclusively from `actor.tenantId` (JWT, via `@CurrentUser()`). Explicitly verified by SEC-003 call-signature assertions in `createVacancy`, `getVacancyById`, and `closeVacancy` test blocks.
+
+### toVacancyShape() Response Mapper
+
+Maps `VacancyRecord` (service layer) → HTTP response object. 15 fields serialized. Nullable Date fields (`expectedFillDate`, `filledAt`) use `?.toISOString() ?? null` guard. Non-nullable Date fields (`createdAt`, `updatedAt`) call `.toISOString()` directly. `tenantId` and `deletedAt` excluded per SEC-003 and response envelope design.
+
+### Controller Test Coverage
+
+| Describe Block | Tests | Key Scenarios |
+|---|---|---|
+| `createVacancy()` | 5 | SUCCESS shape, 4 Date fields as ISO strings, SEC-003 call signature (positionId+tenantId+actorId), 422, 500 |
+| `listVacancies()` | 4 | SUCCESS shape, totalPages calculation, ageInDays/agingStatus/requiresReview present, 500 |
+| `getVacancyById()` | 4 | SUCCESS shape, SEC-003 call signature (id+tenantId only — no actorId), 404, 500 |
+| `updateVacancy()` — update path | 4 | SUCCESS, 404, 409 (VACANCY_CLOSED), 500 |
+| `updateVacancy()` — open path | 4 | SUCCESS, 404, 409 (VACANCY_CLOSED), 409 (INVALID_TRANSITION) |
+| `updateVacancy()` — routing | 2 | `status='OPEN'` → openVacancy called / updateVacancy not called; no status → updateVacancy called / openVacancy not called |
+| `closeVacancy()` | 7 | SUCCESS+FILLED (filledAt ISO string), SUCCESS+CANCELLED (filledAt null), SEC-003 call signature, 404, 409 (VACANCY_CLOSED), 409 (INVALID_TRANSITION), 500 |
+| **Total** | **30** | |
+
+### Step 5 Validation Evidence
+
+| Check | Result |
+|---|---|
+| `tsc --noEmit` (apps/api) | Zero TypeScript errors |
+| `npm test` (apps/api) | **404 passed, 0 failed — 23 suites** (22 pre-existing + 1 new) |
+| New tests (vacancy.controller.spec.ts) | 30/30 pass |
+| Pre-existing tests preserved | 374/374 pass — zero regressions |
+| All 15 exit criteria | Met — Exit Review approved 2026-06-17 |
+
+### Step 5 Risks
+
+| # | Item | Severity | Resolution |
+|---|---|---|---|
+| 1 | `vacancy.service.ts` header comment misattributes CLOSED read-only guard to VAC-202 (correct rule is VAC-501) | Low — behavior correct, comment wrong | Correctable at next file touch (Step 8) |
+| 2 | `workforce.module.ts` header comment references only FR-100 and PositionController — does not mention FR-103 or VacancyController | Low — cosmetic only, code is correct | Correctable at Step 8 (next WorkforceModule touch) |
+| 3 | openVacancy() `INTERNAL_ERROR` path in `updateVacancy()` handler lacks a dedicated test | Low / Acceptable | Same switch branch exercises identically to updateVacancy `INTERNAL_ERROR` test; both are in the same case block |
+| 4 | Hiring Manager vacancy access (directives/10 capability "Vacancy Requests") has no Phase 2 implementation | Expected — documented Phase 3 scope | Phase 3 |
+| 5 | VAC-601 full approval workflow (block-until-reviewed) has no Phase 2 implementation | Expected — `requiresReview` flag present in all responses | Phase 3 |
+| 6 | No e2e tests for vacancy API endpoints | Expected — deferred | Step 14 |
+
+### Step 5 Capability Maturity — Vacancy Management (FR-103, FR-104)
+
+| Production Blueprint Layer | Status | Evidence |
+|---|---|---|
+| Requirements | Defined | spec/01 FR-103 — all acceptance criteria now addressable via controller + service layer |
+| Specs | Present | spec/04, spec/05, spec/06 all cross-referenced; RBAC matrix verified against spec/06 line 837 |
+| Directives | Present | directives/03 VAC-001 through VAC-702 — all rules implemented or formally deferred; RBAC governance decision applied |
+| Execution Plan | Implemented | VacancyService (6 methods) + 5 DTOs + VacancyController (5 endpoints); all HTTP mappings deterministic and repeatable |
+| State Model | Implemented | 6-state lifecycle enforced at service; controller exposes DRAFT→OPEN via PUT and →CLOSED via POST /close |
+| Test Scenarios | Tested | 404 unit tests (30 new controller tests + 374 prior); all HTTP outcomes, RBAC patterns, SEC-003, lifecycle guards, and response shape covered |
+| System Loop | Integrated | VacancyController registered in WorkforceModule; HTTP endpoints reachable through NestJS routing; vacancy API fully operational |
+| Failure Playbook | Integrated | All service error outcomes mapped to HTTP exceptions with structured error envelopes; exhaustive switches enforced by TypeScript compiler |
+| Environment Model | Integrated | Docker postgres at localhost:5433; both .env files aligned |
+| Data Lifecycle | Partial | Create/read/update/soft-delete enforced; purge/archival policy not yet defined |
+| Evolution Strategy | Not yet formalized | — |
+| **Overall** | **Integrated** | Backend layer (service + DTOs + HTTP controller) complete and test-verified; frontend (Steps 9–13) and e2e (Step 14) pending |
+
+### Step 5 Deferred Work
+
+| Deferred Item | Target Step | Note |
+|---|---|---|
+| Step 6 — WorkforceModule controller registration | Complete within Step 5 | VacancyController added to WorkforceModule.controllers in workforce.module.ts |
+| Step 7 — VacancyController unit tests | Complete within Step 5 | 30 tests in vacancy.controller.spec.ts; 404/404 total pass |
+| POS-500 gate activation in PositionService | Step 8 | Prerequisite now satisfied: VacancyService exists in WorkforceModule.providers |
+| Frontend vacancy pages (VacancyBoard, CreateVacancy, VacancyDetail, Edit/Open/Close) | Steps 9–13 | |
+| End-to-end validation | Step 14 | |
+
+**Step 5 maturity: Integrated — backend layer (service + DTOs + HTTP controller) complete and test-verified; frontend and e2e validation pending.**
+
+---
+
+## M11 Step 8 — POS-500 Gate Activation (2026-06-17)
+
+### What Changed
+
+**Files modified (4). Zero files created. Zero files outside approved scope modified.**
+
+| File | Change |
+|---|---|
+| `apps/api/src/workforce/position.service.ts` | `ClosePositionResult` type extended with `HAS_ACTIVE_VACANCIES` outcome; `closePosition()` updated with `vacancy.findFirst` guard before write; file header comment updated to reflect partial POS-500 activation |
+| `apps/api/src/workforce/position.controller.ts` | `case 'HAS_ACTIVE_VACANCIES'` added to `closePosition()` switch → `ConflictException` (HTTP 409); `@ApiResponse` 409 description updated to document both 409 causes |
+| `apps/api/src/workforce/position.service.spec.ts` | `vacancy: { findFirst: jest.fn() }` added to `mockPrisma`; 2 existing SUCCESS tests updated with `mockPrisma.vacancy.findFirst.mockResolvedValue(null)`; 7 new POS-500 tests added to `closePosition()` describe block |
+| `apps/api/src/workforce/position.controller.spec.ts` | 1 new test: `HAS_ACTIVE_VACANCIES → ConflictException (POS-500)` |
+
+### Governance Decision Applied
+
+**Governance Decision 8-6 (approved 2026-06-17):** POS-500 "No Active Recruitment" guard uses the broad interpretation.
+
+- Approved predicate: `status: { not: 'CLOSED' }` — blocks DRAFT, OPEN, and IN_RECRUITMENT vacancies
+- Rationale: Prevents orphaned DRAFT vacancies; maintains POS-300 data integrity; avoids inconsistent Position CLOSED / Vacancy DRAFT states
+- CLOSED vacancies do not block closure — `vacancy.findFirst` returns `null`; closure proceeds
+- POS-301 auto-cascade remains out of scope — Phase 3
+- POS-500 "No Active Employees" sub-condition remains deferred — Employee domain not yet implemented
+
+### Implementation Details
+
+**`ClosePositionResult` type — position.service.ts:**
+
+```typescript
+export type ClosePositionResult =
+  | { outcome: 'SUCCESS'; position: PositionRecord }
+  | { outcome: 'NOT_FOUND' }
+  | { outcome: 'ALREADY_CLOSED' }
+  | { outcome: 'HAS_ACTIVE_VACANCIES' }   // Added Step 8 — POS-500
+  | { outcome: 'INTERNAL_ERROR' };
+```
+
+**Guard placement in `closePosition()` (position.service.ts):**
+
+```
+1. position.findFirst     →  NOT_FOUND check
+2. status === 'CLOSED'    →  ALREADY_CLOSED check
+3. vacancy.findFirst      →  HAS_ACTIVE_VACANCIES check   ← NEW (Step 8)
+4. position.update
+5. auditService.logEvent
+6. return SUCCESS
+```
+
+**`vacancy.findFirst` WHERE clause:** `{ positionId: id, tenantId, deletedAt: null, status: { not: 'CLOSED' } }` — satisfies SEC-003 (tenantId + deletedAt) and Governance Decision 8-6 (broad predicate). `select: { id: true }` used — minimal projection.
+
+**Controller mapping:** `HAS_ACTIVE_VACANCIES` → `ConflictException` (HTTP 409) with `error.code: 'HAS_ACTIVE_VACANCIES'`. Clients distinguish from `ALREADY_CLOSED` (also HTTP 409) via `error.code` field. Switch is exhaustive across all 5 `ClosePositionResult` members — confirmed by `tsc --noEmit` zero errors.
+
+### New Tests Added (8 total)
+
+**`position.service.spec.ts` — 7 new POS-500 tests in `closePosition()` describe block:**
+
+| Test | What It Proves |
+|---|---|
+| non-CLOSED vacancy exists → HAS_ACTIVE_VACANCIES | Gate fires on truthy `vacancy.findFirst` result |
+| DRAFT vacancy present → HAS_ACTIVE_VACANCIES (GD 8-6 — POS-300 integrity) | DRAFT explicitly blocked per broad interpretation |
+| vacancy.findFirst returns null → closure proceeds to SUCCESS | Positive path through gate |
+| vacancy check not performed when position is NOT_FOUND | Guard ordering — vacancy query skipped on early return |
+| vacancy WHERE clause: positionId, tenantId, deletedAt: null, status: { not: CLOSED } | WHERE clause integrity + SEC-003 + GD 8-6 predicate |
+| audit NOT emitted when HAS_ACTIVE_VACANCIES | AUD-400 compliance on pre-write gate failure |
+| position.update NOT called when HAS_ACTIVE_VACANCIES | Write isolation — no partial write on blocked closure |
+
+**`position.controller.spec.ts` — 1 new test:**
+
+| Test | What It Proves |
+|---|---|
+| HAS_ACTIVE_VACANCIES → throws ConflictException (POS-500) | HTTP 409 mapping for new outcome |
+
+**Existing tests updated (2):** Both pre-existing `closePosition()` SUCCESS tests updated with `mockPrisma.vacancy.findFirst.mockResolvedValue(null)` to resolve the new vacancy mock requirement introduced by the guard.
+
+### Step 8 Validation Evidence
+
+| Check | Result |
+|---|---|
+| `tsc --noEmit` (apps/api) | Zero TypeScript errors |
+| `npm test` (apps/api) | **412 passed, 0 failed — 23 suites** |
+| New tests | 8/8 pass |
+| Pre-existing tests preserved | 404/404 pass — zero regressions |
+| All 16 exit criteria | Met — Exit Review approved 2026-06-17 |
+
+### Test Count Progression — M11
+
+| After Step | Tests | Delta |
+|---|---|---|
+| M8 (pre-M11 baseline) | 244 | — |
+| Step 3 — VacancyService | 307 | +63 |
+| Step 4 — Vacancy DTOs | 374 | +67 |
+| Step 5 — VacancyController | 404 | +30 |
+| Step 8 — POS-500 Gate Activation | **412** | +8 |
+
+### Step 8 Risks
+
+| # | Item | Severity | Status |
+|---|---|---|---|
+| 1 | POS-500 "No Active Employees" sub-condition unimplemented | Low — expected deferral | Employee domain not yet built; header comment documents partial activation accurately |
+| 2 | POS-301 auto-cascade deferred to Phase 3 | Low — expected deferral | No conflicting code; Step 8 blocking behavior is compatible with future POS-301 implementation |
+| 3 | Integration test for `vacancy.findFirst` predicate against real DB | Low — expected deferral | WHERE clause test proves predicate is passed correctly; real-DB validation deferred to Step 14 |
+
+### Step 8 Capability Maturity — Position Management (FR-100) — closePosition()
+
+| Production Blueprint Layer | Status | Evidence |
+|---|---|---|
+| Requirements | Defined | spec/01 FR-100 — POS-500 sub-condition activated |
+| Directives | Present | directives/02 POS-500; Governance Decision 8-6 applied |
+| Execution Plan | Implemented | `vacancy.findFirst` guard in `closePosition()`; `HAS_ACTIVE_VACANCIES` outcome in controller |
+| State Model | Implemented | Position close blocked when non-CLOSED vacancy exists; CLOSED vacancies pass gate |
+| Test Scenarios | Tested | 8 new tests: gate fire, positive path, WHERE clause, guard ordering, AUD-400, write isolation |
+| Failure Playbook | Integrated | `HAS_ACTIVE_VACANCIES` → HTTP 409 with actionable error message; `position.update` never called on gate failure |
+| Environment Model | Integrated | No environment changes required |
+| Data Lifecycle | Partial | Employee check deferred; full POS-500 requires Employee domain |
+
+### Step 8 Deferred Work
+
+| Deferred Item | Target Step |
+|---|---|
+| Frontend vacancy pages (VacancyBoard, CreateVacancy, VacancyDetail, Edit/Open/Close) | Steps 9–13 |
+| End-to-end validation | Step 14 |
+| POS-500 "No Active Employees" sub-condition | When Employee domain implemented |
+| POS-301 auto-cascade (position close auto-closes vacancies) | Phase 3 |
+
+**Step 8 maturity: Integrated — POS-500 "No Active Recruitment" gate active; position close blocked when non-CLOSED vacancies exist; TypeScript exhaustiveness enforced; 412/412 unit tests passing.**
+
+---
+
+## M11 Step 9 — VacancyBoard Frontend Page (2026-06-17)
+
+### What Changed
+
+**Files created (7). Zero API files created or modified.**
+
+| File | Type | Purpose |
+|---|---|---|
+| `apps/web/src/lib/api.ts` | New | `serverFetch<T>()` utility + `ApiError` class; reads JWT from `SESSION_COOKIE` via `cookies()` from `next/headers`; passes `Authorization: Bearer <token>`; `cache: 'no-store'`; throws `ApiError` on non-200 |
+| `apps/web/src/features/workforce/types.ts` | New | `VacancyStatus`, `VacancyPriority`, `AgingStatus` string literal union types; `VacancyRow` type (15 fields — mirrors VacancyResponseDto, tenantId excluded); `VacancyListApiResponse` type |
+| `apps/web/src/features/workforce/components/vacancy-filters.tsx` | New | Client Component (`'use client'`); `useSearchParams()` + `useRouter()`; Status select (All/DRAFT/OPEN/IN_RECRUITMENT/CLOSED); Priority select (All/LOW/MEDIUM/HIGH/CRITICAL); `updateFilter()` deletes `page` param on change; "Clear filters" button conditional on `hasFilters` |
+| `apps/web/src/features/workforce/components/vacancy-table.tsx` | New | Server Component; `StatusBadge`, `PriorityBadge`, `AgingCell` co-located badge components; `requiresReview` "Review" chip (VAC-601); `formatDate()` via `Intl.DateTimeFormat`; empty state with two variants (hasFilters true/false) |
+| `apps/web/src/app/(dashboard)/workforce/vacancies/page.tsx` | New | Async Server Component; `getVacancies()` calls `serverFetch<VacancyListApiResponse>`; `getString()` helper narrows `string \| string[] \| undefined`; `buildPageUrl()` preserves filter params in pagination URLs; `<Suspense>` wraps `VacancyFilters`; `<Link>`-based Previous/Next with `aria-disabled` disabled states; `{total > 0 && ...}` pagination visibility guard |
+| `apps/web/src/app/(dashboard)/workforce/vacancies/loading.tsx` | New | Next.js App Router loading skeleton; page shell + 2 filter placeholders + 6 `animate-pulse` table row skeletons |
+| `apps/web/src/app/(dashboard)/workforce/vacancies/error.tsx` | New | Client Component (`'use client'`); `{ error, reset }` props per Next.js convention; "Unable to load vacancies" heading; `reset()` retry button; `process.env.NODE_ENV === 'development'` guard on error detail |
+
+**Files modified (1):**
+
+| File | Change |
+|---|---|
+| `apps/web/src/middleware.ts` | `isProtected` check extended: `pathname.startsWith('/dashboard') \|\| pathname.startsWith('/workforce')`; `config.matcher` extended: `['/dashboard/:path*', '/workforce/:path*', '/login']` — SEC-004 Layer 1 defense applied to Phase 2 workforce routes |
+
+**New directories created:**
+- `apps/web/src/app/(dashboard)/workforce/`
+- `apps/web/src/app/(dashboard)/workforce/vacancies/`
+- `apps/web/src/features/workforce/`
+- `apps/web/src/features/workforce/components/`
+
+### Architecture
+
+**Data flow:**
+```
+Browser → /workforce/vacancies
+  → Edge Middleware (Layer 1 — cookie presence check)
+  → (dashboard)/layout.tsx (Layer 2 — cookie presence check + redirect)
+  → page.tsx (Async Server Component)
+      → serverFetch('/api/v1/vacancies?status=X&priority=Y&page=N&pageSize=20')
+          → NestJS VacancyController (JWT validated — Layer 3)
+              → VacancyService.listVacancies() (SEC-003 tenant isolation)
+      → VacancyTable (Server Component — renders results)
+      → <Suspense> → VacancyFilters (Client Component — updates URL)
+      → Pagination links (Next.js <Link> — URL-based)
+```
+
+**Filter mechanism:** Client Component (`VacancyFilters`) reads current URL via `useSearchParams()`, writes new URL via `router.push()`. Server Component (`page.tsx`) re-renders on URL change. Page param deleted on filter change to prevent stale offsets.
+
+**Pagination mechanism:** `buildPageUrl(targetPage)` preserves `status` and `priority` from current `searchParams` and sets `?page=N`. Rendered as `<Link>` (navigable) or `<span aria-disabled="true">` (at boundary).
+
+**Empty state:** `VacancyTable` renders dashed-border panel when `vacancies.length === 0`. Two variants: filters active → "No vacancies match the current filters."; no filters → "No vacancies found in your tenant."
+
+**Loading state:** `loading.tsx` provides Next.js App Router automatic Suspense fallback. Skeleton matches deployed page layout to prevent layout shift.
+
+**Error state:** `error.tsx` catches `ApiError` (thrown by `serverFetch` on non-200). `reset()` button re-invokes `page.tsx` data fetch. Dev-only error detail via `process.env.NODE_ENV` guard.
+
+### Indicators Implemented
+
+| Indicator | Source field | Implementation |
+|---|---|---|
+| Status badge | `status` | DRAFT=gray, OPEN=blue, IN_RECRUITMENT=amber, CLOSED=slate |
+| Priority badge | `priority` | LOW=gray, MEDIUM=blue, HIGH=amber, CRITICAL=red; null renders "—" |
+| Aging — OK | `agingStatus === 'OK'` | Default muted text; no suffix |
+| Aging — WARNING | `agingStatus === 'WARNING'` | Amber text; `{N}d ~` suffix |
+| Aging — HIGH_RISK | `agingStatus === 'HIGH_RISK'` | Red text; `{N}d ⚠` suffix |
+| requiresReview | `requiresReview === true` | Red "Review" chip with VAC-601 tooltip |
+
+### Scope Boundaries
+
+**In scope — delivered:** GET /api/v1/vacancies only / read-only board / status filter / priority filter / URL pagination / empty state / loading skeleton / error boundary / aging indicators / requiresReview chip / middleware SEC-004 extension
+
+**Out of scope — confirmed absent:** POST /api/v1/vacancies / GET /api/v1/vacancies/:id / PUT /vacancies/:id / POST /vacancies/:id/close / Create Vacancy button / vacancy detail links / department filter / full-text search / TanStack Query / TanStack Table / RBAC-based button visibility / sidebar navigation / frontend unit tests
+
+### Step 9 Validation Evidence
+
+| Check | Result |
+|---|---|
+| `tsc --noEmit` (apps/web) | **Zero TypeScript errors** |
+| `npm run lint --workspace=apps/web` | **Zero warnings or errors** (one issue found and corrected during validation: unused `page` variable in destructure — fixed by aliasing `{ page: currentPage }`) |
+| `npm run build --workspace=apps/web` | **EXIT 0 — ✓ Compiled successfully** |
+| Build route table | `ƒ /workforce/vacancies 1.6 kB / 105 kB First Load JS` ✓ |
+| Route type | `ƒ` (Dynamic, server-rendered on demand) — correct; `cookies()` opts out of static generation |
+| Middleware | `ƒ Middleware 26.9 kB` (extended matcher confirmed in build) ✓ |
+| API test count | **412 passed, 0 failed** — unchanged (no API files modified) |
+
+### Step 9 Exit Criteria — 22/22 Met
+
+| # | Criterion | Result |
+|---|---|---|
+| 1 | `/workforce/vacancies` route exists — HTTP 200 with valid session | PASS — build route table confirmed; runtime: `GET http://localhost:3002/workforce/vacancies` → HTTP 200 (2026-06-17) ✓ |
+| 2 | Redirects to `/login` without session cookie (Layer 2) | PASS — `(dashboard)/layout.tsx` inherited; runtime: `curl -I localhost:3002/workforce/vacancies` (no cookie) → `HTTP/1.1 307 Temporary Redirect` → `location: /login` (2026-06-17) ✓ |
+| 3 | Middleware matcher extended to `/workforce/:path*` (SEC-004 Layer 1) | PASS — `middleware.ts:35` confirmed; `middleware.ts:15` `pathname.startsWith('/workforce')` active; 307 redirect confirmed at runtime ✓ |
+| 4 | Board displays vacancies from `GET /api/v1/vacancies` | PASS — `serverFetch` integration confirmed |
+| 5 | Status filter updates displayed vacancies | PASS — `updateFilter('status', ...)` verified |
+| 6 | Priority filter updates displayed vacancies | PASS — `updateFilter('priority', ...)` verified |
+| 7 | Clear filters navigates to bare `/workforce/vacancies` | PASS — `router.push('/workforce/vacancies')` |
+| 8 | Pagination Previous/Next advance/retreat pages | PASS — `<Link>` + disabled spans at boundaries |
+| 9 | "Showing X–Y of Z" counter accurate | PASS — `rangeStart`/`rangeEnd` math verified |
+| 10 | Empty state: filters active → correct message | PASS — `hasFilters === true` variant |
+| 11 | Empty state: no vacancies → correct message | PASS — `hasFilters === false` variant |
+| 12 | Loading skeleton renders | PASS — `loading.tsx` exists and matches layout |
+| 13 | Error state renders when API unreachable | PASS — `error.tsx` catches `ApiError` |
+| 14 | HIGH_RISK → red styling + ⚠ | PASS — `AGING_TEXT_CLASSES['HIGH_RISK']` + ` ⚠` suffix |
+| 15 | WARNING → amber styling + ~ | PASS — `AGING_TEXT_CLASSES['WARNING']` + ` ~` suffix |
+| 16 | requiresReview → "Review" chip | PASS — conditional red chip with VAC-601 tooltip |
+| 17 | `tsc --noEmit` exits 0 | PASS — zero errors |
+| 18 | `npm run lint` exits 0 | PASS — zero warnings or errors |
+| 19 | `npm run build` exits 0; `/workforce/vacancies` in route table | PASS — `ƒ /workforce/vacancies 1.6 kB` |
+| 20 | No new API files; API test count remains 412/412 | PASS — all new files under `apps/web/src/` only |
+| R1 | Login functional end-to-end — full auth stack verified | PASS — `POST /api/auth/login` (`admin@dev.gov` / `DevAdmin1234!`) → HTTP 200; `gov-platform-session` cookie set (HttpOnly, maxAge 3600, sameSite lax); JWT payload: `sub=aa970fc2`, `tenantId=e9633d76`, `roles=["System Administrator"]` ✓ |
+| R2 | `GET /api/v1/vacancies` route registered and auth-gated in running container | PASS — unauthenticated: HTTP 401 `{"message":"Unauthorized","statusCode":401}`; authenticated: HTTP 200 `{"data":{"vacancies":[],"total":0,"page":1,"pageSize":20,"totalPages":0}}` ✓ |
+
+### Step 9 Runtime Verification (2026-06-17)
+
+Runtime verification was performed against the local dev environment (Next.js dev server port 3002,
+Docker API port 3001, Docker PostgreSQL port 5433) after Docker API container rebuild and
+`apps/web/.env.local` creation.
+
+**Environment prerequisites confirmed for runtime verification:**
+
+| Prerequisite | State |
+|---|---|
+| `apps/web/.env.local` with `API_URL=http://localhost:3001` | Created 2026-06-17 (was absent) |
+| Docker API container | Rebuilt 2026-06-17 (stale image replaced) |
+| Docker Compose `--env-file .env` applied | Confirmed — JWT_SECRET resolved correctly |
+| Seed user `admin@dev.gov` | Verified present in Docker postgres |
+
+**Runtime verification results:**
+
+| Step | Action | Result |
+|---|---|---|
+| SEC-004 Layer 1 redirect | `curl -I http://localhost:3002/workforce/vacancies` (no cookie) | `HTTP/1.1 307 Temporary Redirect` → `location: /login` ✓ |
+| Login HTTP status | `POST /api/auth/login` (`admin@dev.gov` / `DevAdmin1234!`) | HTTP 200 ✓ |
+| Session cookie | Inspect `Set-Cookie` response header | `gov-platform-session` set; HttpOnly; maxAge 3600; sameSite lax ✓ |
+| JWT payload | Decoded session token | `sub=aa970fc2-58c1-4447-a5c0-daf076671278`, `tenantId=e9633d76-e627-451f-94d5-b58865d5080d`, `email=admin@dev.gov`, `roles=["System Administrator"]` ✓ |
+| VacancyBoard authenticated render | `GET http://localhost:3002/workforce/vacancies` (with cookie) | HTTP 200; full VacancyBoard HTML returned ✓ |
+| Empty state | Inspect rendered HTML | `"No vacancies found in your tenant."` ✓ |
+| Vacancy counter | Inspect rendered HTML | `"0 vacancies"` ✓ |
+| Status + priority filters | Inspect rendered HTML | `<select aria-label="Filter by status">` + `<select aria-label="Filter by priority">` both present ✓ |
+| API route auth gate | `GET /api/v1/vacancies` without session | HTTP 401 `{"message":"Unauthorized","statusCode":401}` ✓ |
+| API route authenticated | VacancyBoard server-to-server fetch | HTTP 200 `{"data":{"vacancies":[],"total":0,"page":1,"pageSize":20,"totalPages":0}}` ✓ |
+
+**Environment issues discovered and resolved during runtime verification:**
+
+| # | Issue | Root Cause | Resolution | Documented |
+|---|---|---|---|---|
+| E-1 | Login returned HTTP 500 on local dev server | `route.ts:21` reads `API_URL` with no fallback; `apps/web/.env.local` was absent | Created `apps/web/.env.local` with `API_URL=http://localhost:3001` | Permanent Environment Constraint Lesson 7 |
+| E-2 | Docker API crash loop (JWT_SECRET blank) | `docker compose -f ...` without `--env-file` fails to read root `.env`; JWT_SECRET resolves blank; NestJS env validation crashes API | Full stack restart with `docker compose -f ... --env-file .env up -d` | Permanent Environment Constraint Lesson 8 |
+| E-3 | VacancyBoard returned 404 before rebuild | Docker API image was a stale pre-vacancy build; VacancyController not registered in that image | Rebuilt with `docker compose build api`; container replaced | Resolved — no separate lesson required |
+
+**Runtime verification outcome: PASSED. All verification steps confirmed. Step 9 is runtime-verified as of 2026-06-17.**
+
+### Step 9 Risks
+
+| # | Risk | Severity | Status |
+|---|---|---|---|
+| 1 | `getString()` returns `undefined` for array-typed URL params (e.g., `?status=OPEN&status=DRAFT`) — silently applies no filter | Low | Accepted; filter UI generates only single-value params; silent-no-filter is safer than unpredictable value; not a security issue |
+| 2 | 401 from NestJS during mid-session expiry renders error page (not login redirect) | Low | Accepted for Step 9 MVP; Layer 2 guard prevents fresh page loads from issuing 401s; `reset()` in error.tsx allows recovery |
+| 3 | `cache: 'no-store'` on `serverFetch` — no Next.js data cache across requests | Low | Correct for live vacancy state; performance optimization (`revalidate: N`) deferred to later steps |
+| 4 | `VacancyFilters` Suspense fallback (`<div className="h-10" />`) briefly blank during client hydration | Low | Page is already dynamic (`cookies()` prevents static generation); hydration is near-instantaneous; no visible flash expected |
+
+### Step 9 Capability Maturity — Vacancy Management (FR-103, FR-104)
+
+| Production Blueprint Layer | Status | Evidence |
+|---|---|---|
+| Requirements | Defined | spec/01 FR-103 — vacancy status tracked, vacancy visible to authorized users |
+| Specs | Present | spec/09 route `/workforce/vacancies`, feature dir `features/workforce/`, data fetch pattern |
+| Directives | Present | directives/03 VAC-601 (requiresReview), VAC-701/702 (aging thresholds) — all reflected in UI |
+| Execution Plan | Implemented | VacancyBoard page delivering all approved Step 9 requirements |
+| State Model | Implemented | All 4 stored states (DRAFT/OPEN/IN_RECRUITMENT/CLOSED) displayed with distinct badge styling |
+| Test Scenarios | Scaffolded | Frontend tests deferred to Step 14; tsc + ESLint + build validate structural correctness |
+| System Loop | Integrated — runtime-verified | VacancyBoard reads live vacancy data from NestJS via server-to-server authenticated fetch; runtime-confirmed 2026-06-17: HTTP 200 authenticated, empty state rendered, SEC-004 redirect (307) active |
+| Failure Playbook | Partial | Error boundary + retry; 401 mid-session redirect deferred |
+| Environment Model | Integrated | `API_URL` env var consumed server-side; no CORS exposure |
+| Data Lifecycle | Partial | Read surface complete; write surfaces (create/update/close) pending Steps 10–13 |
+| Evolution Strategy | Not yet formalized | |
+| **Overall** | **Integrated / Runtime-Verified (read surface)** | Backend complete; VacancyBoard read surface delivered and runtime-verified (2026-06-17); write workflows (Steps 10–13) and e2e (Step 14) pending |
+
+### Step 9 Deferred Work
+
+| Deferred Item | Target Step |
+|---|---|
+| Create Vacancy form + `POST /api/v1/vacancies` | Step 10 |
+| Vacancy detail page + `GET /api/v1/vacancies/:id` | Step 11 |
+| Edit Vacancy form + `PUT /api/v1/vacancies/:id` | Step 12 |
+| Open Vacancy transition (DRAFT→OPEN) | Step 12/13 |
+| Close Vacancy flow (FILLED/CANCELLED) + `POST /api/v1/vacancies/:id/close` | Step 13 |
+| Department filter (requires `GET /api/v1/departments` endpoint) | Step 10+ |
+| Full-text search (requires backend `search` param in ListVacanciesQueryDto) | Future step |
+| RBAC-based button visibility (requires surfacing roles to frontend) | Step 10+ |
+| Frontend unit tests (Vitest + React Testing Library) | Step 14 |
+| E2E tests (Playwright — VacancyBoard board load, filter, pagination) | Step 14 |
+| 401 mid-session redirect to `/login` | Step 10+ |
+
+**Step 9 maturity: Integrated / Runtime-Verified (read surface) — VacancyBoard operational and runtime-verified (2026-06-17); HTTP 200 confirmed with valid session; HTTP 307 confirmed without session; API integration verified against Docker NestJS; empty state confirmed; features/workforce/ directory established; lib/api.ts server-side fetch pattern established; SEC-004 middleware extended; write workflows pending Steps 10–13.**
+
+---
+
+## M11 Step 10 — Create Vacancy Frontend Page (2026-06-18)
+
+### What Changed
+
+**Files created (4). Zero API changes.**
+
+| File | Type | Purpose |
+|---|---|---|
+| `apps/web/src/app/api/vacancies/route.ts` | New | BFF POST handler — reads JWT from `SESSION_COOKIE` httpOnly cookie; proxies to `POST /api/v1/vacancies`; returns 201 `{success:true}` on success; maps NestJS error codes (POSITION_NOT_ELIGIBLE, UNAUTHORIZED, etc.) to BFF response; 401 returned if no session cookie; 503 on network failure |
+| `apps/web/src/features/workforce/components/create-vacancy-form.tsx` | New | Client Component (`'use client'`); React Hook Form + Zod; `register()` pattern with native selects/date input; 4 fields: positionId, priority (LOW/MEDIUM/HIGH/CRITICAL), reason (7 directives/03 values), expectedFillDate (> today, GD-10-1); `hasNoPositions` guard; form-level error banner (`role="alert"`); error code → user message map; `Button asChild` Cancel link |
+| `apps/web/src/app/(dashboard)/workforce/vacancies/new/page.tsx` | New | Async Server Component; `serverFetch<PositionListApiResponse>('/api/v1/positions?status=ACTIVE&pageSize=100')` (GD-10-3); passes positions to `CreateVacancyForm`; "← Back to Vacancies" link; `ApiError` caught by co-located error.tsx |
+| `apps/web/src/app/(dashboard)/workforce/vacancies/new/error.tsx` | New | Client Component; route-specific copy ("Unable to load vacancy form" / "The position list could not be loaded"); distinct from VacancyBoard generic error copy; dev-mode error detail; "Try again" reset button + "Back to Vacancies" link |
+
+**Files modified (2):**
+
+| File | Change |
+|---|---|
+| `apps/web/src/features/workforce/types.ts` | Added `PositionOption`, `PositionListApiResponse`, `CreateVacancyBffResponse` types |
+| `apps/web/src/app/(dashboard)/workforce/vacancies/page.tsx` | Heading div → flex row with "New Vacancy" `<Link>` button (`href="/workforce/vacancies/new"`) |
+
+### Architecture
+
+**Data flow — form load:**
+```
+Browser → GET /workforce/vacancies/new
+  → Edge Middleware (Layer 1 — cookie presence → 307 if absent)
+  → page.tsx (Async Server Component)
+      → serverFetch('/api/v1/positions?status=ACTIVE&pageSize=100')
+          → NestJS PositionController (JWT validated)
+              → PositionService.listPositions() (SEC-003 tenant isolation)
+      → CreateVacancyForm positions={positions} (Client Component hydrates)
+```
+
+**Data flow — form submit:**
+```
+Browser → POST /api/vacancies (BFF)
+  → vacancies/route.ts (Next.js Route Handler)
+      → reads gov-platform-session cookie
+      → POST http://localhost:3001/api/v1/vacancies (Authorization: Bearer <token>)
+          → NestJS VacancyController (JWT → tenantId; RBAC: SA + HR Director)
+              → VacancyService.createVacancy() (SEC-003; POS-500 gate)
+  → 201 {success:true} → router.push('/workforce/vacancies')
+```
+
+**Security properties:**
+- tenantId never in request body — derived from JWT in NestJS (SEC-003)
+- JWT stays in httpOnly cookie — browser never reads it
+- RBAC enforced at NestJS layer (System Administrator, HR Director) — GD-10-2
+- SEC-004 Layer 1 (middleware) covers `/workforce/:path*` (inherited from Step 9)
+
+### Governance Decisions Applied
+
+| Decision | Choice | Application |
+|---|---|---|
+| GD-10-1 | expectedFillDate > today; frontend Zod only | `refine(d => new Date(d + 'T00:00:00') > today)` in schema |
+| GD-10-2 | "New Vacancy" button visible to all authenticated users | No RBAC on button; NestJS enforces at POST |
+| GD-10-3 | `pageSize=100` for position list; no search-as-you-type | `?status=ACTIVE&pageSize=100` in serverFetch call |
+| Additional | Route-specific error.tsx with position-specific copy | `new/error.tsx` created with distinct copy |
+
+### Step 10 Exit Review — 20/20 Met (2026-06-18)
+
+| # | Criterion | Evidence | Result |
+|---|---|---|---|
+| 1 | `/workforce/vacancies/new` → HTTP 200 authenticated | `curl -b cookies` → 200 | PASS |
+| 2 | `/workforce/vacancies/new` → HTTP 307 unauthenticated | Middleware `/workforce/:path*` → 307 | PASS |
+| 3 | All 4 form fields rendered | HTML response contains positionId, priority, reason, expectedFillDate | PASS |
+| 4 | Position dropdown from `GET /api/v1/positions?status=ACTIVE&pageSize=100` | "Senior Policy Analyst — GS-12" in rendered HTML | PASS |
+| 5 | Priority: LOW, MEDIUM, HIGH, CRITICAL | PRIORITY_OPTIONS const | PASS |
+| 6 | Reason: 7 values per directives/03 | REASON_OPTIONS const — 7 values | PASS |
+| 7 | expectedFillDate > today (GD-10-1, frontend only) | Zod refine in schema | PASS |
+| 8 | Zod field-level errors rendered | errors.fieldName.message with aria-describedby | PASS |
+| 9 | BFF `POST /api/vacancies` exists | Route in build output ƒ /api/vacancies | PASS |
+| 10 | BFF → 401 without session cookie | No-cookie POST → 401 UNAUTHORIZED | PASS |
+| 11 | BFF → 201 `{success:true}` on success | Valid payload → 201 confirmed | PASS |
+| 12 | POSITION_NOT_ELIGIBLE mapped from NestJS 422 | UUID 000... → 422 POSITION_NOT_ELIGIBLE | PASS |
+| 13 | tenantId never in BFF body (SEC-003) | BFF forwards body as-is; tenantId from JWT | PASS |
+| 14 | Client calls `/api/vacancies` not NestJS directly | `fetch('/api/vacancies', ...)` in form | PASS |
+| 15 | "New Vacancy" button on vacancies list page | `<a href="/workforce/vacancies/new">New Vacancy</a>` confirmed in HTML | PASS |
+| 16 | Error banner has `role="alert"` | role="alert" on error div | PASS |
+| 17 | Route-specific `error.tsx` — position-specific copy | `new/error.tsx` "Unable to load vacancy form" | PASS |
+| 18 | `hasNoPositions` guard shows message | Conditional render in JSX | PASS |
+| 19 | `tsc --noEmit` passes | Clean — zero errors | PASS |
+| 20 | `next build` passes | All 12 pages generated, EXIT 0 | PASS |
+
+### Step 10 Runtime Verification (2026-06-18)
+
+| Check | Method | Result |
+|---|---|---|
+| Login → get session cookie | `POST /api/auth/login` admin@dev.gov → HTTP 200 + cookie | PASS |
+| `/workforce/vacancies` shows "New Vacancy" button | HTML grep → `href="/workforce/vacancies/new"` | PASS |
+| `/workforce/vacancies/new` unauthenticated | No cookie → HTTP 307 | PASS |
+| `/workforce/vacancies/new` authenticated | With cookie → HTTP 200; "Senior Policy Analyst" in HTML | PASS |
+| BFF unauthenticated | No cookie POST → 401 UNAUTHORIZED | PASS |
+| Vacancy created end-to-end | POST BFF → 201; DB verified: `bcb3f9fc` record in workforce.vacancies | PASS |
+| POSITION_NOT_ELIGIBLE path | UUID 000... → 422 POSITION_NOT_ELIGIBLE | PASS |
+| Build output | `/workforce/vacancies/new ƒ 2.82 kB`, `/api/vacancies ƒ 0 B` | PASS |
+
+### Step 10 Risks
+
+| # | Risk | Severity | Status |
+|---|---|---|---|
+| 1 | `pageSize=100` cap on ACTIVE positions — tenants with >100 ACTIVE positions will see a truncated list with no indication | Low | Accepted (GD-10-3); search-as-you-type deferred; `pageSize` limit documented |
+| 2 | No frontend RBAC on "New Vacancy" button — non-SA/non-HR users see the button; NestJS returns 403 on POST | Low | Accepted (GD-10-2); NestJS is authoritative RBAC layer; FORBIDDEN error code mapped in error message map |
+| 3 | `serverFetch` GET-only — vacancy detail/edit actions require additional BFF handlers | Low | Expected architecture; addressed per step as write surfaces are added |
+| 4 | No `loading.tsx` for `/workforce/vacancies/new` — Server Component fetch has no skeleton during load | Low | Deferred; page loads fast in dev; no streaming content except form |
+
+### Step 10 Capability Maturity — Vacancy Management (FR-103, FR-104)
+
+| Production Blueprint Layer | Status | Evidence |
+|---|---|---|
+| Requirements | Defined | spec/01 FR-103 — VAC-100, VAC-101, VAC-102 vacancy creation |
+| Specs | Present | spec/09 route `/workforce/vacancies/new`; BFF pattern; form fields |
+| Directives | Present | directives/03 VAC-100/101/102; reason values; priority values |
+| Execution Plan | Implemented | BFF handler + form + page delivered; 7 reason values per directives/03 |
+| State Model | Implemented | Vacancies created in DRAFT status; position must be ACTIVE (POS-500) |
+| Test Scenarios | Scaffolded | Frontend tests deferred to Step 14; tsc + ESLint + build + runtime verify correctness |
+| System Loop | Integrated — runtime-verified | Full create cycle: browser → form → BFF → NestJS → DB; confirmed 2026-06-18 |
+| Failure Playbook | Partial | POSITION_NOT_ELIGIBLE, FORBIDDEN, UNAUTHORIZED, INTERNAL_ERROR all mapped; 401 mid-session redirect deferred |
+| Environment Model | Integrated | `API_URL` server-side only; no CORS; BFF pattern maintained |
+| Data Lifecycle | Partial | Create surface complete; read (VacancyBoard) complete; update/close pending Steps 12–13 |
+| Evolution Strategy | Not yet formalized | |
+| **Overall** | **Integrated / Runtime-Verified (create + read surface)** | Create Vacancy delivered and runtime-verified (2026-06-18); VacancyBoard read surface verified (2026-06-17); update/close/detail pending Steps 11–13 |
+
+### Step 10 Deferred Work
+
+| Deferred Item | Target Step |
+|---|---|
+| Vacancy detail page + `GET /api/v1/vacancies/:id` | Step 11 |
+| Edit Vacancy form + `PUT /api/v1/vacancies/:id` | Step 12 |
+| Open Vacancy transition (DRAFT→OPEN) | Step 12/13 |
+| Close Vacancy flow + `POST /api/v1/vacancies/:id/close` | Step 13 |
+| loading.tsx for `/workforce/vacancies/new` | Low priority — Step 11+ |
+| RBAC-based "New Vacancy" button visibility | Step 10+ (requires role surfacing) |
+| Frontend unit tests (Vitest + React Testing Library) | Step 14 |
+| E2E tests (Playwright — Create Vacancy form flow) | Step 14 |
+
+**Step 10 maturity: Integrated / Runtime-Verified (create + read surface) — Create Vacancy form operational; BFF POST /api/vacancies routing confirmed; vacancy creation end-to-end verified against Docker NestJS; POSITION_NOT_ELIGIBLE error path confirmed; tsc/ESLint/build all clean (2026-06-18).**
+
+---
+
+## M11 Step 11 — Vacancy Detail Frontend Page (2026-06-18)
+
+### What Changed
+
+**Files created (4). Zero API changes.**
+
+| File | Type | Purpose |
+|---|---|---|
+| `apps/web/src/features/workforce/components/vacancy-badges.tsx` | New | Shared badge components extracted from vacancy-table.tsx (GD-11-3): `StatusBadge`, `PriorityBadge`, `AgingCell` with all constants. Imported by both vacancy-table.tsx and vacancy-detail.tsx. |
+| `apps/web/src/features/workforce/components/vacancy-detail.tsx` | New | Server Component; renders all 15 API fields in three card sections (Vacancy Details, Timeline, Identifiers); reason → human-readable label (REASON_LABELS map); requiresReview banner (VAC-601); null-safe for priority, reason, expectedFillDate, filledAt |
+| `apps/web/src/app/(dashboard)/workforce/vacancies/[id]/page.tsx` | New | Async Server Component; `serverFetch<VacancyDetailApiResponse>('/api/v1/vacancies/${params.id}')`; `notFound()` for ApiError 404 and 400 (GD-11-1, extended); rethrows 403/500 to error.tsx; "← Back to Vacancies" header link; positionTitle as h2 |
+| `apps/web/src/app/(dashboard)/workforce/vacancies/[id]/error.tsx` | New | Client Component error boundary; vacancy-detail-specific copy ("Unable to load vacancy" / "This vacancy could not be found or is no longer available."); distinct from VacancyBoard and new/ error copies; "Try again" + "Back to Vacancies" |
+
+**Files modified (2):**
+
+| File | Change |
+|---|---|
+| `apps/web/src/features/workforce/types.ts` | Added `VacancyDetailApiResponse = { success: true; data: VacancyRow }` |
+| `apps/web/src/features/workforce/components/vacancy-table.tsx` | Removed inline badge definitions; added import from vacancy-badges.tsx (GD-11-3); wrapped positionTitle in `<Link href="/workforce/vacancies/${v.id}">` (GD-11-2) |
+
+### Architecture
+
+**Data flow:**
+```
+Browser → GET /workforce/vacancies/<id>
+  → Edge Middleware (Layer 1 — cookie check → 307 if absent)
+  → [id]/page.tsx (Async Server Component)
+      → serverFetch('/api/v1/vacancies/<id>')  [JWT from httpOnly cookie, no body]
+          → NestJS GET /api/v1/vacancies/:id (JWT → tenantId, RBAC: SA + HR Director + Workforce Planner)
+              → VacancyService.getVacancyById(id, tenantId) → SUCCESS or NOT_FOUND
+      → VacancyDetail component (Server Component, receives VacancyRow)
+  → Rendered HTML — all 15 fields displayed
+```
+
+**Security properties:**
+- tenantId never in URL or fetch body — derived from JWT at NestJS layer (SEC-003)
+- JWT stays in httpOnly cookie — browser never reads it
+- Middleware already covers `/workforce/:path*` — no changes needed
+- 404 from API treated as not-found (different tenant's vacancy is invisible, as per SEC-003)
+
+### Governance Decisions Applied
+
+| Decision | Choice | Application |
+|---|---|---|
+| GD-11-1 | `notFound()` for 404 responses | `err.status === 404` → `notFound()`; rethrow all others to error.tsx |
+| GD-11-2 | `<Link>` on positionTitle in VacancyTable | `<Link href="/workforce/vacancies/${v.id}">{v.positionTitle}</Link>` |
+| GD-11-3 | Extract shared badge components | `vacancy-badges.tsx` new shared file; vacancy-table.tsx refactored to import |
+| GD-11-1 (extended) | 400 also calls `notFound()` | Next.js 14 dev mode does not consistently route ApiError(400) to segment error.tsx; explicit `notFound()` for 400+404 makes behavior deterministic; user sees 404 page for invalid URL (correct UX) |
+
+### Step 11 Exit Review — 20/20 Met (2026-06-18)
+
+| # | Criterion | Evidence | Result |
+|---|---|---|---|
+| 1 | `/workforce/vacancies/<valid-uuid>` authenticated → HTTP 200 | `curl -b session` → 200 | PASS |
+| 2 | `/workforce/vacancies/<valid-uuid>` unauthenticated → HTTP 307 | Middleware → 307 → `/login` | PASS |
+| 3 | `/workforce/vacancies/not-a-uuid` → notFound (400 → explicit notFound) | `curl` → 200 HTML with "Page not found" | PASS |
+| 4 | `/workforce/vacancies/<nonexistent-uuid>` → notFound per GD-11-1 | `curl` → HTML with "Page not found" | PASS |
+| 5 | All 15 vacancy fields displayed | Vacancy Details + Timeline + Identifiers sections confirmed in HTML | PASS |
+| 6 | positionTitle displayed prominently (h2 heading) | "Senior Policy Analyst" in h2 | PASS |
+| 7 | status rendered as styled badge | StatusBadge → "Draft" badge renders | PASS |
+| 8 | priority rendered as styled badge | PriorityBadge → "HIGH" badge renders | PASS |
+| 9 | requiresReview === true → "Review Required" chip (VAC-601) | Component code reviewed; no CRITICAL+OPEN vacancy in dev DB | PASS — code verified |
+| 10 | ageInDays styled per agingStatus | AgingCell component wired; dev vacancies all 0d/OK | PASS — code verified |
+| 11 | ISO date fields rendered as formatted dates | Created / Last Updated / Expected Fill Date labels in HTML | PASS |
+| 12 | Reason displayed as human-readable label | "NEW_POSITION" → "New Position" confirmed in HTML | PASS |
+| 13 | "← Back to Vacancies" link renders | `Back to Vacancies` confirmed in HTML | PASS |
+| 14 | Route-specific error.tsx with vacancy-specific copy | File exists; 403/500 trigger it; 400/404 → notFound (intentional) | PASS |
+| 15 | VacancyTable row has clickable Link on positionTitle | `href="/workforce/vacancies/<uuid>"` confirmed in VacancyBoard HTML (3 links) | PASS |
+| 16 | VacancyDetailApiResponse type added to types.ts | Added; used in page.tsx generic | PASS |
+| 17 | tenantId absent from URL and from any fetch call body (SEC-003) | grep tenantId in HTML → empty | PASS |
+| 18 | `tsc --noEmit` → 0 errors | EXIT 0 — no output | PASS |
+| 19 | `next lint` → 0 warnings | "No ESLint warnings or errors" | PASS |
+| 20 | `next build` → EXIT 0; `/workforce/vacancies/[id]` as `ƒ (Dynamic)` | BUILD SUCCESS; route listed as `ƒ /workforce/vacancies/[id] 1.04 kB` | PASS |
+
+### Step 11 Runtime Verification (2026-06-18)
+
+| Check | Method | Result |
+|---|---|---|
+| Login → session cookie | `POST /api/auth/login` admin@dev.gov → HTTP 200 + cookie | PASS |
+| Detail page authenticated | `GET /workforce/vacancies/bcb3f9fc-...` with session → HTTP 200 | PASS |
+| Detail page unauthenticated | No cookie → HTTP 307 → `/login` | PASS |
+| "Senior Policy Analyst" in heading | HTML grep → present | PASS |
+| Vacancy Details / Timeline / Identifiers sections | HTML grep → all 3 present | PASS |
+| Back to Vacancies link | HTML grep → `Back to Vacancies` present | PASS |
+| Vacancy ID in Identifiers section | grep `bcb3f9fc-...` → 2 occurrences (page URL + identifier field) | PASS |
+| Priority badge | HTML grep → `HIGH` present | PASS |
+| Reason label | HTML grep → `New Position` (not `NEW_POSITION`) | PASS |
+| tenantId absent | grep tenantId in HTML → empty | PASS |
+| VacancyBoard links | `GET /workforce/vacancies` → 3 `href="/workforce/vacancies/<uuid>"` links | PASS |
+| VacancyBoard regression | `GET /workforce/vacancies` → HTTP 200 | PASS |
+| Create Vacancy regression | `GET /workforce/vacancies/new` → HTTP 200 | PASS |
+| not-a-uuid | `GET /workforce/vacancies/not-a-uuid` → notFound ("Page not found") | PASS |
+| nonexistent UUID | `GET /workforce/vacancies/00000000-...` → notFound ("Page not found") | PASS |
+| Build route table | `/workforce/vacancies/[id] ƒ 1.04 kB` | PASS |
+| tsc post-edit clean | tsc --noEmit on edited page.tsx → EXIT 0 | PASS |
+
+**Dev server note:** Dev server started on port 3003 initially (ports 3002 was in use from stale session). Hot-reload module cache corruption occurred when `vacancy-badges.tsx` was introduced (same failure mode as Step 10 — stale `__webpack_modules__` reference). Resolved by killing all node processes and starting fresh on port 3002. Clean first-boot confirmed on fresh server with no corruption.
+
+### Step 11 Risks
+
+| # | Risk | Severity | Status |
+|---|---|---|---|
+| 1 | Next.js 14 hot-reload module cache corruption when new shared component introduced | Low | Accepted; pattern documented; always restart fresh dev server when adding shared components |
+| 2 | `error.tsx` for `[id]` segment not triggered by Next.js 14 for ApiError(400) — framework routes to root notFound instead | Low | Mitigated: page.tsx explicitly calls `notFound()` for 400+404; behavior is deterministic and correct UX |
+| 3 | requiresReview and HIGH_RISK aging visual paths not exercised in dev DB (no CRITICAL+OPEN vacancies, no 90-day-old vacancies) | Low | Accepted; code reviewed; visual paths will be exercisable once Step 13 (close) creates more vacancy variety |
+| 4 | No `loading.tsx` skeleton for `/workforce/vacancies/[id]` (GD-11-4 not approved) | Low | Accepted; page is a single server fetch; fast on local Docker stack |
+
+### Step 11 Capability Maturity — Vacancy Management (FR-103, FR-104)
+
+| Production Blueprint Layer | Status | Evidence |
+|---|---|---|
+| Requirements | Defined | spec/01 FR-103 — vacancy detail visible to authorized users |
+| Specs | Present | spec/09 `/workforce/vacancies` route group; detail route implied |
+| Directives | Present | directives/03 VAC-601 (requiresReview banner), VAC-701/702 (aging display) |
+| Execution Plan | Implemented | Detail page + shared badge extraction + VacancyTable links delivered |
+| State Model | Implemented | All vacancy states rendered correctly; closure type (filledAt/null) displayed |
+| Test Scenarios | Scaffolded | Frontend tests deferred to Step 14; tsc + ESLint + build + runtime verify correctness |
+| System Loop | Integrated — runtime-verified | Vacancy detail reads live data from NestJS; navigation VacancyBoard→Detail confirmed; SEC-003 confirmed |
+| Failure Playbook | Partial | 404+400 → notFound; 403/500 → error.tsx with retry; mid-session 401 deferred |
+| Environment Model | Integrated | `serverFetch` reads JWT from httpOnly cookie; `API_URL` server-side only |
+| Data Lifecycle | Partial | Read surface complete (list + detail); write surfaces (create, edit, close) pending Steps 10–13 |
+| Evolution Strategy | Not yet formalized | |
+| **Overall** | **Integrated / Runtime-Verified (read surface complete)** | VacancyBoard (Step 9) + Create Vacancy (Step 10) + Vacancy Detail (Step 11) all operational; write mutations (Steps 12–13) pending |
+
+### Step 11 Deferred Work
+
+| Deferred Item | Target Step |
+|---|---|
+| Edit Vacancy form + `PUT /api/v1/vacancies/:id` | Step 12 |
+| Open Vacancy transition (DRAFT→OPEN) | Step 12 |
+| Close Vacancy flow + `POST /api/v1/vacancies/:id/close` | Step 13 |
+| Action buttons on detail page (Edit, Open, Close) | Step 12–13 |
+| loading.tsx skeleton for `/workforce/vacancies/[id]` | Low priority |
+| Frontend unit tests (Vitest + React Testing Library) | Step 14 |
+| E2E tests (Playwright — VacancyBoard→Detail navigation) | Step 14 |
+| requiresReview + HIGH_RISK aging visual path exercise | Step 13+ (when CRITICAL+OPEN vacancies exist in dev DB) |
+
+**Step 11 maturity: Integrated / Runtime-Verified (read surface complete) — Vacancy Detail page operational; all 15 API fields rendered; VacancyBoard positionTitle links confirmed; SEC-003 tenantId isolation confirmed; notFound for 404+400 deterministic; shared badge components extracted; tsc/ESLint/build all clean (2026-06-18).**
+
+---
+
+## M11 Step 12 — Edit Vacancy + Open Vacancy (2026-06-18)
+
+### What Changed
+
+**Files created (5). Zero API changes.**
+
+| File | Type | Purpose |
+|---|---|---|
+| `apps/web/src/app/api/vacancies/[id]/route.ts` | New — BFF Route Handler | PUT handler; reads JWT from `SESSION_COOKIE` cookie; proxies to `PUT http://{API_URL}/api/v1/vacancies/:id`; extracts NestJS error codes from response body; `cache: 'no-store'` on fetch (required — see Bug Fix below); maps all error outcomes to BFF response |
+| `apps/web/src/features/workforce/components/vacancy-actions.tsx` | New — Client Component | Actions section for detail page; "Edit" Link (non-CLOSED, canWrite); "Open Vacancy" button with confirmation modal (DRAFT + canWrite, GD-12-2); modal uses fixed overlay div (no shadcn Dialog); INVALID_TRANSITION + VACANCY_CLOSED + FORBIDDEN error codes all mapped; `router.push + router.refresh()` on success |
+| `apps/web/src/features/workforce/components/edit-vacancy-form.tsx` | New — Client Component | React Hook Form + Zod; pre-populated with current vacancy data; priority select + expectedFillDate date input always shown; reason select only shown when `vacancy.status === 'DRAFT'` (GD-12-3); expectedFillDate > today refine (GD-12-5); empty string values excluded from PUT body (only non-empty values sent); VACANCY_CLOSED + FORBIDDEN error codes mapped; `router.push + router.refresh()` on success |
+| `apps/web/src/app/(dashboard)/workforce/vacancies/[id]/edit/page.tsx` | New — Server Component | Fetches vacancy via serverFetch; CLOSED → `redirect()` to detail page (GD-12-7); notFound() for 404+400; passes vacancy to EditVacancyForm; "← Back to Vacancy" link |
+| `apps/web/src/app/(dashboard)/workforce/vacancies/[id]/edit/error.tsx` | New — Client Component | Error boundary for edit page; "Unable to load edit form" copy; distinct from `[id]/error.tsx` sibling |
+
+**Files modified (3):**
+
+| File | Change |
+|---|---|
+| `apps/web/src/features/workforce/types.ts` | Added `UpdateVacancyBffRequest` and `UpdateVacancyBffResponse` types |
+| `apps/web/src/app/(dashboard)/workforce/vacancies/[id]/page.tsx` | Added `getSessionRoles()` helper (JWT payload decode without signature verify — server-only); `canWrite` derived from roles (`System Administrator` or `HR Director`); heading row restructured to `flex items-start justify-between` with `VacancyActions` as right-side element; `cookies()` import added |
+| `apps/web/src/app/api/vacancies/route.ts` | Added `cache: 'no-store'` to POST fetch call (same latent caching bug as [id]/route.ts — see Bug Fix) |
+
+### Architecture
+
+**Data flow — Edit Vacancy:**
+```
+Browser → PUT /workforce/vacancies/<id>/edit (form submit, Client Component)
+  → fetch('/api/vacancies/<id>', { method: 'PUT', body: {...} })    [no cookie in body]
+      → BFF PUT /api/vacancies/[id]/route.ts
+          → reads SESSION_COOKIE from httpOnly cookie
+          → fetch(`${API_URL}/api/v1/vacancies/<id>`, { method: 'PUT', cache: 'no-store' })
+              → NestJS PUT /api/v1/vacancies/:id (JWT → tenantId; dto.status undefined → updateVacancy())
+                  → VacancyService.updateVacancy(id, { priority, reason?, expectedFillDate }, tenantId)
+                      → Prisma update → SUCCESS or VACANCY_CLOSED
+          → 200 + VacancyRow | 4xx with error code
+      → router.push('/workforce/vacancies/<id>') + router.refresh()
+```
+
+**Data flow — Open Vacancy:**
+```
+Browser → "Open Vacancy" button click → confirmation modal → "Confirm" click
+  → fetch('/api/vacancies/<id>', { method: 'PUT', body: { status: 'OPEN' } })
+      → BFF PUT /api/vacancies/[id]/route.ts
+          → fetch NestJS: dto.status === 'OPEN' → openVacancy(id, tenantId)
+              → DRAFT → OPEN transition; WORKFORCE_VACANCY_OPENED audit event
+          → 200 + VacancyRow | 409 INVALID_TRANSITION | 409 VACANCY_CLOSED
+      → router.push('/workforce/vacancies/<id>') + router.refresh()  [or: error shown in modal]
+```
+
+**Security properties:**
+- tenantId never in URL, form body, or BFF request body — derived from JWT at NestJS (SEC-003)
+- JWT stays in httpOnly cookie — BFF reads it server-side only; browser never handles it
+- RBAC: NestJS enforces SA + HR Director on PUT; frontend `canWrite` is UX-only (GD-12-4)
+- `canWrite` derived from JWT payload decoded on server side (getSessionRoles); no client-side cookie access
+- BFF has no cookie when unauthenticated → returns 401 UNAUTHORIZED before NestJS is called
+
+### Governance Decisions Applied
+
+| Decision | Choice | Application |
+|---|---|---|
+| GD-12-1 | Separate route `/[id]/edit` | `edit/page.tsx` Server Component; pre-populates form via `serverFetch` |
+| GD-12-2 | Confirmation modal before OPEN | `VacancyActions` renders custom modal with `role="dialog"` on button click; error shown inline in modal on failure |
+| GD-12-3 | Hide reason for OPEN/IN_RECRUITMENT | `showReason = vacancy.status === 'DRAFT'`; conditional render in EditVacancyForm AND excluded from PUT body |
+| GD-12-4 (modified) | JWT role decode → canWrite | `getSessionRoles()` decodes JWT payload server-side; `canWrite = roles.includes('SA') || roles.includes('HR Director')`; `VacancyActions` returns null if `!canWrite`; tech debt: future step to handle mid-session role changes |
+| GD-12-5 | expectedFillDate > today | Zod `refine()` in editSchema; empty string passes (`!d → true`); past dates block submit |
+| GD-12-6 | Allow empty submission | All fields optional; service returns SUCCESS for no-op; no change detection in form |
+| GD-12-7 | CLOSED → redirect to detail | `if (vacancy.status === 'CLOSED') redirect('/workforce/vacancies/<id>')` in edit/page.tsx |
+
+### Step 12 Exit Review — 20/20 Met (2026-06-18)
+
+| # | Criterion | Evidence | Result |
+|---|---|---|---|
+| 1 | GET `/[id]/edit` → 200 (authenticated, non-CLOSED) | `curl -b session /workforce/vacancies/<DRAFT-id>/edit` → 200 | PASS |
+| 2 | GET `/[id]/edit` → 307 (unauthenticated) | No cookie → 307 → login page | PASS |
+| 3 | Edit form pre-populated with current values | `2026-08-20` date confirmed in HTML; `id="expectedFillDate"` present | PASS |
+| 4 | `reason` absent from edit form for OPEN vacancy | `id="reason"` absent from `/[OPEN-id]/edit` HTML | PASS |
+| 5 | `priority` + `expectedFillDate` present for all non-CLOSED | `id="priority"` + `id="expectedFillDate"` in both DRAFT and OPEN edit forms | PASS |
+| 6 | Successful PUT → 200 + updated values in detail | PUT `{priority:"MEDIUM"}` → 200; detail shows MEDIUM badge + bg-blue-100 | PASS |
+| 7 | VACANCY_CLOSED error code → user message | Error map: "This vacancy is closed and cannot be edited." | PASS (code path verified) |
+| 8 | FORBIDDEN error code → user message | Error map: "You don't have permission to edit vacancies." | PASS (code path verified) |
+| 9 | "Open Vacancy" button present on DRAFT detail | DRAFT vacancy detail HTML: `Open Vacancy` text present | PASS |
+| 10 | "Open Vacancy" button absent on OPEN detail | OPEN vacancy detail HTML: `Open Vacancy` text absent | PASS |
+| 11 | Open Vacancy → 200 + OPEN status | PUT `{status:'OPEN'}` on DRAFT → 200 + `"status":"OPEN"` | PASS |
+| 12 | INVALID_TRANSITION → 409 (after cache fix) | PUT `{status:'OPEN'}` on OPEN vacancy → 409 + `"code":"INVALID_TRANSITION"` | PASS |
+| 13 | "Edit" link present for DRAFT, OPEN, IN_RECRUITMENT | DRAFT detail: `Edit` visible; OPEN detail: `Edit` visible | PASS |
+| 14 | "Edit" link absent for CLOSED vacancy | CLOSED detail: `>Edit<` absent from HTML | PASS |
+| 15 | BFF PUT without cookie → 401 | `curl -X PUT /api/vacancies/<id>` no cookie → `{"code":"UNAUTHORIZED"}` HTTP 401 | PASS |
+| 16 | BFF error codes proxied from NestJS correctly | INVALID_TRANSITION: NestJS 409 body → BFF 409 `INVALID_TRANSITION` | PASS |
+| 17 | tenantId absent from all request bodies | No tenantId in form fields, PUT body, or BFF body | PASS |
+| 18 | `tsc --noEmit` → 0 errors | EXIT 0 — no output | PASS |
+| 19 | `next lint` → 0 warnings | "No ESLint warnings or errors" | PASS |
+| 20 | `next build` → EXIT 0; both routes in table | `/api/vacancies/[id] ƒ 0 B` + `/workforce/vacancies/[id]/edit ƒ 2.75 kB 134 kB` | PASS |
+
+### Step 12 Runtime Verification (2026-06-18)
+
+| Check | Method | Result |
+|---|---|---|
+| Login → session cookie | `POST /api/auth/login` admin@dev.gov → HTTP 200 + cookie | PASS |
+| Detail page with Actions section | `GET /workforce/vacancies/<DRAFT-id>` → `Edit` link + `Open Vacancy` button in HTML | PASS |
+| Detail page unauthenticated | No cookie → 307 → login | PASS |
+| canWrite=true passed to VacancyActions | RSC JSON contains `"canWrite":true` for SA role | PASS |
+| CLOSED vacancy detail — no action buttons | `>Edit<` absent from CLOSED vacancy detail HTML | PASS |
+| Edit page DRAFT — all 3 fields | `id="priority"` + `id="reason"` + `id="expectedFillDate"` in HTML | PASS |
+| Edit page OPEN — reason absent | `id="reason"` absent from OPEN vacancy edit page HTML | PASS |
+| Edit page pre-populated date | `2026-08-20` in edit page HTML | PASS |
+| Edit page unauthenticated | No cookie → 307 → login | PASS |
+| BFF PUT — no cookie | HTTP 401 + UNAUTHORIZED | PASS |
+| BFF PUT — priority change | PUT `{priority:"MEDIUM"}` → HTTP 200 + updated vacancy | PASS |
+| Detail reflects priority change | MEDIUM badge + `bg-blue-100` in detail page HTML | PASS |
+| Open Vacancy BFF (DRAFT) | PUT `{status:"OPEN"}` → HTTP 200 + `"status":"OPEN"` | PASS |
+| OPEN vacancy detail — no Open Vacancy button | `Open Vacancy` absent from OPEN detail HTML | PASS |
+| INVALID_TRANSITION (with cache fix) | PUT `{status:"OPEN"}` on OPEN vacancy → HTTP 409 + INVALID_TRANSITION | PASS |
+| CLOSED vacancy edit → redirect | `GET /workforce/vacancies/<CLOSED-id>/edit` → NEXT_REDIRECT to detail | PASS |
+| tsc clean | EXIT 0 | PASS |
+| ESLint clean | "No ESLint warnings or errors" | PASS |
+| next build clean | EXIT 0; both new routes in table | PASS |
+
+### Step 12 Bug Discovered and Fixed
+
+**Root cause:** Next.js 14's extended `fetch()` API applies response caching in App Router contexts (Server Components, Route Handlers, Server Actions) when the `cache` option is not explicitly set. When the BFF PUT handler called `fetch('NestJS_URL', { method: 'PUT', ... })` without `cache: 'no-store'`, Next.js cached the first successful 200 response. Subsequent PUT requests to the same URL returned the cached 200 — even when NestJS returned 409. This caused `INVALID_TRANSITION` and `VACANCY_CLOSED` error codes to be silently swallowed.
+
+**Fix applied:**
+1. `apps/web/src/app/api/vacancies/[id]/route.ts` (Step 12 — new file): `cache: 'no-store'` added to the NestJS fetch call
+2. `apps/web/src/app/api/vacancies/route.ts` (Step 10 — pre-existing): Same `cache: 'no-store'` fix applied (POST BFF handler had the same latent issue)
+
+**Detection:** The bug was discovered during runtime verification when a double-open attempt returned 200 instead of 409. Direct NestJS call confirmed 409 correctly. BFF re-tested with `cache: 'no-store'` → correctly returns 409.
+
+**Rule learned:** All BFF Route Handlers that call state-mutating NestJS endpoints MUST include `cache: 'no-store'` on the fetch call. Login and logout BFF handlers (`/api/auth/login`, `/api/auth/logout`) should be audited in Step 14.
+
+### Step 12 Risks
+
+| # | Risk | Severity | Status |
+|---|---|---|---|
+| 1 | `canWrite` derived from JWT at page render — mid-session role change could show stale action buttons until re-login | Low | Accepted; tech debt; GD-12-4 documented; NestJS RBAC remains authoritative |
+| 2 | `getSessionRoles()` decodes JWT without signature verification — server-side only | Low | Accepted; decode is for UX only; NestJS verifies signature on every request |
+| 3 | Race condition: "Open Vacancy" button visible at page load (DRAFT), vacancy closed externally, user confirms → INVALID_TRANSITION 409 shown in modal | Low | Accepted; INVALID_TRANSITION error message handled in modal |
+| 4 | Hot-reload module cache corruption pattern — new Client Components added | Low | Accepted; fresh dev server required after adding Client Components |
+| 5 | Login and logout BFF handlers not audited for `cache: 'no-store'` | Low | Flagged; audit in Step 14 |
+
+### Step 12 Capability Maturity — Vacancy Management (FR-103, FR-104)
+
+| Production Blueprint Layer | Status | Evidence |
+|---|---|---|
+| Requirements | Defined | spec/01 FR-103 — edit vacancy; FR-104 — lifecycle transitions |
+| Specs | Present | spec/09 implied routes; spec/06 RBAC matrix confirmed |
+| Directives | Present | directives/03 VAC-200, VAC-501, VAC-300, VAC-601 |
+| Execution Plan | Implemented | BFF PUT + edit form + open vacancy modal + VacancyActions + CLOSED redirect |
+| State Model | Implemented | DRAFT→OPEN transition confirmed; CLOSED guard active; OPEN edit working |
+| Test Scenarios | Scaffolded | Frontend tests deferred to Step 14; tsc + ESLint + build + runtime verify correctness |
+| System Loop | Integrated — runtime-verified | Edit + open vacancy loop confirmed; detail page reflects changes |
+| Failure Playbook | Partial | INVALID_TRANSITION + VACANCY_CLOSED + FORBIDDEN + UNAUTHORIZED all mapped; mid-session 401 deferred |
+| Environment Model | Integrated | BFF cookies pattern; `cache: 'no-store'` fix applied; `API_URL` server-side only |
+| Data Lifecycle | Partial | Read + create + edit + open all operational; close (Step 13) pending |
+| Evolution Strategy | Not yet formalized | |
+| **Overall** | **Integrated / Runtime-Verified (write surface — edit + open)** | VacancyBoard + Create + Detail + Edit + Open all operational; Close vacancy (Step 13) pending |
+
+### Step 12 Deferred Work
+
+| Deferred Item | Target Step |
+|---|---|
+| Close Vacancy flow (`POST /api/v1/vacancies/:id/close`) | Step 13 |
+| "Close Vacancy" button on detail page | Step 13 |
+| FILLED / CANCELLED closure types | Step 13 |
+| Frontend unit tests (Vitest + React Testing Library) | Step 14 |
+| E2E tests (Playwright — edit flow, open vacancy, error states) | Step 14 |
+| Audit `/api/auth/login` and `/api/auth/logout` BFF handlers for `cache: 'no-store'` | Step 14 |
+| RBAC-aware button visibility (handle mid-session role changes without re-login) | Future |
+| loading.tsx for `/workforce/vacancies/[id]/edit` | Low priority |
+
+**Step 12 maturity: Integrated / Runtime-Verified (edit + open vacancy) — BFF PUT handler operational; edit form pre-populated and submits correctly; reason hidden for non-DRAFT; DRAFT→OPEN transition confirmed; CLOSED redirect confirmed; JWT role decode for canWrite; Next.js fetch caching bug discovered and fixed; tsc/ESLint/build all clean; 20/20 exit criteria met (2026-06-18).**
+
+### Step 12 Amendment — Post-Runtime Reconciliation (2026-06-18)
+
+Two UX defects discovered during manual runtime verification. Both fixed and re-verified.
+
+#### Defect 1 — Open Vacancy modal remained in loading state after success
+
+**Root cause:** `handleOpenVacancy()` success path called `router.push('/workforce/vacancies/${id}')` — the same URL already loaded — instead of resetting component state. `router.push()` to the current URL does not unmount Client Components. `isModalOpen` and `isLoading` remained `true` permanently. `router.refresh()` re-fetched server data but does not reset Client Component state.
+
+**Fix (vacancy-actions.tsx):**
+- Removed `router.push()` (unnecessary — user is already on the correct page)
+- Added `setIsModalOpen(false)` and `setIsLoading(false)` before `router.refresh()`
+- Sequence: modal closes → loading resets → server data refreshes → status badge updates in-place
+
+**Verified:** Detail page for newly-opened vacancy immediately shows OPEN status badge (`bg-blue-100`) and no "Open Vacancy" button — confirming `router.refresh()` updates correctly without manual browser refresh.
+
+#### Defect 2 — Edit form date field could not be cleared in one action
+
+**Root cause:** `<input type="date">` renders as a segmented spin control in modern browsers; each of month/day/year must be cleared individually via keyboard. The original help text ("Clear this field to leave the current date unchanged") set a false expectation without providing a reliable mechanism.
+
+**Fix (edit-vacancy-form.tsx):**
+- Added `setValue` from `useForm` destructure
+- Added a "Clear" button (`type="button"`, `variant="outline"`, `size="sm"`) next to the date input
+- `onClick` calls `setValue('expectedFillDate', '', { shouldValidate: false })` — sets the native input's value to empty string, clearing all three date segments at once without triggering the Zod validation mid-clear
+- Updated help text to "Date must be in the future if provided."
+
+**Verified:** Clear button clears the full date field in one click. User-confirmed working.
+
+---
+
+## M11 Step 13 — Close Vacancy (2026-06-18)
+
+**Phase:** Phase 2 — M11 Vacancy Management
+**Classification:** Integrated / Runtime-Verified
+
+### Capability
+
+Close Vacancy workflow — terminates a vacancy's lifecycle as FILLED (position hired) or CANCELLED (withdrawn). Integrates with the existing NestJS `POST /api/v1/vacancies/:id/close` endpoint (already implemented and tested in the API layer).
+
+### Governance Decisions Applied
+
+| ID | Decision |
+|---|---|
+| GD-13-1 | Source-state-driven closureType visibility: DRAFT → CANCELLED only; OPEN/IN_RECRUITMENT → FILLED + CANCELLED (radio) |
+| GD-13-2 | Close Vacancy button visible for all non-CLOSED statuses (DRAFT, OPEN, IN_RECRUITMENT) |
+| GD-13-3 | Separate state variables per modal; no abstraction |
+| GD-13-4 | On success: `setIsCloseModalOpen(false)` → `setIsCloseLoading(false)` → `router.refresh()` — no manual browser refresh required |
+| GD-13-5 | Radio-button closureType selection with single Confirm action |
+
+### What Changed
+
+**Files created:**
+- `apps/web/src/app/api/vacancies/[id]/close/route.ts` — BFF POST handler; proxies to NestJS; reads JWT from httpOnly cookie; `cache: 'no-store'`; extracts error codes from NestJS error envelope
+
+**Files modified:**
+- `apps/web/src/features/workforce/types.ts` — added `CloseVacancyBffResponse` discriminated union type
+- `apps/web/src/features/workforce/components/vacancy-actions.tsx` — added separate close modal state (`isCloseModalOpen`, `isCloseLoading`, `closeError`, `selectedClosureType`); added `handleCloseVacancy()`; added Close Vacancy button (`!isClosed` guard, `variant="outline"`); added confirmation modal with radio fieldset for OPEN/IN_RECRUITMENT or fixed CANCELLED text for DRAFT; confirm button uses `variant="destructive"`; dismiss button labeled "Go back" (avoids confusion with "Cancelled" closureType)
+
+**No new pages.** `vacancy-detail.tsx` already conditionally renders `filledAt` in the Timeline section (pre-existing). `[id]/page.tsx` unchanged — `canWrite` prop already covers close action visibility. `[id]/edit/page.tsx` already redirects CLOSED vacancies.
+
+### Lifecycle Transition Rules Enforced
+
+| Source | FILLED | CANCELLED |
+|---|---|---|
+| DRAFT | Rejected (INVALID_TRANSITION) | Allowed → CLOSED |
+| OPEN | Allowed → CLOSED, sets filledAt | Allowed → CLOSED |
+| IN_RECRUITMENT | Allowed → CLOSED, sets filledAt | Allowed → CLOSED |
+| CLOSED | 409 VACANCY_CLOSED | 409 VACANCY_CLOSED |
+
+UX enforces GD-13-1 on the frontend. NestJS enforces the same rules server-side as the authoritative guard.
+
+### Validation
+
+**Exit criteria:** 18/18 met
+
+**Runtime verification (2026-06-18):**
+- V1: DRAFT vacancy created; BFF POST 201 ✓
+- V2: Detail page for DRAFT shows Close Vacancy + Open Vacancy + Edit ✓
+- V3: BFF POST /close with closureType=CANCELLED on DRAFT → 200, status=CLOSED, filledAt=null ✓
+- V4: Detail page after CANCELLED close → CLOSED badge, no action buttons ✓
+- V5: New DRAFT vacancy → opened (DRAFT→OPEN) → closed as FILLED → 200, status=CLOSED, filledAt populated ✓
+- V5f: "Closed" text confirmed in detail page after FILLED; "Filled" label in Timeline ✓
+- V6: POST /close on already-CLOSED → 409 VACANCY_CLOSED ✓
+- V7: FILLED closure attempted on DRAFT → 409 INVALID_TRANSITION ✓
+- V8: POST /close without session cookie → 401 UNAUTHORIZED ✓
+- V9: POST /close with invalid closureType value → 400 (unreachable from UI, radio-controlled) ✓
+- V10: Vacancy Board status filters work correctly after closures ✓
+- V11: DRAFT vacancy unchanged after rejected FILLED attempt ✓
+- GD-13-4: `setIsCloseModalOpen(false)` → `setIsCloseLoading(false)` → `router.refresh()` verified in source code ✓
+
+**tsc --noEmit:** zero errors
+**ESLint:** zero warnings
+**Build:** clean, `/api/vacancies/[id]/close` registered as ƒ Dynamic
+
+### Risks / Technical Debt
+
+- **VAC-602 Manager Approval (deferred):** The directive states CANCELLED requires Manager Approval. The NestJS controller enforces SA + HR Director for both FILLED and CANCELLED. No approval gate endpoint exists in Phase 2. Both closure types are available to authorized roles. Documented as deferred tech debt for Phase 3.
+- **IN_RECRUITMENT source state:** Close Vacancy button is correctly shown for IN_RECRUITMENT vacancies, but no current UI path leads to IN_RECRUITMENT status. The button is present and will function when Phase 3 delivers the recruitment workflow.
+
+### Next Actions
+
+M11 Steps 1–13 complete. All vacancy lifecycle transitions (DRAFT→OPEN→CLOSED, DRAFT→CANCELLED) are operational end-to-end. Next milestone to be determined.
+
+**Step 13 maturity: Integrated / Runtime-Verified (close vacancy) — BFF POST /close handler operational; Close Vacancy modal operational with source-state-driven closureType; DRAFT→CANCELLED confirmed; OPEN→FILLED confirmed; filledAt rendered in Timeline; VACANCY_CLOSED and INVALID_TRANSITION errors surfaced correctly; 18/18 exit criteria met; runtime-verified 2026-06-18.**
+
+---
+
+## M11 UX Hardening Pass (2026-06-18)
+
+**Phase:** Phase 2 — M11 Vacancy Management
+**Classification:** Integrated / Runtime-Verified
+**Prerequisite:** M11 Steps 1–13 complete
+
+### Scope
+
+Pre-Step-14 usability refinement. Five targeted improvements identified in a focused UX/Workflow Review. No new API contracts, no schema changes, no new routes.
+
+### Items Implemented
+
+#### 1 — Closed Vacancy Visibility (`vacancy-detail.tsx`)
+
+**Problem:** CLOSED vacancies showed no indication of whether they were FILLED (candidate hired) or CANCELLED (withdrawn). HR users could not distinguish outcomes from the detail page.
+
+**Fix:**
+- Added "Closure Type" field to the Vacancy Details grid, rendered only when `status === 'CLOSED'`. Value derived from `filledAt`: not null = "Filled", null = "Cancelled". No API change — data was already in the response.
+- Timeline updated: for FILLED closures, `updatedAt` field is suppressed (redundant with `filledAt` — same transaction). For CANCELLED closures, `updatedAt` is relabeled "Closed" (accurate: it represents the closure timestamp). Active vacancies retain "Last Updated".
+
+**Verified:** FILLED vacancy shows `Closure Type: Filled`, `Filled: [date]` in Timeline, no "Last Updated". CANCELLED vacancy shows `Closure Type: Cancelled`, `Closed: [date]` in Timeline, no "Last Updated", no "Filled".
+
+#### 2 — Vacancy Table Row Discoverability (`vacancy-table.tsx`)
+
+**Problem:** Entire row highlights on hover (`hover:bg-muted/30`), implying full-row interactivity, but only the position title cell was a link. Clicking Status/Priority cells produced no navigation.
+
+**Fix:** Applied the CSS stretched link pattern:
+- `<tr>` receives `relative` class
+- Position title `<Link>` receives `after:absolute after:inset-0 after:content-['']`
+- The `::after` pseudo-element covers the full `<tr>` area, making the entire row a click target with no JavaScript, no Client Component conversion, no visual change
+
+**Verdict:** Current hover indication was adequate but the stretched link closes the affordance gap cleanly. Applied.
+
+**Verified:** `after:absolute` class present on all 10 board rows in rendered HTML.
+
+#### 3 — Action Area Visual Separator (`vacancy-actions.tsx`)
+
+**Problem:** Edit (field operation) and lifecycle actions (Open Vacancy, Close Vacancy) shared a flat flex row with no visual grouping, treating reversible and irreversible actions as equivalent.
+
+**Fix:** Added a 1px vertical `<span className="h-4 w-px bg-border" aria-hidden="true" />` between Edit and the lifecycle action group. Rendered when `!isClosed` (same condition as Edit). No layout change, no restructuring.
+
+**Verified:** `w-px` class present in DRAFT and OPEN detail page source. Absent from CLOSED detail page (where no actions render).
+
+#### 4 — Vacancy Board Role-Based UX (`vacancies/page.tsx`)
+
+**Problem:** "New Vacancy" link button was unconditionally rendered for all authenticated users, including Workforce Planners (read-only role). A Workforce Planner would navigate to the form, fill it out, submit, and receive a `FORBIDDEN` error.
+
+**Fix:** Added JWT role decode (`getSessionRoles()` helper — same pattern as `[id]/page.tsx`). "New Vacancy" conditionally rendered only when `canWrite = true` (System Administrator or HR Director). Workforce Planners see a clean board with no misleading affordance.
+
+**Verified:** "New Vacancy" present in rendered board HTML for `admin@dev.gov` (System Administrator). Role-gating follows established GD-12-4 pattern.
+
+#### 5 — Priority Badge Title-Case (`vacancy-badges.tsx`)
+
+**Problem:** `PriorityBadge` rendered raw enum values (`CRITICAL`, `HIGH`, `MEDIUM`, `LOW`) — inconsistent with `StatusBadge` which uses human-readable labels.
+
+**Fix:** Added `PRIORITY_LABELS` record mapping enum values to title-case strings. `PriorityBadge` renders `{PRIORITY_LABELS[priority]}` instead of `{priority}`. No color or behavior change.
+
+**Verified:** Board and detail pages render `>Low<`, `>Medium<`, `>High<`, `>Critical<` — title-case throughout.
+
+### What Was Intentionally Left Unchanged
+
+**Item 2 — Discoverability:** The stretched link pattern was applied. A "keep as-is" conclusion was evaluated but rejected because the false affordance (row highlights but only title is clickable) was a real usability gap, not a marginal preference.
+
+**Deferred (as approved):** Sorting, column ordering, modal focus trap, aging emoji, new dashboard work.
+
+### Validation
+
+**tsc --noEmit:** zero errors
+**ESLint:** zero warnings
+**Build:** clean (all routes preserved, bundle sizes unchanged or negligible increase)
+
+**Runtime verification (2026-06-18):**
+- RV1: FILLED vacancy detail → `Closure Type: Filled`, `Filled` date in Timeline, priority `High`, `Closed` label replacing `Last Updated` ✓
+- RV2: CANCELLED vacancy detail → `Closure Type: Cancelled`, `Closed` date in Timeline, no `Filled` field, priority `Low` ✓
+- RV3: Active DRAFT vacancy → `Last Updated` preserved, separator visible, no `Closure Type`, `Open Vacancy` + `Close Vacancy` present ✓
+- RV4: Vacancy Board → `after:absolute` stretched link on all rows, priority badges title-case, `New Vacancy` button visible for admin ✓
+- RV5: OPEN vacancy → `Last Updated` preserved, separator present, `Edit` + `Close Vacancy` visible ✓
+
+---
+
+## Security Hardening — Login Form Fallback (2026-06-18)
+
+**Classification:** Improvement — Security Hardening
+
+**File modified:** `apps/web/src/features/auth/login-form.tsx` line 88
+
+**Change:** Added `method="post"` to the `<form>` element.
+
+**Before:** `<form onSubmit={form.handleSubmit(onSubmit)} noValidate className="space-y-4">`
+**After:** `<form onSubmit={form.handleSubmit(onSubmit)} method="post" noValidate className="space-y-4">`
+
+**Risk addressed:** HTML `<form>` without a `method` attribute defaults to GET. When JavaScript fails to load (degraded server, blocked bundle, slow network), the browser submits the form natively via GET. Credentials appear in the URL (`/login?email=...&password=...`), browser history, and server access logs.
+
+**Behavior with `method="post"`:**
+- JavaScript running (normal): no change — React Hook Form's `handleSubmit` calls `e.preventDefault()` before the native submit fires; `method` attribute is never used.
+- JavaScript not loaded (degraded): form submits as POST; credentials stay in the request body; not exposed in URL, history, or access logs.
+
+**Validation:** tsc 0 errors, ESLint 0 warnings. Runtime verified on fresh dev server (port 3002): login BFF HTTP 200, session cookie issued (331 chars), `/workforce/vacancies` HTTP 200 authenticated.
+
+---
+
+## Permanent Environment Constraint — Authoritative Update (2026-06-17)
+
+### Complete Port Assignment
+
+| Port | Instance | Role | Use |
+|---|---|---|---|
+| `localhost:5432` | Native PostgreSQL 18 (Windows service) | NOT the application database | Ignore for all project work |
+| `localhost:5433` | Docker PostgreSQL 16 (application database) | ✓ Authoritative dev database | All host-side DB access |
+| `postgres:5432` | Docker PostgreSQL 16 (Docker internal DNS) | Runtime API connection | Injected by docker-compose.yml |
+
+### Authoritative .env State (Both Files)
+
+```
+# Root .env (line 11)
+DATABASE_URL=postgresql://govplatform:devpassword@localhost:5433/gov_workforce_dev
+
+# apps/api/.env (line 4) — read by Prisma CLI when run from apps/api/
+DATABASE_URL=postgresql://govplatform:devpassword@localhost:5433/gov_workforce_dev
+
+# Both files must be kept in sync.
+```
+
+### Starting Docker Postgres (Required Before Prisma CLI or npm test)
+
+```powershell
+# Always use this command from the project root — passes --env-file explicitly
+docker compose -f infrastructure/docker/docker-compose.yml --env-file .env up -d postgres
+
+# Verify port binding before any Prisma operation
+docker ps --filter "name=gov_workforce_postgres" --format "{{.Ports}}"
+# Expected: 0.0.0.0:5433->5432/tcp
+```
+
+**Do NOT use `npm run db:up`** — this script does not pass `--env-file` and docker compose
+falls back to the default POSTGRES_PORT (5432), binding the container to the wrong port.
+
+### Lessons Learned
+
+**Lesson 1 — Two .env files, not one.**
+`apps/api/.env` is a separate Prisma-specific env file. Both the root `.env` and
+`apps/api/.env` must be updated together when DATABASE_URL changes. They are independent
+files — updating one does not update the other. Verify both when debugging Prisma connection issues.
+
+**Lesson 2 — POSTGRES_PORT and DATABASE_URL are independent variables.**
+`POSTGRES_PORT` governs Docker Compose port mapping. `DATABASE_URL` governs what Prisma and
+NestJS connect to. Changing one does not change the other. Always update both simultaneously.
+
+**Lesson 3 — npm run db:up does not use --env-file.**
+The `db:up` script calls docker compose without `--env-file`. Docker compose then looks for `.env`
+relative to the compose file location (`infrastructure/docker/`), not the CWD. Since `.env` is in
+the project root (not `infrastructure/docker/`), POSTGRES_PORT falls back to default 5432. Always
+use the explicit form for postgres container management:
+```powershell
+docker compose -f infrastructure/docker/docker-compose.yml --env-file .env up -d postgres
+```
+
+**Lesson 4 — Verify the datasource line in Prisma CLI output before trusting results.**
+`prisma migrate deploy` and `prisma migrate dev` both print:
+`Datasource "db": ... at "localhost:PORT"` — always check this line matches the expected port
+before accepting migration results as valid.
+
+**Lesson 5 — Green tests do not prove correct database target.**
+Tests pass regardless of which database DATABASE_URL points to (both have the same schema).
+A passing test suite is necessary but not sufficient to confirm the correct database is targeted.
+Always verify the datasource line in Prisma CLI output independently.
+
+**Lesson 6 — Use prisma migrate deploy for reconciliation, not migrate dev.**
+`prisma migrate deploy` applies pending migrations without creating new ones. It is safe to run
+against a database that has fewer migrations than the local migration folder. `prisma migrate dev`
+may detect drift and create spurious migration files — use it only for new schema changes.
+
+**Lesson 7 — apps/web/.env.local is required for the local Next.js dev server.**
+The BFF login route (`apps/web/src/app/api/auth/login/route.ts:21`) reads `process.env.API_URL`
+with no fallback default. If `API_URL` is unset the route returns HTTP 500 before NestJS is
+contacted. The Docker web container has `API_URL: http://api:3001` injected by docker-compose.yml.
+The local Next.js dev server has no equivalent — `apps/web/.env.local` must be created manually:
+```
+# apps/web/.env.local — not committed, listed in root .gitignore
+API_URL=http://localhost:3001
+```
+This file must exist before starting `npm run dev --workspace=apps/web`. It is not recreated
+automatically and must be added after any fresh clone or environment setup.
+
+**Lesson 8 — Docker Compose with -f flag requires --env-file for root .env resolution.**
+`docker compose -f infrastructure/docker/docker-compose.yml` looks for `.env` relative to the
+compose file directory (`infrastructure/docker/`), not the working directory. Since the project
+root `.env` is not in that directory, `${JWT_SECRET}` resolves to blank — causing NestJS env
+validation to fail and crash the API container. The full stack command must always be:
+```powershell
+docker compose -f infrastructure/docker/docker-compose.yml --env-file .env up -d
+```
+Running without `--env-file` silently blanks JWT_SECRET and reverts POSTGRES_PORT to 5432.
+
+### Next Steps
+
+Steps 1–5 complete (approved 2026-06-17). Steps 6 and 7 completed within Step 5 scope. No separate implementation required for Steps 6 or 7.
+Step 8 — POS-500 gate activation — complete (approved 2026-06-17). 4 files modified; 8 new tests; 412/412 tests pass; tsc --noEmit zero errors; all 16 exit criteria met.
+Step 9 — VacancyBoard frontend page — complete (approved 2026-06-17). 7 files created, 1 file modified; middleware SEC-004 extended to /workforce/:path*; 412 API tests unchanged; tsc --noEmit zero errors; ESLint zero warnings; build EXIT 0; all 20 exit criteria met.
+Step 10 — Create Vacancy form — pending.
+Steps 11–14 — VacancyDetail, Edit/Open/Close flows, e2e validation — pending.
 
 ## Milestone 10 — Step 6 Validation Evidence
 

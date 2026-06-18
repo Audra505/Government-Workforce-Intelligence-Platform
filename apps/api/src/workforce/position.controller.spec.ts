@@ -276,6 +276,12 @@ describe('PositionController', () => {
       await expect(controller.closePosition(POSITION_ID, mockActor)).rejects.toThrow(ConflictException);
     });
 
+    it('HAS_ACTIVE_VACANCIES: throws ConflictException with code HAS_ACTIVE_VACANCIES (POS-500)', async () => {
+      mockService.closePosition.mockResolvedValue({ outcome: 'HAS_ACTIVE_VACANCIES' });
+
+      await expect(controller.closePosition(POSITION_ID, mockActor)).rejects.toThrow(ConflictException);
+    });
+
     it('INTERNAL_ERROR: throws InternalServerErrorException', async () => {
       mockService.closePosition.mockResolvedValue({ outcome: 'INTERNAL_ERROR' });
 

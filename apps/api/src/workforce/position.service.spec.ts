@@ -53,6 +53,9 @@ describe('PositionService', () => {
       findFirst: jest.fn(),
       update:    jest.fn(),
     },
+    vacancy: {
+      findFirst: jest.fn(),
+    },
   };
   const mockAuditService = { logEvent: jest.fn() };
 
@@ -547,6 +550,7 @@ describe('PositionService', () => {
     it('valid position → outcome SUCCESS with status CLOSED (POS-501)', async () => {
       const closedRow = { ...POSITION_ROW, status: 'CLOSED' };
       mockPrisma.position.findFirst.mockResolvedValue({ id: POSITION_ID, status: 'DRAFT' });
+      mockPrisma.vacancy.findFirst.mockResolvedValue(null);
       mockPrisma.position.update.mockResolvedValue(closedRow);
       mockAuditService.logEvent.mockResolvedValue(undefined);
 
@@ -577,6 +581,7 @@ describe('PositionService', () => {
     it('WORKFORCE_POSITION_CLOSED audit event emitted after successful close (AUD-400 / POS-501)', async () => {
       const closedRow = { ...POSITION_ROW, status: 'CLOSED' };
       mockPrisma.position.findFirst.mockResolvedValue({ id: POSITION_ID, status: 'DRAFT' });
+      mockPrisma.vacancy.findFirst.mockResolvedValue(null);
       mockPrisma.position.update.mockResolvedValue(closedRow);
       mockAuditService.logEvent.mockResolvedValue(undefined);
 
@@ -608,6 +613,84 @@ describe('PositionService', () => {
       await service.closePosition(POSITION_ID, TENANT_ID, ACTOR_ID);
 
       expect(mockAuditService.logEvent).not.toHaveBeenCalled();
+    });
+
+    // POS-500 gate tests (M11 Step 8 — Governance Decision 8-6 broad interpretation)
+
+    it('non-CLOSED vacancy exists → outcome HAS_ACTIVE_VACANCIES (POS-500)', async () => {
+      mockPrisma.position.findFirst.mockResolvedValue({ id: POSITION_ID, status: 'ACTIVE' });
+      mockPrisma.vacancy.findFirst.mockResolvedValue({ id: 'vac-id-stub' });
+
+      const result = await service.closePosition(POSITION_ID, TENANT_ID, ACTOR_ID);
+
+      expect(result.outcome).toBe('HAS_ACTIVE_VACANCIES');
+    });
+
+    it('DRAFT vacancy present → outcome HAS_ACTIVE_VACANCIES (Governance Decision 8-6 — POS-300 integrity)', async () => {
+      mockPrisma.position.findFirst.mockResolvedValue({ id: POSITION_ID, status: 'ACTIVE' });
+      mockPrisma.vacancy.findFirst.mockResolvedValue({ id: 'vac-id-stub' });
+
+      const result = await service.closePosition(POSITION_ID, TENANT_ID, ACTOR_ID);
+
+      expect(result.outcome).toBe('HAS_ACTIVE_VACANCIES');
+    });
+
+    it('vacancy.findFirst returns null → no blocking vacancy → closure proceeds to SUCCESS', async () => {
+      const closedRow = { ...POSITION_ROW, status: 'CLOSED' };
+      mockPrisma.position.findFirst.mockResolvedValue({ id: POSITION_ID, status: 'ACTIVE' });
+      mockPrisma.vacancy.findFirst.mockResolvedValue(null);
+      mockPrisma.position.update.mockResolvedValue(closedRow);
+      mockAuditService.logEvent.mockResolvedValue(undefined);
+
+      const result = await service.closePosition(POSITION_ID, TENANT_ID, ACTOR_ID);
+
+      expect(result.outcome).toBe('SUCCESS');
+    });
+
+    it('vacancy check not performed when position is NOT_FOUND (early return before POS-500 guard)', async () => {
+      mockPrisma.position.findFirst.mockResolvedValue(null);
+
+      await service.closePosition(POSITION_ID, TENANT_ID, ACTOR_ID);
+
+      expect(mockPrisma.vacancy.findFirst).not.toHaveBeenCalled();
+    });
+
+    it('vacancy check where clause includes positionId, tenantId, deletedAt: null, status: { not: CLOSED } (POS-500 / SEC-003)', async () => {
+      mockPrisma.position.findFirst.mockResolvedValue({ id: POSITION_ID, status: 'ACTIVE' });
+      mockPrisma.vacancy.findFirst.mockResolvedValue(null);
+      mockPrisma.position.update.mockResolvedValue({ ...POSITION_ROW, status: 'CLOSED' });
+      mockAuditService.logEvent.mockResolvedValue(undefined);
+
+      await service.closePosition(POSITION_ID, TENANT_ID, ACTOR_ID);
+
+      expect(mockPrisma.vacancy.findFirst).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            positionId: POSITION_ID,
+            tenantId: TENANT_ID,
+            deletedAt: null,
+            status: { not: 'CLOSED' },
+          }),
+        }),
+      );
+    });
+
+    it('audit event NOT emitted when outcome is HAS_ACTIVE_VACANCIES (AUD-400)', async () => {
+      mockPrisma.position.findFirst.mockResolvedValue({ id: POSITION_ID, status: 'ACTIVE' });
+      mockPrisma.vacancy.findFirst.mockResolvedValue({ id: 'vac-id-stub' });
+
+      await service.closePosition(POSITION_ID, TENANT_ID, ACTOR_ID);
+
+      expect(mockAuditService.logEvent).not.toHaveBeenCalled();
+    });
+
+    it('position.update NOT called when outcome is HAS_ACTIVE_VACANCIES (no write on blocked closure)', async () => {
+      mockPrisma.position.findFirst.mockResolvedValue({ id: POSITION_ID, status: 'ACTIVE' });
+      mockPrisma.vacancy.findFirst.mockResolvedValue({ id: 'vac-id-stub' });
+
+      await service.closePosition(POSITION_ID, TENANT_ID, ACTOR_ID);
+
+      expect(mockPrisma.position.update).not.toHaveBeenCalled();
     });
   });
 });

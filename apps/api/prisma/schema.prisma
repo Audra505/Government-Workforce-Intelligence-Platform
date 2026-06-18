@@ -103,10 +103,46 @@ model Position {
   deletedAt      DateTime? @map("deleted_at") @db.Timestamptz(6)
 
   department Department @relation(fields: [departmentId], references: [id])
+  vacancies  Vacancy[]
 
   @@index([tenantId], map: "idx_positions_tenant")
   @@index([departmentId], map: "idx_positions_department")
   @@map("positions")
+  @@schema("workforce")
+}
+
+// ---------------------------------------------------------------------------
+// Schema: workforce — Vacancy
+// Spec reference: spec/05_database_schema.md — Schema: workforce / vacancies
+// Milestone 11: Vacancy Management (FR-103, FR-104)
+// Approved governance decisions:
+//   - status/priority/reason stored as VARCHAR per platform convention (no Prisma enums)
+//   - tenantId as bare scalar (no FK to Tenant) — isolation enforced at query level
+//   - filledAt added (not in spec/05): required for Time To Fill metric (directives/03 Reporting Rules)
+//   - deleted_at per platform soft-delete convention
+//   - 4 indexes: position, status, tenant, createdAt (last two governance additions to spec/05 gaps)
+// ---------------------------------------------------------------------------
+
+model Vacancy {
+  id               String    @id @default(uuid()) @db.Uuid
+  tenantId         String    @map("tenant_id") @db.Uuid
+  positionId       String    @map("position_id") @db.Uuid
+  priority         String?   @db.VarChar(50)
+  reason           String?   @db.VarChar(100)
+  status           String    @default("DRAFT") @db.VarChar(50)
+  expectedFillDate DateTime? @map("expected_fill_date") @db.Date
+  filledAt         DateTime? @map("filled_at") @db.Timestamptz(6)
+  createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt        DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  deletedAt        DateTime? @map("deleted_at") @db.Timestamptz(6)
+
+  position Position @relation(fields: [positionId], references: [id], map: "fk_vacancy_position")
+
+  @@index([tenantId], map: "idx_vacancies_tenant")
+  @@index([positionId], map: "idx_vacancies_position")
+  @@index([status], map: "idx_vacancies_status")
+  @@index([createdAt], map: "idx_vacancies_created")
+  @@map("vacancies")
   @@schema("workforce")
 }
 

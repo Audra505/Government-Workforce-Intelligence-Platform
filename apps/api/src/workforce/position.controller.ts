@@ -225,7 +225,7 @@ export class PositionController {
   @ApiResponse({ status: 401, description: 'Not authenticated' })
   @ApiResponse({ status: 403, description: 'Insufficient role' })
   @ApiResponse({ status: 404, description: 'Position not found in this tenant' })
-  @ApiResponse({ status: 409, description: 'Position is already closed' })
+  @ApiResponse({ status: 409, description: 'Position is already closed, or has non-CLOSED vacancies that must be resolved first (POS-500)' })
   @ApiResponse({ status: 500, description: 'Internal server error' })
   async closePosition(
     @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
@@ -253,6 +253,15 @@ export class PositionController {
           error: {
             code: 'ALREADY_CLOSED',
             message: 'position is already closed',
+          },
+        });
+
+      case 'HAS_ACTIVE_VACANCIES':
+        throw new ConflictException({
+          success: false,
+          error: {
+            code: 'HAS_ACTIVE_VACANCIES',
+            message: 'position has active or draft vacancies — close all vacancies before closing position (POS-500)',
           },
         });
 

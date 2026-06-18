@@ -15,10 +15,12 @@ import { Module } from '@nestjs/common';
 import { IdentityModule } from '../identity/identity.module';
 import { PositionController } from './position.controller';
 import { PositionService } from './position.service';
+import { VacancyService } from './vacancy.service';
+import { VacancyController } from './vacancy.controller';
 
 @Module({
   imports: [IdentityModule],
-  controllers: [PositionController],
-  providers: [PositionService],
+  controllers: [PositionController, VacancyController],
+  providers: [PositionService, VacancyService],
 })
 export class WorkforceModule {}
