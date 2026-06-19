@@ -61,7 +61,7 @@ export function VacancyDetail({ vacancy }: Props) {
       {vacancy.requiresReview && (
         <div className="flex items-center gap-2 rounded-md border border-red-200 bg-red-50 px-4 py-3">
           <span className="text-sm font-medium text-red-700">
-            Review Required — Critical vacancy requires HR Director review (VAC-601)
+            Review Required — Critical vacancy requires HR Director review.
           </span>
         </div>
       )}

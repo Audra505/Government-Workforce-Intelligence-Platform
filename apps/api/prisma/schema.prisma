@@ -71,6 +71,7 @@ model Department {
 
   tenant    Tenant     @relation(fields: [tenantId], references: [id])
   positions Position[]
+  employees Employee[]
 
   @@unique([tenantId, code], map: "idx_departments_tenant_code")
   @@index([tenantId], map: "idx_departments_tenant")
@@ -143,6 +144,44 @@ model Vacancy {
   @@index([status], map: "idx_vacancies_status")
   @@index([createdAt], map: "idx_vacancies_created")
   @@map("vacancies")
+  @@schema("workforce")
+}
+
+// ---------------------------------------------------------------------------
+// Schema: workforce — Employee
+// Spec reference: spec/05_database_schema.md — Schema: workforce / employees
+// Milestone 12: Employee Management Foundation (FR-110, FR-111, FR-112)
+// Approved governance decisions:
+//   - employmentStatus @default("PENDING_ONBOARDING") per GD-M12-1 canonical values
+//   - employmentStatus stored as VARCHAR per platform convention (no Prisma enum)
+//   - tenantId as bare scalar (no FK to Tenant) — isolation enforced at query level (SEC-003)
+//   - departmentId FK to organization.departments — cross-schema relation (multiSchema preview)
+//   - employeeNumber nullable at DB level per spec/05; required at API level per GD-M12-6
+//   - employeeNumber immutable after creation per GD-M12-6 (enforced at service layer)
+//   - No positionId field — GD-M12-2: position association deferred to Phase 3 Scheduling
+//   - deleted_at per platform soft-delete convention
+// ---------------------------------------------------------------------------
+
+model Employee {
+  id               String    @id @default(uuid()) @db.Uuid
+  tenantId         String    @map("tenant_id") @db.Uuid
+  departmentId     String    @map("department_id") @db.Uuid
+  employeeNumber   String?   @map("employee_number") @db.VarChar(100)
+  firstName        String    @map("first_name") @db.VarChar(100)
+  lastName         String    @map("last_name") @db.VarChar(100)
+  email            String?   @db.VarChar(255)
+  employmentStatus String    @default("PENDING_ONBOARDING") @map("employment_status") @db.VarChar(50)
+  hireDate         DateTime? @map("hire_date") @db.Date
+  terminationDate  DateTime? @map("termination_date") @db.Date
+  createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt        DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  deletedAt        DateTime? @map("deleted_at") @db.Timestamptz(6)
+
+  department Department @relation(fields: [departmentId], references: [id])
+
+  @@unique([tenantId, employeeNumber], map: "idx_employee_number_tenant")
+  @@index([tenantId], map: "idx_employees_tenant")
+  @@map("employees")
   @@schema("workforce")
 }
 

@@ -95,3 +95,87 @@ export type UpdateVacancyBffResponse =
 export type CloseVacancyBffResponse =
   | { success: true; data: VacancyRow }
   | { success: false; error: { code: string; message: string } };
+
+// ===========================================================================
+// M12 Step 4 — Employee Management Frontend Types
+// Reference: apps/api/src/workforce/employee.controller.ts — toEmployeeShape()
+// Reference: directives/13_employee_management_rules.md — GD-M12-1, EMP-400
+// tenantId intentionally absent — excluded by toEmployeeShape() per SEC-003.
+// ===========================================================================
+
+export type EmploymentStatus =
+  | 'PENDING_ONBOARDING'
+  | 'ACTIVE'
+  | 'ON_LEAVE'
+  | 'SUSPENDED'
+  | 'SEPARATED';
+
+export type EmployeeRow = {
+  id: string;
+  departmentId: string;
+  departmentName: string;
+  employeeNumber: string;
+  firstName: string;
+  lastName: string;
+  email: string | null;
+  employmentStatus: EmploymentStatus;
+  hireDate: string | null;
+  terminationDate: string | null;
+  createdAt: string;
+  updatedAt: string;
+  // tenantId intentionally absent — SEC-003
+};
+
+export type EmployeeListApiResponse = {
+  success: true;
+  data: {
+    employees: EmployeeRow[];
+    total: number;
+    page: number;
+    pageSize: number;
+    totalPages: number;
+  };
+};
+
+export type EmployeeDetailApiResponse = {
+  success: true;
+  data: EmployeeRow;
+};
+
+// ---------------------------------------------------------------------------
+// Department option — used in employee create/edit department select.
+// Mirrors toDepartmentShape() fields from OrganizationController.
+// ---------------------------------------------------------------------------
+
+export type DepartmentOption = {
+  id: string;
+  name: string;
+  code: string;
+};
+
+export type DepartmentListApiResponse = {
+  success: true;
+  data: {
+    departments: DepartmentOption[];
+    total: number;
+    page: number;
+    pageSize: number;
+    totalPages: number;
+  };
+};
+
+// ---------------------------------------------------------------------------
+// BFF response types — M12 Employee write operations
+// ---------------------------------------------------------------------------
+
+export type CreateEmployeeBffResponse =
+  | { success: true; data: EmployeeRow }
+  | { success: false; error: { code: string; message: string } };
+
+export type UpdateEmployeeBffResponse =
+  | { success: true; data: EmployeeRow }
+  | { success: false; error: { code: string; message: string } };
+
+export type ChangeEmployeeStatusBffResponse =
+  | { success: true; data: EmployeeRow }
+  | { success: false; error: { code: string; message: string } };

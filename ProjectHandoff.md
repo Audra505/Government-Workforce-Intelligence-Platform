@@ -37,21 +37,21 @@ Approved
 
 ### Current Phase
 
-Phase 1 — Foundation
+Phase 1 — Foundation (FORMALLY CLOSED — 2026-06-12)
 
 ### Current Milestone
 
-Milestone 10 — Frontend Foundation (D4)
+Milestone 11 — Vacancy Management (Phase 2 — First Domain Capability)
 
-**COMPLETE AND CI-VALIDATED. Phase 1 formally closed.**
+**COMPLETE AND CI-VALIDATED. 2026-06-18.**
 
-Post-Validation Correction committed (97b42e6) and CI-confirmed green (2026-06-12).
-CI workflow: CI / Install, Lint, Build, Test (push) — success in 2m.
+Steps 1–14 complete. Commits 0c1a563 (implementation) + c07cebb (PROGRESS.md) pushed to origin/main.
+CI: confirmed green. Docker: api + web rebuilt; all containers healthy.
+Vacancy migration applied. D1–D4 Docker runtime validation passed.
 
 > Governance note: ProjectHandoff.md is an AI continuity document only. It is not an authority
 > source for milestone naming, scope, sequencing, or implementation decisions. Authority order:
 > (1) CLAUDE.md, (2) PROGRESS.md, (3) approved spec/roadmap documents, (4) repository state.
-> Phase 2 milestone name, sequencing, and scope have NOT been determined. Do not infer next scope.
 
 ### Completed Milestones
 
@@ -214,7 +214,51 @@ Key outcomes:
 • Position audit integration implemented (AUD-400 events)
 • Tenant isolation enforcement implemented
 • Soft-delete filter active
+• POS-500 partial gate implemented (M11 Step 8): closePosition blocks active vacancies
 • FR-100 validated
+
+
+#### Milestone 11 — Vacancy Management Foundation
+
+Complete and CI-validated. Commits 0c1a563 + c07cebb pushed to origin/main (2026-06-18). CI green.
+
+Key outcomes (Backend):
+
+• VacancyService implemented (createVacancy, listVacancies, getVacancyById, updateVacancy, openVacancy, closeVacancy)
+• VacancyController implemented (5 endpoints: POST, GET, GET:id, PUT, POST:id/close)
+• Full vacancy lifecycle implemented: DRAFT → OPEN → CLOSED (FILLED or CANCELLED); DRAFT → CLOSED (CANCELLED only)
+• RBAC enforced: SA + HR Director write; SA + HR Director + Workforce Planner read
+• SEC-003 tenant isolation enforced on all vacancy operations
+• DTOs implemented: CreateVacancyDto, UpdateVacancyDto, ListVacanciesQueryDto, CloseVacancyDto, VacancyResponseDto
+• Prisma: workforce.vacancies table migration (20260617053917) applied
+• AuditEventType: 6 vacancy events added (CREATED, UPDATED, OPENED, FILLED, CANCELLED, CLOSED)
+• Aging metrics: ageInDays, agingStatus (OK / WARNING / HIGH_RISK), VAC-701/VAC-702 thresholds
+• requiresReview flag: CRITICAL + OPEN vacancies flagged (VAC-601)
+• Soft-delete filter active
+• FR-103 validated
+
+Key outcomes (Frontend):
+
+• Vacancy Board: /workforce/vacancies (Server Component, filters, pagination, stretched-link rows, role-gated New Vacancy)
+• Vacancy Detail: /workforce/vacancies/[id] (all fields, Timeline, Closure Type display for CLOSED)
+• Create Vacancy: /workforce/vacancies/new (React Hook Form + Zod, position selector, date picker + Clear button)
+• Edit Vacancy: /workforce/vacancies/[id]/edit (pre-populated form, canWrite redirect guard)
+• VacancyActions Client Component: Open Vacancy modal (DRAFT→OPEN) + Close Vacancy modal (FILLED/CANCELLED)
+• BFF route handlers: GET, PUT /api/vacancies/[id]; POST /api/vacancies/[id]/close; cache:no-store on all mutations
+• JWT role decode for canWrite (UX-only; NestJS is authoritative RBAC enforcer)
+
+Key outcomes (Docker + CI):
+
+• Vacancies migration applied to Docker PostgreSQL (6/6 migrations, 0 pending)
+• api + web Docker images rebuilt with M11 code; all containers healthy
+• D1–D4 Docker runtime validation: login, board, detail, Open Vacancy lifecycle — all passing at localhost:3000
+
+Approved deferred enhancements (open):
+
+• VAC-602: Manager Approval workflow for CANCELLED closures — Phase 3 scope
+• IN_RECRUITMENT trigger: no UI/API path for OPEN→IN_RECRUITMENT — Phase 3 scope
+• Modal focus trap: accessibility pass deferred
+• Frontend automated tests: no Jest/Playwright for apps/web — Phase 6 Hardening per spec/14
 
 
 #### Milestone 9 — Phase 1 Infrastructure Completion
@@ -328,10 +372,14 @@ Validated services:
 * Agency management operational
 * Position management operational
 * Position lifecycle management operational (DRAFT / ACTIVE / FROZEN / CLOSED)
-* Docker environment operational (gov_workforce_postgres, gov_workforce_api, gov_workforce_web — all containers healthy)
+* Vacancy management operational (DRAFT → OPEN → CLOSED; FILLED and CANCELLED closure types)
+* Vacancy lifecycle management operational
+* Vacancy aging metrics operational (VAC-701/VAC-702)
+* Docker environment operational (gov_workforce_postgres, gov_workforce_api, gov_workforce_web — all containers healthy; rebuilt 2026-06-18 with M11 code)
 * Full 3-service Docker stack validated (postgres + api + web health check chain)
+* Vacancy migration applied to Docker PostgreSQL (6/6 migrations applied)
 * CORS validated (Access-Control-Allow-Origin: http://localhost:3000, credentials: true)
-* GitHub Actions CI: green (run 27398218893, commit c049634) — lint + build + unit tests + migrations + seed + e2e pipeline passing
+* GitHub Actions CI: green (commits 0c1a563 + c07cebb, 2026-06-18) — lint + build + unit tests + migrations + seed + e2e pipeline passing
 
 Startup log confirms:
 
@@ -372,17 +420,25 @@ Authenticated Endpoints Operational
 • PUT /api/v1/positions/{id}
 • POST /api/v1/positions/{id}/close
 
+• POST /api/v1/vacancies
+• GET /api/v1/vacancies
+• GET /api/v1/vacancies/{id}
+• PUT /api/v1/vacancies/{id}
+• POST /api/v1/vacancies/{id}/close
+
 
 ### Current Test Status
 
 Passing:
 
-* 244 unit tests
-* 17 unit test suites
+* 412 unit tests
+* 23 unit test suites
 
-* 122 e2e tests
-* 5 e2e test suites
+* 58 vacancy e2e tests (vacancy.e2e-spec.ts — added M11 Step 14)
+* 6 e2e test suites total (app, auth, users, organization, position, vacancy)
 
+Note: Prior phase counts were 244 unit / 122 e2e. M11 added 168 unit tests across 6 new suites
+and 58 e2e tests in 1 new suite.
 
 ### Unit Test Suites
 
@@ -403,6 +459,12 @@ Passing:
 • organization.controller.spec.ts
 • position.service.spec.ts
 • position.controller.spec.ts
+• vacancy.service.spec.ts (added M11)
+• vacancy.controller.spec.ts (added M11)
+• dto/create-vacancy.dto.spec.ts (added M11)
+• dto/update-vacancy.dto.spec.ts (added M11)
+• dto/close-vacancy.dto.spec.ts (added M11)
+• dto/list-vacancies-query.dto.spec.ts (added M11)
 
 ### E2E Test Suites
 
@@ -411,6 +473,7 @@ Passing:
 • users.e2e-spec.ts
 • organization.e2e-spec.ts
 • position.e2e-spec.ts
+• vacancy.e2e-spec.ts (added M11 Step 14 — 58 tests: CRUD, RBAC, lifecycle, audit trail, tenant isolation, soft-delete)
 
 
 Validation status:
@@ -433,6 +496,12 @@ Validation status:
 * Position lifecycle validation completed
 * Position RBAC validation completed
 * Position audit validation completed
+* Vacancy management validation completed
+* Vacancy lifecycle validation completed (DRAFT→OPEN→CLOSED, DRAFT→CANCELLED)
+* Vacancy RBAC validation completed
+* Vacancy audit validation completed
+* Vacancy tenant isolation validation completed
+* Docker runtime validation completed (D1–D4, localhost:3000, 2026-06-18)
 
 Important constraints:
 
@@ -731,25 +800,33 @@ No Python services.
 
 # Current Objective
 
-Complete Phase 1 closure.
+Phase 1 is formally closed. Phase 2 is active.
 
-Milestones 1–10 are locally complete and validated.
+Milestone 11 — Vacancy Management: FORMALLY CLOSED (2026-06-18).
+Commits 0c1a563 (implementation, 46 files) + c07cebb (PROGRESS.md) on origin/main. CI: green.
 
-Phase 1 local exit criteria are met. D4 (Frontend Foundation) is locally complete (Milestone 10, 2026-06-12). D9 (Docker Environment) and D10 (CI/CD Foundation) are complete and validated (Milestone 9, 2026-06-11).
+Milestones 1–11 are complete, committed, pushed, and CI-validated.
 
-Phase 1 formally closes upon M10 CI green run (commit + push + GitHub Actions validation).
+D4 (Frontend Foundation) — Milestone 10 (2026-06-12, commits c049634 + 97b42e6, CI confirmed green).
+D9 (Docker Environment) — Milestone 9 (2026-06-11, committed and CI-validated).
+D10 (CI/CD Foundation) — Milestone 9 (2026-06-11, committed and CI-validated).
+Vacancy Management — Milestone 11 (2026-06-18, Steps 1–14, Docker-validated).
+
+The next milestone (M12) has not yet been defined. Scope, name, and sequencing must be determined
+from spec/15_implementation_roadmap.md and authoritative specification documents, not from this document.
 
 ## Current Milestone:
 
-Milestone 10 — Frontend Foundation (D4)
+Milestone 11 — Vacancy Management (Phase 2 — First Domain Capability)
 
 Status:
 
-Locally complete — CI validation pending.
+Complete and CI-validated. Commits 0c1a563 (46 files, 8090 insertions) and c07cebb (PROGRESS.md)
+pushed to origin/main. GitHub Actions CI / Install, Lint, Build, Test: success (2026-06-18).
+Docker: api + web rebuilt with M11 code; all containers healthy. Vacancy migration applied (6/6).
 
-All 7 implementation steps validated locally. All D4 deliverables implemented and verified in Docker stack. M10 commit and push required. GitHub Actions CI green run required for Phase 1 formal closure.
-
-No business features are implemented during Phase 1.
+Open deferred items (Phase 3+ scope): VAC-602 Manager Approval, IN_RECRUITMENT trigger,
+frontend automated tests, modal focus trap.
 
 ---
 
@@ -1106,55 +1183,81 @@ spec/15_implementation_roadmap.md milestones are phase-gate achievements (Milest
 These are two parallel numbering systems. No renaming is required.
 
 Milestone 9 completion status: Complete and validated (2026-06-11). D9 and D10 satisfied. Committed and pushed to main.
-Milestone 10 completion status: Locally complete (2026-06-12). D4 satisfied. CI validation pending commit + push + CI_JWT_SECRET confirmation.
-Milestone 11 completion status: Not yet started.
+Milestone 10 completion status: Complete and CI-validated (2026-06-12). D4 satisfied. Commits c049634 + 97b42e6 pushed to origin/main. CI green.
+Milestone 11 completion status: Complete and CI-validated (2026-06-18). Vacancy Management. Steps 1–14 complete. Commits 0c1a563 + c07cebb pushed to origin/main. CI green.
 
 Phase 1 exit criteria status:
 
 • D9 (Docker Environment): Complete — Milestone 9 (2026-06-11)
 • D10 (CI/CD Foundation): Complete — Milestone 9 (2026-06-11)
-• D4 (Frontend Foundation): Locally complete — Milestone 10 (2026-06-12); CI validation pending
+• D4 (Frontend Foundation): Complete and CI-validated — Milestone 10 (2026-06-12)
 
-Phase 1 formally closes upon M10 CI green run. All local criteria are met.
+Phase 1 is formally closed. All exit criteria met and CI-confirmed.
 
 ---
 
 # Next Action
 
-Complete Phase 1 closure: commit M10 changes, push to main, verify GitHub Actions CI green run.
+Phase 1 is formally closed. Phase 2 is active. Milestone 11 (Vacancy Management) is formally closed.
+
+The next milestone (M12) has not yet been scoped. Do not begin implementation without defining M12 scope
+from spec/15_implementation_roadmap.md and authoritative specification documents.
 
 ### Phase 1 Status
 
-Locally complete. Formal Phase 1 closure pending M10 CI validation.
+**FORMALLY CLOSED** — 2026-06-12.
 
-Next milestone planning session should begin only after Phase 1 CI closure is confirmed. Milestone name, sequencing, and scope will be determined from spec/15_implementation_roadmap.md and the authoritative specification documents. Do not use this document as the basis for milestone planning decisions.
+All exit criteria met. Milestones 1–10 complete, committed, pushed, and CI-validated.
+Closure documentation committed as 721551a. Environment correction committed as c3a0f8d.
+
+### Phase 2 — Active
+
+Milestone 11 — Vacancy Management: **FORMALLY CLOSED** — 2026-06-18.
+Steps 1–14 complete. Commits 0c1a563 + c07cebb on origin/main. CI: green.
+
+The next milestone must be determined from spec/15_implementation_roadmap.md and authoritative
+specification documents. Do not use this document as the basis for milestone, scope, or sequencing
+decisions.
 
 ### Resume Point For Future Sessions
 
-Milestones 1–10 are locally complete.
+---
 
-Phase 1 exit criteria status:
-• D9 (Docker Environment): Complete — Milestone 9 (2026-06-11)
-• D10 (CI/CD Foundation): Complete — Milestone 9 (2026-06-11)
-• D4 (Frontend Foundation): Locally complete — Milestone 10 (2026-06-12); CI pending
+> **Phase 1 is formally closed. Phase 2 is active.**
+> Milestones 1–11 are complete, committed, pushed, and CI-validated.
+> M12 scope has not been defined. Determine next milestone from authoritative roadmap/spec documents.
+> Do not use ProjectHandoff.md as a source for milestone, scope, or sequencing decisions.
 
-Phase 1 formal closure requires:
-• M10 commit to main (resolve .claude/settings.json tracking decision first)
-• git push origin main
-• CI_JWT_SECRET provisioned in GitHub → Settings → Secrets and variables → Actions
-• GitHub Actions CI green run confirmed
+---
 
-Current repository status:
-• All backend APIs operational (M1–M8): authentication, users, organizations, departments, agencies, positions
-• Docker stack operational: gov_workforce_postgres, gov_workforce_api, gov_workforce_web (all healthy)
+Phase 1 exit criteria — final confirmed state:
+• D9 (Docker Environment): Complete — Milestone 9 (2026-06-11), CI-validated
+• D10 (CI/CD Foundation): Complete — Milestone 9 (2026-06-11), CI-validated
+• D4 (Frontend Foundation): Complete — Milestone 10 (2026-06-12), CI-validated (commits c049634 + 97b42e6)
+
+Current repository state:
+• All backend APIs operational (M1–M11): authentication, users, organizations, departments, agencies, positions, vacancies
+• Docker stack operational: gov_workforce_postgres (localhost:5433), gov_workforce_api, gov_workforce_web — all healthy (rebuilt 2026-06-18)
+• Vacancy migration applied to Docker PostgreSQL: 6/6 migrations, 0 pending
 • Frontend Foundation complete: login page, dashboard page, unauthorized page, 404 page, BFF session layer, Edge Middleware, layout auth guard
-• 244 unit tests + 122 e2e tests passing (17 unit suites + 5 e2e suites — api only; frontend tests deferred to Phase 2)
-• Security advisory: next@14.2.3 has known vulnerability — upgrade required before production
+• Vacancy Frontend complete: Vacancy Board, Vacancy Detail, Create Vacancy, Edit Vacancy, VacancyActions (Open + Close modals)
+• Full login → BFF → JWT cookie → dashboard → vacancy lifecycle flow operational with Tailwind/shadcn styling in Docker
+• 412 unit tests + 58 e2e tests passing (23 unit suites + 6 e2e suites — API only; frontend tests deferred to Phase 6)
+• audit.audit_events operational — 6 vacancy event types added (CREATED, UPDATED, OPENED, FILLED, CANCELLED, CLOSED)
+• Security advisory: next@14.2.3 has known vulnerability — upgrade required before production deployment
+• Dev environment: POSTGRES_PORT=5433 in .env — Docker postgres accessible at localhost:5433 for GUI tools
 
-Before any further implementation:
+Git state:
+• Latest commit: c07cebb (docs: update PROGRESS.md — M11 Step 14 closure entry)
+• Branch: main, up to date with origin/main
+• Working tree: uncommitted changes to ProjectHandoff.md (this document — M11 reconciliation update)
+
+Before beginning M12 implementation:
 1. Read CLAUDE.md
 2. Read PROGRESS.md
-3. Read the relevant specification documents
-4. Confirm Phase 1 CI closure status
+3. Read spec/15_implementation_roadmap.md
+4. Read the relevant Phase 2 specification documents
+5. Determine M12 scope and name from authoritative sources
+6. Do not begin implementation without explicit scope approval
 
 Do not use ProjectHandoff.md as the basis for milestone, scope, or sequencing decisions.
