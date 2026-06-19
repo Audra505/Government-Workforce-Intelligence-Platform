@@ -10,7 +10,7 @@
 ---
 
 Last Updated: 2026-06-19
-Updated By: Claude Code (session: M12-H2 — UI consistency and UX polish: Edit button pattern corrected, Department ID UUID removed from employee detail, internal governance codes removed from UI copy, single-transition status modal shows static text instead of dropdown; 4 files modified; type-check EXIT 0, lint EXIT 0, build EXIT 0; all 4 changes browser-verified against Docker stack)
+Updated By: Claude Code (session: GD-M12-7 governance documentation — recorded open lifecycle review item for ON_LEAVE → SEPARATED and SUSPENDED → SEPARATED transitions; documentation only, no implementation changes)
 
 ## Repository Status
 
@@ -5914,4 +5914,65 @@ Four UI-layer changes identified during M12 post-completion housekeeping review.
 ### Capability Maturity Impact
 
 - Employee Management frontend: **Improved** — visual consistency with vacancy pattern; cleaner UI copy; modal UX corrected for single-transition states
+
+---
+
+## GD-M12-7 — Employee Lifecycle Separation Review
+
+**Date Raised:** 2026-06-19
+**Status:** Open Governance Discussion
+**Priority:** Low
+**Impact on M13:** None
+
+### Question
+
+Should the platform allow employees to transition directly to SEPARATED from intermediate states?
+
+Specifically:
+- `ON_LEAVE → SEPARATED`
+- `SUSPENDED → SEPARATED`
+
+### Business Context
+
+The question arose during M12 housekeeping review. Real-world HR scenarios include:
+
+- Employee resigns while on approved leave
+- Employee retires while on medical leave
+- Employee is terminated as the outcome of a suspension investigation
+
+In these cases, requiring the system to first return an employee to ACTIVE before recording separation misrepresents the actual event sequence and introduces an artificial intermediate state.
+
+### Authority Review Summary
+
+**`state/02_employee_lifecycle.md`:** Neither `ON_LEAVE → SEPARATED` nor `SUSPENDED → SEPARATED` appears in the state model's Forbidden Transitions list. The Forbidden Transitions section exclusively addresses outbound transitions from SEPARATED and Candidate paths. The state model diagram is illustrative (canonical path), not an exhaustive state machine.
+
+**`directives/13_employee_management_rules.md` (GD-M12-1):** Both transitions are explicitly listed as forbidden. This prohibition was established as a scope constraint during M12 planning — it is a governance decision, not a derivation from the state model.
+
+**Gap:** The directive forbids transitions the state model does not explicitly prohibit. The directive defers to the state model as the primary authority (EMP-006), creating a structural gap between the two documents.
+
+### Current Ruling
+
+**No change.** The existing lifecycle remains authoritative as implemented.
+
+- `ON_LEAVE → SEPARATED`: Forbidden (GD-M12-1)
+- `SUSPENDED → SEPARATED`: Forbidden (GD-M12-1)
+- Current implementation is correct. No defect exists.
+
+### Future Resolution
+
+Revisit after M13 completion or during a broader workforce lifecycle governance review.
+
+If approved, GD-M12-7 would constitute a targeted lifecycle enhancement requiring:
+
+| Layer | Change |
+|---|---|
+| `state/02_employee_lifecycle.md` | Add both transitions to Allowed Transitions section |
+| `directives/13_employee_management_rules.md` | Remove from Forbidden list; add to Allowed list; update EMP-700 audit events |
+| `apps/api/src/workforce/employee.service.ts` | Add two entries to `ALLOWED_TRANSITIONS` map |
+| Audit events | Verify `WORKFORCE_EMPLOYEE_SEPARATED` coverage for new source states |
+| `apps/web/src/features/workforce/components/employee-status-actions.tsx` | Add `'SEPARATED'` to `ON_LEAVE` and `SUSPENDED` arrays in `NEXT_STATES` |
+| Unit + e2e tests | New transition cases + unchanged forbidden transition regression coverage |
+| `PROGRESS.md` | Lifecycle maturity update |
+
+No schema migration required. No new endpoint. No BFF change.
 - Confirm technology stack and environment setup before writing execution code
