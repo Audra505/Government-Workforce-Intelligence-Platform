@@ -48,12 +48,13 @@ type SeparationReason = 'TERMINATION' | 'RETIREMENT' | 'RESIGNATION' | 'TRANSFER
 // ---------------------------------------------------------------------------
 
 const ERROR_MESSAGES: Record<string, string> = {
-  INVALID_TRANSITION:   'This status change is not allowed from the current state.',
-  EMPLOYEE_IS_SEPARATED:'This employee is separated and cannot be modified.',
-  NOT_FOUND:            'This employee record could not be found.',
-  FORBIDDEN:            "You don't have permission to change employee status.",
-  UNAUTHORIZED:         'Session expired. Please sign in again.',
-  INTERNAL_ERROR:       'Service unavailable. Please try again.',
+  INVALID_TRANSITION:            'This status change is not allowed from the current state.',
+  EMPLOYEE_IS_SEPARATED:         'This employee is separated and cannot be modified.',
+  TERMINATION_BEFORE_HIRE_DATE:  'Cannot separate this employee — the separation date would precede the hire date. Update or remove the hire date first.',
+  NOT_FOUND:                     'This employee record could not be found.',
+  FORBIDDEN:                     "You don't have permission to change employee status.",
+  UNAUTHORIZED:                  'Session expired. Please sign in again.',
+  INTERNAL_ERROR:                'Service unavailable. Please try again.',
 };
 
 // ---------------------------------------------------------------------------

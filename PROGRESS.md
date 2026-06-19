@@ -10,7 +10,7 @@
 ---
 
 Last Updated: 2026-06-19
-Updated By: Claude Code (session: GD-M12-7 governance documentation — recorded open lifecycle review item for ON_LEAVE → SEPARATED and SUSPENDED → SEPARATED transitions; documentation only, no implementation changes)
+Updated By: Claude Code (session: GD-M12-8 implementation — Employee Date Integrity guard; EMP-805 added to directive and service; 5 new unit tests + 1 new controller test; 501/501 unit tests pass; 17/17 runtime verification checks pass)
 
 ## Repository Status
 
@@ -5976,3 +5976,83 @@ If approved, GD-M12-7 would constitute a targeted lifecycle enhancement requirin
 
 No schema migration required. No new endpoint. No BFF change.
 - Confirm technology stack and environment setup before writing execution code
+
+---
+
+## GD-M12-8 — Employee Date Integrity: Termination Before Hire Date
+
+**Date Raised:** 2026-06-19 (governance review) → **Implemented:** 2026-06-19
+**Status:** Implemented and Validated
+**Priority:** Data Integrity — Corrective
+**Impact on M13:** None
+
+### Problem
+
+`terminationDate` is system-managed (set to `new Date()` on `ACTIVE → SEPARATED`). `hireDate` is an optional client-supplied field that may be set to a future date (valid operational pattern for onboarding pipeline). No authority or guard prevented `terminationDate < hireDate`, producing a logically inconsistent record. Runtime evidence: Patricia Lanford (EMP-001) showed HIRE DATE 2026-07-29 / TERMINATION DATE 2026-06-19.
+
+### Rule Implemented (EMP-805)
+
+If an employee has a non-null `hireDate` that is in the future and a SEPARATED transition is attempted, the transition is rejected.
+
+```
+HTTP 422
+Error Code: TERMINATION_BEFORE_HIRE_DATE
+No state change. No audit event.
+Guard applies only when hireDate is not null.
+When hireDate is null, separation proceeds normally.
+```
+
+### Files Changed
+
+| File | Change |
+|---|---|
+| `directives/13_employee_management_rules.md` | Added GD-M12-8 to Governance Decisions section; added EMP-805 Failure Rule; added Acceptance Criterion #12 |
+| `apps/api/src/workforce/employee.service.ts` | Added `TERMINATION_BEFORE_HIRE_DATE` to `ChangeEmployeeStatusResult`; added `hireDate: true` to findFirst select; added date comparison guard before transition table lookup |
+| `apps/api/src/workforce/employee.controller.ts` | Mapped `TERMINATION_BEFORE_HIRE_DATE` outcome to HTTP 422; updated Swagger `@ApiResponse` annotation |
+| `apps/web/src/features/workforce/components/employee-status-actions.tsx` | Added `TERMINATION_BEFORE_HIRE_DATE` to `ERROR_MESSAGES` with user-readable message |
+| `apps/api/src/workforce/employee.service.spec.ts` | Updated `makeStatusRow` to include explicit `hireDate: null`; added new describe block `changeEmployeeStatus() — GD-M12-8 date integrity guard` with 5 tests |
+| `apps/api/src/workforce/employee.controller.spec.ts` | Added `TERMINATION_BEFORE_HIRE_DATE` → UnprocessableEntityException controller test |
+
+### Test Coverage
+
+**New unit tests (service):**
+
+| Test | Expected |
+|---|---|
+| future hireDate → TERMINATION_BEFORE_HIRE_DATE, no DB write | `PASS` |
+| TERMINATION_BEFORE_HIRE_DATE → no audit event | `PASS` |
+| null hireDate → STATUS_CHANGED (guard does not apply) | `PASS` |
+| past hireDate → STATUS_CHANGED (guard does not apply) | `PASS` |
+| ON_LEAVE with future hireDate → STATUS_CHANGED (guard is SEPARATED-only) | `PASS` |
+
+**New unit tests (controller):**
+
+| Test | Expected |
+|---|---|
+| TERMINATION_BEFORE_HIRE_DATE → HTTP 422, code TERMINATION_BEFORE_HIRE_DATE | `PASS` |
+
+**Full test suite result:** 501/501 tests pass across 25 suites — zero regressions.
+
+### Runtime Verification (17/17 PASS)
+
+Verified against live Docker stack (port 3001, JWT auth, NestJS API directly):
+
+| Case | Scenario | Result |
+|---|---|---|
+| Case 1a | Create employee with hireDate=2026-07-19, activate → PASS | ✅ |
+| Case 1b | Attempt SEPARATED → HTTP 422 TERMINATION_BEFORE_HIRE_DATE | ✅ |
+| Case 1c | employmentStatus still ACTIVE after rejection | ✅ |
+| Case 1d | terminationDate still null after rejection | ✅ |
+| Case 2 | null hireDate → SEPARATED HTTP 200, status=SEPARATED | ✅ |
+| Case 3 | past hireDate (2020-03-01) → SEPARATED HTTP 200, status=SEPARATED | ✅ |
+| Case 4 | future hireDate + ON_LEAVE transition → HTTP 200, status=ON_LEAVE | ✅ |
+
+### Existing Data Impact
+
+The Patricia Lanford (EMP-001) record that triggered this governance review has `terminationDate < hireDate` and is SEPARATED (read-only under EMP-302). GD-M12-8 prevents future violations but does not retroactively correct this record. The record may be corrected via direct database intervention at the discretion of the decision owner. No automated correction was performed.
+
+### Capability Maturity Impact
+
+- **Employee Lifecycle Management:** Improved — previously: data integrity gap allowing terminationDate < hireDate; now: deterministic guard with HTTP 422 error code, covering all paths (future/null/past hireDate; SEPARATED vs non-SEPARATED transitions)
+- **Layer coverage added:** Failure Playbook (EMP-805), Test Scenarios (6 new tests), System Loop (runtime-verified guard execution)
+- **No schema migration, no API surface change, no M13 scope impact**

@@ -50,6 +50,7 @@ This directive incorporates the following approved governance decisions:
 - GD-M12-4: Skills and Certifications Scope Boundary (2026-06-18)
 - GD-M12-5: Employee Availability Authority (2026-06-18)
 - GD-M12-6: Employee Number Immutability (2026-06-18)
+- GD-M12-8: Employee Date Integrity — Termination Before Hire Date (2026-06-19)
 
 ---
 
@@ -791,6 +792,26 @@ Do not apply any other updates from the same request
 
 ---
 
+## EMP-805
+
+If a SEPARATED transition is attempted and the employee has a hireDate set that is in the future (terminationDate as current date < hireDate):
+
+```text
+Return HTTP 422
+Error code: TERMINATION_BEFORE_HIRE_DATE
+No state change occurs
+No audit event emitted
+No other changes from the same request are applied
+```
+
+This rule applies only when hireDate is not null. When hireDate is null, no date comparison is performed and the SEPARATED transition proceeds normally.
+
+Rationale: terminationDate is system-managed and reflects the real-world separation date. A separation recorded before the official hire date produces a logically inconsistent record — the employment relationship ends before it officially began. This cannot be corrected post-separation under EMP-302.
+
+Authority: GD-M12-8 (approved 2026-06-19).
+
+---
+
 # Reporting Rules
 
 Employee metrics must support:
@@ -819,6 +840,7 @@ Directive satisfied when:
 9. FR-113 and FR-114 deferred — no skills/certifications tables in M12 migration.
 10. FR-112 maturity recorded as Partially Implemented.
 11. employeeNumber immutable — PUT with employeeNumber field returns HTTP 422 + EMPLOYEE_NUMBER_IMMUTABLE (GD-M12-6).
+12. Separation with future hireDate rejected — POST /:id/status with SEPARATED returns HTTP 422 + TERMINATION_BEFORE_HIRE_DATE when hireDate is set and in the future (GD-M12-8/EMP-805).
 
 ---
 

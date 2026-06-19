@@ -301,7 +301,7 @@ export class EmployeeController {
   @ApiResponse({ status: 401, description: 'Not authenticated' })
   @ApiResponse({ status: 403, description: 'Insufficient role' })
   @ApiResponse({ status: 404, description: 'Employee not found in this tenant' })
-  @ApiResponse({ status: 422, description: 'INVALID_TRANSITION — forbidden lifecycle transition (EMP-801); SEPARATED is terminal (GD-M12-1)' })
+  @ApiResponse({ status: 422, description: 'INVALID_TRANSITION — forbidden lifecycle transition (EMP-801); SEPARATED is terminal (GD-M12-1) | TERMINATION_BEFORE_HIRE_DATE — separation date precedes hire date (GD-M12-8/EMP-805)' })
   @ApiResponse({ status: 500, description: 'Internal server error' })
   async changeEmployeeStatus(
     @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
@@ -331,6 +331,15 @@ export class EmployeeController {
           error: {
             code: 'INVALID_TRANSITION',
             message: 'forbidden lifecycle transition — see GD-M12-1 for allowed transitions (EMP-801)',
+          },
+        });
+
+      case 'TERMINATION_BEFORE_HIRE_DATE':
+        throw new UnprocessableEntityException({
+          success: false,
+          error: {
+            code: 'TERMINATION_BEFORE_HIRE_DATE',
+            message: 'separation date cannot precede hire date — update or remove the hire date before separating this employee (GD-M12-8/EMP-805)',
           },
         });
 

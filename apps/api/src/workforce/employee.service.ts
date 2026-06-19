@@ -1,8 +1,8 @@
 // Reference: spec/01_requirements.md — FR-110, FR-111, FR-112 Employee Management
 // Reference: spec/06_api_contracts.md — Employee API contracts
 // Reference: spec/07_security_architecture.md — SEC-003 Tenant Isolation
-// Reference: directives/13_employee_management_rules.md — EMP-001 through EMP-804
-// Reference: directives/13_employee_management_rules.md — GD-M12-1 through GD-M12-6
+// Reference: directives/13_employee_management_rules.md — EMP-001 through EMP-805
+// Reference: directives/13_employee_management_rules.md — GD-M12-1 through GD-M12-8
 //
 // EmployeeService is transport-agnostic: no HTTP exceptions thrown, no HTTP responses returned.
 // HTTP status mapping is the sole responsibility of EmployeeController (Step 3).
@@ -18,6 +18,7 @@
 // EMP-302: SEPARATED employees are read-only — updateEmployee returns EMPLOYEE_IS_SEPARATED.
 // EMP-303: terminationDate is system-managed — set to now() when ACTIVE → SEPARATED.
 // SEPARATED is a terminal state — changeEmployeeStatus returns INVALID_TRANSITION.
+// GD-M12-8/EMP-805: SEPARATED rejected when terminationDate (now) < hireDate — returns TERMINATION_BEFORE_HIRE_DATE.
 
 import { Injectable, Logger } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
@@ -120,6 +121,7 @@ export type ChangeEmployeeStatusResult =
   | { outcome: 'STATUS_CHANGED'; employee: EmployeeRecord }
   | { outcome: 'NOT_FOUND' }
   | { outcome: 'INVALID_TRANSITION' }
+  | { outcome: 'TERMINATION_BEFORE_HIRE_DATE' }
   | { outcome: 'INTERNAL_ERROR' };
 
 // ---------------------------------------------------------------------------
@@ -436,7 +438,7 @@ export class EmployeeService {
     try {
       const existing = await this.prisma.employee.findFirst({
         where: { id, tenantId, deletedAt: null },
-        select: { id: true, employmentStatus: true },
+        select: { id: true, employmentStatus: true, hireDate: true },
       });
 
       if (!existing) return { outcome: 'NOT_FOUND' };
@@ -447,6 +449,19 @@ export class EmployeeService {
       // Terminal state check: SEPARATED employees cannot transition to any state (GD-M12-1).
       // Checked before transition table lookup to prevent table pollution with SEPARATED source states.
       if (current === 'SEPARATED') return { outcome: 'INVALID_TRANSITION' };
+
+      // GD-M12-8/EMP-805: Reject SEPARATED transition when terminationDate (now) would precede hireDate.
+      // Both dates normalized to midnight to avoid timezone edge cases at day boundaries.
+      // Guard applies only when hireDate is set — null hireDate is permitted (EMP-204).
+      if (target === 'SEPARATED' && existing.hireDate !== null) {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const hire = new Date(existing.hireDate);
+        hire.setHours(0, 0, 0, 0);
+        if (today < hire) {
+          return { outcome: 'TERMINATION_BEFORE_HIRE_DATE' };
+        }
+      }
 
       const transitionKey = `${current}→${target}`;
       const auditEvent = ALLOWED_TRANSITIONS.get(transitionKey);

@@ -365,6 +365,16 @@ describe('EmployeeController', () => {
       expect(body['error']['code']).toBe('INVALID_TRANSITION');
     });
 
+    it('TERMINATION_BEFORE_HIRE_DATE: throws UnprocessableEntityException with code TERMINATION_BEFORE_HIRE_DATE (GD-M12-8/EMP-805)', async () => {
+      mockService.changeEmployeeStatus.mockResolvedValue({ outcome: 'TERMINATION_BEFORE_HIRE_DATE' });
+
+      let thrown: unknown;
+      try { await controller.changeEmployeeStatus(EMPLOYEE_ID, changeStatusDto, mockActor); } catch (e) { thrown = e; }
+      expect(thrown).toBeInstanceOf(UnprocessableEntityException);
+      const body = (thrown as UnprocessableEntityException).getResponse() as Record<string, Record<string, string>>;
+      expect(body['error']['code']).toBe('TERMINATION_BEFORE_HIRE_DATE');
+    });
+
     it('INTERNAL_ERROR: throws InternalServerErrorException', async () => {
       mockService.changeEmployeeStatus.mockResolvedValue({ outcome: 'INTERNAL_ERROR' });
 

@@ -1,6 +1,6 @@
 // Reference: spec/01_requirements.md — FR-110, FR-111, FR-112 Employee Management
-// Reference: directives/13_employee_management_rules.md — EMP-001 through EMP-804
-// Reference: directives/13_employee_management_rules.md — GD-M12-1 through GD-M12-6
+// Reference: directives/13_employee_management_rules.md — EMP-001 through EMP-805
+// Reference: directives/13_employee_management_rules.md — GD-M12-1 through GD-M12-8
 // Reference: directives/08_audit_rules.md — EMP-700 through EMP-702
 //
 // Pure unit tests — no database.
@@ -11,6 +11,7 @@
 // GD-M12-6: employeeNumber immutability checked before any DB operation.
 // EMP-401: audit metadata must not contain PII field values (names, emails).
 // EMP-303: terminationDate set by service on ACTIVE → SEPARATED — not client-supplied.
+// GD-M12-8/EMP-805: SEPARATED rejected when hireDate is set and in the future.
 
 import { Test, type TestingModule } from '@nestjs/testing';
 import { Prisma } from '@prisma/client';
@@ -614,9 +615,11 @@ describe('EmployeeService', () => {
   // ---------------------------------------------------------------------------
 
   describe('changeEmployeeStatus() — allowed transitions', () => {
-    const makeStatusRow = (employmentStatus: string) => ({
+    // hireDate: null by default — GD-M12-8 guard does not apply when hireDate is null.
+    const makeStatusRow = (employmentStatus: string, hireDate: Date | null = null) => ({
       id: EMPLOYEE_ID,
       employmentStatus,
+      hireDate,
     });
 
     const makeUpdatedRow = (employmentStatus: string, terminationDate: Date | null = null) => ({
@@ -870,6 +873,107 @@ describe('EmployeeService', () => {
       );
 
       expect(result.outcome).toBe('INTERNAL_ERROR');
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // changeEmployeeStatus — GD-M12-8 date integrity guard (EMP-805)
+  // ---------------------------------------------------------------------------
+
+  describe('changeEmployeeStatus() — GD-M12-8 date integrity guard (EMP-805)', () => {
+    const makeStatusRow = (employmentStatus: string, hireDate: Date | null = null) => ({
+      id: EMPLOYEE_ID,
+      employmentStatus,
+      hireDate,
+    });
+
+    const makeUpdatedRow = (employmentStatus: string, terminationDate: Date | null = null) => ({
+      ...EMPLOYEE_ROW,
+      employmentStatus,
+      terminationDate,
+    });
+
+    it('ACTIVE → SEPARATED with future hireDate → TERMINATION_BEFORE_HIRE_DATE, no DB write (GD-M12-8/EMP-805)', async () => {
+      const futureHireDate = new Date();
+      futureHireDate.setDate(futureHireDate.getDate() + 30);
+
+      mockPrisma.employee.findFirst.mockResolvedValue(makeStatusRow('ACTIVE', futureHireDate));
+
+      const result = await service.changeEmployeeStatus(
+        EMPLOYEE_ID,
+        { status: 'SEPARATED' },
+        TENANT_ID,
+        ACTOR_ID,
+      );
+
+      expect(result.outcome).toBe('TERMINATION_BEFORE_HIRE_DATE');
+      expect(mockPrisma.employee.update).not.toHaveBeenCalled();
+    });
+
+    it('TERMINATION_BEFORE_HIRE_DATE: no audit event emitted (GD-M12-8/EMP-805)', async () => {
+      const futureHireDate = new Date();
+      futureHireDate.setDate(futureHireDate.getDate() + 30);
+
+      mockPrisma.employee.findFirst.mockResolvedValue(makeStatusRow('ACTIVE', futureHireDate));
+
+      await service.changeEmployeeStatus(
+        EMPLOYEE_ID,
+        { status: 'SEPARATED' },
+        TENANT_ID,
+        ACTOR_ID,
+      );
+
+      expect(mockAuditService.logEvent).not.toHaveBeenCalled();
+    });
+
+    it('ACTIVE → SEPARATED with null hireDate → STATUS_CHANGED, guard does not apply (EMP-204/EMP-805)', async () => {
+      mockPrisma.employee.findFirst.mockResolvedValue(makeStatusRow('ACTIVE', null));
+      mockPrisma.employee.update.mockResolvedValue(makeUpdatedRow('SEPARATED', new Date()));
+      mockAuditService.logEvent.mockResolvedValue(undefined);
+
+      const result = await service.changeEmployeeStatus(
+        EMPLOYEE_ID,
+        { status: 'SEPARATED' },
+        TENANT_ID,
+        ACTOR_ID,
+      );
+
+      expect(result.outcome).toBe('STATUS_CHANGED');
+    });
+
+    it('ACTIVE → SEPARATED with past hireDate → STATUS_CHANGED, guard does not apply', async () => {
+      const pastHireDate = new Date('2020-01-15');
+
+      mockPrisma.employee.findFirst.mockResolvedValue(makeStatusRow('ACTIVE', pastHireDate));
+      mockPrisma.employee.update.mockResolvedValue(makeUpdatedRow('SEPARATED', new Date()));
+      mockAuditService.logEvent.mockResolvedValue(undefined);
+
+      const result = await service.changeEmployeeStatus(
+        EMPLOYEE_ID,
+        { status: 'SEPARATED' },
+        TENANT_ID,
+        ACTOR_ID,
+      );
+
+      expect(result.outcome).toBe('STATUS_CHANGED');
+    });
+
+    it('ACTIVE → ON_LEAVE with future hireDate → STATUS_CHANGED, guard applies only to SEPARATED', async () => {
+      const futureHireDate = new Date();
+      futureHireDate.setDate(futureHireDate.getDate() + 30);
+
+      mockPrisma.employee.findFirst.mockResolvedValue(makeStatusRow('ACTIVE', futureHireDate));
+      mockPrisma.employee.update.mockResolvedValue(makeUpdatedRow('ON_LEAVE'));
+      mockAuditService.logEvent.mockResolvedValue(undefined);
+
+      const result = await service.changeEmployeeStatus(
+        EMPLOYEE_ID,
+        { status: 'ON_LEAVE' },
+        TENANT_ID,
+        ACTOR_ID,
+      );
+
+      expect(result.outcome).toBe('STATUS_CHANGED');
     });
   });
 });
