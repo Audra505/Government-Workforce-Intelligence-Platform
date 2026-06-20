@@ -10,7 +10,7 @@
 ---
 
 Last Updated: 2026-06-19
-Updated By: Claude Code (session: M13 Step 1 — Schema Foundation; 4 new tables + 10 AuditEventType values; migration 20260620032716 applied; tsc 0 errors; 508/508 tests pass)
+Updated By: Claude Code (session: M13 Step 2 — Skills Catalog; SkillService + SkillController + 3 DTOs + 51 tests; 559/559 tests pass; commit 8feecbb)
 
 ## Repository Status
 
@@ -35,8 +35,8 @@ Milestone: M12 — Employee Management Foundation — COMPLETE (Steps 1–4 all 
 Last Completed Milestone: M12 — Employee Management Foundation (Complete, 2026-06-18; Steps 1–4; 495/495 unit tests + 57/57 e2e tests; full stack browser → BFF → NestJS → DB)
 Last Completed Step: M12 Step 4 — Employee Frontend UI; types.ts extended; BFF POST/PUT/POST-status handlers; EmployeeTable, EmployeeFilters, EmploymentStatusBadge, EmployeeDetail, CreateEmployeeForm, EditEmployeeForm, EmployeeStatusActions; 4 App Router pages + 4 error.tsx + 1 loading.tsx; SEC-003/EMP-302/GD-M12-6/RBAC-952/GD-M12-S4-1 enforced; all 40 exit criteria met
 Last Completed Step Date: 2026-06-18
-Current Step: M13 Step 1 — Schema Foundation COMPLETE (2026-06-19); M13 Step 2 (Skills Catalog — SkillService + SkillController + DTOs + tests) is next
-Session Classification: Phase 2 Active — M12 COMPLETE; M13 Step 1 COMPLETE; 508 unit tests passing (zero regressions)
+Current Step: M13 Step 2 — Skills Catalog COMPLETE (2026-06-19); M13 Step 3 (Certifications Catalog — CertificationService + CertificationController + DTOs + tests) is next
+Session Classification: Phase 2 Active — M12 COMPLETE; M13 Steps 1–2 COMPLETE; 559 unit tests passing (zero regressions)
 
 ## Milestone 10 — Approved Plan
 
@@ -6535,3 +6535,109 @@ WORKFORCE_EMPLOYEE_CERT_REVOKED
 4. M13 Step 5 — Employee Certification Assignment + expiration tracking
 
 **M13 Step 1 maturity: Tested — schema applied, client generated, 508/508 tests pass.**
+
+---
+
+## M13 Step 2 — Skills Catalog Application Layer
+
+**Date:** 2026-06-19
+**Commit:** 8feecbb
+**Classification:** Tested
+
+### Capability
+
+Skills Catalog read/write API for the workforce skills domain. Delivers the four-endpoint HTTP surface for creating, listing, retrieving, and partially updating tenant-scoped skill records.
+
+### Deliverable Alignment
+
+| Layer | Status |
+|---|---|
+| Requirements | FR-113 (Skills Management) — endpoint surface satisfies per GD-M13-2 |
+| Specs | GD-M13-2 Decisions 2, 4, 8, 12 all implemented |
+| Directives | directives/14 SKL-001 through SKL-103 enforced |
+| Execution Plan | SkillService + SkillController + 3 DTOs implemented |
+| State Model | Not applicable to catalog operations (catalog items have no lifecycle state) |
+| Test Scenarios | 51 unit tests — all discriminant outcomes, SEC-003, audit, pagination |
+| System Loop | Registered in WorkforceModule; resolvable from AppModule |
+| Failure Playbook | SKILL_NAME_CONFLICT (409), NOT_FOUND (404), INTERNAL_ERROR (500) all handled |
+| Environment Model | No env-specific wiring required for service/controller layer |
+| Data Lifecycle | Create and read implemented; soft-delete filter enforced; no delete endpoint (SKL-400 deferred) |
+| Evolution Strategy | Step 4 (employee skill assignment) depends on this service; no breaking interface changes required |
+
+### Files Created
+
+| File | Purpose |
+|---|---|
+| `apps/api/src/workforce/dto/create-skill.dto.ts` | `CreateSkillDto` — name required (max 255), category optional (max 100), description optional |
+| `apps/api/src/workforce/dto/update-skill.dto.ts` | `UpdateSkillDto` — all fields optional, same validation rules |
+| `apps/api/src/workforce/dto/list-skills-query.dto.ts` | `ListSkillsQueryDto` — page/pageSize/category with coercion and bounds |
+| `apps/api/src/workforce/skill.service.ts` | `SkillService` — 4 methods, transport-agnostic, SEC-003, audit |
+| `apps/api/src/workforce/skill.controller.ts` | `SkillController` — 4 endpoints, RBAC, HTTP mapping, SEC-003 |
+| `apps/api/src/workforce/skill.service.spec.ts` | 31 service unit tests (SKL-S-C1 through SKL-S-U10) |
+| `apps/api/src/workforce/skill.controller.spec.ts` | 20 controller unit tests (all HTTP outcome → exception mappings) |
+
+### Files Modified
+
+| File | Change |
+|---|---|
+| `apps/api/src/workforce/workforce.module.ts` | Added `SkillController` to `controllers[]`; `SkillService` to `providers[]` |
+| `PROGRESS.md` | This entry |
+
+### Security Implementation Evidence
+
+| Constraint | Enforcement | Test |
+|---|---|---|
+| SEC-003: tenantId from JWT only | `actor.tenantId` passed to service; `tenantId` absent from all DTOs | SKL-S-C7, SKL-S-L3, SKL-S-G5, SKL-S-U10 |
+| SEC-003: cross-tenant 404 | `findFirst({ where: { id, tenantId, deletedAt: null } })` | SKL-S-G3 |
+| SEC-003: tenantId absent from responses | `toSkillShape` omits `tenantId` | Controller spec SEC-003 assertions |
+| SEC-003: soft-delete exclusion | `deletedAt: null` in all read WHERE clauses | SKL-S-L4, SKL-S-G4 |
+| SKL-003: name uniqueness | P2002 caught → SKILL_NAME_CONFLICT | SKL-S-C2, SKL-S-U5 |
+| EMP-401 analogy: skill name not PII | Name included in audit metadata (name is not personal data) | GD-M13-4 Decision 4 |
+
+### Audit Implementation Evidence
+
+| Event | Trigger | Test |
+|---|---|---|
+| `WORKFORCE_SKILL_CREATED` | After successful `prisma.skill.create` | SKL-S-C4 |
+| `WORKFORCE_SKILL_UPDATED` | After successful `prisma.skill.update` | SKL-S-U7 |
+| No event on conflict | P2002 returns SKILL_NAME_CONFLICT before audit | SKL-S-C5, SKL-S-U9 |
+| No event on failure | INTERNAL_ERROR returns before audit | SKL-S-C6 |
+| No event on not found | NOT_FOUND short-circuits before update | SKL-S-U8 |
+
+### RBAC Matrix Implementation
+
+| Endpoint | Roles | Outcome if excluded |
+|---|---|---|
+| `POST /api/v1/skills` | System Administrator, HR Director | HTTP 403 |
+| `PATCH /api/v1/skills/:id` | System Administrator, HR Director | HTTP 403 |
+| `GET /api/v1/skills` | SA, HR Director, Workforce Planner, Compliance Officer | HTTP 403 |
+| `GET /api/v1/skills/:id` | SA, HR Director, Workforce Planner, Compliance Officer | HTTP 403 |
+| Recruiter | All endpoints | HTTP 403 |
+| Executive User | All endpoints | HTTP 403 |
+
+### Validation Results
+
+| Check | Result |
+|---|---|
+| `prisma validate` | ✅ Clean |
+| `tsc --noEmit` | ✅ 0 errors |
+| `nest build` | ✅ Clean build |
+| `npm test` (559 tests, 27 suites) | ✅ 559/559 passed, 0 failed, 0 regressions |
+| Baseline regression check | ✅ 508 prior tests all still passing |
+
+### Known Limitations
+
+| # | Item | Disposition |
+|---|---|---|
+| 1 | Soft-deleted skill names remain reserved in unique index (cannot reuse a deleted skill's name) | Documented in planning review; no blocking impact; addressable via partial unique index in future milestone |
+| 2 | No DELETE endpoint for skills | SKL-400 explicit deferral — out of M13 scope |
+| 3 | No employee skill assignment | Step 4 scope |
+
+### Next Actions
+
+1. M13 Step 3 — Certifications Catalog: CertificationService + CertificationController + DTOs + unit tests (mirror of Step 2; status field and REVOKED-terminal logic additional)
+2. M13 Step 4 — Employee Skill Assignment: `POST /employees/:id/skills`, `GET /employees/:id/skills`, EmployeeSkillService
+3. M13 Step 5 — Employee Certification Assignment: expiration tracking, status state machine
+4. M13 Step 6 — Full validation and milestone closure
+
+**M13 Step 2 maturity: Tested — 559/559 tests pass; SEC-003 enforced; audit emitted; RBAC enforced; no regressions.**
