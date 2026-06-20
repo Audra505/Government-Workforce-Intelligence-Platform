@@ -10,7 +10,7 @@
 ---
 
 Last Updated: 2026-06-20
-Updated By: Claude Code (session: M13 Step 4 Governance Resolution — GD-M13-2 Decisions 14 and 15 recorded; GET /employees/:id/skills response contract and HTTP status differentiation for upsert outcomes approved; Step 4 implementation fully authorized with no remaining blocking governance gaps)
+Updated By: Claude Code (session: M13 Step 4 Implementation — Employee Skill Assignment; EmployeeSkillService + AssignSkillDto + controller routes + 44 new tests; 655/655 tests passing; tsc clean)
 
 ## Repository Status
 
@@ -35,8 +35,8 @@ Milestone: M12 — Employee Management Foundation — COMPLETE (Steps 1–4 all 
 Last Completed Milestone: M12 — Employee Management Foundation (Complete, 2026-06-18; Steps 1–4; 495/495 unit tests + 57/57 e2e tests; full stack browser → BFF → NestJS → DB)
 Last Completed Step: M12 Step 4 — Employee Frontend UI; types.ts extended; BFF POST/PUT/POST-status handlers; EmployeeTable, EmployeeFilters, EmploymentStatusBadge, EmployeeDetail, CreateEmployeeForm, EditEmployeeForm, EmployeeStatusActions; 4 App Router pages + 4 error.tsx + 1 loading.tsx; SEC-003/EMP-302/GD-M12-6/RBAC-952/GD-M12-S4-1 enforced; all 40 exit criteria met
 Last Completed Step Date: 2026-06-18
-Current Step: M13 Step 4 Governance Resolution COMPLETE (2026-06-20); GD-M13-2 Decisions 14 and 15 recorded; M13 Step 4 implementation AUTHORIZED
-Session Classification: Phase 2 Active — M12 COMPLETE; M13 Steps 1–3 COMPLETE; M13 Step 4 governance complete and implementation authorized; 611 unit tests passing (zero regressions)
+Current Step: M13 Step 4 COMPLETE (2026-06-20) — Employee Skill Assignment; POST + GET /employees/:id/skills; 655/655 tests passing; tsc clean
+Session Classification: Phase 2 Active — M12 COMPLETE; M13 Steps 1–4 COMPLETE; M13 Step 5 (Employee Certification Assignment) is next
 
 ## Milestone 10 — Approved Plan
 
@@ -6918,3 +6918,86 @@ Pre-implementation governance checklist:
    - Target: ~40 new tests; 651+ total tests passing
 2. M13 Step 5 — Employee Certification Assignment
 3. M13 Step 6 — Full validation and milestone closure
+
+---
+
+## M13 Step 4 — Employee Skill Assignment Implementation
+
+Date: 2026-06-20
+Repository Status: Tested / Integrated
+
+### Capability / Deliverable Alignment
+
+Capability: Employee Skill Assignment (FR-113)
+Deliverable status: Required
+Authority: GD-M13-2 Decisions 1–15; directives/14 SKL-200 through SKL-211
+
+| Production Blueprint Layer | Status |
+|---|---|
+| Requirements | Defined — FR-113 |
+| Specs | Defined — spec/05 (junction table), spec/06 (API) |
+| Directives | Defined — directives/14 SKL-200–211 (full behavioral ruleset) |
+| Execution Plan | Implemented — EmployeeSkillService, AssignSkillDto, controller routes |
+| State Model | N/A — junction table; no lifecycle states |
+| Test Scenarios | Implemented — 44 new unit tests (ESS-S-A1–A22, ESS-S-L1–L8, ESC-A1–A14) |
+| System Loop | Integrated — WorkforceModule registers EmployeeSkillService |
+| Failure Playbook | Partial — INTERNAL_ERROR returns clean 500; no retry/alerting strategy defined |
+| Environment Model | Shadow-safe only (dev stack verified; no prod deployment) |
+| Data Lifecycle | Partial — assignment INSERT/UPDATE covered; no DELETE endpoint (deferred per SKL-400) |
+| Evolution Strategy | Partial — verifiedAt role gate implemented defensively per SKL-211 |
+
+Overall maturity: **Integrated / Tested**
+
+### What Changed
+
+| File | Action | Notes |
+|---|---|---|
+| `apps/api/src/workforce/dto/assign-skill.dto.ts` | Created | skillId (@IsUUID), proficiencyLevel (@IsIn 5 values), verifiedAt (@IsISO8601) |
+| `apps/api/src/workforce/employee-skill.service.ts` | Created | assignSkill (upsert — explicit findFirst + create/update), listEmployeeSkills; result union types; audit emission |
+| `apps/api/src/workforce/employee-skill.service.spec.ts` | Created | 30 unit tests (ESS-S-A1–A22, ESS-S-L1–L8) |
+| `apps/api/src/workforce/employee.controller.ts` | Modified | Added EmployeeSkillService injection; @Res({ passthrough: true }) dynamic status; POST + GET /employees/:id/skills routes; toSkillAssignmentShape(); SKL-211 verifiedAt role gate |
+| `apps/api/src/workforce/employee.controller.spec.ts` | Modified | Added 14 controller tests (ESC-A1–A14); EmployeeSkillService mock; mockRes for dynamic status assertion |
+| `apps/api/src/workforce/workforce.module.ts` | Modified | EmployeeSkillService added to providers |
+| `PROGRESS.md` | Modified | This entry |
+
+### Key Implementation Decisions Applied
+
+- **Transport-agnostic service** — no HTTP exceptions in EmployeeSkillService; controller owns all HTTP mapping
+- **Explicit upsert** — `findFirst → create | update` (not `prisma.upsert()`) per SKL-203/GD-M13-4 D3; enables INSERT vs UPDATE audit event selection and prior-value capture for UPDATED metadata
+- **SEC-003** — employee WHERE always includes `tenantId` and `deletedAt: null`; skill WHERE always includes `tenantId` and `deletedAt: null`; absent and cross-tenant employee return identical NOT_FOUND; absent, cross-tenant, and soft-deleted skill all return SKILL_NOT_FOUND
+- **EMP-302 (SKL-202)** — SEPARATED check placed before skill lookup to avoid unnecessary DB round-trip; only SEPARATED is blocked; PENDING_ONBOARDING, ACTIVE, ON_LEAVE, SUSPENDED can all receive assignments
+- **INVALID_PROFICIENCY_LEVEL** check placed before skill DB lookup (similar rationale)
+- **Partial update semantics** — on UPDATE path, `updateData` object is built conditionally; fields absent from params are not written, retaining existing values (SKL-203)
+- **GD-M13-4 D5** — UPDATED audit metadata captures prior_proficiency_level, new_proficiency_level, prior_verified_at, new_verified_at, and updated_fields[]
+- **GD-M13-2 D14 response contract** — skillName/skillCategory from JOIN; no tenantId, no description, no timestamps; proficiencyLevel/verifiedAt from junction table
+- **GD-M13-2 D15 dynamic HTTP status** — `@Res({ passthrough: true })` on POST handler; 201 on ASSIGNED, 200 on UPDATED; first use of this pattern in the codebase
+- **SKL-211 verifiedAt role gate** — applied in controller before service call; currently always true (endpoint restricted to SA+HR); implemented defensively for future RBAC changes
+- **`employeeId_skillId` compound WHERE** — Prisma auto-generated compound identifier for `@@id([employeeId, skillId])` used in update WHERE clause
+
+### Validation
+
+- 30 service unit tests (ESS-S-A1–A22 assignSkill, ESS-S-L1–L8 listEmployeeSkills): all passing
+- 14 controller unit tests (ESC-A1–A14): all passing
+- Full suite: **655/655 tests passing, 0 failures, 30 suites** (zero regressions vs. 611 baseline)
+- `tsc --noEmit`: EXIT 0, 0 errors
+- Runtime verification: pending (Step 5 or Step 6 full stack run)
+
+### Risks / Limitations
+
+- No runtime verification against Docker stack (deferred to Step 5 or Step 6 full stack run)
+- `updated_fields: []` on no-op repeat POST is semantically valid but may surprise audit consumers — documented in service comments
+- Failure Playbook incomplete (no retry logic, no alerting configuration)
+- Data Lifecycle: no DELETE endpoint per SKL-400 deferral
+- Evolution Strategy: position linkage to skill requirements deferred to GD-M13-5 milestone
+
+### Next Actions
+
+1. M13 Step 5 — Employee Certification Assignment
+   - New: `apps/api/src/workforce/dto/assign-certification.dto.ts`
+   - New: `apps/api/src/workforce/employee-certification.service.ts`
+   - New: `apps/api/src/workforce/employee-certification.service.spec.ts`
+   - Modified: `apps/api/src/workforce/employee.controller.ts` (add POST + GET /employees/:id/certifications)
+   - Modified: `apps/api/src/workforce/employee.controller.spec.ts`
+   - Modified: `apps/api/src/workforce/workforce.module.ts`
+   - GD-M13-2 D15 already applies to certification endpoints (INSERT → 201, UPDATE → 200)
+2. M13 Step 6 — Full validation and milestone closure (runtime verification, PROGRESS.md final state)

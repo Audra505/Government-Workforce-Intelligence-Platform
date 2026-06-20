@@ -1,16 +1,20 @@
-// Reference: spec/01_requirements.md — FR-110, FR-111, FR-112 Employee Management
+// Reference: spec/01_requirements.md — FR-110, FR-111, FR-112 Employee Management; FR-113 Skill Assignment
 // Reference: spec/06_api_contracts.md — Employee API contracts
 // Reference: directives/13_employee_management_rules.md — EMP-AUTH-001 through EMP-AUTH-005
+// Reference: directives/14_skill_management_rules.md — SKL-200 through SKL-211
 //
 // Pure unit tests — no HTTP server, no database.
-// EmployeeService replaced with jest.fn() mocks.
+// EmployeeService and EmployeeSkillService replaced with jest.fn() mocks.
 // JwtAuthGuard and RolesGuard overridden to always pass.
 // Controller methods called directly with mock RequestUser actor.
-// Verifies: HTTP exception types, response envelope shapes, date serialization, error codes.
-// RBAC and JWT are infrastructure concerns tested in employee.e2e-spec.ts.
+// For assignEmployeeSkill(): a mockRes object ({ status: jest.fn() }) is passed as the
+// 4th argument to capture dynamic HTTP status codes set via @Res({ passthrough: true }).
+// Verifies: HTTP exception types, response envelope shapes, date serialization, error codes,
+// SEC-003 tenantId exclusion, dynamic 201/200 status differentiation (GD-M13-2 D15).
 
 import {
   ConflictException,
+  HttpStatus,
   InternalServerErrorException,
   NotFoundException,
   UnprocessableEntityException,
@@ -22,11 +26,14 @@ import { RolesGuard } from '../identity/roles.guard';
 import { EmployeeController } from './employee.controller';
 import { EmployeeService } from './employee.service';
 import type { EmployeeRecord } from './employee.service';
+import { EmployeeSkillService } from './employee-skill.service';
+import type { EmployeeSkillRecord } from './employee-skill.service';
 import type { RequestUser } from '../identity/jwt.strategy';
 import type { CreateEmployeeDto } from './dto/create-employee.dto';
 import type { UpdateEmployeeDto } from './dto/update-employee.dto';
 import type { ChangeEmployeeStatusDto } from './dto/change-employee-status.dto';
 import type { ListEmployeesQueryDto } from './dto/list-employees-query.dto';
+import type { AssignSkillDto } from './dto/assign-skill.dto';
 
 // ---------------------------------------------------------------------------
 // Test constants
@@ -36,8 +43,10 @@ const TENANT_ID   = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
 const ACTOR_ID    = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb';
 const DEPT_ID     = 'cccccccc-cccc-cccc-cccc-cccccccccccc';
 const EMPLOYEE_ID = 'dddddddd-dddd-dddd-dddd-dddddddddddd';
+const SKILL_ID    = 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee';
 const CREATED_AT  = new Date('2026-06-18T12:00:00.000Z');
 const UPDATED_AT  = new Date('2026-06-18T14:00:00.000Z');
+const VERIFIED_AT = new Date('2026-06-15T14:32:00.000Z');
 
 const mockActor: RequestUser = {
   userId: ACTOR_ID,
@@ -79,6 +88,21 @@ const listQuery: ListEmployeesQueryDto = { page: 1, pageSize: 20 };
 // Tests
 // ---------------------------------------------------------------------------
 
+// Skill assignment record returned from EmployeeSkillService
+const skillRecord: EmployeeSkillRecord = {
+  skillId:         SKILL_ID,
+  skillName:       'Python Programming',
+  skillCategory:   'Technical',
+  proficiencyLevel: 'ADVANCED',
+  verifiedAt:      VERIFIED_AT,
+};
+
+const assignDto: AssignSkillDto = {
+  skillId:         SKILL_ID,
+  proficiencyLevel: 'ADVANCED',
+  verifiedAt:      VERIFIED_AT.toISOString(),
+};
+
 describe('EmployeeController', () => {
   let controller: EmployeeController;
   let mockService: {
@@ -87,6 +111,10 @@ describe('EmployeeController', () => {
     getEmployeeById:      jest.Mock;
     updateEmployee:       jest.Mock;
     changeEmployeeStatus: jest.Mock;
+  };
+  let mockSkillService: {
+    assignSkill:        jest.Mock;
+    listEmployeeSkills: jest.Mock;
   };
 
   beforeEach(async () => {
@@ -97,11 +125,16 @@ describe('EmployeeController', () => {
       updateEmployee:       jest.fn(),
       changeEmployeeStatus: jest.fn(),
     };
+    mockSkillService = {
+      assignSkill:        jest.fn(),
+      listEmployeeSkills: jest.fn(),
+    };
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [EmployeeController],
       providers: [
-        { provide: EmployeeService, useValue: mockService },
+        { provide: EmployeeService,      useValue: mockService },
+        { provide: EmployeeSkillService, useValue: mockSkillService },
       ],
     })
       .overrideGuard(JwtAuthGuard).useValue({ canActivate: () => true })
@@ -379,6 +412,177 @@ describe('EmployeeController', () => {
       mockService.changeEmployeeStatus.mockResolvedValue({ outcome: 'INTERNAL_ERROR' });
 
       await expect(controller.changeEmployeeStatus(EMPLOYEE_ID, changeStatusDto, mockActor)).rejects.toThrow(InternalServerErrorException);
+    });
+  });
+
+  // --------------------------------------------------------------------------
+  // assignEmployeeSkill() — POST /employees/:id/skills
+  // --------------------------------------------------------------------------
+
+  describe('assignEmployeeSkill()', () => {
+    // Mock response object with chainable status() — required for @Res({ passthrough: true })
+    let mockRes: { status: jest.Mock };
+
+    beforeEach(() => {
+      mockRes = { status: jest.fn().mockReturnThis() };
+    });
+
+    it('ESC-A1: ASSIGNED — res.status(201) called; returns { success: true, data: shape }', async () => {
+      mockSkillService.assignSkill.mockResolvedValue({ outcome: 'ASSIGNED', assignment: skillRecord });
+
+      const result = await controller.assignEmployeeSkill(
+        EMPLOYEE_ID, assignDto, mockActor, mockRes as any,
+      ) as Record<string, unknown>;
+
+      expect(mockRes.status).toHaveBeenCalledWith(HttpStatus.CREATED);
+      expect(result['success']).toBe(true);
+      expect(result['data']).toBeTruthy();
+    });
+
+    it('ESC-A2: UPDATED — res.status(200) called; returns { success: true, data: shape }', async () => {
+      mockSkillService.assignSkill.mockResolvedValue({ outcome: 'UPDATED', assignment: skillRecord });
+
+      const result = await controller.assignEmployeeSkill(
+        EMPLOYEE_ID, assignDto, mockActor, mockRes as any,
+      ) as Record<string, unknown>;
+
+      expect(mockRes.status).toHaveBeenCalledWith(HttpStatus.OK);
+      expect(result['success']).toBe(true);
+    });
+
+    it('ESC-A3: response shape matches GD-M13-2 D14 field set (skillId, skillName, skillCategory, proficiencyLevel, verifiedAt)', async () => {
+      mockSkillService.assignSkill.mockResolvedValue({ outcome: 'ASSIGNED', assignment: skillRecord });
+
+      const result = await controller.assignEmployeeSkill(
+        EMPLOYEE_ID, assignDto, mockActor, mockRes as any,
+      ) as Record<string, Record<string, unknown>>;
+
+      const data = result['data']!;
+      expect(data).toHaveProperty('skillId', SKILL_ID);
+      expect(data).toHaveProperty('skillName', 'Python Programming');
+      expect(data).toHaveProperty('skillCategory', 'Technical');
+      expect(data).toHaveProperty('proficiencyLevel', 'ADVANCED');
+      expect(data).toHaveProperty('verifiedAt');
+      expect(data).not.toHaveProperty('tenantId');
+      expect(data).not.toHaveProperty('employeeId');
+    });
+
+    it('ESC-A4: verifiedAt serialized as ISO 8601 string', async () => {
+      mockSkillService.assignSkill.mockResolvedValue({ outcome: 'ASSIGNED', assignment: skillRecord });
+
+      const result = await controller.assignEmployeeSkill(
+        EMPLOYEE_ID, assignDto, mockActor, mockRes as any,
+      ) as Record<string, Record<string, unknown>>;
+
+      expect(result['data']!['verifiedAt']).toBe(VERIFIED_AT.toISOString());
+    });
+
+    it('ESC-A5: NOT_FOUND — throws NotFoundException', async () => {
+      mockSkillService.assignSkill.mockResolvedValue({ outcome: 'NOT_FOUND' });
+
+      await expect(
+        controller.assignEmployeeSkill(EMPLOYEE_ID, assignDto, mockActor, mockRes as any),
+      ).rejects.toThrow(NotFoundException);
+    });
+
+    it('ESC-A6: EMPLOYEE_SEPARATED — throws UnprocessableEntityException with code EMPLOYEE_SEPARATED', async () => {
+      mockSkillService.assignSkill.mockResolvedValue({ outcome: 'EMPLOYEE_SEPARATED' });
+
+      let thrown: unknown;
+      try {
+        await controller.assignEmployeeSkill(EMPLOYEE_ID, assignDto, mockActor, mockRes as any);
+      } catch (e) { thrown = e; }
+      expect(thrown).toBeInstanceOf(UnprocessableEntityException);
+      const body = (thrown as UnprocessableEntityException).getResponse() as Record<string, Record<string, string>>;
+      expect(body['error']['code']).toBe('EMPLOYEE_SEPARATED');
+    });
+
+    it('ESC-A7: SKILL_NOT_FOUND — throws UnprocessableEntityException with code SKILL_NOT_FOUND', async () => {
+      mockSkillService.assignSkill.mockResolvedValue({ outcome: 'SKILL_NOT_FOUND' });
+
+      let thrown: unknown;
+      try {
+        await controller.assignEmployeeSkill(EMPLOYEE_ID, assignDto, mockActor, mockRes as any);
+      } catch (e) { thrown = e; }
+      expect(thrown).toBeInstanceOf(UnprocessableEntityException);
+      const body = (thrown as UnprocessableEntityException).getResponse() as Record<string, Record<string, string>>;
+      expect(body['error']['code']).toBe('SKILL_NOT_FOUND');
+    });
+
+    it('ESC-A8: INVALID_PROFICIENCY_LEVEL — throws UnprocessableEntityException with code INVALID_PROFICIENCY_LEVEL', async () => {
+      mockSkillService.assignSkill.mockResolvedValue({ outcome: 'INVALID_PROFICIENCY_LEVEL' });
+
+      let thrown: unknown;
+      try {
+        await controller.assignEmployeeSkill(EMPLOYEE_ID, assignDto, mockActor, mockRes as any);
+      } catch (e) { thrown = e; }
+      expect(thrown).toBeInstanceOf(UnprocessableEntityException);
+      const body = (thrown as UnprocessableEntityException).getResponse() as Record<string, Record<string, string>>;
+      expect(body['error']['code']).toBe('INVALID_PROFICIENCY_LEVEL');
+    });
+
+    it('ESC-A9: INTERNAL_ERROR — throws InternalServerErrorException', async () => {
+      mockSkillService.assignSkill.mockResolvedValue({ outcome: 'INTERNAL_ERROR' });
+
+      await expect(
+        controller.assignEmployeeSkill(EMPLOYEE_ID, assignDto, mockActor, mockRes as any),
+      ).rejects.toThrow(InternalServerErrorException);
+    });
+
+    it('ESC-A10: actor.tenantId forwarded to service — not from route params (SEC-003)', async () => {
+      mockSkillService.assignSkill.mockResolvedValue({ outcome: 'ASSIGNED', assignment: skillRecord });
+
+      await controller.assignEmployeeSkill(EMPLOYEE_ID, assignDto, mockActor, mockRes as any);
+
+      expect(mockSkillService.assignSkill).toHaveBeenCalledWith(
+        expect.objectContaining({ employeeId: EMPLOYEE_ID, skillId: SKILL_ID }),
+        TENANT_ID,
+        ACTOR_ID,
+      );
+    });
+  });
+
+  // --------------------------------------------------------------------------
+  // listEmployeeSkills() — GET /employees/:id/skills
+  // --------------------------------------------------------------------------
+
+  describe('listEmployeeSkills()', () => {
+    it('ESC-A11: SUCCESS — returns { success: true, data: { skills: [...] } }', async () => {
+      mockSkillService.listEmployeeSkills.mockResolvedValue({
+        outcome: 'SUCCESS',
+        assignments: [skillRecord],
+      });
+
+      const result = await controller.listEmployeeSkills(EMPLOYEE_ID, mockActor) as Record<string, Record<string, unknown>>;
+
+      expect(result['success']).toBe(true);
+      expect(Array.isArray(result['data']!['skills'])).toBe(true);
+      expect((result['data']!['skills'] as unknown[]).length).toBe(1);
+    });
+
+    it('ESC-A12: NOT_FOUND — throws NotFoundException', async () => {
+      mockSkillService.listEmployeeSkills.mockResolvedValue({ outcome: 'NOT_FOUND' });
+
+      await expect(controller.listEmployeeSkills(EMPLOYEE_ID, mockActor)).rejects.toThrow(NotFoundException);
+    });
+
+    it('ESC-A13: INTERNAL_ERROR — throws InternalServerErrorException', async () => {
+      mockSkillService.listEmployeeSkills.mockResolvedValue({ outcome: 'INTERNAL_ERROR' });
+
+      await expect(controller.listEmployeeSkills(EMPLOYEE_ID, mockActor)).rejects.toThrow(InternalServerErrorException);
+    });
+
+    it('ESC-A14: response items contain no tenantId (SEC-003)', async () => {
+      mockSkillService.listEmployeeSkills.mockResolvedValue({
+        outcome: 'SUCCESS',
+        assignments: [skillRecord],
+      });
+
+      const result = await controller.listEmployeeSkills(EMPLOYEE_ID, mockActor) as Record<string, Record<string, unknown>>;
+      const items = result['data']!['skills'] as Record<string, unknown>[];
+
+      expect(items[0]).not.toHaveProperty('tenantId');
+      expect(items[0]).not.toHaveProperty('employeeId');
     });
   });
 });
