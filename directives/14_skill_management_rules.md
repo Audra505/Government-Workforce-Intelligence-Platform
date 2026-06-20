@@ -185,6 +185,53 @@ Authority: GD-M13-2 Decision 12.
 
 ---
 
+## SKL-205 — GET /api/v1/employees/{id}/skills Response Contract
+
+The GET response returns a flat, non-paginated array of all skill assignment records
+for the specified employee. Each record in the `skills` array contains:
+
+```text
+skillId           — UUID (always present)
+skillName         — from workforce.skills.name via JOIN (null if skill soft-deleted)
+skillCategory     — from workforce.skills.category via JOIN (null if not categorized)
+proficiencyLevel  — from workforce.employee_skills.proficiency_level (null if not assessed)
+verifiedAt        — ISO 8601 string or null (null = self-declared per SKL-211)
+```
+
+Excluded from response: tenantId (SEC-003), employeeId (in URL), skillDescription
+(prose metadata; available via GET /api/v1/skills/{id}), timestamps (not columns on
+the junction table per GD-M13-4 Decision 2).
+
+Pagination is not required. The response returns the complete set of assignments for
+the specified employee. Employee sub-resource collections must be returned as a
+complete set to support skill matching computation (directives/05 SKM-402) and
+compliance profile review.
+
+Soft-deleted skills: the JOIN to workforce.skills MUST NOT filter on deleted_at.
+Assignments referencing soft-deleted skills are preserved; skillName and skillCategory
+will be null for such records. skillId is always returned.
+
+Authority: GD-M13-2 Decision 14.
+
+---
+
+## SKL-206 — HTTP Status for Assignment Upsert Outcomes
+
+POST /api/v1/employees/{id}/skills uses upsert semantics (SKL-203). The HTTP
+response status differentiates INSERT from UPDATE:
+
+```text
+First assignment (INSERT path):   HTTP 201 Created
+Repeat assignment (UPDATE path):  HTTP 200 OK
+```
+
+Both paths return the same response body: the assignment record in the shape
+defined by SKL-205 (a single-item envelope, not the full list).
+
+Authority: GD-M13-2 Decision 15.
+
+---
+
 ## SKL-201 — POST /api/v1/employees/{id}/skills Request Requirements
 
 ```text

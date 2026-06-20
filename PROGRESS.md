@@ -10,7 +10,7 @@
 ---
 
 Last Updated: 2026-06-20
-Updated By: Claude Code (session: M13 Step 3 Closure Correction — RC-001 applied; Certifications capability reclassified to Partially Implemented; directive acceptance criteria matrix added; 20-item criteria split documented: 8 met in Step 3, 12 deferred to Steps 4/5)
+Updated By: Claude Code (session: M13 Step 4 Governance Resolution — GD-M13-2 Decisions 14 and 15 recorded; GET /employees/:id/skills response contract and HTTP status differentiation for upsert outcomes approved; Step 4 implementation fully authorized with no remaining blocking governance gaps)
 
 ## Repository Status
 
@@ -35,8 +35,8 @@ Milestone: M12 — Employee Management Foundation — COMPLETE (Steps 1–4 all 
 Last Completed Milestone: M12 — Employee Management Foundation (Complete, 2026-06-18; Steps 1–4; 495/495 unit tests + 57/57 e2e tests; full stack browser → BFF → NestJS → DB)
 Last Completed Step: M12 Step 4 — Employee Frontend UI; types.ts extended; BFF POST/PUT/POST-status handlers; EmployeeTable, EmployeeFilters, EmploymentStatusBadge, EmployeeDetail, CreateEmployeeForm, EditEmployeeForm, EmployeeStatusActions; 4 App Router pages + 4 error.tsx + 1 loading.tsx; SEC-003/EMP-302/GD-M12-6/RBAC-952/GD-M12-S4-1 enforced; all 40 exit criteria met
 Last Completed Step Date: 2026-06-18
-Current Step: M13 Step 3 — Certifications Catalog COMPLETE (2026-06-20); M13 Step 4 (Employee Skill Assignment) is next
-Session Classification: Phase 2 Active — M12 COMPLETE; M13 Steps 1–3 COMPLETE; 611 unit tests passing (zero regressions)
+Current Step: M13 Step 4 Governance Resolution COMPLETE (2026-06-20); GD-M13-2 Decisions 14 and 15 recorded; M13 Step 4 implementation AUTHORIZED
+Session Classification: Phase 2 Active — M12 COMPLETE; M13 Steps 1–3 COMPLETE; M13 Step 4 governance complete and implementation authorized; 611 unit tests passing (zero regressions)
 
 ## Milestone 10 — Approved Plan
 
@@ -6816,3 +6816,105 @@ The 12 deferred criteria cover the employee certification assignment layer (CRT-
 
 **M13 Step 3 catalog maturity: Tested — 52/52 tests pass; SEC-003 enforced; audit emitted; RBAC enforced; no regressions. Full certifications capability maturity: Partially Implemented.**
 **M13 Step 2 maturity: Tested — 559/559 tests pass; SEC-003 enforced; audit emitted; RBAC enforced; no regressions.**
+
+---
+
+## M13 Step 4 Governance Resolution — Employee Skill Assignment
+
+### Header
+
+- Phase/Milestone: M13 Step 4 Governance — Employee Skill Assignment
+- Date: 2026-06-20
+- Repository Status: Governance Recording — no application code changed; Step 4 implementation authorized
+
+### Purpose
+
+During M13 Step 4 planning review, one blocking governance gap (GAP-1) and one
+moderate governance gap (GAP-2) were identified in the existing M13 governance package.
+This entry records their resolution via GD-M13-2 Decisions 14 and 15.
+
+### Governance Decisions Recorded
+
+#### GD-M13-2 Decision 14 — GET /api/v1/employees/{id}/skills Response Contract
+
+**Gap resolved:** spec/06 defines the GET endpoint stub with no request/response contract.
+No prior governance document specified response fields, join depth, or pagination behavior.
+
+**Decision summary:**
+- Response: flat non-paginated array under `data.skills`
+- Each item: `skillId`, `skillName`, `skillCategory`, `proficiencyLevel`, `verifiedAt`
+- `skillName` and `skillCategory` embedded via JOIN to `workforce.skills` (follows departmentName precedent)
+- `proficiencyLevel` and `verifiedAt` from `workforce.employee_skills` junction columns
+- Excluded: `tenantId` (SEC-003), `employeeId` (URL), `skillDescription` (prose; available via GET /skills/:id), timestamps (not on junction table per GD-M13-4 D2)
+- No pagination — complete set required for skill matching computation (directives/05 SKM-402)
+- Soft-deleted skill refs preserved; `skillName`/`skillCategory` null for deleted skills
+
+**Rationale anchors:**
+- FR-113 "skill matching supported" — matching engine needs complete profile without N+1 calls
+- Workforce Planner, HR Director, Compliance Officer read roles all require human-readable skill names
+- FR-153 compliance report generation requires skill names and categories
+- API consistency — GET /employees/:id embeds departmentName via JOIN; same pattern applies here
+
+#### GD-M13-2 Decision 15 — HTTP Status Differentiation for Upsert Outcomes
+
+**Gap resolved:** GD-M13-2 D11 defined upsert semantics but did not specify HTTP status codes.
+
+**Decision summary:**
+- First assignment (INSERT path): HTTP 201 Created
+- Repeat assignment (UPDATE path): HTTP 200 OK
+- Applies to POST /employees/:id/skills (Step 4) and POST /employees/:id/certifications (Step 5)
+
+### Files Changed
+
+| File | Change |
+|---|---|
+| `governance/GD-M13-2.md` | Decisions 14 and 15 appended; Spec Deviation section and Effective Date updated |
+| `governance/governance_history.md` | Two new rows added to M13 table (GD-M13-2 D14, GD-M13-2 D15) |
+| `directives/14_skill_management_rules.md` | SKL-205 (GET response contract) and SKL-206 (HTTP status for upsert) added; cross-reference Decision 14 and 15 |
+| `PROGRESS.md` | Active Execution State updated; this history entry appended |
+
+No application code changed. No schema changed. No tests changed.
+
+### Remaining Governance Gap Assessment
+
+| Gap | Status After This Entry |
+|---|---|
+| GAP-1: GET response schema (BLOCKING) | **RESOLVED** — GD-M13-2 Decision 14 |
+| GAP-2: HTTP status for upsert (MODERATE) | **RESOLVED** — GD-M13-2 Decision 15 |
+| GAP-3: Repeat assignment with no updatable fields (MINOR) | Implementation rule — emit SKILL_UPDATED with empty updatedFields; no governance decision required |
+| GAP-4: SKL-211 verifiedAt unreachable under current RBAC (INFORMATIONAL) | Implement as documented; add explanatory code comment; no governance action required |
+
+### Step 4 Implementation Authorization
+
+All blocking governance gaps are resolved. M13 Step 4 implementation is **FULLY AUTHORIZED**.
+
+Pre-implementation governance checklist:
+
+| Item | Status |
+|---|---|
+| POST /employees/:id/skills request contract | ✅ Defined — GD-M13-2 Decision 6, SKL-201 |
+| GET /employees/:id/skills response contract | ✅ Defined — GD-M13-2 Decision 14 (this entry) |
+| HTTP status for upsert | ✅ Defined — GD-M13-2 Decision 15 (this entry) |
+| RBAC | ✅ Defined — GD-M13-2 Decision 12, SKL-200 |
+| SEC-003 enforcement | ✅ Defined — GD-M13-2 Decision 13, GD-M13-1 Decision 6 |
+| EMP-302 SEPARATED guard | ✅ Defined — GD-M13-2 Decision 10, SKL-202 |
+| Proficiency model | ✅ Defined — SKL-210 |
+| verifiedAt semantics | ✅ Defined — SKL-211, GD-M13-2 Decision 6 |
+| Upsert semantics | ✅ Defined — GD-M13-4 Decision 3, SKL-203, GD-M13-2 Decision 11 |
+| Audit events and metadata | ✅ Defined — GD-M13-4 Decisions 4 and 5, SKL-204 |
+| Schema complete | ✅ Migration 20260620032716 applied — no new migration required |
+| Audit event enum complete | ✅ WORKFORCE_EMPLOYEE_SKILL_ASSIGNED + SKILL_UPDATED present since Step 1 |
+| Controller placement | ✅ EmployeeController (GD-M13-2 Decision 1) |
+
+### Next Actions
+
+1. **M13 Step 4 — Employee Skill Assignment implementation** (AUTHORIZED):
+   - New: `apps/api/src/workforce/dto/assign-skill.dto.ts`
+   - New: `apps/api/src/workforce/employee-skill.service.ts`
+   - New: `apps/api/src/workforce/employee-skill.service.spec.ts`
+   - Modified: `apps/api/src/workforce/employee.controller.ts` (add POST + GET /employees/:id/skills)
+   - Modified: `apps/api/src/workforce/employee.controller.spec.ts`
+   - Modified: `apps/api/src/workforce/workforce.module.ts`
+   - Target: ~40 new tests; 651+ total tests passing
+2. M13 Step 5 — Employee Certification Assignment
+3. M13 Step 6 — Full validation and milestone closure
