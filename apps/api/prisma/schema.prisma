@@ -179,9 +179,131 @@ model Employee {
 
   department Department @relation(fields: [departmentId], references: [id])
 
+  employeeSkills         EmployeeSkill[]
+  employeeCertifications EmployeeCertification[]
+
   @@unique([tenantId, employeeNumber], map: "idx_employee_number_tenant")
   @@index([tenantId], map: "idx_employees_tenant")
   @@map("employees")
+  @@schema("workforce")
+}
+
+// ---------------------------------------------------------------------------
+// Schema: workforce — Skill
+// Spec reference: spec/05_database_schema.md — Schema: workforce / skills
+// Milestone 13: Skills & Certifications Foundation (FR-113, FR-150)
+// Governance decisions:
+//   - tenant_id per GD-M13-1 Decision 2 (spec deviation — correction of spec oversight)
+//   - created_at, updated_at, deleted_at per GD-M13-1 Decision 7 (shared column confirmation)
+//   - tenant-scoped unique constraint on name per GD-M13-2 Decision 8
+//   - tenantId as bare scalar (no FK to Tenant) — isolation enforced at query level (SEC-003)
+// ---------------------------------------------------------------------------
+
+model Skill {
+  id          String    @id @default(uuid()) @db.Uuid
+  tenantId    String    @map("tenant_id") @db.Uuid
+  name        String    @db.VarChar(255)
+  category    String?   @db.VarChar(100)
+  description String?   @db.Text
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  deletedAt   DateTime? @map("deleted_at") @db.Timestamptz(6)
+
+  employeeSkills EmployeeSkill[]
+
+  @@unique([tenantId, name], map: "idx_skills_tenant_name")
+  @@index([tenantId], map: "idx_skills_tenant")
+  @@map("skills")
+  @@schema("workforce")
+}
+
+// ---------------------------------------------------------------------------
+// Schema: workforce — Certification
+// Spec reference: spec/05_database_schema.md — Schema: workforce / certifications
+// Milestone 13: Skills & Certifications Foundation (FR-114, FR-151, FR-153)
+// Governance decisions:
+//   - tenant_id per GD-M13-1 Decision 2 (spec deviation — correction of spec oversight)
+//   - created_at, updated_at, deleted_at per GD-M13-1 Decision 7 (shared column confirmation)
+//   - tenant-scoped unique constraint on name per GD-M13-2 Decision 9
+//   - tenantId as bare scalar (no FK to Tenant) — isolation enforced at query level (SEC-003)
+// ---------------------------------------------------------------------------
+
+model Certification {
+  id                 String    @id @default(uuid()) @db.Uuid
+  tenantId           String    @map("tenant_id") @db.Uuid
+  name               String    @db.VarChar(255)
+  issuer             String?   @db.VarChar(255)
+  expirationRequired Boolean   @default(false) @map("expiration_required")
+  createdAt          DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt          DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  deletedAt          DateTime? @map("deleted_at") @db.Timestamptz(6)
+
+  employeeCertifications EmployeeCertification[]
+
+  @@unique([tenantId, name], map: "idx_certifications_tenant_name")
+  @@index([tenantId], map: "idx_certifications_tenant")
+  @@map("certifications")
+  @@schema("workforce")
+}
+
+// ---------------------------------------------------------------------------
+// Schema: workforce — EmployeeSkill
+// Spec reference: spec/05_database_schema.md — Schema: workforce / employee_skills
+// Milestone 13: Skills & Certifications Foundation (FR-113, FR-150)
+// Governance decisions:
+//   - Composite PK (employee_id, skill_id) per spec/05 and GD-M13-4 Decision 2
+//   - proficiency_level: one of BEGINNER/DEVELOPING/PROFICIENT/ADVANCED/EXPERT
+//     (GD-M13-2 Decision 6, directives/14 SKL-210); validated at service layer
+//   - verified_at null = self-declared; set = HR-verified (directives/14 SKL-211)
+//   - No tenant_id column — isolation derived through employee FK chain (GD-M13-1 Decision 7)
+// ---------------------------------------------------------------------------
+
+model EmployeeSkill {
+  employeeId       String    @map("employee_id") @db.Uuid
+  skillId          String    @map("skill_id") @db.Uuid
+  proficiencyLevel String?   @map("proficiency_level") @db.VarChar(50)
+  verifiedAt       DateTime? @map("verified_at") @db.Timestamptz(6)
+
+  employee Employee @relation(fields: [employeeId], references: [id])
+  skill    Skill    @relation(fields: [skillId], references: [id])
+
+  @@id([employeeId, skillId])
+  @@index([employeeId], map: "idx_employee_skills_employee")
+  @@index([skillId], map: "idx_employee_skills_skill")
+  @@map("employee_skills")
+  @@schema("workforce")
+}
+
+// ---------------------------------------------------------------------------
+// Schema: workforce — EmployeeCertification
+// Spec reference: spec/05_database_schema.md — Schema: workforce / employee_certifications
+// Milestone 13: Skills & Certifications Foundation (FR-114, FR-151, FR-153)
+// Governance decisions:
+//   - Composite PK (employee_id, certification_id) per spec/05 and GD-M13-4 Decision 2
+//   - status VARCHAR(50); canonical values: ACTIVE, EXPIRED, REVOKED (GD-M13-3)
+//   - status DEFAULT "ACTIVE" per GD-M13-3 Decision 2
+//   - REVOKED is terminal; transition enforcement at service layer (CRT-301)
+//   - issue_date and expiration_date stored as DATE per spec/05
+//   - No tenant_id column — isolation derived through employee FK chain (GD-M13-1 Decision 7)
+//   - expirationDate index: supports FR-153 expiration tracking queries (GD-M13-3 Decision 4)
+// ---------------------------------------------------------------------------
+
+model EmployeeCertification {
+  employeeId      String    @map("employee_id") @db.Uuid
+  certificationId String    @map("certification_id") @db.Uuid
+  status          String    @default("ACTIVE") @map("status") @db.VarChar(50)
+  issueDate       DateTime? @map("issue_date") @db.Date
+  expirationDate  DateTime? @map("expiration_date") @db.Date
+
+  employee      Employee      @relation(fields: [employeeId], references: [id])
+  certification Certification @relation(fields: [certificationId], references: [id])
+
+  @@id([employeeId, certificationId])
+  @@index([employeeId], map: "idx_employee_certifications_employee")
+  @@index([certificationId], map: "idx_employee_certifications_certification")
+  @@index([status], map: "idx_employee_certifications_status")
+  @@index([expirationDate], map: "idx_employee_certifications_expiration")
+  @@map("employee_certifications")
   @@schema("workforce")
 }
 

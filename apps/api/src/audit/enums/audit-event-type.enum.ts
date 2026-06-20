@@ -66,6 +66,20 @@ export enum AuditEventType {
   WORKFORCE_EMPLOYEE_SEPARATED     = 'WORKFORCE_EMPLOYEE_SEPARATED',
 
   // -------------------------------------------------------------------------
+  // AUD-400: Workforce Events — M13 Skills & Certifications (GD-M13-4 Decision 4)
+  // -------------------------------------------------------------------------
+  WORKFORCE_SKILL_CREATED               = 'WORKFORCE_SKILL_CREATED',
+  WORKFORCE_SKILL_UPDATED               = 'WORKFORCE_SKILL_UPDATED',
+  WORKFORCE_CERTIFICATION_CREATED       = 'WORKFORCE_CERTIFICATION_CREATED',
+  WORKFORCE_CERTIFICATION_UPDATED       = 'WORKFORCE_CERTIFICATION_UPDATED',
+  WORKFORCE_EMPLOYEE_SKILL_ASSIGNED     = 'WORKFORCE_EMPLOYEE_SKILL_ASSIGNED',
+  WORKFORCE_EMPLOYEE_SKILL_UPDATED      = 'WORKFORCE_EMPLOYEE_SKILL_UPDATED',
+  WORKFORCE_EMPLOYEE_CERT_ASSIGNED      = 'WORKFORCE_EMPLOYEE_CERT_ASSIGNED',
+  WORKFORCE_EMPLOYEE_CERT_UPDATED       = 'WORKFORCE_EMPLOYEE_CERT_UPDATED',
+  WORKFORCE_EMPLOYEE_CERT_RENEWED       = 'WORKFORCE_EMPLOYEE_CERT_RENEWED',
+  WORKFORCE_EMPLOYEE_CERT_REVOKED       = 'WORKFORCE_EMPLOYEE_CERT_REVOKED',
+
+  // -------------------------------------------------------------------------
   // AUD-500: Recruiting Events
   // -------------------------------------------------------------------------
   RECRUITING_CANDIDATE_CREATED = 'RECRUITING_CANDIDATE_CREATED',
