@@ -9,8 +9,8 @@
 
 ---
 
-Last Updated: 2026-06-19
-Updated By: Claude Code (session: M13 Step 2 — Skills Catalog; SkillService + SkillController + 3 DTOs + 51 tests; 559/559 tests pass; commit 8feecbb)
+Last Updated: 2026-06-20
+Updated By: Claude Code (session: M13 Step 3 — Certifications Catalog; CertificationService + CertificationController + 3 DTOs + 52 tests; 611/611 tests pass)
 
 ## Repository Status
 
@@ -35,8 +35,8 @@ Milestone: M12 — Employee Management Foundation — COMPLETE (Steps 1–4 all 
 Last Completed Milestone: M12 — Employee Management Foundation (Complete, 2026-06-18; Steps 1–4; 495/495 unit tests + 57/57 e2e tests; full stack browser → BFF → NestJS → DB)
 Last Completed Step: M12 Step 4 — Employee Frontend UI; types.ts extended; BFF POST/PUT/POST-status handlers; EmployeeTable, EmployeeFilters, EmploymentStatusBadge, EmployeeDetail, CreateEmployeeForm, EditEmployeeForm, EmployeeStatusActions; 4 App Router pages + 4 error.tsx + 1 loading.tsx; SEC-003/EMP-302/GD-M12-6/RBAC-952/GD-M12-S4-1 enforced; all 40 exit criteria met
 Last Completed Step Date: 2026-06-18
-Current Step: M13 Step 2 — Skills Catalog COMPLETE (2026-06-19); M13 Step 3 (Certifications Catalog — CertificationService + CertificationController + DTOs + tests) is next
-Session Classification: Phase 2 Active — M12 COMPLETE; M13 Steps 1–2 COMPLETE; 559 unit tests passing (zero regressions)
+Current Step: M13 Step 3 — Certifications Catalog COMPLETE (2026-06-20); M13 Step 4 (Employee Skill Assignment) is next
+Session Classification: Phase 2 Active — M12 COMPLETE; M13 Steps 1–3 COMPLETE; 611 unit tests passing (zero regressions)
 
 ## Milestone 10 — Approved Plan
 
@@ -6633,11 +6633,119 @@ Skills Catalog read/write API for the workforce skills domain. Delivers the four
 | 2 | No DELETE endpoint for skills | SKL-400 explicit deferral — out of M13 scope |
 | 3 | No employee skill assignment | Step 4 scope |
 
-### Next Actions
+### Next Actions (as of M13 Step 2 completion)
 
 1. M13 Step 3 — Certifications Catalog: CertificationService + CertificationController + DTOs + unit tests (mirror of Step 2; status field and REVOKED-terminal logic additional)
 2. M13 Step 4 — Employee Skill Assignment: `POST /employees/:id/skills`, `GET /employees/:id/skills`, EmployeeSkillService
 3. M13 Step 5 — Employee Certification Assignment: expiration tracking, status state machine
 4. M13 Step 6 — Full validation and milestone closure
+
+---
+
+## M13 Step 3 — Certifications Catalog Implementation History
+
+### Header
+
+- Phase/Milestone: M13 Step 3 — Certifications Catalog
+- Date: 2026-06-20
+- Repository Status: Phase 2 Active — Skills Catalog (Step 2) complete; Certifications Catalog (Step 3) complete
+
+### Capability / Deliverable Alignment
+
+- Capability: Certifications Catalog Management API (FR-114, FR-151)
+- Deliverable relevance: Required — certifications catalog is a prerequisite for employee certification assignment (M13 Step 5)
+- Required: Yes
+- Current maturity: Tested — 52 unit tests passing, tsc + nest build clean; runtime verification pending (Step 3 follows same runtime gate pattern as Step 2 before Step 4)
+- Production blueprint layers covered: Requirements, Specs, Directives (CRT-100–CRT-103), Execution Plan, State Model (basic — no lifecycle states in catalog layer), Test Scenarios (52 unit tests)
+- Production blueprint layers not yet covered: System Loop (runtime verification), Failure Playbook, Data Lifecycle (soft-delete only; no expiration tracking in catalog — that is Step 5)
+
+### What Changed
+
+**Files created:**
+
+| File | Purpose |
+|---|---|
+| `apps/api/src/workforce/dto/create-certification.dto.ts` | CreateCertificationDto — name (required), expirationRequired (required boolean, CRT-101), issuer (optional) |
+| `apps/api/src/workforce/dto/update-certification.dto.ts` | UpdateCertificationDto — all optional; name has @IsNotEmpty to reject empty string if provided |
+| `apps/api/src/workforce/dto/list-certifications-query.dto.ts` | ListCertificationsQueryDto — page, pageSize (no category — certifications have no category field) |
+| `apps/api/src/workforce/certification.service.ts` | CertificationService — createCertification, listCertifications, getCertificationById, updateCertification; discriminated-union result types; SEC-003; P2002→CERTIFICATION_NAME_CONFLICT; WORKFORCE_CERTIFICATION_CREATED + WORKFORCE_CERTIFICATION_UPDATED audit events |
+| `apps/api/src/workforce/certification.controller.ts` | CertificationController — POST/GET/GET:id/PATCH /api/v1/certifications; RBAC write: SA + HR Director; read: +WP + CO; toCertificationShape() omits tenantId; dates as ISO 8601 |
+| `apps/api/src/workforce/certification.service.spec.ts` | 32 unit tests: CRT-S-C1–C8 (createCertification), CRT-S-L1–L7 (listCertifications), CRT-S-G1–G6 (getCertificationById), CRT-S-U1–U11 (updateCertification) |
+| `apps/api/src/workforce/certification.controller.spec.ts` | 20 unit tests: createCertification (6), listCertifications (4), getCertificationById (5), updateCertification (5) |
+
+**Files modified:**
+
+| File | Change |
+|---|---|
+| `apps/api/src/workforce/workforce.module.ts` | Added CertificationController to controllers[]; CertificationService to providers[] |
+| `PROGRESS.md` | Active Execution State updated; M13 Step 3 history entry appended |
+
+### Architectural Decisions (same as Step 2, carried forward)
+
+| Decision | Implementation |
+|---|---|
+| Transport-agnostic service | No HTTP exceptions in CertificationService; all mapping in CertificationController |
+| SEC-003 tenant isolation | tenantId from JWT only; `findFirst` (not `findUnique`) so tenantId can be in WHERE |
+| Soft-delete filter | All read queries: `deletedAt: null` |
+| P2002 → CERTIFICATION_NAME_CONFLICT | idx_certifications_tenant_name UNIQUE(tenant_id, name); P2002 caught at service layer |
+| expirationRequired required field | CRT-101 — boolean distinguishing certs that expire; required on create, optional on update |
+| No category field | Certifications have no category column (unlike skills) — ListCertificationsQueryDto has no category param |
+| Audit after write, outside tx | WORKFORCE_CERTIFICATION_CREATED / WORKFORCE_CERTIFICATION_UPDATED emitted on SUCCESS only |
+
+### SEC-003 Enforcement Evidence
+
+| Rule | Implementation | Test |
+|---|---|---|
+| tenantId from JWT only | `actor.tenantId` passed to service; `tenantId` absent from all DTOs | CRT-S-C7, Controller SEC-003 assertions |
+| SEC-003: cross-tenant 404 | `findFirst({ where: { id, tenantId, deletedAt: null } })` | CRT-S-G3 |
+| SEC-003: tenantId absent from responses | `toCertificationShape` omits `tenantId` | Controller spec SEC-003 assertions |
+| SEC-003: soft-delete exclusion | `deletedAt: null` in all read WHERE clauses | CRT-S-L4, CRT-S-G4 |
+| CRT-003: name uniqueness | P2002 caught → CERTIFICATION_NAME_CONFLICT | CRT-S-C2, CRT-S-U6 |
+| expirationRequired required | Boolean field required on create (CRT-101); written to DB from params | CRT-S-C8 |
+
+### Audit Implementation Evidence
+
+| Event | Trigger | Test |
+|---|---|---|
+| `WORKFORCE_CERTIFICATION_CREATED` | After successful `prisma.certification.create` | CRT-S-C4 |
+| `WORKFORCE_CERTIFICATION_UPDATED` | After successful `prisma.certification.update` | CRT-S-U8 |
+| No event on conflict | P2002 returns CERTIFICATION_NAME_CONFLICT before audit | CRT-S-C5, CRT-S-U10 |
+| No event on failure | INTERNAL_ERROR returns before audit | CRT-S-C6 |
+| No event on not found | NOT_FOUND short-circuits before update | CRT-S-U9 |
+
+### RBAC Matrix Implementation
+
+| Endpoint | Roles | Outcome if excluded |
+|---|---|---|
+| `POST /api/v1/certifications` | System Administrator, HR Director | HTTP 403 |
+| `PATCH /api/v1/certifications/:id` | System Administrator, HR Director | HTTP 403 |
+| `GET /api/v1/certifications` | SA, HR Director, Workforce Planner, Compliance Officer | HTTP 403 |
+| `GET /api/v1/certifications/:id` | SA, HR Director, Workforce Planner, Compliance Officer | HTTP 403 |
+| Recruiter | All endpoints | HTTP 403 |
+| Executive User | All endpoints | HTTP 403 |
+
+### Validation Results
+
+| Check | Result |
+|---|---|
+| `tsc --noEmit` | ✅ 0 errors |
+| `nest build` | ✅ Clean build (exit 0) |
+| `npm test` (611 tests, 29 suites) | ✅ 611/611 passed, 0 failed, 0 regressions |
+| Baseline regression check | ✅ 559 prior tests all still passing |
+
+### Known Limitations
+
+| # | Item | Disposition |
+|---|---|---|
+| 1 | No DELETE endpoint for certifications | CRT-400 explicit deferral — out of M13 scope |
+| 2 | No employee certification assignment | Step 5 scope |
+| 3 | No expiration tracking | Step 5 scope — expirationRequired flag is in catalog; actual expiry dates live on EmployeeCertification join table |
+| 4 | Runtime verification not yet performed | Same pattern as Step 2: runtime gate before Step 4 begins if user requests |
+
+### Next Actions
+
+1. M13 Step 4 — Employee Skill Assignment: `POST /employees/:id/skills`, `GET /employees/:id/skills`, EmployeeSkillService (OPM 5-level proficiency scale: BEGINNER/DEVELOPING/PROFICIENT/ADVANCED/EXPERT)
+2. M13 Step 5 — Employee Certification Assignment: expiration tracking, status state machine
+3. M13 Step 6 — Full validation and milestone closure
 
 **M13 Step 2 maturity: Tested — 559/559 tests pass; SEC-003 enforced; audit emitted; RBAC enforced; no regressions.**
