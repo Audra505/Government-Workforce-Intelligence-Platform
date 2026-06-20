@@ -10,7 +10,7 @@
 ---
 
 Last Updated: 2026-06-20
-Updated By: Claude Code (session: M13 Step 3 — Certifications Catalog; CertificationService + CertificationController + 3 DTOs + 52 tests; 611/611 tests pass)
+Updated By: Claude Code (session: M13 Step 3 Closure Correction — RC-001 applied; Certifications capability reclassified to Partially Implemented; directive acceptance criteria matrix added; 20-item criteria split documented: 8 met in Step 3, 12 deferred to Steps 4/5)
 
 ## Repository Status
 
@@ -6648,16 +6648,21 @@ Skills Catalog read/write API for the workforce skills domain. Delivers the four
 
 - Phase/Milestone: M13 Step 3 — Certifications Catalog
 - Date: 2026-06-20
-- Repository Status: Phase 2 Active — Skills Catalog (Step 2) complete; Certifications Catalog (Step 3) complete
+- Repository Status: Phase 2 Active — Skills Catalog (Step 2) complete; Certifications Catalog — catalog layer complete; employee assignment and lifecycle management deferred to Steps 4/5
 
 ### Capability / Deliverable Alignment
 
-- Capability: Certifications Catalog Management API (FR-114, FR-151)
+- Capability: Certifications Domain (FR-114, FR-151, FR-153) — two-layer capability: Catalog (Step 3) + Employee Assignment (Step 5)
 - Deliverable relevance: Required — certifications catalog is a prerequisite for employee certification assignment (M13 Step 5)
 - Required: Yes
-- Current maturity: Tested — 52 unit tests passing, tsc + nest build clean; runtime verification pending (Step 3 follows same runtime gate pattern as Step 2 before Step 4)
-- Production blueprint layers covered: Requirements, Specs, Directives (CRT-100–CRT-103), Execution Plan, State Model (basic — no lifecycle states in catalog layer), Test Scenarios (52 unit tests)
-- Production blueprint layers not yet covered: System Loop (runtime verification), Failure Playbook, Data Lifecycle (soft-delete only; no expiration tracking in catalog — that is Step 5)
+- Current maturity: **Partially Implemented — Catalog Layer Complete; Employee Assignment and Lifecycle Management Deferred to Steps 4/5**
+  - Catalog layer (POST/GET/GET:id/PATCH /api/v1/certifications): Tested — 52 unit tests passing, tsc + nest build clean
+  - Employee certification assignment (POST/GET /api/v1/employees/:id/certifications): NOT IMPLEMENTED — Step 5
+  - Employee certification lifecycle enforcement (REVOKED terminal, status transitions, EXPIRATION_DATE_REQUIRED, INVALID_DATE_RANGE): NOT IMPLEMENTED — Step 5
+  - Employee certification status management (ACTIVE/EXPIRED/REVOKED per GD-M13-3): NOT IMPLEMENTED — Step 5
+  - Employee certification renewal/revocation workflows (CERT_RENEWED, CERT_REVOKED audit events): NOT IMPLEMENTED — Step 5
+- Production blueprint layers covered (catalog layer): Requirements, Specs, Directives (CRT-001–CRT-103), Execution Plan, State Model (catalog-only; no lifecycle states), Test Scenarios (52 unit tests covering all catalog discriminated-union outcomes)
+- Production blueprint layers not yet covered: System Loop (runtime verification), Failure Playbook, Data Lifecycle (no expiration tracking; no employee assignment history — Steps 4/5), Evolution Strategy (status-transition guard on expirationRequired toggle pending)
 
 ### What Changed
 
@@ -6735,17 +6740,79 @@ Skills Catalog read/write API for the workforce skills domain. Delivers the four
 
 ### Known Limitations
 
-| # | Item | Disposition |
+| # | Item | Directive Criterion | Disposition |
+|---|---|---|---|
+| 1 | No DELETE endpoint for certifications catalog | CRT-400 | Explicit deferral per CRT-501 — out of M13 scope entirely |
+| 2 | No employee certification assignment endpoint (`POST /employees/:id/certifications`) | Item 7 | Step 5 — CRT-200, CRT-201 |
+| 3 | No repeat-assignment upsert UPDATE path | Item 8 | Step 5 — GD-M13-4 D3, CRT-205 |
+| 4 | Status field defaults to ACTIVE when omitted on assignment | Item 9 | Step 5 — GD-M13-3 D2, CRT-203 |
+| 5 | REVOKED terminal state enforcement | Item 10 | Step 5 — GD-M13-3 D3, CRT-300, CRT-301 |
+| 6 | `expirationRequired=true` enforces `expirationDate` on employee assignment | Item 11 | Step 5 — GD-M13-2 D7, CRT-204 |
+| 7 | Invalid date range rejected (`INVALID_DATE_RANGE`) | Item 12 | Step 5 — GD-M13-2 D7, CRT-204 |
+| 8 | EMP-302: SEPARATED employee check on assignment | Item 13 | Step 5 — GD-M13-2 D10, CRT-202 |
+| 9 | Cross-tenant `certificationId` → `CERTIFICATION_NOT_FOUND` | Item 14 | Step 5 — GD-M13-1 D6, CRT-201 |
+| 10 | Invalid status value → `INVALID_CERTIFICATION_STATUS` | Item 15 | Step 5 — GD-M13-3 D1, CRT-203 |
+| 11 | CERT_RENEWED event on EXPIRED→ACTIVE transition with prior/new date metadata | Item 16 | Step 5 — GD-M13-4 D4/D5, CRT-302 |
+| 12 | CERT_REVOKED event with certification_id, prior_status, revocation_timestamp | Item 17 | Step 5 — GD-M13-4 D4/D5, CRT-302 |
+| 13 | Full unit test coverage for EmployeeCertificationService | Item 19 (partial) | Step 5 — service does not yet exist |
+| 14 | GET /employees/:id/certifications endpoint | Item 19 (partial) | Step 5 — CRT-200 read |
+| 15 | Expiration tracking query (FR-153) | CRT-400 | Step 5 — expirationRequired flag is in catalog; actual expiry dates and status live on EmployeeCertification join table |
+| 16 | Runtime verification against live Docker stack | — | Follows Step 2 gate pattern; available before Step 4 begins if requested |
+
+### Directive Acceptance Criteria Assessment (directives/15 — "M13 Step 3" section)
+
+The directive labels all 20 certification acceptance criteria under "Acceptance Criteria (M13 Step 3)."
+The implementation plan partitions these across Step 3 (catalog) and Steps 4/5 (employee assignment).
+This table records which criteria are met by Step 3 and which are deferred.
+
+| # | Criterion | Step 3 Status | Target Step |
+|---|---|---|---|
+| 1 | POST creates certification with tenant_id from JWT | ✅ MET | Step 3 |
+| 2 | Certification name uniqueness enforced per tenant (HTTP 409) | ✅ MET | Step 3 |
+| 3 | GET returns only certifications for the requesting tenant | ✅ MET | Step 3 |
+| 4 | GET /{id} returns HTTP 404 for cross-tenant IDs | ✅ MET | Step 3 |
+| 5 | PATCH updates allowed fields | ✅ MET | Step 3 |
+| 6 | WORKFORCE_CERTIFICATION_CREATED and WORKFORCE_CERTIFICATION_UPDATED events emitted | ✅ MET | Step 3 |
+| 7 | POST /employees/{id}/certifications — first assignment INSERT + ASSIGNED event | ❌ DEFERRED | Step 5 |
+| 8 | Repeat assignment UPDATE + correct audit event (UPDATED/RENEWED/REVOKED) | ❌ DEFERRED | Step 5 |
+| 9 | Status defaults to ACTIVE when omitted from assignment request | ❌ DEFERRED | Step 5 |
+| 10 | REVOKED terminal state enforced (HTTP 422 CERTIFICATION_REVOKED on update attempt) | ❌ DEFERRED | Step 5 |
+| 11 | expirationRequired=true enforces expirationDate on assignment (HTTP 422 EXPIRATION_DATE_REQUIRED) | ❌ DEFERRED | Step 5 |
+| 12 | Invalid date range rejected (HTTP 422 INVALID_DATE_RANGE) | ❌ DEFERRED | Step 5 |
+| 13 | EMP-302: SEPARATED employee assignment returns HTTP 422 EMPLOYEE_SEPARATED | ❌ DEFERRED | Step 5 |
+| 14 | Cross-tenant certificationId returns HTTP 422 CERTIFICATION_NOT_FOUND | ❌ DEFERRED | Step 5 |
+| 15 | Invalid status value returns HTTP 422 INVALID_CERTIFICATION_STATUS | ❌ DEFERRED | Step 5 |
+| 16 | CERT_RENEWED event on EXPIRED→ACTIVE with prior/new date metadata | ❌ DEFERRED | Step 5 |
+| 17 | CERT_REVOKED event with certification_id, prior_status, revocation_timestamp | ❌ DEFERRED | Step 5 |
+| 18 | RBAC enforced on all catalog endpoints (HTTP 403 for Recruiter, Executive User) | ✅ MET | Step 3 |
+| 19 | Full unit tests for CertificationService + EmployeeCertificationService | ⚠️ PARTIAL — CertificationService: 52 tests ✅; EmployeeCertificationService: not yet created ❌ | Step 5 |
+| 20 | PROGRESS.md updated | ✅ MET | Step 3 |
+
+**Step 3 criteria met: 8 of 20 (items 1–6, 18, 20)**
+**Deferred to Steps 4/5: 12 of 20 (items 7–17, 19-partial)**
+
+The 12 deferred criteria cover the employee certification assignment layer (CRT-200 through CRT-302) and `EmployeeCertificationService` test coverage. These are tracked under Step 5 and are not regressions or omissions from the Step 3 catalog delivery.
+
+---
+
+### Capability Maturity Classification
+
+| Layer | Classification | Evidence |
 |---|---|---|
-| 1 | No DELETE endpoint for certifications | CRT-400 explicit deferral — out of M13 scope |
-| 2 | No employee certification assignment | Step 5 scope |
-| 3 | No expiration tracking | Step 5 scope — expirationRequired flag is in catalog; actual expiry dates live on EmployeeCertification join table |
-| 4 | Runtime verification not yet performed | Same pattern as Step 2: runtime gate before Step 4 begins if user requests |
+| Certifications Catalog (CRUD) | **Tested** | 52 unit tests; tsc + nest build clean; SEC-003 enforced; audit emitted; RBAC enforced |
+| Employee Certification Assignment | **Not Yet Implemented** | No service, controller, or tests — Step 5 |
+| Certification Lifecycle Enforcement | **Not Yet Implemented** | No status transitions, REVOKED guard, expiration enforcement — Step 5 |
+| Certification Status Management | **Not Yet Implemented** | GD-M13-3 status values exist in enum; no enforcement layer — Step 5 |
+| Renewal and Revocation Workflows | **Not Yet Implemented** | CERT_RENEWED and CERT_REVOKED audit events defined in enum; no trigger logic — Step 5 |
+| Overall Certifications Capability | **Partially Implemented** | Catalog layer complete; assignment and lifecycle layers deferred |
+
+---
 
 ### Next Actions
 
 1. M13 Step 4 — Employee Skill Assignment: `POST /employees/:id/skills`, `GET /employees/:id/skills`, EmployeeSkillService (OPM 5-level proficiency scale: BEGINNER/DEVELOPING/PROFICIENT/ADVANCED/EXPERT)
-2. M13 Step 5 — Employee Certification Assignment: expiration tracking, status state machine
+2. M13 Step 5 — Employee Certification Assignment: CRT-200 through CRT-302, EmployeeCertificationService, upsert semantics, REVOKED terminal guard, expiration enforcement, CERT_RENEWED + CERT_REVOKED audit events, satisfies directive acceptance criteria items 7–17 and completes item 19
 3. M13 Step 6 — Full validation and milestone closure
 
+**M13 Step 3 catalog maturity: Tested — 52/52 tests pass; SEC-003 enforced; audit emitted; RBAC enforced; no regressions. Full certifications capability maturity: Partially Implemented.**
 **M13 Step 2 maturity: Tested — 559/559 tests pass; SEC-003 enforced; audit emitted; RBAC enforced; no regressions.**
