@@ -10,7 +10,7 @@
 ---
 
 Last Updated: 2026-06-19
-Updated By: Claude Code (session: GD-M12-8 implementation — Employee Date Integrity guard; EMP-805 added to directive and service; 5 new unit tests + 1 new controller test; 501/501 unit tests pass; 17/17 runtime verification checks pass)
+Updated By: Claude Code (session: M13 Phase A — Governance Recording complete; GD-M13-1 through GD-M13-5 created; governance_history.md created; directives/14 and 15 created; state/07 created; directives/02 and 13 updated; M13 Step 1 unblocked)
 
 ## Repository Status
 
@@ -35,8 +35,8 @@ Milestone: M12 — Employee Management Foundation — COMPLETE (Steps 1–4 all 
 Last Completed Milestone: M12 — Employee Management Foundation (Complete, 2026-06-18; Steps 1–4; 495/495 unit tests + 57/57 e2e tests; full stack browser → BFF → NestJS → DB)
 Last Completed Step: M12 Step 4 — Employee Frontend UI; types.ts extended; BFF POST/PUT/POST-status handlers; EmployeeTable, EmployeeFilters, EmploymentStatusBadge, EmployeeDetail, CreateEmployeeForm, EditEmployeeForm, EmployeeStatusActions; 4 App Router pages + 4 error.tsx + 1 loading.tsx; SEC-003/EMP-302/GD-M12-6/RBAC-952/GD-M12-S4-1 enforced; all 40 exit criteria met
 Last Completed Step Date: 2026-06-18
-Current Step: Pre-M13 governance recording complete (2026-06-19); DEP-008 implementation pending (pre-M13 verification gate); M13 (Skills + Certifications) not yet started
-Session Classification: Phase 2 Active — M12 COMPLETE; Employee domain is Integrated (full stack — browser-accessible end to end); 495 unit + 57 e2e tests passing
+Current Step: M13 Phase A — Governance Recording COMPLETE (2026-06-19); M13 Step 1 (Schema Foundation) is now authorized and unblocked
+Session Classification: Phase 2 Active — M12 COMPLETE; M13 Governance Phase A COMPLETE; 508 unit tests passing; M13 Step 1 unblocked
 
 ## Milestone 10 — Approved Plan
 
@@ -6259,3 +6259,154 @@ The API-level enforcement is complete and runtime-verified. The deferral has no 
 3. Department management frontend should be planned for a future milestone.
 
 **DEP-008 Phase A maturity: Verified — constraint active, enforcement implemented, tested, and runtime-verified.**
+
+---
+
+---
+
+## M13 Phase A — Governance Recording
+
+Phase: M13 — Skills & Certifications Foundation
+Session Type: Governance Recording (Phase A)
+Date: 2026-06-19
+Repository Status: Pre-M13-Implementation / Governance Complete / M13 Step 1 Authorized
+
+### Phase A Summary
+
+M13 Planning Review, Governance Resolution, and Governance Approval phases were
+completed in preceding sessions. Phase A records all approved governance decisions,
+creates the authoritative directive package for skills and certifications, creates
+the certification state model, and updates the governance history index.
+
+No Prisma schema changes, migrations, application code, controllers, services, DTOs,
+routes, or UI were modified in Phase A.
+
+### Shared Column Confirmation (GD-M13-1 Decision 7)
+
+The following column resolution was confirmed before Phase A recording:
+
+workforce.skills and workforce.certifications each receive created_at, updated_at,
+and deleted_at under spec/05 Shared Columns principle and soft-delete strategy.
+This was recorded as GD-M13-1 Decision 7 (Implementation Confirmation).
+No separate governance decision was required.
+
+### Files Created
+
+| File | Description |
+|---|---|
+| governance/GD-M13-1.md | Catalog Tenant Scope — per-tenant; tenant_id; Decision 7 (complete column set) |
+| governance/GD-M13-2.md | API Design — 13 decisions; endpoint contracts; RBAC matrix; request contracts |
+| governance/GD-M13-3.md | Certification Status Enumeration — ACTIVE/EXPIRED/REVOKED; ACTIVE default; REVOKED terminal |
+| governance/GD-M13-4.md | History Retention — audit event trail; 10 new AuditEventType values; upsert semantics |
+| governance/GD-M13-5.md | Position Skills/Certs Deferral — position_skills/certs tables deferred; FR-100 maturity: Planned |
+| governance/governance_history.md | New file — chronological index of all governance decisions in the repository |
+| directives/14_skill_management_rules.md | Authoritative skill management directive (SKL-001 through SKL-400) |
+| directives/15_certification_management_rules.md | Authoritative certification management directive (CRT-001 through CRT-501) |
+| state/07_employee_certification_states.md | Certification state model — ACTIVE/EXPIRED/REVOKED; transitions; audit events |
+
+### Files Modified
+
+| File | Change |
+|---|---|
+| directives/13_employee_management_rules.md | Added GD-M13-1, GD-M13-2, GD-M13-3, GD-M13-4 to Governance Decisions Incorporated |
+| directives/02_position_management_rules.md | Added GD-M13-5 to Governance Decisions Incorporated |
+| PROGRESS.md | Active Execution State updated; M13 Phase A entry added |
+
+### Governance Decisions Recorded
+
+| ID | Subject | Impact |
+|---|---|---|
+| GD-M13-1 | Catalog Tenant Scope | Per-tenant catalog; tenant_id on both tables; SEC-003 applies; Decision 7 = complete column set with shared columns |
+| GD-M13-2 | API Design | 4 catalog endpoints per domain; 4 employee assignment endpoints; RBAC matrix; upsert semantics; EMP-302 enforcement |
+| GD-M13-3 | Status Enumeration | ACTIVE/EXPIRED/REVOKED only; ACTIVE default; REVOKED terminal; SKM-302 forward-compat declared |
+| GD-M13-4 | History Retention | Audit trail satisfies FR-113; 10 new AuditEventType values; composite PKs per spec/05 |
+| GD-M13-5 | Position Deferral | position_skills/certs tables and endpoints excluded from M13; 4 future prerequisites defined |
+
+### M13 Governance Exit Criteria — Assessment
+
+| Criterion | Status |
+|---|---|
+| Tenant scope resolved (GD-M13-1) | SATISFIED |
+| API surface fully defined (GD-M13-2) | SATISFIED |
+| Status enumeration defined (GD-M13-3) | SATISFIED |
+| History retention strategy defined (GD-M13-4) | SATISFIED |
+| Position deferral formally recorded (GD-M13-5) | SATISFIED |
+| AuditEventType additions defined (GD-M13-4 Decision 4) | SATISFIED — 10 values defined |
+| Shared column resolution recorded (GD-M13-1 Decision 7) | SATISFIED |
+| Directives 14 and 15 authored | SATISFIED |
+| Certification state model authored (state/07) | SATISFIED |
+| governance_history.md created | SATISFIED |
+| directives/13 updated with GD-M13-1/2/3/4 | SATISFIED |
+| directives/02 updated with GD-M13-5 | SATISFIED |
+| PROGRESS.md reflects Phase A completion | SATISFIED |
+
+### Capability Maturity After Phase A
+
+#### FR-113 Employee Skill History — Directives/14 Maturity
+
+| Layer | Status |
+|---|---|
+| Requirements | Defined (FR-113, FR-150) |
+| Specs | Present (spec/04, spec/05 partial — tenant_id gap resolved by GD-M13-1) |
+| Directives | **Present — directives/14_skill_management_rules.md** |
+| Governance | **Complete — GD-M13-1, GD-M13-2, GD-M13-4** |
+| Execution Plan | Not yet implemented |
+| State Model | N/A (skills have no lifecycle state machine) |
+| Test Scenarios | Not yet written |
+| System Loop | Not yet integrated |
+| Failure Playbook | Partial (error codes defined in directives; full service behavior pending implementation) |
+| Environment Model | Not yet applicable |
+| Data Lifecycle | Defined in directives (audit trail, soft-delete, upsert) |
+| Evolution Strategy | Partial (SKL-400 deferred items defined) |
+| **Overall** | **Governance Complete / Implementation Not Yet Started** |
+
+#### FR-114, FR-151, FR-153 Certification Management — Directives/15 Maturity
+
+| Layer | Status |
+|---|---|
+| Requirements | Defined (FR-114, FR-151, FR-153) |
+| Specs | Present (spec/04, spec/05 partial — tenant_id gap and status enum gap resolved) |
+| Directives | **Present — directives/15_certification_management_rules.md** |
+| Governance | **Complete — GD-M13-1, GD-M13-2, GD-M13-3, GD-M13-4** |
+| Execution Plan | Not yet implemented |
+| State Model | **Present — state/07_employee_certification_states.md** |
+| Test Scenarios | Not yet written |
+| System Loop | Not yet integrated |
+| Failure Playbook | Partial (error codes defined; REVOKED terminal rule defined; service behavior pending) |
+| Environment Model | Not yet applicable |
+| Data Lifecycle | Defined in directives (ACTIVE/EXPIRED/REVOKED; renewal path; audit trail; soft-delete) |
+| Evolution Strategy | Partial (CRT-501 deferred items defined) |
+| **Overall** | **Governance Complete / Implementation Not Yet Started** |
+
+#### FR-100 Position Required Skills/Certs
+
+| Layer | Status |
+|---|---|
+| Requirements | Defined (FR-100) |
+| Specs | Absent from spec/05, spec/06 |
+| Directives | Deferral recorded in directives/02 |
+| Governance | **GD-M13-5 — explicit deferral with 4 prerequisites** |
+| **Overall** | **Planned** |
+
+### Risks / Limitations
+
+| # | Item | Severity |
+|---|---|---|
+| 1 | AuditEventType enum not yet extended with 10 new values — required before M13 Step 1 migration | Expected — Step 1 prerequisite |
+| 2 | No Prisma models for Skill, Certification, EmployeeSkill, EmployeeCertification | Expected — M13 Step 1 |
+| 3 | FR-152 Competency Framework has no spec authority (spec/05, spec/06) — excluded from M13 | Low — explicit exclusion; no unresolved ambiguity |
+
+### Next Actions
+
+1. M13 Step 1 — Schema Foundation is authorized and unblocked. Begin:
+   - Add 10 AuditEventType values to apps/api/src/audit/audit.types.ts
+   - Create Prisma models: Skill, Certification, EmployeeSkill, EmployeeCertification
+   - Create M13 schema migration
+   - Validate: npx prisma migrate dev, tsc, tests
+2. M13 Step 2 — Skills Catalog (SkillService + SkillController + DTOs + unit tests)
+3. M13 Step 3 — Certifications Catalog (CertificationService + CertificationController + DTOs + unit tests)
+4. M13 Step 4 — Employee Skill Assignment (EmployeeSkillService + assignment endpoints + tests)
+5. M13 Step 5 — Employee Certification Assignment + expiration tracking
+6. M13 Step 6 — Full validation and closure
+
+**M13 Phase A: COMPLETE — M13 Step 1 (Schema Foundation) is authorized and may now begin.**

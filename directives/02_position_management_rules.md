@@ -27,6 +27,13 @@ This directive incorporates the following approved governance decisions:
   — Position closure pre-conditions (no active incumbent) enforced at position linkage milestone.
   — Implementation deferred to the milestone following M13.
   — See governance/GD-PRE-M13-002.md for full decision text.
+- GD-M13-5: Position Skills and Certifications Requirements — Explicit Deferral Beyond M13 (2026-06-19)
+  — position_skills and position_certifications tables and endpoints NOT created in M13.
+  — FR-100 Required Skills/Required Certifications capability maturity: Planned.
+  — 4 prerequisites required before future implementation: schema authority (spec/05),
+    API authority (spec/06), position linkage mechanism (GD-PRE-M13-002 resolved),
+    and M13 completion.
+  — See governance/GD-M13-5.md for full decision text.
 
 ---
 

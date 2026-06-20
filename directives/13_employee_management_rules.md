@@ -52,6 +52,10 @@ This directive incorporates the following approved governance decisions:
 - GD-M12-6: Employee Number Immutability (2026-06-18)
 - GD-M12-8: Employee Date Integrity — Termination Before Hire Date (2026-06-19)
 - GD-PRE-M13-001: VAC-401 Hiring Workflow — Dual-Path Authority Classification and Appointment Authority Design (2026-06-19)
+- GD-M13-1: Skills and Certifications Catalog Tenant Scope (2026-06-19)
+- GD-M13-2: Skills and Certifications Catalog API Design (2026-06-19)
+- GD-M13-3: Employee Certification Status Enumeration (2026-06-19)
+- GD-M13-4: Employee Skills and Certifications History Retention Strategy (2026-06-19)
 
 ---
 
