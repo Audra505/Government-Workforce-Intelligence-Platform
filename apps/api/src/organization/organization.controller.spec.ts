@@ -12,6 +12,7 @@ import {
   ConflictException,
   InternalServerErrorException,
   NotFoundException,
+  UnprocessableEntityException,
 } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
 
@@ -243,6 +244,17 @@ describe('OrganizationController', () => {
       mockDeptService.updateDepartment.mockResolvedValue({ outcome: 'INTERNAL_ERROR' });
 
       await expect(controller.updateDepartment(DEPT_ID, updateDto, mockActor)).rejects.toThrow(InternalServerErrorException);
+    });
+
+    it('DEP-008-C1: DEPARTMENT_HAS_ACTIVE_EMPLOYEES → throws UnprocessableEntityException with correct error code', async () => {
+      mockDeptService.updateDepartment.mockResolvedValue({
+        outcome: 'DEPARTMENT_HAS_ACTIVE_EMPLOYEES',
+        activeEmployeeCount: 7,
+      });
+
+      await expect(
+        controller.updateDepartment(DEPT_ID, { status: 'INACTIVE' } as UpdateDepartmentDto, mockActor),
+      ).rejects.toThrow(UnprocessableEntityException);
     });
   });
 

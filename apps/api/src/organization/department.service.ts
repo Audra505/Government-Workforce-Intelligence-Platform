@@ -57,6 +57,7 @@ export type UpdateDepartmentResult =
   | { outcome: 'SUCCESS'; department: DepartmentRecord }
   | { outcome: 'NOT_FOUND' }
   | { outcome: 'CODE_CONFLICT' }
+  | { outcome: 'DEPARTMENT_HAS_ACTIVE_EMPLOYEES'; activeEmployeeCount: number }
   | { outcome: 'INTERNAL_ERROR' };
 
 // Helper type — matches the Prisma row shape returned by DEPT_READ_SELECT.
@@ -240,6 +241,21 @@ export class DepartmentService {
       });
 
       if (!existing) return { outcome: 'NOT_FOUND' };
+
+      // DEP-008 Phase A (GD-PRE-M13-003): block deactivation when active employees
+      // reference this department. SEPARATED employees and soft-deleted records do not block.
+      if (dto.status === 'INACTIVE') {
+        const activeEmployeeCount = await this.prisma.employee.count({
+          where: {
+            departmentId: id,
+            deletedAt: null,
+            employmentStatus: { in: ['PENDING_ONBOARDING', 'ACTIVE', 'ON_LEAVE', 'SUSPENDED'] },
+          },
+        });
+        if (activeEmployeeCount > 0) {
+          return { outcome: 'DEPARTMENT_HAS_ACTIVE_EMPLOYEES', activeEmployeeCount };
+        }
+      }
 
       const row = await this.prisma.department.update({
         where: { id },

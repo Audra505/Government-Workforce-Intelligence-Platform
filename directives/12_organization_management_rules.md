@@ -20,6 +20,20 @@ References:
 
 ---
 
+# Governance Decisions Incorporated
+
+This directive incorporates the following approved governance decisions:
+
+- GD-PRE-M13-003: DEP-008 Department Deactivation — Trigger Confirmation and Constraint Activation (2026-06-19)
+  — Confirms the DEP-008 Phase 2 trigger condition has been met (M12 established employee FK consumers).
+  — Department deactivation with active employees is prohibited effective 2026-06-19.
+  — Error code: DEPARTMENT_HAS_ACTIVE_EMPLOYEES.
+  — Position constraint (DEPARTMENT_HAS_ACTIVE_POSITIONS) activates at position linkage milestone.
+  — No override mechanism. No cascade.
+  — See governance/GD-PRE-M13-003.md for full decision text.
+
+---
+
 # Purpose
 
 This directive defines the business rules governing organization management.
@@ -194,9 +208,28 @@ A department may be created without a description.
 
 Departments that are referenced by positions or employees must not be deactivated.
 
-This constraint is enforced at Phase 2 when foreign key consumers exist.
+This constraint is ACTIVE. The Phase 2 trigger condition (FK consumers exist) was
+confirmed met by GD-PRE-M13-003 (2026-06-19) following Milestone 12 implementation
+of the Employee domain.
 
-In Phase 1 (Milestone 7), no FK consumers exist yet. Deactivation is permissive.
+Enforcement is implemented in two phases:
+
+Phase A (immediate — employee FK consumers):
+The department service must reject deactivation when any employee in
+PENDING_ONBOARDING, ACTIVE, ON_LEAVE, or SUSPENDED status references the
+department. Error code: DEPARTMENT_HAS_ACTIVE_EMPLOYEES.
+
+Phase B (at position linkage milestone — position FK consumers):
+The department service must additionally reject deactivation when any position
+in DRAFT, ACTIVE, or FROZEN status references the department.
+Error code: DEPARTMENT_HAS_ACTIVE_POSITIONS.
+
+No bypass parameter, force flag, or administrative override may circumvent this
+constraint through any API call, regardless of role.
+
+No automated cascade of employee or position status changes occurs on deactivation.
+
+Authority: GD-PRE-M13-003 (approved 2026-06-19).
 
 ---
 

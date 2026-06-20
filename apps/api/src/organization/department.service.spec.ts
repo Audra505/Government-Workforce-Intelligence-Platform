@@ -49,6 +49,9 @@ describe('DepartmentService', () => {
       findFirst: jest.fn(),
       update:   jest.fn(),
     },
+    employee: {
+      count: jest.fn(),
+    },
   };
   const mockAuditService = { logEvent: jest.fn() };
 
@@ -380,6 +383,7 @@ describe('DepartmentService', () => {
     it('dto.status === "INACTIVE" → emits ORG_DEPARTMENT_DEACTIVATED event (AUD-350)', async () => {
       const deactivatedRow = { ...DEPT_ROW, status: 'INACTIVE' };
       mockPrisma.department.findFirst.mockResolvedValue({ id: DEPT_ID });
+      mockPrisma.employee.count.mockResolvedValue(0); // DEP-008: no blocking employees
       mockPrisma.department.update.mockResolvedValue(deactivatedRow);
       mockAuditService.logEvent.mockResolvedValue(undefined);
 
@@ -442,6 +446,117 @@ describe('DepartmentService', () => {
       );
 
       expect(mockAuditService.logEvent).not.toHaveBeenCalled();
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // updateDepartment() — DEP-008 deactivation constraint (GD-PRE-M13-003)
+  // ---------------------------------------------------------------------------
+
+  describe('updateDepartment() — DEP-008 deactivation constraint', () => {
+    it('DEP-008-U1: active employee count > 1 → outcome DEPARTMENT_HAS_ACTIVE_EMPLOYEES with correct count', async () => {
+      mockPrisma.department.findFirst.mockResolvedValue({ id: DEPT_ID });
+      mockPrisma.employee.count.mockResolvedValue(3);
+
+      const result = await service.updateDepartment(
+        DEPT_ID,
+        { status: 'INACTIVE' } as UpdateDepartmentDto,
+        TENANT_ID,
+        ACTOR_ID,
+      );
+
+      expect(result.outcome).toBe('DEPARTMENT_HAS_ACTIVE_EMPLOYEES');
+      if (result.outcome === 'DEPARTMENT_HAS_ACTIVE_EMPLOYEES') {
+        expect(result.activeEmployeeCount).toBe(3);
+      }
+    });
+
+    it('DEP-008-U2: exactly 1 active employee → outcome DEPARTMENT_HAS_ACTIVE_EMPLOYEES with count 1', async () => {
+      mockPrisma.department.findFirst.mockResolvedValue({ id: DEPT_ID });
+      mockPrisma.employee.count.mockResolvedValue(1);
+
+      const result = await service.updateDepartment(
+        DEPT_ID,
+        { status: 'INACTIVE' } as UpdateDepartmentDto,
+        TENANT_ID,
+        ACTOR_ID,
+      );
+
+      expect(result.outcome).toBe('DEPARTMENT_HAS_ACTIVE_EMPLOYEES');
+      if (result.outcome === 'DEPARTMENT_HAS_ACTIVE_EMPLOYEES') {
+        expect(result.activeEmployeeCount).toBe(1);
+      }
+    });
+
+    it('DEP-008-U3: zero active employees → deactivation proceeds, outcome SUCCESS', async () => {
+      const deactivatedRow = { ...DEPT_ROW, status: 'INACTIVE' };
+      mockPrisma.department.findFirst.mockResolvedValue({ id: DEPT_ID });
+      mockPrisma.employee.count.mockResolvedValue(0);
+      mockPrisma.department.update.mockResolvedValue(deactivatedRow);
+      mockAuditService.logEvent.mockResolvedValue(undefined);
+
+      const result = await service.updateDepartment(
+        DEPT_ID,
+        { status: 'INACTIVE' } as UpdateDepartmentDto,
+        TENANT_ID,
+        ACTOR_ID,
+      );
+
+      expect(result.outcome).toBe('SUCCESS');
+    });
+
+    it('DEP-008-U4: employee count query excludes SEPARATED employees via status filter', async () => {
+      const deactivatedRow = { ...DEPT_ROW, status: 'INACTIVE' };
+      mockPrisma.department.findFirst.mockResolvedValue({ id: DEPT_ID });
+      // count returns 0 — SEPARATED employees are excluded by the where clause in the service
+      mockPrisma.employee.count.mockResolvedValue(0);
+      mockPrisma.department.update.mockResolvedValue(deactivatedRow);
+      mockAuditService.logEvent.mockResolvedValue(undefined);
+
+      await service.updateDepartment(
+        DEPT_ID,
+        { status: 'INACTIVE' } as UpdateDepartmentDto,
+        TENANT_ID,
+        ACTOR_ID,
+      );
+
+      expect(mockPrisma.employee.count).toHaveBeenCalledWith({
+        where: {
+          departmentId: DEPT_ID,
+          deletedAt: null,
+          employmentStatus: { in: ['PENDING_ONBOARDING', 'ACTIVE', 'ON_LEAVE', 'SUSPENDED'] },
+        },
+      });
+    });
+
+    it('DEP-008-U5: non-deactivation status update → employee count query NOT called', async () => {
+      const reactivatedRow = { ...DEPT_ROW, status: 'ACTIVE' };
+      mockPrisma.department.findFirst.mockResolvedValue({ id: DEPT_ID });
+      mockPrisma.department.update.mockResolvedValue(reactivatedRow);
+      mockAuditService.logEvent.mockResolvedValue(undefined);
+
+      await service.updateDepartment(
+        DEPT_ID,
+        { status: 'ACTIVE' } as UpdateDepartmentDto,
+        TENANT_ID,
+        ACTOR_ID,
+      );
+
+      expect(mockPrisma.employee.count).not.toHaveBeenCalled();
+    });
+
+    it('DEP-008-U6: department.update NOT called when blocked by active employees', async () => {
+      mockPrisma.department.findFirst.mockResolvedValue({ id: DEPT_ID });
+      mockPrisma.employee.count.mockResolvedValue(5);
+
+      await service.updateDepartment(
+        DEPT_ID,
+        { status: 'INACTIVE' } as UpdateDepartmentDto,
+        TENANT_ID,
+        ACTOR_ID,
+      );
+
+      expect(mockPrisma.department.update).not.toHaveBeenCalled();
     });
   });
 });

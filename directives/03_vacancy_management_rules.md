@@ -16,6 +16,17 @@ References:
 
 ---
 
+# Governance Decisions Incorporated
+
+This directive incorporates the following approved governance decisions:
+
+- GD-PRE-M13-001: VAC-401 Hiring Workflow — Dual-Path Authority Classification and Appointment Authority Design (2026-06-19)
+  — Classifies the competitive hire path (VAC-401) as the standard path for career civil service positions.
+  — Implementation deferred to Phase 3 Talent Acquisition.
+  — See governance/GD-PRE-M13-001.md for full decision text.
+
+---
+
 # Purpose
 
 This directive defines the business rules governing vacancy management.

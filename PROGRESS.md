@@ -35,7 +35,7 @@ Milestone: M12 — Employee Management Foundation — COMPLETE (Steps 1–4 all 
 Last Completed Milestone: M12 — Employee Management Foundation (Complete, 2026-06-18; Steps 1–4; 495/495 unit tests + 57/57 e2e tests; full stack browser → BFF → NestJS → DB)
 Last Completed Step: M12 Step 4 — Employee Frontend UI; types.ts extended; BFF POST/PUT/POST-status handlers; EmployeeTable, EmployeeFilters, EmploymentStatusBadge, EmployeeDetail, CreateEmployeeForm, EditEmployeeForm, EmployeeStatusActions; 4 App Router pages + 4 error.tsx + 1 loading.tsx; SEC-003/EMP-302/GD-M12-6/RBAC-952/GD-M12-S4-1 enforced; all 40 exit criteria met
 Last Completed Step Date: 2026-06-18
-Current Step: None — M12 complete; M13 (Skills + Certifications) not yet started
+Current Step: Pre-M13 governance recording complete (2026-06-19); DEP-008 implementation pending (pre-M13 verification gate); M13 (Skills + Certifications) not yet started
 Session Classification: Phase 2 Active — M12 COMPLETE; Employee domain is Integrated (full stack — browser-accessible end to end); 495 unit + 57 e2e tests passing
 
 ## Milestone 10 — Approved Plan
@@ -6056,3 +6056,206 @@ The Patricia Lanford (EMP-001) record that triggered this governance review has 
 - **Employee Lifecycle Management:** Improved — previously: data integrity gap allowing terminationDate < hireDate; now: deterministic guard with HTTP 422 error code, covering all paths (future/null/past hireDate; SEPARATED vs non-SEPARATED transitions)
 - **Layer coverage added:** Failure Playbook (EMP-805), Test Scenarios (6 new tests), System Loop (runtime-verified guard execution)
 - **No schema migration, no API surface change, no M13 scope impact**
+
+---
+
+## Pre-M13 Governance Recording (2026-06-19)
+
+### Phase Classification
+
+Repository Status: Pre-M13 Governance Complete  
+Session Type: Governance recording only — no implementation code written  
+Next Action: DEP-008 implementation (pre-M13 verification gate), then M13 Planning Review
+
+---
+
+### What Changed
+
+**Files created (3):**
+
+| File | Purpose |
+|---|---|
+| `governance/GD-PRE-M13-001.md` | VAC-401 Dual-Path Authority — classifies permanent competitive (VAC-401) and non-competitive (direct API) creation paths; governs appointmentAuthority field design and COMPETITIVE_APPOINTMENT system-only reservation |
+| `governance/GD-PRE-M13-002.md` | Position Linkage FTE Slot Model — 1:1 occupancy rule, nullable positionId at creation, required at ACTIVE transition, service-layer enforcement, position state constraint on assignment, closure cascade prohibition; supersedes M13 implementation timing assumption in GD-M12-2 |
+| `governance/GD-PRE-M13-003.md` | DEP-008 Trigger Confirmation — formally confirms Phase 2 trigger condition met (M12 employee FK consumers); mandates employee deactivation constraint (Phase A, immediate) and defers position constraint to position linkage milestone (Phase B); no override; no cascade; verification gate specified |
+
+**Files modified (5):**
+
+| File | Change |
+|---|---|
+| `directives/03_vacancy_management_rules.md` | Added "Governance Decisions Incorporated" section with GD-PRE-M13-001 reference |
+| `directives/02_position_management_rules.md` | Added "Governance Decisions Incorporated" section with GD-PRE-M13-002 reference |
+| `directives/12_organization_management_rules.md` | Added "Governance Decisions Incorporated" section with GD-PRE-M13-003 reference; updated DEP-008 rule text from permissive (Phase 1 language) to active constraint with two-phase enforcement model |
+| `directives/13_employee_management_rules.md` | Added GD-PRE-M13-001 to "Governance Decisions Incorporated" section |
+| `state/02_employee_lifecycle.md` | Active state "Position Assigned" characteristic annotated with deferral note (GD-PRE-M13-002); ON_LEAVE→SEPARATED and SUSPENDED→SEPARATED added to Forbidden Transitions with GD-M12-1 authority and GD-M12-7 open reference |
+
+**No implementation code was created or modified.**
+
+---
+
+### Governance Decisions Recorded
+
+| Decision ID | Title | Classification | M13 Impact |
+|---|---|---|---|
+| GD-PRE-M13-001 | VAC-401 Dual-Path Authority Classification | Governance only; future Phase 3 implementation | None |
+| GD-PRE-M13-002 | Position Linkage FTE Slot Model Design Authority | Governance only; future position linkage milestone | None |
+| GD-PRE-M13-003 | DEP-008 Trigger Confirmation and Enforcement Activation | Governance + immediate implementation required | None (functional, but not a Skills/Certifications dependency) |
+
+---
+
+### Open Governance Items (Deferred)
+
+| Item | Status | Target |
+|---|---|---|
+| GD-M12-7: ON_LEAVE→SEPARATED and SUSPENDED→SEPARATED workaround | Open — GD-M12-1 prohibits direct transitions; ACTIVE intermediary distorts audit trail; resolution deferred | M13 (during Skills/Certifications milestone) |
+| separationReason persistence | Accepted in DTO, not persisted to employee record; legal requirement | M13 schema migration |
+| appointmentAuthority schema field | Design authority recorded in GD-PRE-M13-001; implementation deferred | Pre-position-linkage milestone |
+
+---
+
+### Pre-M13 Verification Gate (DEP-008)
+
+DEP-008 Phase A (employee constraint) is not yet implemented.  
+Per GD-PRE-M13-003, the following must be confirmed before M13 begins:
+
+```text
+1. Deactivation of a department with active employees → HTTP 422,
+   error code DEPARTMENT_HAS_ACTIVE_EMPLOYEES, accurate count.
+2. Deactivation of a department with no active employees (or only
+   SEPARATED) → HTTP 200.
+3. Both behaviors covered by unit tests in department.service.spec.ts.
+4. Both behaviors covered by at least one e2e or runtime verification test.
+```
+
+**DEP-008 implementation is the next implementation task before M13.**
+
+---
+
+### Capability Maturity Impact
+
+| Capability | Before | After |
+|---|---|---|
+| Department deactivation (DEP-008) | Permissive (Phase 1 language — no FK consumers known) | Constraint Active — trigger confirmed; enforcement pending implementation |
+| VAC-401 hiring path | Unclassified (implementation placeholder vs permanent path ambiguous) | Permanently classified — dual-path model, both legally authorized |
+| Position linkage strategy | Deferred to M13 (GD-M12-2 original framing) | Deferred to post-M13 position linkage milestone; design model recorded in GD-PRE-M13-002 |
+| Employee lifecycle forbidden transitions | Partial — ON_LEAVE→SEPARATED and SUSPENDED→SEPARATED implicit but not documented | Explicit — forbidden transitions documented in state/02 with governance authority references |
+
+
+
+---
+
+## DEP-008 Phase A — Department Deactivation Constraint (2026-06-19)
+
+### Phase Classification
+
+Repository Status: DEP-008 Phase A COMPLETE  
+Session Type: M12 Housekeeping — governance enforcement implementation  
+Authority: GD-PRE-M13-003
+
+---
+
+### What Changed
+
+**Files modified (4):**
+
+| File | Change |
+|---|---|
+| `apps/api/src/organization/department.service.ts` | Added `DEPARTMENT_HAS_ACTIVE_EMPLOYEES` to `UpdateDepartmentResult` union; added employee count query before status→INACTIVE update; returns `{ outcome: 'DEPARTMENT_HAS_ACTIVE_EMPLOYEES', activeEmployeeCount }` if count > 0 |
+| `apps/api/src/organization/organization.controller.ts` | Imported `UnprocessableEntityException`; added `@ApiResponse({ status: 422 })` to PATCH handler; added `DEPARTMENT_HAS_ACTIVE_EMPLOYEES` → 422 case to result switch |
+| `apps/api/src/organization/department.service.spec.ts` | Added `employee.count` to mock; updated existing deactivation test to explicitly mock count=0; added new describe block "updateDepartment() — DEP-008 deactivation constraint" with 6 tests (DEP-008-U1 through DEP-008-U6) |
+| `apps/api/src/organization/organization.controller.spec.ts` | Added `UnprocessableEntityException` import; added DEP-008-C1 test case |
+
+**No files created. No schema migration. No new module. No new DTO.**
+
+---
+
+### Capability: DEP-008 Department Deactivation Constraint (Phase A)
+
+- Deliverable Status: Required (GD-PRE-M13-003 mandated enforcement as pre-M13 verification gate)
+- Requirements: Active since 2026-06-19 per GD-PRE-M13-003 trigger confirmation
+- Specs: Defined — DEP-008 in directives/12_organization_management_rules.md (now updated to active)
+- Directives: Present — governance/GD-PRE-M13-003.md
+- Execution Plan: Implemented — department.service.ts employee count check
+- State Model: Not applicable — constraint is stateless (count query at request time)
+- Test Scenarios: Tested — DEP-008-U1 through DEP-008-U6 (service) + DEP-008-C1 (controller)
+- System Loop: Integrated — constraint enforced on every PATCH /departments/:id with status=INACTIVE
+- Failure Playbook: Implemented — DEPARTMENT_HAS_ACTIVE_EMPLOYEES → HTTP 422, accurate count in response
+- Environment Model: Verified — runtime tested against live Docker stack (4 cases)
+- Data Lifecycle: Not applicable
+- Evolution Strategy: Phase B defined in GD-PRE-M13-003 for position linkage milestone
+- Overall Maturity: **Verified (Phase A)**
+
+---
+
+### Validation Evidence
+
+**Unit Tests:**
+
+| Test | Status |
+|---|---|
+| DEP-008-U1: count > 1 blocks → DEPARTMENT_HAS_ACTIVE_EMPLOYEES + correct count | PASS |
+| DEP-008-U2: count = 1 blocks → DEPARTMENT_HAS_ACTIVE_EMPLOYEES + count 1 | PASS |
+| DEP-008-U3: count = 0 → SUCCESS | PASS |
+| DEP-008-U4: where clause excludes SEPARATED via status filter | PASS |
+| DEP-008-U5: non-deactivation update → employee.count NOT called | PASS |
+| DEP-008-U6: department.update NOT called when blocked | PASS |
+| DEP-008-C1: controller maps DEPARTMENT_HAS_ACTIVE_EMPLOYEES → UnprocessableEntityException (422) | PASS |
+
+**Full test suite: 508/508 passed, 0 failed, 25 suites — zero regressions**
+(Prior baseline: 501 tests; +7 new DEP-008 tests)
+
+**Type-check: `tsc --noEmit` — zero errors**
+
+**Build: `nest build` — clean, no errors**
+
+**Runtime Verification (all 4 cases PASS — live Docker stack):**
+
+| Case | Scenario | Result |
+|---|---|---|
+| DEP-E1 | ACTIVE employee in department → PATCH status=INACTIVE | HTTP 422, code DEPARTMENT_HAS_ACTIVE_EMPLOYEES ✅ |
+| DEP-E2 | SEPARATED employee in department → PATCH status=INACTIVE | HTTP 200, department deactivated ✅ |
+| DEP-E3 | No employees in department → PATCH status=INACTIVE | HTTP 200, department deactivated ✅ |
+| DEP-E4 | Admin role, ACTIVE employee → PATCH status=INACTIVE | HTTP 422, no role bypass ✅ |
+
+---
+
+### GD-PRE-M13-003 Verification Gate — SATISFIED
+
+All 4 verification gate criteria met:
+
+```
+1. Deactivation attempt with active employees → HTTP 422 + DEPARTMENT_HAS_ACTIVE_EMPLOYEES + accurate count. ✅
+2. Deactivation attempt with no active employees (or only SEPARATED) → HTTP 200. ✅
+3. Both behaviors covered by unit tests in department.service.spec.ts. ✅ (U1–U4)
+4. Both behaviors covered by at least one e2e or runtime verification test. ✅ (DEP-E1, DEP-E2, DEP-E3)
+```
+
+---
+
+### Frontend Enhancement — Deferred
+
+The approved frontend enhancement (display "This department cannot be deactivated while active employees are assigned to it." on DEPARTMENT_HAS_ACTIVE_EMPLOYEES) is deferred.
+
+Reason: No department management UI exists in `apps/web`. The organization domain has not received a web frontend in any prior milestone. The enhancement will be implemented when department management pages are built.
+
+The API-level enforcement is complete and runtime-verified. The deferral has no impact on the GD-PRE-M13-003 verification gate.
+
+---
+
+### Risks / Limitations
+
+| # | Item | Severity |
+|---|---|---|
+| 1 | Frontend cannot surface DEPARTMENT_HAS_ACTIVE_EMPLOYEES to the user (no department UI yet) | Low — API is correct; frontend deferred to department management milestone |
+| 2 | DEP-008 Phase B (position constraint) not yet implemented | Expected — deferred to position linkage milestone per GD-PRE-M13-003 |
+| 3 | Employee count check is not atomic with the department update (TOCTOU risk) | Low — matches existing TOCTOU risk profile in codebase; acceptable Phase 2 risk |
+
+---
+
+### Next Actions
+
+1. M13 Planning Review may now begin — GD-PRE-M13-003 verification gate is confirmed satisfied.
+2. DEP-008 Phase B (DEPARTMENT_HAS_ACTIVE_POSITIONS) is deferred to position linkage milestone.
+3. Department management frontend should be planned for a future milestone.
+
+**DEP-008 Phase A maturity: Verified — constraint active, enforcement implemented, tested, and runtime-verified.**

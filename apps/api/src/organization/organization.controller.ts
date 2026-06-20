@@ -33,6 +33,7 @@ import {
   Patch,
   Post,
   Query,
+  UnprocessableEntityException,
   UseGuards,
 } from '@nestjs/common';
 import {
@@ -191,6 +192,7 @@ export class OrganizationController {
   @ApiResponse({ status: 403, description: 'Insufficient role' })
   @ApiResponse({ status: 404, description: 'Department not found in this tenant' })
   @ApiResponse({ status: 409, description: 'Department code already exists within this tenant' })
+  @ApiResponse({ status: 422, description: 'Department has active employees — reassign before deactivating (DEP-008)' })
   @ApiResponse({ status: 500, description: 'Internal server error' })
   async updateDepartment(
     @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
@@ -220,6 +222,15 @@ export class OrganizationController {
           error: {
             code: 'CONFLICT',
             message: 'department code already exists within this tenant',
+          },
+        });
+
+      case 'DEPARTMENT_HAS_ACTIVE_EMPLOYEES':
+        throw new UnprocessableEntityException({
+          success: false,
+          error: {
+            code: 'DEPARTMENT_HAS_ACTIVE_EMPLOYEES',
+            message: 'Cannot deactivate department: active employees must be reassigned first.',
           },
         });
 

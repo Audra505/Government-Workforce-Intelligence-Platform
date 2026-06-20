@@ -90,7 +90,7 @@ Employee actively participating in workforce operations.
 Characteristics:
 
 ```text
-Position Assigned
+Position Assigned (linkage deferred to position linkage milestone, beyond M13 — per GD-PRE-M13-002)
 System Access Allowed
 Scheduling Allowed
 Reporting Included
@@ -277,6 +277,8 @@ Candidate → Separated
 Separated → Active
 Separated → On Leave
 Separated → Suspended
+On Leave → Separated  (Authority: GD-M12-1; workaround via ACTIVE intermediary distorts audit trail — see GD-M12-7 open)
+Suspended → Separated (Authority: GD-M12-1; workaround via ACTIVE intermediary distorts audit trail — see GD-M12-7 open)
 ```
 
 ---

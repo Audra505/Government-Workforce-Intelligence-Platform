@@ -16,6 +16,20 @@ References:
 
 ---
 
+# Governance Decisions Incorporated
+
+This directive incorporates the following approved governance decisions:
+
+- GD-PRE-M13-002: Employee ↔ Position Linkage Strategy — FTE Slot Model Design Authority (2026-06-19)
+  — Adopts the 1:1 FTE Slot Model: at most one active incumbent per position.
+  — positionId nullable at creation; required at PENDING_ONBOARDING → ACTIVE transition.
+  — Assignment restricted to ACTIVE positions. No closure cascade on employees.
+  — Position closure pre-conditions (no active incumbent) enforced at position linkage milestone.
+  — Implementation deferred to the milestone following M13.
+  — See governance/GD-PRE-M13-002.md for full decision text.
+
+---
+
 # Purpose
 
 This directive defines the business rules governing position management.
