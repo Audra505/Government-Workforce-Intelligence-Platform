@@ -10,7 +10,7 @@
 ---
 
 Last Updated: 2026-06-19
-Updated By: Claude Code (session: M13 Phase A — Governance Recording complete; GD-M13-1 through GD-M13-5 created; governance_history.md created; directives/14 and 15 created; state/07 created; directives/02 and 13 updated; M13 Step 1 unblocked)
+Updated By: Claude Code (session: M13 Step 1 — Schema Foundation; 4 new tables + 10 AuditEventType values; migration 20260620032716 applied; tsc 0 errors; 508/508 tests pass)
 
 ## Repository Status
 
@@ -35,8 +35,8 @@ Milestone: M12 — Employee Management Foundation — COMPLETE (Steps 1–4 all 
 Last Completed Milestone: M12 — Employee Management Foundation (Complete, 2026-06-18; Steps 1–4; 495/495 unit tests + 57/57 e2e tests; full stack browser → BFF → NestJS → DB)
 Last Completed Step: M12 Step 4 — Employee Frontend UI; types.ts extended; BFF POST/PUT/POST-status handlers; EmployeeTable, EmployeeFilters, EmploymentStatusBadge, EmployeeDetail, CreateEmployeeForm, EditEmployeeForm, EmployeeStatusActions; 4 App Router pages + 4 error.tsx + 1 loading.tsx; SEC-003/EMP-302/GD-M12-6/RBAC-952/GD-M12-S4-1 enforced; all 40 exit criteria met
 Last Completed Step Date: 2026-06-18
-Current Step: M13 Phase A — Governance Recording COMPLETE (2026-06-19); M13 Step 1 (Schema Foundation) is now authorized and unblocked
-Session Classification: Phase 2 Active — M12 COMPLETE; M13 Governance Phase A COMPLETE; 508 unit tests passing; M13 Step 1 unblocked
+Current Step: M13 Step 1 — Schema Foundation COMPLETE (2026-06-19); M13 Step 2 (Skills Catalog — SkillService + SkillController + DTOs + tests) is next
+Session Classification: Phase 2 Active — M12 COMPLETE; M13 Step 1 COMPLETE; 508 unit tests passing (zero regressions)
 
 ## Milestone 10 — Approved Plan
 
@@ -6410,3 +6410,128 @@ No separate governance decision was required.
 6. M13 Step 6 — Full validation and closure
 
 **M13 Phase A: COMPLETE — M13 Step 1 (Schema Foundation) is authorized and may now begin.**
+
+---
+
+---
+
+## M13 Step 1 — Schema Foundation
+
+Phase: M13 — Skills & Certifications Foundation
+Step: Step 1 — Schema Foundation
+Date: 2026-06-19
+Commit: dafd121
+Migration: 20260620032716_add_m13_skills_certifications
+
+### What Changed
+
+| File | Change |
+|---|---|
+| apps/api/prisma/schema.prisma | Added Skill, Certification, EmployeeSkill, EmployeeCertification models; added back-relations to Employee |
+| apps/api/src/audit/enums/audit-event-type.enum.ts | Added 10 new AuditEventType values (GD-M13-4 Decision 4) |
+| apps/api/prisma/migrations/20260620032716_add_m13_skills_certifications/migration.sql | Generated migration creating 4 tables with 14 indexes + 4 FKs |
+
+### Schema Summary
+
+**workforce.skills:**
+
+| Column | Type | Constraint | Authority |
+|---|---|---|---|
+| id | UUID | PK | spec/05 |
+| tenant_id | UUID NOT NULL | — | GD-M13-1 Decision 2 |
+| name | VARCHAR(255) NOT NULL | UNIQUE(tenant_id, name) | spec/05 + GD-M13-2 D8 |
+| category | VARCHAR(100) | nullable | spec/05 |
+| description | TEXT | nullable | spec/05 |
+| created_at | TIMESTAMPTZ NOT NULL | DEFAULT now() | GD-M13-1 Decision 7 |
+| updated_at | TIMESTAMPTZ NOT NULL | — | GD-M13-1 Decision 7 |
+| deleted_at | TIMESTAMPTZ | nullable | GD-M13-1 Decision 7 |
+
+**workforce.certifications:**
+
+| Column | Type | Constraint | Authority |
+|---|---|---|---|
+| id | UUID | PK | spec/05 |
+| tenant_id | UUID NOT NULL | — | GD-M13-1 Decision 2 |
+| name | VARCHAR(255) NOT NULL | UNIQUE(tenant_id, name) | spec/05 + GD-M13-2 D9 |
+| issuer | VARCHAR(255) | nullable | spec/05 |
+| expiration_required | BOOLEAN NOT NULL | DEFAULT false | spec/05 |
+| created_at | TIMESTAMPTZ NOT NULL | DEFAULT now() | GD-M13-1 Decision 7 |
+| updated_at | TIMESTAMPTZ NOT NULL | — | GD-M13-1 Decision 7 |
+| deleted_at | TIMESTAMPTZ | nullable | GD-M13-1 Decision 7 |
+
+**workforce.employee_skills:**
+
+| Column | Type | Constraint | Authority |
+|---|---|---|---|
+| employee_id | UUID NOT NULL | PK(1), FK→employees | spec/05 |
+| skill_id | UUID NOT NULL | PK(2), FK→skills | spec/05 |
+| proficiency_level | VARCHAR(50) | nullable | spec/05 |
+| verified_at | TIMESTAMPTZ | nullable | spec/05 |
+
+**workforce.employee_certifications:**
+
+| Column | Type | Constraint | Authority |
+|---|---|---|---|
+| employee_id | UUID NOT NULL | PK(1), FK→employees | spec/05 |
+| certification_id | UUID NOT NULL | PK(2), FK→certifications | spec/05 |
+| status | VARCHAR(50) NOT NULL | DEFAULT 'ACTIVE' | GD-M13-3 Decision 2 |
+| issue_date | DATE | nullable | spec/05 |
+| expiration_date | DATE | nullable | spec/05; index for FR-153 |
+
+### AuditEventType Additions (10 values — GD-M13-4 Decision 4)
+
+```text
+WORKFORCE_SKILL_CREATED
+WORKFORCE_SKILL_UPDATED
+WORKFORCE_CERTIFICATION_CREATED
+WORKFORCE_CERTIFICATION_UPDATED
+WORKFORCE_EMPLOYEE_SKILL_ASSIGNED
+WORKFORCE_EMPLOYEE_SKILL_UPDATED
+WORKFORCE_EMPLOYEE_CERT_ASSIGNED
+WORKFORCE_EMPLOYEE_CERT_UPDATED
+WORKFORCE_EMPLOYEE_CERT_RENEWED
+WORKFORCE_EMPLOYEE_CERT_REVOKED
+```
+
+### Validation Results
+
+| Check | Result |
+|---|---|
+| `prisma validate` | ✅ "The schema is valid" |
+| `prisma migrate dev` | ✅ Migration 20260620032716 created and applied |
+| `prisma generate` | ✅ Prisma Client v5.22.0 regenerated |
+| `tsc --noEmit` | ✅ 0 errors |
+| `nest build` | ✅ Clean build |
+| `npm test` (508 tests, 25 suites) | ✅ 508/508 passed, 0 failed |
+
+### Schema Verification Against Governance
+
+| Item | GD-M13-1 Decision 7 | Migration | Match |
+|---|---|---|---|
+| skills.tenant_id UUID NOT NULL | ✅ | `"tenant_id" UUID NOT NULL` | ✅ |
+| skills.created_at TIMESTAMPTZ NOT NULL | ✅ | `"created_at" TIMESTAMPTZ(6) NOT NULL DEFAULT CURRENT_TIMESTAMP` | ✅ |
+| skills.updated_at TIMESTAMPTZ NOT NULL | ✅ | `"updated_at" TIMESTAMPTZ(6) NOT NULL` | ✅ |
+| skills.deleted_at TIMESTAMPTZ NULL | ✅ | `"deleted_at" TIMESTAMPTZ(6)` | ✅ |
+| certifications.tenant_id UUID NOT NULL | ✅ | `"tenant_id" UUID NOT NULL` | ✅ |
+| certifications.expiration_required BOOLEAN NOT NULL DEFAULT FALSE | ✅ | `"expiration_required" BOOLEAN NOT NULL DEFAULT false` | ✅ |
+| certifications.created_at/updated_at/deleted_at | ✅ | ✅ | ✅ |
+| employee_skills composite PK | spec/05, GD-M13-4 D2 | `PRIMARY KEY ("employee_id","skill_id")` | ✅ |
+| employee_certifications composite PK | spec/05, GD-M13-4 D2 | `PRIMARY KEY ("employee_id","certification_id")` | ✅ |
+| employee_certifications.status DEFAULT 'ACTIVE' | GD-M13-3 D2 | `DEFAULT 'ACTIVE'` | ✅ |
+| expiration_date index for FR-153 | GD-M13-3 D4 | `idx_employee_certifications_expiration` | ✅ |
+
+### Risks / Limitations
+
+| # | Item | Severity |
+|---|---|---|
+| 1 | No services, controllers, or DTOs — schema only | Expected — Step 1 scope |
+| 2 | proficiencyLevel and status values not yet enforced at DB level — service-layer validation pending | Expected — Steps 2–5 |
+
+### Next Actions
+
+1. M13 Step 2 — Skills Catalog: SkillService + SkillController + CreateSkillDto + UpdateSkillDto + unit tests
+2. M13 Step 3 — Certifications Catalog: mirror pattern from Step 2
+3. M13 Step 4 — Employee Skill Assignment: EmployeeSkillService + assignment endpoints + unit tests
+4. M13 Step 5 — Employee Certification Assignment + expiration tracking
+
+**M13 Step 1 maturity: Tested — schema applied, client generated, 508/508 tests pass.**
