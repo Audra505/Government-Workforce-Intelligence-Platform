@@ -9,8 +9,8 @@
 
 ---
 
-Last Updated: 2026-06-20 (Session 3 — M13 Step 6 Infrastructure Preparation)
-Updated By: Claude Code (session: M13 Step 6 attempt — Docker --no-cache rebuild complete; Step 5 image deployed; Step 6 RV-5-1 through RV-5-18 pending after computer restart)
+Last Updated: 2026-06-21 (Session 4 — M13 Step 6 Runtime Verification COMPLETE)
+Updated By: Claude Code (M13 Step 6: all 18 RV scenarios PASS; 7 audit events DB-verified; M13 MILESTONE COMPLETE)
 
 ## Repository Status
 
@@ -35,8 +35,8 @@ Milestone: M12 — Employee Management Foundation — COMPLETE (Steps 1–4 all 
 Last Completed Milestone: M12 — Employee Management Foundation (Complete, 2026-06-18; Steps 1–4; 495/495 unit tests + 57/57 e2e tests; full stack browser → BFF → NestJS → DB)
 Last Completed Step: M12 Step 4 — Employee Frontend UI; types.ts extended; BFF POST/PUT/POST-status handlers; EmployeeTable, EmployeeFilters, EmploymentStatusBadge, EmployeeDetail, CreateEmployeeForm, EditEmployeeForm, EmployeeStatusActions; 4 App Router pages + 4 error.tsx + 1 loading.tsx; SEC-003/EMP-302/GD-M12-6/RBAC-952/GD-M12-S4-1 enforced; all 40 exit criteria met
 Last Completed Step Date: 2026-06-18
-Current Step: M13 Step 4 COMPLETE (2026-06-20) — Employee Skill Assignment; POST + GET /employees/:id/skills; 655/655 tests passing; tsc clean
-Session Classification: Phase 2 Active — M12 COMPLETE; M13 Steps 1–4 COMPLETE; M13 Step 5 (Employee Certification Assignment) is next
+Current Step: M13 MILESTONE COMPLETE (2026-06-21) — All 6 steps complete; 706/706 tests; all 18 runtime verification scenarios PASS; 7 audit events DB-verified
+Session Classification: Phase 2 Active — M12 COMPLETE; M13 COMPLETE; next milestone TBD
 
 ## Milestone 10 — Approved Plan
 
@@ -7206,12 +7206,133 @@ M13 Step 6 is NOT complete. All 18 runtime verification scenarios are pending:
 - JWT token from this session is expired — will need fresh login after restart.
 - The `--env-file .env` flag is mandatory for all docker compose commands using `-f` and must be remembered in future sessions.
 
+### Status
+
+**SUPERSEDED** — Step 6 Runtime Verification completed in Session 4 (2026-06-21). See entry below.
+
+---
+
+## M13 Step 6 — Runtime Verification COMPLETE (2026-06-21)
+
+### Header
+
+- Phase/Milestone: M13 Step 6 — Runtime Verification
+- Date: 2026-06-21
+- Repository Status: **M13 MILESTONE COMPLETE** — all 6 steps done; 706/706 tests; 18/18 RV scenarios PASS; audit DB-verified
+
+### Environment
+
+- Docker stack: postgres (healthy) + `8dc4f191aec5_gov_workforce_api` (healthy, image `docker-api:latest` SHA `fe7bfb15841a`) + web (healthy)
+- Step 5 routes confirmed in logs: `POST /api/employees/:id/certifications (version: 1)` and `GET /api/employees/:id/certifications (version: 1)` both registered at 04:29:40
+- Startup command: `docker compose -f infrastructure/docker/docker-compose.yml -f infrastructure/docker/docker-compose.override.yml --env-file .env up -d`
+- Critical finding documented: `--env-file .env` required when using `-f` flag (project dir defaults to `infrastructure/docker/`; `.env` is in project root)
+
+### Test Data Used
+
+| Key | ID | Notes |
+|---|---|---|
+| CERT_NO_EXPIRY | `22db2523-7865-4032-9578-95354bc5d7de` | expirationRequired: false, issuer: Test Issuer Inc |
+| CERT_EXPIRY_REQ | `01240ace-af2d-431f-b3d6-f74589bf4fff` | expirationRequired: true, issuer: Certifying Body LLC |
+| ACTIVE_EMP | `da3978aa-52df-4e12-83d8-0c5fffb779a5` | status: ACTIVE |
+| SEPARATED_EMP | `5ebd6ea7-9607-456e-b078-1a997bd675b6` | status: SEPARATED |
+| RV Recruiter | `rv-recruiter@dev.gov` / `RVTest1234!XY` | role: Recruiter; created during Step 6 for RBAC tests |
+
+### Runtime Verification Results — All 18 Scenarios
+
+| Scenario | Description | Expected | HTTP | Error Code | Result |
+|---|---|---|---|---|---|
+| RV-5-1 | Login → JWT | token acquired | 200 | — | ✅ PASS |
+| RV-5-2 | GET on fresh employee | 200, empty list | 200 | — | ✅ PASS |
+| RV-5-3 | First assignment INSERT, no status | 201, ACTIVE default | 201 | — | ✅ PASS |
+| RV-5-4 | GET after assignment | 200, 6 fields | 200 | — | ✅ PASS |
+| RV-5-5 | Repeat POST (UPDATE path) | 200 | 200 | — | ✅ PASS |
+| RV-5-6 | expirationRequired, no expirationDate | 422 | 422 | EXPIRATION_DATE_REQUIRED | ✅ PASS |
+| RV-5-7 | expirationRequired + expirationDate | 201 | 201 | — | ✅ PASS |
+| RV-5-8 | issueDate > expirationDate | 422 | 422 | INVALID_DATE_RANGE | ✅ PASS |
+| RV-5-9 | status=EXPIRED on INSERT (CRT-207) | 422 | 422 | INVALID_STATUS_TRANSITION | ✅ PASS |
+| RV-5-10 | status=REVOKED on INSERT (CRT-207) | 422 | 422 | INVALID_STATUS_TRANSITION | ✅ PASS |
+| RV-5-11 | SEPARATED employee (EMP-302) | 422 | 422 | EMPLOYEE_SEPARATED | ✅ PASS |
+| RV-5-12 | Unknown certId (cross-tenant) | 422 | 422 | CERTIFICATION_NOT_FOUND | ✅ PASS |
+| RV-5-13 | ACTIVE→REVOKED | 200, CERT_REVOKED audit | 200 | — | ✅ PASS |
+| RV-5-14 | Update on REVOKED terminal | 422 | 422 | CERTIFICATION_REVOKED | ✅ PASS |
+| RV-5-15 | EXPIRED→ACTIVE (CERT_RENEWED) | 200 | 200 | — | ✅ PASS |
+| RV-5-16 | Field update (CERT_UPDATED) | 200 | 200 | — | ✅ PASS |
+| RV-5-17 | Recruiter GET → 403 | 403 | 403 | Forbidden | ✅ PASS |
+| RV-5-18 | Recruiter POST → 403 | 403 | 403 | Forbidden | ✅ PASS |
+
+**18 / 18 PASS — 0 FAILURES**
+
+### Key Response Observations
+
+**RV-5-4 (GET response shape):** Exactly 6 fields returned — certificationId, certificationName, issuer, status, issueDate, expirationDate. No tenantId, no employeeId, no timestamps. Dates as YYYY-MM-DD (GD-M13-2 D16). SEC-003 enforced. ✅
+
+**Error messages:** All 422 errors include directive/governance citation in the message string (e.g., "CRT-207/GD-M13-3 D7", "EMP-302/CRT-202", "CRT-301/GD-M13-3 D3", "CRT-204").
+
+### Audit Event Verification (DB)
+
+All 7 expected audit events present in `audit.audit_events`, ordered by operation:
+
+| # | Action | Certif | Prior | New | Notes |
+|---|---|---|---|---|---|
+| 1 | WORKFORCE_EMPLOYEE_CERT_ASSIGNED | CERT_NO_EXP | — | ACTIVE | Full metadata: status, issueDate, expirationDate null |
+| 2 | WORKFORCE_EMPLOYEE_CERT_ASSIGNED | CERT_EXP_REQ | — | ACTIVE | expirationDate: 2027-01-15 |
+| 3 | WORKFORCE_EMPLOYEE_CERT_UPDATED | CERT_NO_EXP | ACTIVE | ACTIVE | updated_fields: ["issueDate"] (repeat no-op) |
+| 4 | WORKFORCE_EMPLOYEE_CERT_UPDATED | CERT_NO_EXP | ACTIVE | ACTIVE | updated_fields: ["issueDate"] (2026-01-15→2026-03-01) |
+| 5 | WORKFORCE_EMPLOYEE_CERT_UPDATED | CERT_NO_EXP | ACTIVE | EXPIRED | updated_fields: ["status"] |
+| 6 | WORKFORCE_EMPLOYEE_CERT_RENEWED | CERT_NO_EXP | EXPIRED | ACTIVE | prior_issue_date→new_issue_date |
+| 7 | WORKFORCE_EMPLOYEE_CERT_REVOKED | CERT_NO_EXP | ACTIVE | REVOKED | certification_name + revocation_timestamp per GD-M13-4 D5 |
+
+### Governance Compliance Verification
+
+| Rule | Verified |
+|---|---|
+| SEC-003: tenantId absent from GET response | ✅ — 6-field shape confirmed, no tenantId |
+| SEC-003: employeeId absent from GET response | ✅ — not present in response |
+| EMP-302: SEPARATED → 422 EMPLOYEE_SEPARATED | ✅ RV-5-11 |
+| CRT-207/GD-M13-3 D7: ACTIVE-only initial status | ✅ RV-5-9, RV-5-10 |
+| CRT-204: expirationRequired INSERT enforcement | ✅ RV-5-6 |
+| CRT-204: date range validation | ✅ RV-5-8 |
+| CRT-206: partial update (fields retained) | ✅ RV-5-5, RV-5-16 |
+| CRT-301/GD-M13-3 D3: REVOKED terminal | ✅ RV-5-14 |
+| GD-M13-2 D15: 201 on INSERT, 200 on UPDATE | ✅ RV-5-3 (201), RV-5-5 (200) |
+| GD-M13-2 D16: YYYY-MM-DD date serialization | ✅ RV-5-3, RV-5-4 |
+| GD-M13-4 D4: audit event selection | ✅ CERT_ASSIGNED, CERT_UPDATED, CERT_RENEWED, CERT_REVOKED all fired correctly |
+| GD-M13-4 D5: CERT_REVOKED with certification_name + revocation_timestamp | ✅ DB verified |
+| RBAC: POST requires SA or HR Director | ✅ RV-5-18 (Recruiter → 403) |
+| RBAC: GET requires SA, HR Director, WP, CO | ✅ RV-5-17 (Recruiter → 403) |
+
+### Capability Maturity Classification — Post Step 6
+
+| Layer | Classification | Evidence |
+|---|---|---|
+| Requirements | Defined | FR-114 Employee Certification Assignment |
+| Specs | Defined | EmployeeCertification composite PK schema |
+| Directives | Defined | CRT-200 through CRT-302; GD-M13-2 D15/D16; GD-M13-3 D7 |
+| Execution Plan | **Implemented** | EmployeeCertificationService + controller routes |
+| State Model | **Implemented** | ACTIVE/EXPIRED/REVOKED enforced at runtime |
+| Test Scenarios | **Verified** | 51 unit tests + 18 RV scenarios all PASS |
+| System Loop | **Integrated** | Live Docker stack serving real requests |
+| Failure Playbook | Partial | Error codes + messages correct; no retry/alerting config |
+| Environment Model | **Verified** | Dev Docker stack confirmed operational |
+| Data Lifecycle | **Verified** | INSERT, UPDATE, all audit transitions DB-confirmed |
+| Evolution Strategy | Not yet formalized | |
+| **Overall Maturity** | **Verified** | All runtime behaviors confirmed against live stack |
+
+### M13 Milestone Summary
+
+| Step | Description | Status |
+|---|---|---|
+| Phase A | Governance recording (GD-M13-1 through GD-M13-5) | ✅ Complete |
+| Step 1 | Schema foundation (4 models, migration, 10 audit events) | ✅ Complete |
+| Step 2 | Skills Catalog (CRUD, SEC-003, RV-1–RV-11 all passed) | ✅ Complete |
+| Step 3 | Certifications Catalog (CRUD, SEC-003) | ✅ Complete |
+| Step 4 | Employee Skill Assignment (POST/GET /employees/:id/skills) | ✅ Complete |
+| Step 5 | Employee Certification Assignment (POST/GET /employees/:id/certifications) | ✅ Complete |
+| Step 6 | Runtime Verification (RV-5-1 through RV-5-18) | ✅ **COMPLETE — 18/18 PASS** |
+
+**706/706 unit tests passing. M13 Skills & Certifications Foundation is COMPLETE.**
+
 ### Next Actions
 
-1. After computer restart: `docker compose -f infrastructure/docker/docker-compose.yml -f infrastructure/docker/docker-compose.override.yml --env-file .env up -d` from project root (all 3 services)
-2. Confirm container is healthy: `docker ps` — all three services healthy
-3. Confirm Step 5 routes registered in logs: `docker logs gov_workforce_api | grep -i certif`
-4. Login: `POST http://127.0.0.1:3001/api/v1/auth/login` with 45s timeout
-5. Execute RV-5-1 through RV-5-18
-6. Update PROGRESS.md with verification results
-7. Commit final M13 state
+1. Commit M13 Step 6 PROGRESS.md update
+2. Determine Phase 2 next milestone (TBD by user)
