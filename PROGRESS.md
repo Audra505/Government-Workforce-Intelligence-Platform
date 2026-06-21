@@ -7418,12 +7418,21 @@ Commits pushed: 12 (f06e679..6ddf93b — full M13 milestone)
 Branch: main
 ```
 
-CI confirmation status: **PENDING — user to confirm GitHub Actions run**
+CI confirmation status: **CONFIRMED GREEN**
 
 Phase 1 CI baseline: CI / Install, Lint, Build, Test — confirmed green (2026-06-12; commit 97b42e6)
-Phase 2 CI status: push confirmed; GitHub Actions CI confirmation required from user
+Phase 2 CI status: CI / Install, Lint, Build, Test — confirmed green (2026-06-21; commit 89533de)
 
-When confirmed, record CI run ID, date, commit SHA, and result here.
+Note: CI run on 0420f6a (governance closure commit) failed on lint — unused `UpdateSkillParams`
+import in skill.service.spec.ts (line 22). Fixed in 89533de (removed unused type import).
+CI on 89533de passed. This is the Phase 2 CI confirmation commit.
+
+Phase 2 CI evidence:
+  Branch: main
+  Commit: 89533de — fix(lint): remove unused UpdateSkillParams import from skill.service.spec.ts
+  Result: CI / Install, Lint, Build, Test — GREEN (user-confirmed 2026-06-21)
+  Root cause of initial failure: unused type import in test file; no functional impact
+  Fix: single-line import cleanup in skill.service.spec.ts
 
 ---
 
