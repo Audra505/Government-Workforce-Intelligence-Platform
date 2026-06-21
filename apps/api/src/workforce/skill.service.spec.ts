@@ -19,7 +19,7 @@ import { SkillService } from './skill.service';
 import { PrismaService } from '../database/prisma.service';
 import { AuditService } from '../audit/audit.service';
 import { AuditEventType } from '../audit/enums/audit-event-type.enum';
-import type { CreateSkillParams, UpdateSkillParams } from './skill.service';
+import type { CreateSkillParams } from './skill.service';
 
 // ---------------------------------------------------------------------------
 // Test constants
