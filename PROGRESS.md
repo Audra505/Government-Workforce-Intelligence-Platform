@@ -9,8 +9,8 @@
 
 ---
 
-Last Updated: 2026-06-20
-Updated By: Claude Code (session: M13 Step 5 Implementation — EmployeeCertificationService + POST/GET /employees/:id/certifications; 706/706 tests passing; tsc clean)
+Last Updated: 2026-06-20 (Session 3 — M13 Step 6 Infrastructure Preparation)
+Updated By: Claude Code (session: M13 Step 6 attempt — Docker --no-cache rebuild complete; Step 5 image deployed; Step 6 RV-5-1 through RV-5-18 pending after computer restart)
 
 ## Repository Status
 
@@ -7141,3 +7141,77 @@ None introduced by this recording. The governance documents are now authoritativ
 2. Update PROGRESS.md with runtime verification results
 3. Advance M13 to milestone closure
 3. **state/07 cross-reference note** — state/07 already correctly states EXPIRED/REVOKED as non-initial states; GD-M13-3 D7 brings governance into alignment. state/07 does not require amendment.
+
+---
+
+## M13 Step 6 — Session 3 Infrastructure Preparation (2026-06-20)
+
+### Header
+
+- Phase/Milestone: M13 Step 6 — Runtime Verification Session 3
+- Date: 2026-06-20
+- Repository Status: Infrastructure ready; Step 6 RV scenarios pending (computer restart required before continuation)
+
+### What Happened
+
+This session attempted M13 Step 6 Runtime Verification but was blocked by a Docker deployment defect discovered during environment pre-checks.
+
+**Defect found:** The running `gov_workforce_api` container (started 2026-06-21T01:43:11Z) was built from pre-Step-5 source due to Docker layer cache reuse in the original rebuild. The container dist folder was missing `employee-certification.service.js` and `assign-certification.dto.js`. The NestJS startup logs confirmed `employees/:id/certifications` routes were NOT registered — only Steps 1–4 routes were present.
+
+**Resolution:**
+- Ran `docker compose build api --no-cache` to force fresh TypeScript compilation
+- New image `docker-api:latest` SHA `fe7bfb15841a` (2.33 GB) successfully built
+- **Critical infrastructure finding:** `docker compose -f infrastructure/docker/... up -d api` WITHOUT `--env-file .env` passes `JWT_SECRET=""` to the container (docker compose uses the compose file's directory as project directory; `.env` is in the repo root, not `infrastructure/docker/`). New NestJS build has strict env validation and refuses to start with empty JWT_SECRET. Fix: always pass `--env-file .env` when running docker compose with `-f` flags.
+- Correct startup command: `docker compose -f infrastructure/docker/docker-compose.yml -f infrastructure/docker/docker-compose.override.yml --env-file .env up -d api`
+- Container `8dc4f191aec5_gov_workforce_api` is now healthy and running the Step 5 image
+
+**Test data in Postgres volume (persists across restarts):**
+| Key | ID | Notes |
+|---|---|---|
+| CERT_NO_EXPIRY | `22db2523-7865-4032-9578-95354bc5d7de` | expirationRequired: false |
+| CERT_EXPIRY_REQ | `01240ace-af2d-431f-b3d6-f74589bf4fff` | expirationRequired: true |
+| ACTIVE_EMP | `da3978aa-52df-4e12-83d8-0c5fffb779a5` | status: ACTIVE |
+| SEPARATED_EMP | `5ebd6ea7-9607-456e-b078-1a997bd675b6` | status: SEPARATED |
+
+**Credentials:** `admin@dev.gov` / `DevAdmin1234!` (bcrypt 12 rounds — use 45s+ timeout on auth endpoint)
+
+### What Remains
+
+M13 Step 6 is NOT complete. All 18 runtime verification scenarios are pending:
+
+| Scenario | Description |
+|---|---|
+| RV-5-1 | Login and confirm authentication |
+| RV-5-2 | GET /employees/:id/certifications on fresh employee (empty list) |
+| RV-5-3 | POST — first assignment (INSERT path), ACTIVE status, no expirationRequired, expect 201 |
+| RV-5-4 | GET after first assignment — confirm response shape (6 fields) |
+| RV-5-5 | POST — repeat assignment (UPDATE path), expect 200 |
+| RV-5-6 | POST — expirationRequired=true cert without expirationDate → 422 EXPIRATION_DATE_REQUIRED |
+| RV-5-7 | POST — expirationRequired=true cert WITH expirationDate → 201 |
+| RV-5-8 | POST — invalid date range (issueDate after expirationDate) → 422 INVALID_DATE_RANGE |
+| RV-5-9 | POST — status=EXPIRED on INSERT → 422 INVALID_STATUS_TRANSITION (CRT-207) |
+| RV-5-10 | POST — status=REVOKED on INSERT → 422 INVALID_STATUS_TRANSITION (CRT-207) |
+| RV-5-11 | POST on SEPARATED employee → 422 EMPLOYEE_SEPARATED (EMP-302) |
+| RV-5-12 | POST with cross-tenant certificationId → 422 CERTIFICATION_NOT_FOUND |
+| RV-5-13 | POST → REVOKED status on existing assignment (CERT_REVOKED audit) |
+| RV-5-14 | POST on REVOKED assignment → 422 CERTIFICATION_REVOKED (terminal guard) |
+| RV-5-15 | POST → EXPIRED→ACTIVE transition (CERT_RENEWED audit) |
+| RV-5-16 | POST → other update (CERT_UPDATED audit) |
+| RV-5-17 | GET with wrong role → 403 |
+| RV-5-18 | POST with wrong role → 403 |
+
+### Risks / Limitations
+
+- Container name `8dc4f191aec5_gov_workforce_api` (vs. expected `gov_workforce_api`) is a side effect of concurrent compose operations this session. After computer restart + fresh `docker compose up`, the container will be recreated with the correct name.
+- JWT token from this session is expired — will need fresh login after restart.
+- The `--env-file .env` flag is mandatory for all docker compose commands using `-f` and must be remembered in future sessions.
+
+### Next Actions
+
+1. After computer restart: `docker compose -f infrastructure/docker/docker-compose.yml -f infrastructure/docker/docker-compose.override.yml --env-file .env up -d` from project root (all 3 services)
+2. Confirm container is healthy: `docker ps` — all three services healthy
+3. Confirm Step 5 routes registered in logs: `docker logs gov_workforce_api | grep -i certif`
+4. Login: `POST http://127.0.0.1:3001/api/v1/auth/login` with 45s timeout
+5. Execute RV-5-1 through RV-5-18
+6. Update PROGRESS.md with verification results
+7. Commit final M13 state
