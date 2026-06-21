@@ -53,6 +53,15 @@ and is tracked in state/02_employee_lifecycle.md.
 
 ---
 
+## Phase 2 Closure — Formal Closure Governance
+
+| ID | Date | Subject | Impact |
+|---|---|---|---|
+| GD-PHASE2-CLOSURE-001 | 2026-06-21 | Phase 2 Exit Criteria Reconciliation — Notification Integration and Workforce Dashboards | Establishes spec/15 authority over execution/03; reclassifies Notifications and Dashboards as Phase 5 deliverables; closes PROGRESS.md Phase 2 blocking records from 2026-06-18 |
+| GD-PHASE2-CLOSURE-002 | 2026-06-21 | Position Management UI — Formal Deferral to Position Linkage Milestone | Defers spec/15 Phase 2 UI deliverable "Position Management" to Position Linkage Milestone; binding requirement on that milestone to deliver complete UI with occupant display, POSITION_HAS_ACTIVE_INCUMBENT guard, and assignment workflow |
+
+---
+
 ## Shared Column Confirmation (Implementation Confirmation — Not a Governance Decision)
 
 | Date | Subject | Outcome |

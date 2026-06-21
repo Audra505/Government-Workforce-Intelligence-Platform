@@ -9,14 +9,14 @@
 
 ---
 
-Last Updated: 2026-06-21 (Session 4 — M13 Step 6 Runtime Verification COMPLETE)
-Updated By: Claude Code (M13 Step 6: all 18 RV scenarios PASS; 7 audit events DB-verified; M13 MILESTONE COMPLETE)
+Last Updated: 2026-06-21 (Phase 2 Closure — Formal closure governance recorded; CI push executed; Phase 2 COMPLETE WITH DEFERRED ITEMS)
+Updated By: Claude Code (Phase 2 Closure: GD-PHASE2-CLOSURE-001 + GD-PHASE2-CLOSURE-002 issued; 12 M13 commits pushed to origin/main; CI pending user confirmation)
 
 ## Repository Status
 
-Current Phase: **Phase 1 — Foundation FORMALLY CLOSED**
-Overall Classification: Tested Foundation — Phase 1 complete and CI-validated; all 10 milestones committed and pushed; 244 unit tests + 122 e2e tests passing (CI-confirmed); D4 Frontend Foundation complete — login→dashboard→logout flow operational with full Tailwind/shadcn styling in Docker; Post-Validation CSS Packaging Correction committed (97b42e6) and CI-confirmed green (CI / Install, Lint, Build, Test — success in 2m)
-Active Sprint / Milestone: Phase 2 — M11 Vacancy Management (in progress: Steps 1–9 complete; Step 10 — Create Vacancy form pending)
+Current Phase: **Phase 2 — Workforce Core FORMALLY CLOSED**
+Overall Classification: Phase 2 COMPLETE WITH DEFERRED ITEMS — All Phase 2 milestones complete (M7/M8/DEP-008-A/M11/M12/M13); all three spec/15 success criteria satisfied; 706/706 unit tests; 237+ e2e tests; 12 M13 commits pushed to origin/main (CI pending confirmation); Phase 2 closure governance recorded (GD-PHASE2-CLOSURE-001, GD-PHASE2-CLOSURE-002)
+Active Sprint / Milestone: Phase 2 CLOSED — Next milestone: TBD (recommended: FR-153 Certification Expiration Tracking endpoint, or Position Linkage Milestone per GD-PRE-M13-002)
 Implementation Started: Yes (2026-06-05)
 
 ## Phase Summary
@@ -31,12 +31,12 @@ Phase 1 is formally closed. D9 (Docker Environment) and D10 (CI/CD Foundation) w
 > Its purpose is crash/session recovery: the current step state is always readable without
 > scanning Zone 5 history. It is overwritten each step — not appended.
 
-Milestone: M12 — Employee Management Foundation — COMPLETE (Steps 1–4 all done)
-Last Completed Milestone: M12 — Employee Management Foundation (Complete, 2026-06-18; Steps 1–4; 495/495 unit tests + 57/57 e2e tests; full stack browser → BFF → NestJS → DB)
-Last Completed Step: M12 Step 4 — Employee Frontend UI; types.ts extended; BFF POST/PUT/POST-status handlers; EmployeeTable, EmployeeFilters, EmploymentStatusBadge, EmployeeDetail, CreateEmployeeForm, EditEmployeeForm, EmployeeStatusActions; 4 App Router pages + 4 error.tsx + 1 loading.tsx; SEC-003/EMP-302/GD-M12-6/RBAC-952/GD-M12-S4-1 enforced; all 40 exit criteria met
-Last Completed Step Date: 2026-06-18
-Current Step: M13 MILESTONE COMPLETE (2026-06-21) — All 6 steps complete; 706/706 tests; all 18 runtime verification scenarios PASS; 7 audit events DB-verified
-Session Classification: Phase 2 Active — M12 COMPLETE; M13 COMPLETE; next milestone TBD
+Milestone: PHASE 2 FORMALLY CLOSED — 2026-06-21
+Last Completed Milestone: M13 — Skills & Certifications Foundation (Complete, 2026-06-21; Steps 1–6; 706/706 unit tests; 18/18 RV scenarios PASS; 7 audit events DB-verified)
+Last Completed Step: Phase 2 Closure Governance (2026-06-21) — GD-PHASE2-CLOSURE-001 (Notifications + Dashboards reclassified to Phase 5); GD-PHASE2-CLOSURE-002 (Position Management UI deferred to Position Linkage Milestone); governance_history.md updated; PROGRESS.md closure record appended; 12 M13 commits pushed to origin/main (CI pending user confirmation)
+Last Completed Step Date: 2026-06-21
+Current Step: Phase 2 CLOSED — awaiting CI confirmation and next milestone planning
+Session Classification: Phase 2 COMPLETE WITH DEFERRED ITEMS — all governance gaps resolved; all three spec/15 success criteria verified; push to origin/main confirmed
 
 ## Milestone 10 — Approved Plan
 
@@ -7332,7 +7332,286 @@ All 7 expected audit events present in `audit.audit_events`, ordered by operatio
 
 **706/706 unit tests passing. M13 Skills & Certifications Foundation is COMPLETE.**
 
-### Next Actions
+---
 
-1. Commit M13 Step 6 PROGRESS.md update
-2. Determine Phase 2 next milestone (TBD by user)
+# Phase 2 — Workforce Core — FORMAL CLOSURE RECORD
+
+Date: 2026-06-21
+Classification: **PHASE 2 COMPLETE WITH DEFERRED ITEMS**
+Authority: spec/15_implementation_roadmap.md (Phase 2 Success Criteria — all three satisfied)
+
+---
+
+## Phase 2 Scope
+
+Milestones delivered under Phase 2:
+
+| Milestone | Deliverable | Commit | Tests | Status |
+|---|---|---|---|---|
+| M7 — Organization Management | Departments + Agencies; 7 endpoints; SEC-003; soft-delete | Phase 1 bundle | 187 unit + 83 e2e | ✅ COMPLETE |
+| M8 — Position Management Foundation | 5 endpoints; 4-state lifecycle; POS-AUTH-001–005; AUD-400 events | Phase 1 bundle | 244 unit + 39 e2e | ✅ COMPLETE |
+| DEP-008 Phase A | Employee blocking constraint active; DEPARTMENT_HAS_ACTIVE_EMPLOYEES | Stand-alone commit (2026-06-19) | +7 unit | ✅ COMPLETE |
+| M11 — Vacancy Management | Full stack (12 steps); 5-state lifecycle; 8 frontend pages; BFF; RBAC | 0c1a563 (2026-06-18) | 412 unit + 58 e2e | ✅ COMPLETE |
+| M12 — Employee Management Foundation | Full stack (4 steps); 5-state lifecycle; 5 API endpoints; 4 UI pages | Named commit (2026-06-18) | 495 unit + 57 e2e | ✅ COMPLETE |
+| M13 — Skills & Certifications Foundation | 6 steps; 12 API endpoints; 4 DB tables; 10 audit events | c53c068 + 6ddf93b (2026-06-20–21) | 706 unit; 18/18 RV PASS | ✅ COMPLETE |
+
+---
+
+## Phase 2 Success Criteria Assessment
+
+Source: spec/15_implementation_roadmap.md
+
+| spec/15 Success Criterion | Status | Evidence |
+|---|---|---|
+| Position Lifecycle Operational | ✅ SATISFIED | 5 endpoints; 4-state lifecycle; POS-AUTH-001–005; POS-500 gate (M11 Step 8); AUD-400 all verified; 244 unit + 39 e2e |
+| Vacancy Lifecycle Operational | ✅ SATISFIED | DRAFT/OPEN/CLOSED/CANCELLED/FILLED lifecycle; full UI (8 pages); 412 unit + 58 e2e; commit 0c1a563 pushed |
+| Employee Management Operational | ✅ SATISFIED | 5-state lifecycle; 5 endpoints + 3 BFF handlers + 4 UI pages; 495 unit + 57 e2e; Docker-verified |
+
+**All three Phase 2 success criteria are satisfied.**
+
+---
+
+## Phase 2 Closure Governance
+
+### GD-PHASE2-CLOSURE-001 — Phase 2 Exit Criteria Reconciliation
+
+File: `governance/GD-PHASE2-CLOSURE-001.md`
+
+Resolved conflict between `execution/03` (Dashboards + Notifications = Phase 2 Required) and
+`spec/15` (Dashboards + Notifications = Phase 5). Ruled: spec/15 governs. Both deliverables
+reclassified to Phase 5. Closed PROGRESS.md Phase 2 blocking records from 2026-06-18.
+
+Amended Phase 2 exit criteria (execution/03):
+
+```
+Workforce CRUD complete          ✅ SATISFIED (M7, M8, M11, M12, M13)
+Lifecycle enforcement complete   ✅ SATISFIED (all domains)
+Audit logging operational        ✅ SATISFIED (AuditService global; 42 event types)
+Tests passing                    ✅ SATISFIED (706 unit + 237+ e2e)
+```
+
+### GD-PHASE2-CLOSURE-002 — Position Management UI Deferral
+
+File: `governance/GD-PHASE2-CLOSURE-002.md`
+
+Formally defers spec/15 Phase 2 UI deliverable "Position Management" to the Position Linkage
+Milestone (GD-PRE-M13-002 implementation). Deferral rationale: occupant display, close guard
+(POSITION_HAS_ACTIVE_INCUMBENT), and assignment workflow all require employees.position_id
+which does not exist. Building partial UI creates 40–60% rework risk and misrepresents the
+position domain.
+
+Position Linkage Milestone is bound to deliver complete Position Management UI (Decision 3):
+list, create, detail with occupant display, edit, and lifecycle actions with full POS-500
+enforcement.
+
+---
+
+## CI Verification
+
+12 M13 commits pushed to origin/main on 2026-06-21 at session time.
+
+```
+Push: git push origin main
+Result: To https://github.com/Audra505/Government-Workforce-Intelligence-Platform.git
+        835cd0b..6ddf93b  main -> main
+Commits pushed: 12 (f06e679..6ddf93b — full M13 milestone)
+Branch: main
+```
+
+CI confirmation status: **PENDING — user to confirm GitHub Actions run**
+
+Phase 1 CI baseline: CI / Install, Lint, Build, Test — confirmed green (2026-06-12; commit 97b42e6)
+Phase 2 CI status: push confirmed; GitHub Actions CI confirmation required from user
+
+When confirmed, record CI run ID, date, commit SHA, and result here.
+
+---
+
+## Phase 2 Deliverables — Capability Maturity at Closure
+
+### Departments
+
+| Layer | Status |
+|---|---|
+| Requirements | FR-050 — Defined |
+| Specs | spec/05 schema — Implemented |
+| Directives | directives/01 — Present |
+| Execution Plan | 7 endpoints + soft-delete + DEP-008 Phase A constraint |
+| State Model | Active / Inactive |
+| Test Scenarios | 187 unit + 83 e2e |
+| System Loop | Integrated (AppModule → OrganizationModule → DepartmentService) |
+| Failure Playbook | DEP-008 DEPARTMENT_HAS_ACTIVE_EMPLOYEES; soft-delete guard |
+| Environment Model | Docker-verified |
+| Data Lifecycle | Created → Active → Inactive (soft-delete) |
+| Evolution Strategy | DEP-008 Phase B at position linkage |
+| **Overall Maturity** | **Tested / Verified** |
+
+### Positions
+
+| Layer | Status |
+|---|---|
+| Requirements | FR-100 — Defined |
+| Specs | spec/05 schema — Implemented |
+| Directives | directives/02 — Present |
+| Execution Plan | 5 endpoints; 4-state lifecycle; POS-AUTH-001–005; POS-500 |
+| State Model | DRAFT / ACTIVE / FROZEN / CLOSED — enforced |
+| Test Scenarios | 244 unit + 39 e2e |
+| System Loop | Integrated (WorkforceModule → PositionService) |
+| Failure Playbook | POS-500 "No Active Vacancies" active; "No Active Employees" deferred (GD-PRE-M13-002) |
+| Environment Model | Docker-verified |
+| Data Lifecycle | Created → Active → Frozen / Closed |
+| Evolution Strategy | GD-PRE-M13-002 position linkage; GD-M13-5 position skill requirements; GD-PHASE2-CLOSURE-002 UI |
+| **Overall Maturity** | **Tested / Verified (backend); UI deferred by GD-PHASE2-CLOSURE-002** |
+| **Remaining gap** | Position Management UI deferred to Position Linkage Milestone |
+
+### Vacancies
+
+| Layer | Status |
+|---|---|
+| Requirements | FR-103 — Defined |
+| Specs | spec/05 schema — Implemented |
+| Directives | directives/03 — Present |
+| Execution Plan | Full stack: 5 API endpoints; 8 UI pages; 3 BFF handlers |
+| State Model | DRAFT / OPEN / CLOSED / CANCELLED / FILLED — enforced |
+| Test Scenarios | 412 unit + 58 e2e |
+| System Loop | Integrated (WorkforceModule → VacancyService → BFF → Next.js UI) |
+| Failure Playbook | VAC-500 occupancy guard; VAC-601/602 RBAC gates |
+| Environment Model | Docker-verified; CI push confirmed (0c1a563) |
+| Data Lifecycle | Created → Open → Closed / Filled / Cancelled |
+| Evolution Strategy | VAC-401 Path B (Phase 3 Recruiting) per GD-PRE-M13-001 |
+| **Overall Maturity** | **Tested / Verified** |
+
+### Employees
+
+| Layer | Status |
+|---|---|
+| Requirements | FR-110/FR-111/FR-112 — Defined |
+| Specs | spec/05 schema — Implemented |
+| Directives | directives/13 — Present |
+| Execution Plan | Full stack: 5 API endpoints; 4 UI pages; 3 BFF handlers |
+| State Model | PENDING_ONBOARDING / ACTIVE / ON_LEAVE / SUSPENDED / SEPARATED — enforced |
+| Test Scenarios | 495 unit + 57 e2e |
+| System Loop | Integrated (WorkforceModule → EmployeeService → BFF → Next.js UI) |
+| Failure Playbook | EMP-302 SEPARATED guard; GD-M12-6 immutable employeeNumber; GD-M12-8 termination date guard |
+| Environment Model | Docker-verified |
+| Data Lifecycle | Created → Active → Separated |
+| Evolution Strategy | GD-PRE-M13-002 position linkage; GD-M12-5 scheduling Phase 3 |
+| **Overall Maturity** | **Tested / Verified** |
+| **Remaining gaps** | FR-112 scheduling deferred (GD-M12-5); ON_LEAVE → SEPARATED audit trail (GD-M12-7 open) |
+
+### Skills
+
+| Layer | Status |
+|---|---|
+| Requirements | FR-113 / FR-150 — Defined |
+| Specs | spec/05 schema — Implemented |
+| Directives | directives/14 — Present |
+| Execution Plan | 4 catalog endpoints; employee assignment endpoint; audit trail |
+| State Model | N/A (catalog entity; assignment is create/update) |
+| Test Scenarios | 95 unit (skill service + controller + employee skill service + controller) |
+| System Loop | Integrated (WorkforceModule → SkillService + EmployeeSkillService) |
+| Failure Playbook | SEC-003 cross-tenant assignment blocked; EMP-302 SEPARATED guard |
+| Environment Model | Docker-verified (M13 Step 6 RV scenarios) |
+| Data Lifecycle | Created → soft-deleted; assignment created/updated via upsert |
+| Evolution Strategy | GD-M13-5 position_skills deferred; position linkage prerequisite |
+| **Overall Maturity** | **Tested / Verified (backend); no UI** |
+| **Remaining gap** | FR-150 "assignable to positions" deferred (GD-M13-5); no Skills UI (not in spec/15 Phase 2 UI) |
+
+### Certifications
+
+| Layer | Status |
+|---|---|
+| Requirements | FR-114 / FR-151 / FR-153 — Defined |
+| Specs | spec/05 schema — Implemented |
+| Directives | directives/15 — Present |
+| Execution Plan | 4 catalog endpoints; employee assignment endpoint; 10-outcome service; audit trail |
+| State Model | ACTIVE / EXPIRED / REVOKED — enforced (state/07_employee_certification_states.md) |
+| Test Scenarios | 51 service + controller + 18 RV scenarios PASS; 7 audit events DB-verified |
+| System Loop | Integrated (WorkforceModule → CertificationService + EmployeeCertificationService) |
+| Failure Playbook | CRT-301 REVOKED terminal; CRT-204 expirationRequired; CRT-207 ACTIVE-only initial status |
+| Environment Model | Docker-verified (18/18 RV scenarios PASS; 7 audit events DB-verified) |
+| Data Lifecycle | Created → soft-deleted; assignment ACTIVE → EXPIRED/REVOKED via upsert |
+| Evolution Strategy | FR-153 alerting endpoint next; automated expiration job future; PENDING_VERIFICATION deferred (GD-M13-3 D6) |
+| **Overall Maturity** | **Tested / Verified (backend); no UI** |
+| **Remaining gaps** | FR-153 expiration alerting endpoint not implemented; no Certifications UI (not in spec/15 Phase 2 UI) |
+
+---
+
+## Phase 2 Deferred Items Register
+
+All items formally governed and traceable to a specific decision.
+
+| Item | Governing Authority | Target Phase / Milestone |
+|---|---|---|
+| Notification Integration | GD-PHASE2-CLOSURE-001 D2 | Phase 5 |
+| Workforce Dashboards | GD-PHASE2-CLOSURE-001 D3 | Phase 5 |
+| Position Management UI | GD-PHASE2-CLOSURE-002 D1 | Position Linkage Milestone |
+| Position linkage (positionId on employees) | GD-PRE-M13-002 | Dedicated post-M13 milestone |
+| appointmentAuthority field + Path A validation | GD-PRE-M13-001 | Position Linkage Milestone |
+| DEP-008 Phase B (position deactivation constraint) | GD-PRE-M13-003 D3 | Position Linkage Milestone |
+| POS-500 "No Active Employees" sub-condition | GD-PRE-M13-002 D5 | Position Linkage Milestone |
+| Position skills / certifications requirement tables | GD-M13-5 | Post-position-linkage milestone |
+| VAC-401 Competitive Appointment (Path B) | GD-PRE-M13-001 | Phase 3 Recruiting |
+| IN_RECRUITMENT employee state trigger | GD-14-1 (M11) | Phase 3 Recruiting |
+| Lifecycle approval gates (second-approver) | GD-M12-1 D-010 | Phase 3 Approval Management |
+| FR-112 Scheduling Engine | GD-M12-5 | Phase 3 |
+| FR-152 Competency Framework | No GD (requires governance milestone) | Future |
+| FR-153 Expiration Tracking endpoint | GD-M13-3 D4 semantics defined | Near-term (lowest prerequisite burden) |
+| PENDING_VERIFICATION / SUSPENDED cert statuses | GD-M13-3 D6 | Future milestone |
+| Department Management UI | Not in spec/15 Phase 2 UI deliverables | Future |
+| Skills / Certifications UI | Not in spec/15 Phase 2 UI deliverables | Phase 3 or later |
+| Automated certification expiration detection job | GD-M13-3 D6 | Future maintenance milestone |
+| ON_LEAVE → SEPARATED audit trail distortion | GD-M12-7 open (no GD issued) | Future governance milestone |
+
+---
+
+## Phase 2 Technical Debt Register
+
+| Item | Severity | Target |
+|---|---|---|
+| `next@14.2.3` security advisory (December 2025) | High | Pre-production |
+| No e2e tests for M13 endpoints (skills, certifications, employee assignments) | Medium | Next milestone or dedicated test sprint |
+| No frontend unit / integration / e2e test suite (apps/web) | Medium | Phase 6 Hardening (spec/14) |
+| M11 CI: E14-11 recorded as "Pending" — CI push confirmed but GitHub Actions not explicitly confirmed | Low | Confirm with current push CI run |
+| M12 CI: no CI confirmation record in PROGRESS.md | Low | Confirm with current push CI run |
+| M13 CI: no CI confirmation record | Low | Confirm with current push CI run |
+| JWT signature / expiry validation (presence-only in middleware) | Low for Phase 2; Medium pre-production | Pre-production hardening |
+| `workforce.module.ts` header comment missing M13 capability references | Low | Next module touch |
+
+---
+
+## Next Recommended Actions (Phase 3 Entry Candidates)
+
+In priority order:
+
+1. **CI Confirmation** — Confirm GitHub Actions run for commits 835cd0b → 6ddf93b on main.
+   Record run ID in PROGRESS.md. Closes the Phase 2 CI evidence gap.
+
+2. **FR-153 Certification Expiration Tracking Endpoint** — Lowest prerequisite burden of all
+   deferred items. Data model, status model, and query semantics (GD-M13-3 D4) are defined.
+   One new endpoint: `GET /api/v1/employees/:id/certifications/expiring?withinDays=N`.
+   No schema changes required. Closes an FR-153 regulatory gap for Compliance Officers.
+
+3. **Position Linkage Milestone Planning** — Plan the implementation of GD-PRE-M13-002
+   (1:1 FTE Slot Model; positionId nullable on employees; POSITION_HAS_ACTIVE_INCUMBENT guard).
+   This milestone is the prerequisite for: Position Management UI (GD-PHASE2-CLOSURE-002),
+   DEP-008 Phase B (GD-PRE-M13-003), appointmentAuthority (GD-PRE-M13-001), and
+   Position Skills/Certifications (GD-M13-5). Design document before implementation.
+
+4. **Phase 3 Recruiting** — Per spec/15: Candidates, Applications, Interviews, Resume Upload,
+   Resume Parsing, Hiring Workflow. Should not begin until Position Linkage Milestone is
+   sufficiently resolved for VAC-401 Path B to be properly supported.
+
+---
+
+## Phase 2 Final Determination
+
+**PHASE 2 COMPLETE WITH DEFERRED ITEMS**
+
+All three spec/15 Phase 2 success criteria satisfied.
+All Phase 2 capability domains delivered at backend-operational maturity.
+Vacancy Management and Employee Management delivered at full-stack maturity.
+All deferred items governed, traceable, and sequenced into future milestones.
+CI push executed; confirmation pending.
+
+Phase 2 formally closed: 2026-06-21.
