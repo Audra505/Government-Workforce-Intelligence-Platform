@@ -62,6 +62,14 @@ and is tracked in state/02_employee_lifecycle.md.
 
 ---
 
+## M14 — Certification Expiration Tracking
+
+| ID | Date | Subject | Impact |
+|---|---|---|---|
+| GD-M14-1 | 2026-06-21 | M14 Endpoint Ownership — Employee Certification Collection Namespace | Reserves /certifications for catalog only; reserves /employees/:id/certifications for employee-scoped assignments; approves /employee-certifications as cross-employee assignment collection namespace; authorizes GET /api/v1/employee-certifications/expiring with RBAC and scope boundary for M14 |
+
+---
+
 ## Shared Column Confirmation (Implementation Confirmation — Not a Governance Decision)
 
 | Date | Subject | Outcome |
