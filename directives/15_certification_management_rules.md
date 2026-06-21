@@ -7,9 +7,10 @@ Project: AI-Driven Staffing Optimization Platform for Government HR
 
 Status: Authoritative Certification Management Directive
 
-Version: 1.0
+Version: 1.1
 
 Date: 2026-06-19
+Amended: 2026-06-20 (CRT-204 revised; CRT-206 added; CRT-207 added — M13 Step 5 Governance Resolution, Product Owner approved)
 
 ---
 
@@ -33,7 +34,9 @@ Date: 2026-06-19
 
 - GD-M13-1 — Catalog Tenant Scope (per-tenant, tenant_id on workforce.certifications)
 - GD-M13-2 — API Design (endpoint contracts, RBAC, request contracts, EMP-302 enforcement)
+- GD-M13-2 D16 — GET /employees/:id/certifications response contract (added 2026-06-20)
 - GD-M13-3 — Status Enumeration (ACTIVE/EXPIRED/REVOKED; ACTIVE default; REVOKED terminal)
+- GD-M13-3 D7 — Initial assignment status constraint; INVALID_STATUS_TRANSITION error code (added 2026-06-20)
 - GD-M13-4 — History Retention (audit event trail, upsert semantics, AuditEventType values)
 
 ---
@@ -258,20 +261,55 @@ Authority: GD-M13-3 Decisions 1 and 2.
 ---
 
 ## CRT-204 — Expiration Date Requirement Enforcement
+(Amended: 2026-06-20 — Step 5 governance resolution; approved: Product Owner — M13 Step 5 Governance Resolution)
 
-When the referenced certification type has expirationRequired = true:
+### Date range validation
 
-```text
-expirationDate is required in the request.
-Omission: HTTP 422, error code: EXPIRATION_DATE_REQUIRED
-```
-
-When both issueDate and expirationDate are provided:
+When both issueDate and expirationDate are provided in the request:
 
 ```text
 expirationDate must be >= issueDate.
 Violation: HTTP 422, error code: INVALID_DATE_RANGE
 ```
+
+### expirationRequired enforcement — INSERT path
+
+When the referenced certification type has expirationRequired = true AND no existing
+workforce.employee_certifications record exists for this employee-certification pair
+(INSERT path):
+
+```text
+expirationDate must be present in the request body.
+Omission: HTTP 422, error code: EXPIRATION_DATE_REQUIRED
+```
+
+### expirationRequired enforcement — UPDATE path
+
+When the referenced certification type has expirationRequired = true AND an existing
+workforce.employee_certifications record exists for this employee-certification pair
+(UPDATE path), the check is applied to the effective post-write value of expirationDate:
+
+```text
+Effective expirationDate is determined as follows:
+  If expirationDate is present in the request body:
+    effective value = the provided value
+  If expirationDate is absent from the request body:
+    effective value = the stored expirationDate in the existing record
+    (partial update semantics per CRT-206)
+
+When effective expirationDate IS NOT NULL: requirement satisfied. No error.
+When effective expirationDate IS NULL:
+  (existing record has no stored expirationDate AND request omits expirationDate)
+  HTTP 422, error code: EXPIRATION_DATE_REQUIRED
+```
+
+### Invariant
+
+A certification assignment record referencing a certification type with
+expirationRequired = true must never reach a stored state where expirationDate is null.
+CRT-204 enforcement ensures this invariant at write time on both INSERT and UPDATE paths.
+Callers updating non-expiration fields (e.g., status only) are not required to re-provide
+expirationDate if the existing record already holds a non-null value.
 
 Authority: GD-M13-2 Decision 7.
 
@@ -295,6 +333,72 @@ Repeat assignment (record already exists):
 No error is returned on repeat assignment. The record is updated.
 
 Authority: GD-M13-4 Decision 3.
+
+---
+
+## CRT-206 — Partial Update Semantics for Employee Certification Assignments
+(Added: 2026-06-20 — Step 5 governance resolution; approved: Product Owner — M13 Step 5 Governance Resolution)
+
+On the UPDATE path (repeat assignment — an existing workforce.employee_certifications
+record already exists for this employee-certification pair), only the fields explicitly
+provided in the request body are written to the record. Fields absent from the request
+body retain their existing stored values.
+
+```text
+status:
+  Present in request:  written to the record (subject to CRT-207 and CRT-300 transition rules)
+  Absent from request: existing stored status is retained
+
+issueDate:
+  Present in request:  written to the record
+  Absent from request: existing stored issueDate is retained
+
+expirationDate:
+  Present in request:  written to the record
+  Absent from request: existing stored expirationDate is retained
+                       (subject to CRT-204 effective-null check when
+                       expirationRequired = true on the referenced catalog entry)
+```
+
+A request providing only certificationId and no other fields is a valid no-op update.
+The existing record is unchanged. A WORKFORCE_EMPLOYEE_CERT_UPDATED audit event is
+emitted with no changed fields recorded in metadata.
+
+This rule mirrors the partial update behavior defined in CRT-102 for catalog
+PATCH /api/v1/certifications/{id} operations. It is consistent with the implementation
+validated during M13 Step 4 runtime verification for skill assignments (partial update
+of proficiencyLevel without affecting verifiedAt).
+
+Authority: GD-M13-2 Decision 11 (upsert semantics), CRT-205.
+
+---
+
+## CRT-207 — Initial Assignment Status Enforcement
+(Added: 2026-06-20 — Step 5 governance resolution; approved: Product Owner — M13 Step 5 Governance Resolution)
+
+On the INSERT path (no existing workforce.employee_certifications record for this
+employee-certification pair), the status field must resolve to ACTIVE after applying
+the default rule (CRT-203):
+
+```text
+status absent from request:  ACTIVE (system default — CRT-203)
+status = 'ACTIVE':           accepted
+status = 'EXPIRED':          rejected — HTTP 422, error code: INVALID_STATUS_TRANSITION
+status = 'REVOKED':          rejected — HTTP 422, error code: INVALID_STATUS_TRANSITION
+```
+
+The service must determine INSERT vs. UPDATE path before applying this check. The
+same record lookup performed for CRT-301 REVOKED terminal enforcement serves this
+purpose: if no existing record is found, the INSERT path applies.
+
+This rule does not apply to the UPDATE path. EXPIRED and REVOKED remain valid target
+values for repeat assignments, subject to CRT-300 transition rules.
+
+Error code INVALID_STATUS_TRANSITION is defined in GD-M13-3 Decision 7. It indicates
+that a valid status value was provided but the requested transition is not permitted by
+the state model (state/07_employee_certification_states.md).
+
+Authority: GD-M13-3 Decision 7, state/07_employee_certification_states.md.
 
 ---
 

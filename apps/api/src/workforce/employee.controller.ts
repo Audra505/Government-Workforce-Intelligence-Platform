@@ -1,36 +1,39 @@
-// Reference: spec/01_requirements.md — FR-110, FR-111, FR-112 Employee Management; FR-113 Skill Assignment
+// Reference: spec/01_requirements.md — FR-110, FR-111, FR-112 Employee Management; FR-113 Skill Assignment; FR-114 Certification Assignment
 // Reference: spec/06_api_contracts.md — Employee API contracts
 // Reference: spec/07_security_architecture.md — SEC-003 Tenant Isolation
 // Reference: directives/13_employee_management_rules.md — EMP-AUTH-001 through EMP-AUTH-005
 // Reference: directives/14_skill_management_rules.md — SKL-200 through SKL-211
+// Reference: directives/15_certification_management_rules.md — CRT-200 through CRT-302
 //
 // EmployeeController is the sole HTTP transport layer for the workforce/employee domain.
-// It maps EmployeeService and EmployeeSkillService result types → HTTP status codes + response envelopes.
+// It maps EmployeeService, EmployeeSkillService, and EmployeeCertificationService result types
+// → HTTP status codes + response envelopes.
 // tenantId is never accepted from the request — always derived from the validated JWT (SEC-003/EMP-002).
 //
 // Authorization (directives/13_employee_management_rules.md — GD-M12-3):
-//   POST  /employees                 — System Administrator, HR Director                                     (EMP-AUTH-001)
-//   GET   /employees                 — SA, HR Director, Workforce Planner, Hiring Manager, Compliance Officer (EMP-AUTH-002)
-//   GET   /employees/:id             — SA, HR Director, Workforce Planner, Hiring Manager, Compliance Officer (EMP-AUTH-003)
-//   PUT   /employees/:id             — System Administrator, HR Director                                     (EMP-AUTH-004)
-//   POST  /employees/:id/status      — System Administrator, HR Director                                     (EMP-AUTH-005)
-//   POST  /employees/:id/skills      — System Administrator, HR Director                                     (SKL-200)
-//   GET   /employees/:id/skills      — SA, HR Director, Workforce Planner, Compliance Officer                (SKL-200)
+//   POST  /employees                         — System Administrator, HR Director                                     (EMP-AUTH-001)
+//   GET   /employees                         — SA, HR Director, Workforce Planner, Hiring Manager, Compliance Officer (EMP-AUTH-002)
+//   GET   /employees/:id                     — SA, HR Director, Workforce Planner, Hiring Manager, Compliance Officer (EMP-AUTH-003)
+//   PUT   /employees/:id                     — System Administrator, HR Director                                     (EMP-AUTH-004)
+//   POST  /employees/:id/status              — System Administrator, HR Director                                     (EMP-AUTH-005)
+//   POST  /employees/:id/skills              — System Administrator, HR Director                                     (SKL-200)
+//   GET   /employees/:id/skills              — SA, HR Director, Workforce Planner, Compliance Officer                (SKL-200)
+//   POST  /employees/:id/certifications      — System Administrator, HR Director                                     (CRT-200)
+//   GET   /employees/:id/certifications      — SA, HR Director, Workforce Planner, Compliance Officer                (CRT-200)
 //
 // RBAC-952: Executive User is NOT listed in @RequireRoles for any GET endpoint.
 //   Executive Users receive HTTP 403. Non-negotiable per EMP-004 and EMP-402.
-// Hiring Manager: read on /employees and /employees/:id; NOT authorized for /employees/:id/skills.
+// Hiring Manager: read on /employees and /employees/:id; NOT authorized for skill or certification sub-routes.
 // Recruiter is NOT listed on any endpoint — Recruiter access is Phase 3 Talent Acquisition domain.
 //
 // Route-level @RequireRoles() is used (not class-level) because read and write endpoints
 // have different authorized role sets.
 //
-// Dynamic HTTP status (POST /employees/:id/skills — GD-M13-2 D15):
+// Dynamic HTTP status (POST /employees/:id/skills and POST /employees/:id/certifications — GD-M13-2 D15):
 //   INSERT path (first assignment) → 201 Created
 //   UPDATE path (repeat assignment) → 200 OK
 //   @Res({ passthrough: true }) is used so NestJS retains normal response serialization
 //   (interceptors, pipes, exception filters) while allowing res.status() to be called.
-//   This is the only route in this controller that requires dynamic status.
 
 import {
   Body,
@@ -66,11 +69,13 @@ import { CurrentUser } from '../identity/decorators/current-user.decorator';
 import { RequestUser } from '../identity/jwt.strategy';
 import { EmployeeService, EmployeeRecord } from './employee.service';
 import { EmployeeSkillService, EmployeeSkillRecord } from './employee-skill.service';
+import { EmployeeCertificationService, EmployeeCertificationRecord } from './employee-certification.service';
 import { CreateEmployeeDto } from './dto/create-employee.dto';
 import { UpdateEmployeeDto } from './dto/update-employee.dto';
 import { ChangeEmployeeStatusDto } from './dto/change-employee-status.dto';
 import { ListEmployeesQueryDto } from './dto/list-employees-query.dto';
 import { AssignSkillDto } from './dto/assign-skill.dto';
+import { AssignCertificationDto } from './dto/assign-certification.dto';
 
 @ApiTags('workforce')
 @Controller({ version: '1' })
@@ -80,6 +85,7 @@ export class EmployeeController {
   constructor(
     private readonly employeeService: EmployeeService,
     private readonly employeeSkillService: EmployeeSkillService,
+    private readonly employeeCertificationService: EmployeeCertificationService,
   ) {}
 
   // --------------------------------------------------------------------------
@@ -511,6 +517,169 @@ export class EmployeeController {
         });
     }
   }
+
+  // --------------------------------------------------------------------------
+  // POST /api/v1/employees/:id/certifications
+  // --------------------------------------------------------------------------
+
+  @Post('employees/:id/certifications')
+  @RequireRoles('System Administrator', 'HR Director')
+  @ApiOperation({
+    summary: 'Assign or update a certification for an employee (CRT-200/CRT-203) — ' +
+             'first assignment returns 201 (GD-M13-2 D15); repeat returns 200; ' +
+             'ACTIVE is the only valid initial status (CRT-207/GD-M13-3 D7); ' +
+             'SEPARATED employees blocked (EMP-302/CRT-202)',
+  })
+  @ApiParam({ name: 'id', description: 'Employee UUID v4', type: 'string' })
+  @ApiResponse({ status: 201, description: 'Certification assigned — INSERT path (first assignment)' })
+  @ApiResponse({ status: 200, description: 'Certification updated — UPDATE path (repeat assignment)' })
+  @ApiResponse({ status: 400, description: 'Validation error — invalid certificationId, status value, or date format' })
+  @ApiResponse({ status: 401, description: 'Not authenticated' })
+  @ApiResponse({ status: 403, description: 'Insufficient role' })
+  @ApiResponse({ status: 404, description: 'Employee not found or cross-tenant (SEC-003)' })
+  @ApiResponse({ status: 422, description: 'EMPLOYEE_SEPARATED | CERTIFICATION_NOT_FOUND | INVALID_STATUS_TRANSITION | EXPIRATION_DATE_REQUIRED | INVALID_DATE_RANGE | CERTIFICATION_REVOKED' })
+  @ApiResponse({ status: 500, description: 'Internal server error' })
+  async assignEmployeeCertification(
+    @Param('id', new ParseUUIDPipe({ version: '4' })) employeeId: string,
+    @Body() dto: AssignCertificationDto,
+    @CurrentUser() actor: RequestUser,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<object> {
+    const result = await this.employeeCertificationService.assignCertification(
+      {
+        employeeId,
+        certificationId: dto.certificationId,
+        status:          dto.status,
+        issueDate:       dto.issueDate ? new Date(dto.issueDate) : undefined,
+        expirationDate:  dto.expirationDate ? new Date(dto.expirationDate) : undefined,
+      },
+      actor.tenantId,
+      actor.userId,
+    );
+
+    switch (result.outcome) {
+      case 'ASSIGNED':
+        res.status(HttpStatus.CREATED);
+        return { success: true, data: { assignment: toCertificationAssignmentShape(result.assignment) } };
+
+      case 'UPDATED':
+        res.status(HttpStatus.OK);
+        return { success: true, data: { assignment: toCertificationAssignmentShape(result.assignment) } };
+
+      case 'NOT_FOUND':
+        throw new NotFoundException({
+          success: false,
+          error: { code: 'NOT_FOUND', message: 'employee not found' },
+        });
+
+      case 'EMPLOYEE_SEPARATED':
+        throw new UnprocessableEntityException({
+          success: false,
+          error: {
+            code: 'EMPLOYEE_SEPARATED',
+            message: 'SEPARATED employees cannot receive certification assignments (EMP-302/CRT-202)',
+          },
+        });
+
+      case 'CERTIFICATION_NOT_FOUND':
+        throw new UnprocessableEntityException({
+          success: false,
+          error: {
+            code: 'CERTIFICATION_NOT_FOUND',
+            message: 'certification not found in this tenant (CRT-201)',
+          },
+        });
+
+      case 'INVALID_STATUS_TRANSITION':
+        throw new UnprocessableEntityException({
+          success: false,
+          error: {
+            code: 'INVALID_STATUS_TRANSITION',
+            message: 'initial certification assignment status must be ACTIVE — EXPIRED and REVOKED are not valid initial states (CRT-207/GD-M13-3 D7)',
+          },
+        });
+
+      case 'EXPIRATION_DATE_REQUIRED':
+        throw new UnprocessableEntityException({
+          success: false,
+          error: {
+            code: 'EXPIRATION_DATE_REQUIRED',
+            message: 'expirationDate is required for this certification type (CRT-204)',
+          },
+        });
+
+      case 'INVALID_DATE_RANGE':
+        throw new UnprocessableEntityException({
+          success: false,
+          error: {
+            code: 'INVALID_DATE_RANGE',
+            message: 'expirationDate must not precede issueDate (CRT-204)',
+          },
+        });
+
+      case 'CERTIFICATION_REVOKED':
+        throw new UnprocessableEntityException({
+          success: false,
+          error: {
+            code: 'CERTIFICATION_REVOKED',
+            message: 'REVOKED certifications are terminal and cannot be updated (CRT-301/GD-M13-3 D3)',
+          },
+        });
+
+      case 'INTERNAL_ERROR':
+        throw new InternalServerErrorException({
+          success: false,
+          error: { code: 'INTERNAL_ERROR', message: 'An unexpected error occurred' },
+        });
+    }
+  }
+
+  // --------------------------------------------------------------------------
+  // GET /api/v1/employees/:id/certifications
+  // --------------------------------------------------------------------------
+
+  @Get('employees/:id/certifications')
+  @RequireRoles('System Administrator', 'HR Director', 'Workforce Planner', 'Compliance Officer')
+  @ApiOperation({
+    summary: 'List certification assignments for an employee (CRT-200) — ' +
+             'returns complete set (GD-M13-2 D16); cross-tenant returns 404 (SEC-003); ' +
+             'Executive Users and Hiring Managers forbidden (RBAC-952)',
+  })
+  @ApiParam({ name: 'id', description: 'Employee UUID v4', type: 'string' })
+  @ApiResponse({ status: 200, description: 'Certification assignment list — complete set, non-paginated (GD-M13-2 D16)' })
+  @ApiResponse({ status: 401, description: 'Not authenticated' })
+  @ApiResponse({ status: 403, description: 'Insufficient role' })
+  @ApiResponse({ status: 404, description: 'Employee not found or cross-tenant (SEC-003)' })
+  @ApiResponse({ status: 500, description: 'Internal server error' })
+  async listEmployeeCertifications(
+    @Param('id', new ParseUUIDPipe({ version: '4' })) employeeId: string,
+    @CurrentUser() actor: RequestUser,
+  ): Promise<object> {
+    const result = await this.employeeCertificationService.listEmployeeCertifications(
+      employeeId,
+      actor.tenantId,
+    );
+
+    switch (result.outcome) {
+      case 'SUCCESS':
+        return {
+          success: true,
+          data: { certifications: result.certifications.map(toCertificationAssignmentShape) },
+        };
+
+      case 'NOT_FOUND':
+        throw new NotFoundException({
+          success: false,
+          error: { code: 'NOT_FOUND', message: 'employee not found' },
+        });
+
+      case 'INTERNAL_ERROR':
+        throw new InternalServerErrorException({
+          success: false,
+          error: { code: 'INTERNAL_ERROR', message: 'An unexpected error occurred' },
+        });
+    }
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -550,5 +719,24 @@ function toSkillAssignmentShape(record: EmployeeSkillRecord): object {
     skillCategory:    record.skillCategory,
     proficiencyLevel: record.proficiencyLevel,
     verifiedAt:       record.verifiedAt?.toISOString() ?? null,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// toCertificationAssignmentShape — maps EmployeeCertificationRecord → HTTP response shape.
+// Field set: GD-M13-2 Decision 16.
+// tenantId excluded (SEC-003). employeeId excluded (in URL). expirationRequired
+// excluded (catalog attribute; available via GET /api/v1/certifications/:id).
+// issueDate / expirationDate: @db.Date objects serialized as YYYY-MM-DD strings.
+//   .toISOString() returns UTC — .substring(0, 10) is timezone-safe for date-only fields.
+// ---------------------------------------------------------------------------
+function toCertificationAssignmentShape(record: EmployeeCertificationRecord): object {
+  return {
+    certificationId:   record.certificationId,
+    certificationName: record.certificationName,
+    issuer:            record.issuer,
+    status:            record.status,
+    issueDate:         record.issueDate?.toISOString().substring(0, 10) ?? null,
+    expirationDate:    record.expirationDate?.toISOString().substring(0, 10) ?? null,
   };
 }

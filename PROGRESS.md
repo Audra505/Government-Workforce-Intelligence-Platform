@@ -10,7 +10,7 @@
 ---
 
 Last Updated: 2026-06-20
-Updated By: Claude Code (session: M13 Step 4 Implementation — Employee Skill Assignment; EmployeeSkillService + AssignSkillDto + controller routes + 44 new tests; 655/655 tests passing; tsc clean)
+Updated By: Claude Code (session: M13 Step 5 Implementation — EmployeeCertificationService + POST/GET /employees/:id/certifications; 706/706 tests passing; tsc clean)
 
 ## Repository Status
 
@@ -7000,4 +7000,144 @@ Overall maturity: **Integrated / Tested**
    - Modified: `apps/api/src/workforce/employee.controller.spec.ts`
    - Modified: `apps/api/src/workforce/workforce.module.ts`
    - GD-M13-2 D15 already applies to certification endpoints (INSERT → 201, UPDATE → 200)
+   - All governance gaps resolved — AUTHORIZED (see M13 Step 5 Governance Resolution entry below)
 2. M13 Step 6 — Full validation and milestone closure (runtime verification, PROGRESS.md final state)
+
+---
+
+## M13 Step 5 Governance Resolution — 2026-06-20
+
+### Phase / Milestone
+
+M13 — Skills & Certifications Foundation  
+Step 5 — Employee Certification Assignment  
+Activity: Governance Recording (no application code modified)
+
+### Repository Status Classification
+
+Governance Recorded — Step 5 implementation authorized
+
+### What Changed
+
+| File | Action | Notes |
+|---|---|---|
+| `governance/GD-M13-2.md` | Modified | Added Decision 16 — GET /employees/:id/certifications authoritative response contract; updated Spec Deviation note; updated Effective Date to 2026-06-20 (D16) |
+| `governance/GD-M13-3.md` | Modified | Added Decision 7 — initial assignment status constraint (ACTIVE only on INSERT); introduced INVALID_STATUS_TRANSITION error code; updated Effective Date to 2026-06-20 (D7) |
+| `directives/15_certification_management_rules.md` | Modified | Version 1.0 → 1.1; CRT-204 amended (INSERT/UPDATE path distinction; effective-null check semantics); CRT-206 added (partial update semantics for POST upsert); CRT-207 added (initial assignment status enforcement; INVALID_STATUS_TRANSITION); Governance Decisions Incorporated section updated |
+| `PROGRESS.md` | Modified | Governance recording entry; Last Updated and Next Actions updated |
+
+### Governance Gaps Resolved
+
+| Gap | Decision | Resolution |
+|---|---|---|
+| G1 — GET /employees/:id/certifications response contract undefined | GD-M13-2 Decision 16 | Authoritative field set: certificationId, certificationName, issuer, status, issueDate (YYYY-MM-DD), expirationDate (YYYY-MM-DD); non-paginated; catalog JOIN required; soft-deleted behavior defined |
+| G2 — EXPIRED/REVOKED on INSERT permitted (no rule) | GD-M13-3 Decision 7 | ACTIVE is the only valid initial assignment status; EXPIRED and REVOKED on INSERT → HTTP 422 INVALID_STATUS_TRANSITION |
+| G2a — Error code for EXPIRED/REVOKED on INSERT undefined | GD-M13-3 Decision 7 | New error code INVALID_STATUS_TRANSITION defined with full semantics and distinction from INVALID_CERTIFICATION_STATUS and CERTIFICATION_REVOKED |
+| G3 — Partial update semantics for POST upsert not formally stated | CRT-206 (new) | Fields absent from request retain existing stored values; mirrors CRT-102 catalog PATCH behavior; no-op update is valid |
+| G4 — CRT-204 scope (INSERT-only vs. all POST calls) ambiguous | CRT-204 amended | Effective-null check semantics: on INSERT, expirationDate must be in request; on UPDATE, check fires only when effective post-write expirationDate would be null (i.e., stored value is also null) |
+
+### Governance Authority Chain (post-recording)
+
+| Rule | Source | Scope |
+|---|---|---|
+| GET response field set | GD-M13-2 D16 | certificationId, certificationName, issuer, status, issueDate, expirationDate |
+| GET date format | GD-M13-2 D16 | YYYY-MM-DD (date-only, not ISO 8601 datetime) |
+| Status default on assignment | GD-M13-3 D2 | ACTIVE when omitted |
+| Valid status values | GD-M13-3 D1, CRT-203 | ACTIVE, EXPIRED, REVOKED only |
+| Initial status constraint | GD-M13-3 D7, CRT-207 | ACTIVE only on INSERT; EXPIRED/REVOKED → 422 INVALID_STATUS_TRANSITION |
+| Partial update semantics | CRT-206 | Fields absent from request retain existing values |
+| expirationRequired enforcement | CRT-204 (amended) | INSERT: expirationDate required in request; UPDATE: effective-null check |
+| REVOKED terminal | GD-M13-3 D3, CRT-301 | No outbound transitions; 422 CERTIFICATION_REVOKED |
+| Audit event selection | GD-M13-4 D4, CRT-302 | CERT_ASSIGNED / CERT_RENEWED (EXPIRED→ACTIVE) / CERT_REVOKED (→REVOKED) / CERT_UPDATED (all other) |
+| RBAC | GD-M13-2 D12, CRT-200 | POST: SA+HR Director; GET: SA+HR Director+WP+CO |
+| 201/200 split | GD-M13-2 D15 | INSERT → 201; UPDATE → 200 |
+| SEC-003 | GD-M13-1 D3, GD-M13-2 D13 | tenantId from JWT only; cross-tenant = NOT_FOUND |
+
+### Validation
+
+No application code was modified. No tests were run. This is a governance recording session only.
+
+All 4 governance gaps identified in the Step 5 Governance Validation Matrix are now resolved and recorded in their authoritative source documents.
+
+### Risks / Limitations
+
+None introduced by this recording. The governance documents are now authoritative for all Step 5 implementation decisions.
+
+### Next Actions
+
+1. **M13 Step 5 COMPLETE** — see history entry below
+2. **M13 Step 6** — Full validation and milestone closure (runtime verification RV-5-1 through RV-5-18)
+
+---
+
+## M13 Step 5 — Employee Certification Assignment Implementation
+
+**Phase:** M13 Step 5
+**Date:** 2026-06-20
+**Status:** IMPLEMENTED — 706/706 tests passing, tsc clean
+
+### Capability: Employee Certification Assignment (FR-114)
+
+- **Deliverable status:** Required
+- **Requirements:** FR-114 Employee Certification Assignment (spec/01_requirements.md)
+- **Specs:** EmployeeCertification composite PK schema — complete (Step 1)
+- **Directives:** CRT-200 through CRT-302 in directives/15_certification_management_rules.md
+- **Execution Plan:** Implemented — EmployeeCertificationService + controller routes + tests
+- **State Model:** state/07_employee_certification_states.md — ACTIVE/EXPIRED/REVOKED; CRT-207 initial status; CRT-301 REVOKED terminal
+- **Test Scenarios:** 51 new unit tests (35 service + 16 controller) — all passing
+- **System Loop:** Not yet (Step 6: runtime verification)
+- **Failure Playbook:** Partial — error codes defined; runtime failure paths not yet live-verified
+- **Environment Model:** Not yet (Step 6)
+- **Data Lifecycle:** Not yet (Step 6)
+- **Evolution Strategy:** Not yet formalized
+- **Overall maturity:** Implemented / Tested (unit) / Pending runtime verification
+
+### What Changed
+
+**Created:**
+- `apps/api/src/workforce/dto/assign-certification.dto.ts` — `AssignCertificationDto` with certificationId, status, issueDate, expirationDate validators
+- `apps/api/src/workforce/employee-certification.service.ts` — `EmployeeCertificationService` with `assignCertification` (10-outcome discriminated union) and `listEmployeeCertifications` (3-outcome); all governance-gated logic (CRT-207, CRT-204 amended, CRT-206, CRT-301, GD-M13-4 D4/D5)
+- `apps/api/src/workforce/employee-certification.service.spec.ts` — 35 unit tests (ECS-S-A1 through ECS-S-A26 + ECS-S-L1 through ECS-S-L8)
+
+**Modified:**
+- `apps/api/src/workforce/employee.controller.ts` — `EmployeeCertificationService` import + constructor injection; `POST /employees/:id/certifications` route; `GET /employees/:id/certifications` route; `toCertificationAssignmentShape()` helper (YYYY-MM-DD date serialization per GD-M13-2 D16); header comment updated
+- `apps/api/src/workforce/employee.controller.spec.ts` — `EmployeeCertificationService` mock + provider; 16 new controller tests (ECC-A1 through ECC-A12 + ECC-L1 through ECC-L4)
+- `apps/api/src/workforce/workforce.module.ts` — `EmployeeCertificationService` added to providers
+- `PROGRESS.md` — this entry
+
+### Validation
+
+- **Unit tests:** 706/706 passing (was 655; +51 new: 35 service + 16 controller)
+- **TypeScript:** `tsc --noEmit` exits 0, 0 errors
+- **Runtime verification:** Pending (M13 Step 6)
+- **Regressions:** None — all pre-existing 655 tests continue to pass
+
+### Key Implementation Decisions Honored
+
+| Decision | Source | Implementation |
+|---|---|---|
+| ACTIVE default on INSERT | GD-M13-3 D2 | `params.status ?? 'ACTIVE'` in insertCertificationAssignment |
+| Initial status constraint | CRT-207, GD-M13-3 D7 | Step E_I: status !== undefined && status !== 'ACTIVE' → INVALID_STATUS_TRANSITION |
+| REVOKED terminal | CRT-301, GD-M13-3 D3 | Step E_U: existing.status === 'REVOKED' → CERTIFICATION_REVOKED |
+| expirationRequired INSERT | CRT-204 amended | Step F_I: cert.expirationRequired && params.expirationDate === undefined |
+| expirationRequired UPDATE | CRT-204 amended | Step F_U: effectiveExpirationDate = params.expirationDate ?? existing.expirationDate |
+| Partial update | CRT-206 | Conditional updateData object (only provided fields) |
+| Audit event selection | GD-M13-4 D4 | REVOKED → CERT_REVOKED; EXPIRED→ACTIVE → CERT_RENEWED; else → CERT_UPDATED |
+| CERT_REVOKED certification_name | GD-M13-4 D5 | Captured in Step C (cert lookup selects name) |
+| Date serialization | GD-M13-2 D16 | `.toISOString().substring(0, 10)` in toCertificationAssignmentShape |
+| Dynamic HTTP status | GD-M13-2 D15 | res.status(201) on ASSIGNED; res.status(200) on UPDATED |
+| SEC-003 tenant isolation | GD-M13-1 D7 | tenantId in employee+cert WHERE clauses; tenantId excluded from responses |
+| Explicit upsert semantics | GD-M13-4 D3 | findFirst → create/update branching (not prisma.upsert()) |
+
+### Risks / Limitations
+
+- Runtime verification not yet complete — 18 scenarios (RV-5-1 through RV-5-18) pending M13 Step 6
+- No soft-deleted certification name-null case exercisable in M13 (CRT-004 prevents it; documented as informational in readiness review)
+- CERT_UPDATED metadata structure follows SKILL_UPDATED pattern (not formally defined in GD-M13-4 D5 — informational gap noted in readiness review)
+
+### Next Actions
+
+1. **M13 Step 6** — Runtime verification: RV-5-1 through RV-5-18 against live Docker stack
+2. Update PROGRESS.md with runtime verification results
+3. Advance M13 to milestone closure
+3. **state/07 cross-reference note** — state/07 already correctly states EXPIRED/REVOKED as non-initial states; GD-M13-3 D7 brings governance into alignment. state/07 does not require amendment.

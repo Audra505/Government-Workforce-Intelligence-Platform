@@ -1,16 +1,17 @@
-// Reference: spec/01_requirements.md — FR-110, FR-111, FR-112 Employee Management; FR-113 Skill Assignment
+// Reference: spec/01_requirements.md — FR-110, FR-111, FR-112 Employee Management; FR-113 Skill Assignment; FR-114 Certification Assignment
 // Reference: spec/06_api_contracts.md — Employee API contracts
 // Reference: directives/13_employee_management_rules.md — EMP-AUTH-001 through EMP-AUTH-005
 // Reference: directives/14_skill_management_rules.md — SKL-200 through SKL-211
+// Reference: directives/15_certification_management_rules.md — CRT-200 through CRT-302
 //
 // Pure unit tests — no HTTP server, no database.
-// EmployeeService and EmployeeSkillService replaced with jest.fn() mocks.
+// EmployeeService, EmployeeSkillService, and EmployeeCertificationService replaced with jest.fn() mocks.
 // JwtAuthGuard and RolesGuard overridden to always pass.
 // Controller methods called directly with mock RequestUser actor.
-// For assignEmployeeSkill(): a mockRes object ({ status: jest.fn() }) is passed as the
-// 4th argument to capture dynamic HTTP status codes set via @Res({ passthrough: true }).
-// Verifies: HTTP exception types, response envelope shapes, date serialization, error codes,
-// SEC-003 tenantId exclusion, dynamic 201/200 status differentiation (GD-M13-2 D15).
+// For assignEmployeeSkill() and assignEmployeeCertification(): a mockRes object ({ status: jest.fn() })
+// is passed as the 4th argument to capture dynamic HTTP status codes set via @Res({ passthrough: true }).
+// Verifies: HTTP exception types, response envelope shapes, date serialization (YYYY-MM-DD for cert dates),
+// error codes, SEC-003 tenantId exclusion, dynamic 201/200 status differentiation (GD-M13-2 D15).
 
 import {
   ConflictException,
@@ -28,12 +29,15 @@ import { EmployeeService } from './employee.service';
 import type { EmployeeRecord } from './employee.service';
 import { EmployeeSkillService } from './employee-skill.service';
 import type { EmployeeSkillRecord } from './employee-skill.service';
+import { EmployeeCertificationService } from './employee-certification.service';
+import type { EmployeeCertificationRecord } from './employee-certification.service';
 import type { RequestUser } from '../identity/jwt.strategy';
 import type { CreateEmployeeDto } from './dto/create-employee.dto';
 import type { UpdateEmployeeDto } from './dto/update-employee.dto';
 import type { ChangeEmployeeStatusDto } from './dto/change-employee-status.dto';
 import type { ListEmployeesQueryDto } from './dto/list-employees-query.dto';
 import type { AssignSkillDto } from './dto/assign-skill.dto';
+import type { AssignCertificationDto } from './dto/assign-certification.dto';
 
 // ---------------------------------------------------------------------------
 // Test constants
@@ -44,9 +48,12 @@ const ACTOR_ID    = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb';
 const DEPT_ID     = 'cccccccc-cccc-cccc-cccc-cccccccccccc';
 const EMPLOYEE_ID = 'dddddddd-dddd-dddd-dddd-dddddddddddd';
 const SKILL_ID    = 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee';
+const CERT_ID     = 'ffffffff-ffff-ffff-ffff-ffffffffffff';
 const CREATED_AT  = new Date('2026-06-18T12:00:00.000Z');
 const UPDATED_AT  = new Date('2026-06-18T14:00:00.000Z');
 const VERIFIED_AT = new Date('2026-06-15T14:32:00.000Z');
+const ISSUE_DATE      = new Date('2026-01-01T00:00:00.000Z');
+const EXPIRATION_DATE = new Date('2027-01-01T00:00:00.000Z');
 
 const mockActor: RequestUser = {
   userId: ACTOR_ID,
@@ -103,6 +110,23 @@ const assignDto: AssignSkillDto = {
   verifiedAt:      VERIFIED_AT.toISOString(),
 };
 
+// Certification assignment record returned from EmployeeCertificationService
+const certificationRecord: EmployeeCertificationRecord = {
+  certificationId:   CERT_ID,
+  certificationName: 'AWS Certified',
+  issuer:            'Amazon Web Services',
+  status:            'ACTIVE',
+  issueDate:         ISSUE_DATE,
+  expirationDate:    EXPIRATION_DATE,
+};
+
+const assignCertDto: AssignCertificationDto = {
+  certificationId: CERT_ID,
+  status:          'ACTIVE',
+  issueDate:       '2026-01-01',
+  expirationDate:  '2027-01-01',
+};
+
 describe('EmployeeController', () => {
   let controller: EmployeeController;
   let mockService: {
@@ -115,6 +139,10 @@ describe('EmployeeController', () => {
   let mockSkillService: {
     assignSkill:        jest.Mock;
     listEmployeeSkills: jest.Mock;
+  };
+  let mockCertificationService: {
+    assignCertification:        jest.Mock;
+    listEmployeeCertifications: jest.Mock;
   };
 
   beforeEach(async () => {
@@ -129,12 +157,17 @@ describe('EmployeeController', () => {
       assignSkill:        jest.fn(),
       listEmployeeSkills: jest.fn(),
     };
+    mockCertificationService = {
+      assignCertification:        jest.fn(),
+      listEmployeeCertifications: jest.fn(),
+    };
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [EmployeeController],
       providers: [
-        { provide: EmployeeService,      useValue: mockService },
-        { provide: EmployeeSkillService, useValue: mockSkillService },
+        { provide: EmployeeService,              useValue: mockService },
+        { provide: EmployeeSkillService,         useValue: mockSkillService },
+        { provide: EmployeeCertificationService, useValue: mockCertificationService },
       ],
     })
       .overrideGuard(JwtAuthGuard).useValue({ canActivate: () => true })
@@ -583,6 +616,226 @@ describe('EmployeeController', () => {
 
       expect(items[0]).not.toHaveProperty('tenantId');
       expect(items[0]).not.toHaveProperty('employeeId');
+    });
+  });
+
+  // --------------------------------------------------------------------------
+  // assignEmployeeCertification() — POST /employees/:id/certifications
+  // --------------------------------------------------------------------------
+
+  describe('assignEmployeeCertification()', () => {
+    let mockRes: { status: jest.Mock };
+
+    beforeEach(() => {
+      mockRes = { status: jest.fn().mockReturnThis() };
+    });
+
+    it('ECC-A1: ASSIGNED — res.status(201) called; returns { success: true, data: { assignment: shape } }', async () => {
+      mockCertificationService.assignCertification.mockResolvedValue({
+        outcome: 'ASSIGNED',
+        assignment: certificationRecord,
+      });
+
+      const result = await controller.assignEmployeeCertification(
+        EMPLOYEE_ID, assignCertDto, mockActor, mockRes as any,
+      ) as Record<string, unknown>;
+
+      expect(mockRes.status).toHaveBeenCalledWith(HttpStatus.CREATED);
+      expect(result['success']).toBe(true);
+      expect(result['data']).toBeTruthy();
+    });
+
+    it('ECC-A2: UPDATED — res.status(200) called; returns { success: true, data: { assignment: shape } }', async () => {
+      mockCertificationService.assignCertification.mockResolvedValue({
+        outcome: 'UPDATED',
+        assignment: certificationRecord,
+      });
+
+      const result = await controller.assignEmployeeCertification(
+        EMPLOYEE_ID, assignCertDto, mockActor, mockRes as any,
+      ) as Record<string, unknown>;
+
+      expect(mockRes.status).toHaveBeenCalledWith(HttpStatus.OK);
+      expect(result['success']).toBe(true);
+    });
+
+    it('ECC-A3: response shape matches GD-M13-2 D16 field set; issueDate and expirationDate as YYYY-MM-DD strings', async () => {
+      mockCertificationService.assignCertification.mockResolvedValue({
+        outcome: 'ASSIGNED',
+        assignment: certificationRecord,
+      });
+
+      const result = await controller.assignEmployeeCertification(
+        EMPLOYEE_ID, assignCertDto, mockActor, mockRes as any,
+      ) as Record<string, Record<string, unknown>>;
+
+      const data = result['data']!['assignment'] as Record<string, unknown>;
+      expect(data).toHaveProperty('certificationId', CERT_ID);
+      expect(data).toHaveProperty('certificationName', 'AWS Certified');
+      expect(data).toHaveProperty('issuer', 'Amazon Web Services');
+      expect(data).toHaveProperty('status', 'ACTIVE');
+      expect(data['issueDate']).toBe('2026-01-01');
+      expect(data['expirationDate']).toBe('2027-01-01');
+      expect(data).not.toHaveProperty('tenantId');
+      expect(data).not.toHaveProperty('employeeId');
+      expect(data).not.toHaveProperty('expirationRequired');
+    });
+
+    it('ECC-A4: null issueDate and expirationDate serialized as null (not YYYY-MM-DD)', async () => {
+      const nullDateRecord: EmployeeCertificationRecord = {
+        ...certificationRecord,
+        issueDate:      null,
+        expirationDate: null,
+      };
+      mockCertificationService.assignCertification.mockResolvedValue({
+        outcome: 'ASSIGNED',
+        assignment: nullDateRecord,
+      });
+
+      const result = await controller.assignEmployeeCertification(
+        EMPLOYEE_ID, assignCertDto, mockActor, mockRes as any,
+      ) as Record<string, Record<string, unknown>>;
+
+      const data = result['data']!['assignment'] as Record<string, unknown>;
+      expect(data['issueDate']).toBeNull();
+      expect(data['expirationDate']).toBeNull();
+    });
+
+    it('ECC-A5: NOT_FOUND → NotFoundException', async () => {
+      mockCertificationService.assignCertification.mockResolvedValue({ outcome: 'NOT_FOUND' });
+
+      await expect(
+        controller.assignEmployeeCertification(EMPLOYEE_ID, assignCertDto, mockActor, mockRes as any),
+      ).rejects.toThrow(NotFoundException);
+    });
+
+    it('ECC-A6: EMPLOYEE_SEPARATED → UnprocessableEntityException with code EMPLOYEE_SEPARATED', async () => {
+      mockCertificationService.assignCertification.mockResolvedValue({ outcome: 'EMPLOYEE_SEPARATED' });
+
+      let thrown: unknown;
+      try {
+        await controller.assignEmployeeCertification(EMPLOYEE_ID, assignCertDto, mockActor, mockRes as any);
+      } catch (e) { thrown = e; }
+      expect(thrown).toBeInstanceOf(UnprocessableEntityException);
+      const body = (thrown as UnprocessableEntityException).getResponse() as Record<string, Record<string, string>>;
+      expect(body['error']['code']).toBe('EMPLOYEE_SEPARATED');
+    });
+
+    it('ECC-A7: CERTIFICATION_NOT_FOUND → UnprocessableEntityException with code CERTIFICATION_NOT_FOUND', async () => {
+      mockCertificationService.assignCertification.mockResolvedValue({ outcome: 'CERTIFICATION_NOT_FOUND' });
+
+      let thrown: unknown;
+      try {
+        await controller.assignEmployeeCertification(EMPLOYEE_ID, assignCertDto, mockActor, mockRes as any);
+      } catch (e) { thrown = e; }
+      expect(thrown).toBeInstanceOf(UnprocessableEntityException);
+      const body = (thrown as UnprocessableEntityException).getResponse() as Record<string, Record<string, string>>;
+      expect(body['error']['code']).toBe('CERTIFICATION_NOT_FOUND');
+    });
+
+    it('ECC-A8: INVALID_STATUS_TRANSITION → UnprocessableEntityException with code INVALID_STATUS_TRANSITION (CRT-207)', async () => {
+      mockCertificationService.assignCertification.mockResolvedValue({ outcome: 'INVALID_STATUS_TRANSITION' });
+
+      let thrown: unknown;
+      try {
+        await controller.assignEmployeeCertification(EMPLOYEE_ID, assignCertDto, mockActor, mockRes as any);
+      } catch (e) { thrown = e; }
+      expect(thrown).toBeInstanceOf(UnprocessableEntityException);
+      const body = (thrown as UnprocessableEntityException).getResponse() as Record<string, Record<string, string>>;
+      expect(body['error']['code']).toBe('INVALID_STATUS_TRANSITION');
+    });
+
+    it('ECC-A9: EXPIRATION_DATE_REQUIRED → UnprocessableEntityException with code EXPIRATION_DATE_REQUIRED', async () => {
+      mockCertificationService.assignCertification.mockResolvedValue({ outcome: 'EXPIRATION_DATE_REQUIRED' });
+
+      let thrown: unknown;
+      try {
+        await controller.assignEmployeeCertification(EMPLOYEE_ID, assignCertDto, mockActor, mockRes as any);
+      } catch (e) { thrown = e; }
+      expect(thrown).toBeInstanceOf(UnprocessableEntityException);
+      const body = (thrown as UnprocessableEntityException).getResponse() as Record<string, Record<string, string>>;
+      expect(body['error']['code']).toBe('EXPIRATION_DATE_REQUIRED');
+    });
+
+    it('ECC-A10: INVALID_DATE_RANGE → UnprocessableEntityException with code INVALID_DATE_RANGE', async () => {
+      mockCertificationService.assignCertification.mockResolvedValue({ outcome: 'INVALID_DATE_RANGE' });
+
+      let thrown: unknown;
+      try {
+        await controller.assignEmployeeCertification(EMPLOYEE_ID, assignCertDto, mockActor, mockRes as any);
+      } catch (e) { thrown = e; }
+      expect(thrown).toBeInstanceOf(UnprocessableEntityException);
+      const body = (thrown as UnprocessableEntityException).getResponse() as Record<string, Record<string, string>>;
+      expect(body['error']['code']).toBe('INVALID_DATE_RANGE');
+    });
+
+    it('ECC-A11: CERTIFICATION_REVOKED → UnprocessableEntityException with code CERTIFICATION_REVOKED (CRT-301)', async () => {
+      mockCertificationService.assignCertification.mockResolvedValue({ outcome: 'CERTIFICATION_REVOKED' });
+
+      let thrown: unknown;
+      try {
+        await controller.assignEmployeeCertification(EMPLOYEE_ID, assignCertDto, mockActor, mockRes as any);
+      } catch (e) { thrown = e; }
+      expect(thrown).toBeInstanceOf(UnprocessableEntityException);
+      const body = (thrown as UnprocessableEntityException).getResponse() as Record<string, Record<string, string>>;
+      expect(body['error']['code']).toBe('CERTIFICATION_REVOKED');
+    });
+
+    it('ECC-A12: INTERNAL_ERROR → InternalServerErrorException', async () => {
+      mockCertificationService.assignCertification.mockResolvedValue({ outcome: 'INTERNAL_ERROR' });
+
+      await expect(
+        controller.assignEmployeeCertification(EMPLOYEE_ID, assignCertDto, mockActor, mockRes as any),
+      ).rejects.toThrow(InternalServerErrorException);
+    });
+  });
+
+  // --------------------------------------------------------------------------
+  // listEmployeeCertifications() — GET /employees/:id/certifications
+  // --------------------------------------------------------------------------
+
+  describe('listEmployeeCertifications()', () => {
+    it('ECC-L1: SUCCESS — returns { success: true, data: { certifications: [...] } }; dates as YYYY-MM-DD', async () => {
+      mockCertificationService.listEmployeeCertifications.mockResolvedValue({
+        outcome: 'SUCCESS',
+        certifications: [certificationRecord],
+      });
+
+      const result = await controller.listEmployeeCertifications(EMPLOYEE_ID, mockActor) as Record<string, Record<string, unknown>>;
+
+      expect(result['success']).toBe(true);
+      const items = result['data']!['certifications'] as Record<string, unknown>[];
+      expect(items).toHaveLength(1);
+      expect(items[0]!['issueDate']).toBe('2026-01-01');
+      expect(items[0]!['expirationDate']).toBe('2027-01-01');
+      expect(items[0]).not.toHaveProperty('tenantId');
+      expect(items[0]).not.toHaveProperty('employeeId');
+    });
+
+    it('ECC-L2: NOT_FOUND → NotFoundException', async () => {
+      mockCertificationService.listEmployeeCertifications.mockResolvedValue({ outcome: 'NOT_FOUND' });
+
+      await expect(controller.listEmployeeCertifications(EMPLOYEE_ID, mockActor)).rejects.toThrow(NotFoundException);
+    });
+
+    it('ECC-L3: INTERNAL_ERROR → InternalServerErrorException', async () => {
+      mockCertificationService.listEmployeeCertifications.mockResolvedValue({ outcome: 'INTERNAL_ERROR' });
+
+      await expect(controller.listEmployeeCertifications(EMPLOYEE_ID, mockActor)).rejects.toThrow(InternalServerErrorException);
+    });
+
+    it('ECC-L4: actor.tenantId forwarded to service from JWT — not from route params (SEC-003)', async () => {
+      mockCertificationService.listEmployeeCertifications.mockResolvedValue({
+        outcome: 'SUCCESS',
+        certifications: [],
+      });
+
+      await controller.listEmployeeCertifications(EMPLOYEE_ID, mockActor);
+
+      expect(mockCertificationService.listEmployeeCertifications).toHaveBeenCalledWith(
+        EMPLOYEE_ID,
+        TENANT_ID,
+      );
     });
   });
 });

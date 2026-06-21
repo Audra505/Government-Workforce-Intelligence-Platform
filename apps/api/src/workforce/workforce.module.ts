@@ -23,6 +23,7 @@ import { VacancyController } from './vacancy.controller';
 import { EmployeeController } from './employee.controller';
 import { EmployeeService } from './employee.service';
 import { EmployeeSkillService } from './employee-skill.service';
+import { EmployeeCertificationService } from './employee-certification.service';
 import { SkillController } from './skill.controller';
 import { SkillService } from './skill.service';
 import { CertificationController } from './certification.controller';
@@ -31,6 +32,6 @@ import { CertificationService } from './certification.service';
 @Module({
   imports: [IdentityModule],
   controllers: [PositionController, VacancyController, EmployeeController, SkillController, CertificationController],
-  providers: [PositionService, VacancyService, EmployeeService, EmployeeSkillService, SkillService, CertificationService],
+  providers: [PositionService, VacancyService, EmployeeService, EmployeeSkillService, EmployeeCertificationService, SkillService, CertificationService],
 })
 export class WorkforceModule {}
