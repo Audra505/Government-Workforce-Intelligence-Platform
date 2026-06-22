@@ -9,8 +9,8 @@
 
 ---
 
-Last Updated: 2026-06-22 (M14 — Certification Expiration Tracking COMPLETE — GET /api/v1/employee-certifications/expiring; 730/730 unit tests; 257/257 e2e tests; 8/8 RV scenarios PASS; GD-M14-1)
-Updated By: Claude Code (M14 milestone closure: GD-M14-1; FR-153 delivered; Certifications capability maturity updated; commits pending push)
+Last Updated: 2026-06-22 (M14 — Certification Expiration Tracking COMPLETE — CI CONFIRMED GREEN; commit 941c7be; 730/730 unit tests; 257/257 e2e tests; 8/8 RV scenarios PASS; GD-M14-1)
+Updated By: Claude Code (M14 milestone closure: GD-M14-1; FR-153 delivered; Certifications capability maturity updated; 941c7be pushed and CI green)
 
 ## Repository Status
 
@@ -35,8 +35,8 @@ Milestone: M14 — Certification Expiration Tracking — COMPLETE 2026-06-22
 Last Completed Milestone: M14 — Certification Expiration Tracking (Complete, 2026-06-22; 730/730 unit tests; 257/257 e2e tests; 8/8 RV scenarios PASS; GD-M14-1)
 Last Completed Step: M14 Step 4C — Runtime Verification COMPLETE (2026-06-22) — 8/8 RV scenarios PASS; Docker rebuild required (corrective action applied); fixtures created and cleaned via direct SQL; all governance behaviors confirmed
 Last Completed Step Date: 2026-06-22
-Current Step: M14 CLOSED — pending commit and push to origin/main
-Session Classification: M14 COMPLETE — GD-M14-1 governing; FR-153 delivered; all validation layers passed (unit, e2e, tsc, lint, runtime verification)
+Current Step: M14 CLOSED — commit 941c7be pushed; CI / Install, Lint, Build, Test CONFIRMED GREEN (2026-06-22; successful in 2m)
+Session Classification: M14 COMPLETE AND CI-VERIFIED — GD-M14-1 governing; FR-153 delivered; all validation layers passed (unit, e2e, tsc, lint, runtime verification, CI)
 
 ## Milestone 10 — Approved Plan
 
@@ -7593,10 +7593,7 @@ All items formally governed and traceable to a specific decision.
 
 In priority order:
 
-1. **M14 Commit and Push** — Commit all uncommitted M14 files and push to origin/main. Confirm
-   CI green. Closes the M14 CI evidence gap and makes the implementation permanent.
-
-2. **Position Linkage Milestone Planning** — Plan the implementation of GD-PRE-M13-002
+1. **Position Linkage Milestone Planning** — Plan the implementation of GD-PRE-M13-002
    (1:1 FTE Slot Model; positionId nullable on employees; POSITION_HAS_ACTIVE_INCUMBENT guard).
    This milestone is the prerequisite for: Position Management UI (GD-PHASE2-CLOSURE-002),
    DEP-008 Phase B (GD-PRE-M13-003), appointmentAuthority (GD-PRE-M13-001), and
@@ -7678,6 +7675,7 @@ Authority: GD-M14-1 (recorded 2026-06-21)
 | TypeScript | `tsc --noEmit` EXIT 0, 0 errors |
 | ESLint | EXIT 0, 0 warnings or errors |
 | Runtime verification | 8/8 PASS — see table below |
+| CI | CI / Install, Lint, Build, Test — **CONFIRMED GREEN** (2026-06-22; commit 941c7be; successful in 2m) |
 
 ### Runtime Verification Results
 
