@@ -1,14 +1,16 @@
-// Reference: directives/15_certification_management_rules.md — CRT-200 through CRT-302
+// Reference: directives/15_certification_management_rules.md — CRT-200 through CRT-302; CRT-400 (expiration tracking)
 // Reference: governance/GD-M13-3.md — Decisions 1–7 (status enumeration and constraints)
 // Reference: governance/GD-M13-4.md — Decision 3 (upsert semantics), Decisions 4–5 (audit events)
 // Reference: governance/GD-M13-2.md — Decision 15 (HTTP status), Decision 16 (GET contract)
+// Reference: governance/GD-M14-1.md — Decision 4 (listExpiringCertifications; withinDays behavioral contract)
 //
 // Pure unit tests — no HTTP server, no database.
 // PrismaService and AuditService replaced with jest.fn() mocks.
 // Tests verify: EMP-302 enforcement, SEC-003 WHERE clause, INSERT vs UPDATE branching,
 // CRT-207 initial status constraint, CRT-204 expirationRequired enforcement (INSERT + UPDATE),
 // CRT-206 partial update semantics, GD-M13-4 D4 audit event selection,
-// GD-M13-4 D5 audit metadata structure, CRT-301 REVOKED terminal enforcement.
+// GD-M13-4 D5 audit metadata structure, CRT-301 REVOKED terminal enforcement,
+// CRT-400 expiration tracking query semantics (LEC-S-1 through LEC-S-13).
 
 import { Test, type TestingModule } from '@nestjs/testing';
 
@@ -84,6 +86,7 @@ describe('EmployeeCertificationService', () => {
       create:    jest.Mock;
       update:    jest.Mock;
       findMany:  jest.Mock;
+      count:     jest.Mock;
     };
   };
   let mockAudit: { logEvent: jest.Mock };
@@ -97,6 +100,7 @@ describe('EmployeeCertificationService', () => {
         create:    jest.fn(),
         update:    jest.fn(),
         findMany:  jest.fn(),
+        count:     jest.fn(),
       },
     };
     mockAudit = { logEvent: jest.fn().mockResolvedValue(undefined) };
@@ -526,6 +530,191 @@ describe('EmployeeCertificationService', () => {
       const call = mockAudit.logEvent.mock.calls[0][0] as { action: AuditEventType; metadata: Record<string, unknown> };
       expect(call.action).toBe(AuditEventType.WORKFORCE_EMPLOYEE_CERT_UPDATED);
       expect(call.metadata['updated_fields']).toEqual([]);
+    });
+  });
+
+  // --------------------------------------------------------------------------
+  // listExpiringCertifications
+  // --------------------------------------------------------------------------
+
+  const EXPIRING_ROW = {
+    certificationId: CERT_ID,
+    status:          'ACTIVE',
+    issueDate:       ISSUE_DATE,
+    expirationDate:  EXPIRATION_DATE,
+    employee: {
+      id:             EMPLOYEE_ID,
+      employeeNumber: 'EMP-001',
+      firstName:      'Jane',
+      lastName:       'Doe',
+    },
+    certification: { name: 'AWS Certified', issuer: 'Amazon Web Services' },
+  };
+
+  describe('listExpiringCertifications()', () => {
+    const WITHIN_DAYS = 30;
+    const PAGE        = 1;
+    const PAGE_SIZE   = 20;
+
+    beforeEach(() => {
+      mockPrisma.employeeCertification.count.mockResolvedValue(0);
+      mockPrisma.employeeCertification.findMany.mockResolvedValue([]);
+    });
+
+    it('LEC-S-1: SUCCESS with empty items when no records match', async () => {
+      const result = await service.listExpiringCertifications(TENANT_ID, WITHIN_DAYS, PAGE, PAGE_SIZE);
+
+      expect(result.outcome).toBe('SUCCESS');
+      if (result.outcome !== 'SUCCESS') return;
+      expect(result.items).toEqual([]);
+      expect(result.total).toBe(0);
+      expect(result.page).toBe(PAGE);
+      expect(result.pageSize).toBe(PAGE_SIZE);
+    });
+
+    it('LEC-S-2: SUCCESS with items when records are returned', async () => {
+      mockPrisma.employeeCertification.count.mockResolvedValue(1);
+      mockPrisma.employeeCertification.findMany.mockResolvedValue([EXPIRING_ROW]);
+
+      const result = await service.listExpiringCertifications(TENANT_ID, WITHIN_DAYS, PAGE, PAGE_SIZE);
+
+      expect(result.outcome).toBe('SUCCESS');
+      if (result.outcome !== 'SUCCESS') return;
+      expect(result.items).toHaveLength(1);
+      expect(result.total).toBe(1);
+    });
+
+    it('LEC-S-3: SUCCESS — record shape includes employee fields and certification catalog fields', async () => {
+      mockPrisma.employeeCertification.count.mockResolvedValue(1);
+      mockPrisma.employeeCertification.findMany.mockResolvedValue([EXPIRING_ROW]);
+
+      const result = await service.listExpiringCertifications(TENANT_ID, WITHIN_DAYS, PAGE, PAGE_SIZE);
+
+      expect(result.outcome).toBe('SUCCESS');
+      if (result.outcome !== 'SUCCESS') return;
+      const item = result.items[0]!;
+      expect(item.employeeId).toBe(EMPLOYEE_ID);
+      expect(item.employeeNumber).toBe('EMP-001');
+      expect(item.firstName).toBe('Jane');
+      expect(item.lastName).toBe('Doe');
+      expect(item.certificationId).toBe(CERT_ID);
+      expect(item.certificationName).toBe('AWS Certified');
+      expect(item.issuer).toBe('Amazon Web Services');
+      expect(item.status).toBe('ACTIVE');
+      expect(item.issueDate).toBe(ISSUE_DATE);
+      expect(item.expirationDate).toBe(EXPIRATION_DATE);
+    });
+
+    it('LEC-S-4: WHERE includes employee.tenantId for tenant isolation (GD-M14-1 D4; SEC-003)', async () => {
+      await service.listExpiringCertifications(TENANT_ID, WITHIN_DAYS, PAGE, PAGE_SIZE);
+
+      expect(mockPrisma.employeeCertification.count).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            employee: expect.objectContaining({ tenantId: TENANT_ID }),
+          }),
+        }),
+      );
+    });
+
+    it('LEC-S-5: WHERE includes employee.deletedAt: null to exclude soft-deleted employees', async () => {
+      await service.listExpiringCertifications(TENANT_ID, WITHIN_DAYS, PAGE, PAGE_SIZE);
+
+      expect(mockPrisma.employeeCertification.count).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            employee: expect.objectContaining({ deletedAt: null }),
+          }),
+        }),
+      );
+    });
+
+    it('LEC-S-6: WHERE includes status: ACTIVE to exclude EXPIRED and REVOKED records (CRT-400)', async () => {
+      await service.listExpiringCertifications(TENANT_ID, WITHIN_DAYS, PAGE, PAGE_SIZE);
+
+      expect(mockPrisma.employeeCertification.count).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({ status: 'ACTIVE' }),
+        }),
+      );
+    });
+
+    it('LEC-S-7: WHERE includes expirationDate not: null to exclude records without a recorded expiration (CRT-400)', async () => {
+      await service.listExpiringCertifications(TENANT_ID, WITHIN_DAYS, PAGE, PAGE_SIZE);
+
+      expect(mockPrisma.employeeCertification.count).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            expirationDate: expect.objectContaining({ not: null }),
+          }),
+        }),
+      );
+    });
+
+    it('LEC-S-8: WHERE includes expirationDate lte: Date for withinDays window (CRT-400)', async () => {
+      const before = new Date();
+      await service.listExpiringCertifications(TENANT_ID, WITHIN_DAYS, PAGE, PAGE_SIZE);
+      const after = new Date();
+
+      type CountArg = { where: { expirationDate: { lte: Date } } };
+      const call = mockPrisma.employeeCertification.count.mock.calls[0][0] as CountArg;
+      const lte = call.where.expirationDate.lte;
+
+      expect(lte).toBeInstanceOf(Date);
+      const expectedLow  = new Date(before.getTime() + WITHIN_DAYS * 24 * 60 * 60 * 1000);
+      const expectedHigh = new Date(after.getTime()  + WITHIN_DAYS * 24 * 60 * 60 * 1000);
+      expect(lte.getTime()).toBeGreaterThanOrEqual(expectedLow.getTime());
+      expect(lte.getTime()).toBeLessThanOrEqual(expectedHigh.getTime());
+    });
+
+    it('LEC-S-9: past-due ACTIVE certifications included — lte cutoff is in the future so past dates satisfy it (CRT-400)', async () => {
+      await service.listExpiringCertifications(TENANT_ID, WITHIN_DAYS, PAGE, PAGE_SIZE);
+
+      type CountArg = { where: { expirationDate: { lte: Date } } };
+      const call = mockPrisma.employeeCertification.count.mock.calls[0][0] as CountArg;
+      // cutoff > today: any past expirationDate also satisfies lte: cutoff (CRT-400 inclusion)
+      expect(call.where.expirationDate.lte.getTime()).toBeGreaterThan(Date.now());
+    });
+
+    it('LEC-S-10: findMany called with correct skip and take for pagination', async () => {
+      const page     = 3;
+      const pageSize = 10;
+
+      await service.listExpiringCertifications(TENANT_ID, WITHIN_DAYS, page, pageSize);
+
+      expect(mockPrisma.employeeCertification.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          skip: (page - 1) * pageSize,
+          take: pageSize,
+        }),
+      );
+    });
+
+    it('LEC-S-11: total in result equals count return value', async () => {
+      mockPrisma.employeeCertification.count.mockResolvedValue(42);
+
+      const result = await service.listExpiringCertifications(TENANT_ID, WITHIN_DAYS, PAGE, PAGE_SIZE);
+
+      expect(result.outcome).toBe('SUCCESS');
+      if (result.outcome !== 'SUCCESS') return;
+      expect(result.total).toBe(42);
+    });
+
+    it('LEC-S-12: INTERNAL_ERROR when count throws', async () => {
+      mockPrisma.employeeCertification.count.mockRejectedValue(new Error('db error'));
+
+      const result = await service.listExpiringCertifications(TENANT_ID, WITHIN_DAYS, PAGE, PAGE_SIZE);
+
+      expect(result.outcome).toBe('INTERNAL_ERROR');
+    });
+
+    it('LEC-S-13: INTERNAL_ERROR when findMany throws', async () => {
+      mockPrisma.employeeCertification.count.mockResolvedValue(0);
+      mockPrisma.employeeCertification.findMany.mockRejectedValue(new Error('db error'));
+
+      const result = await service.listExpiringCertifications(TENANT_ID, WITHIN_DAYS, PAGE, PAGE_SIZE);
+
+      expect(result.outcome).toBe('INTERNAL_ERROR');
     });
   });
 

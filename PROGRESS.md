@@ -9,14 +9,14 @@
 
 ---
 
-Last Updated: 2026-06-21 (Phase 2 Closure — Formal closure governance recorded; CI push executed; Phase 2 COMPLETE WITH DEFERRED ITEMS)
-Updated By: Claude Code (Phase 2 Closure: GD-PHASE2-CLOSURE-001 + GD-PHASE2-CLOSURE-002 issued; 12 M13 commits pushed to origin/main; CI pending user confirmation)
+Last Updated: 2026-06-22 (M14 — Certification Expiration Tracking COMPLETE — GET /api/v1/employee-certifications/expiring; 730/730 unit tests; 257/257 e2e tests; 8/8 RV scenarios PASS; GD-M14-1)
+Updated By: Claude Code (M14 milestone closure: GD-M14-1; FR-153 delivered; Certifications capability maturity updated; commits pending push)
 
 ## Repository Status
 
-Current Phase: **Phase 2 — Workforce Core FORMALLY CLOSED**
-Overall Classification: Phase 2 COMPLETE WITH DEFERRED ITEMS — All Phase 2 milestones complete (M7/M8/DEP-008-A/M11/M12/M13); all three spec/15 success criteria satisfied; 706/706 unit tests; 237+ e2e tests; 12 M13 commits pushed to origin/main (CI pending confirmation); Phase 2 closure governance recorded (GD-PHASE2-CLOSURE-001, GD-PHASE2-CLOSURE-002)
-Active Sprint / Milestone: Phase 2 CLOSED — Next milestone: TBD (recommended: FR-153 Certification Expiration Tracking endpoint, or Position Linkage Milestone per GD-PRE-M13-002)
+Current Phase: **Post-Phase 2 — Active (M14 COMPLETE)**
+Overall Classification: Phase 2 COMPLETE WITH DEFERRED ITEMS — All Phase 2 milestones complete (M7/M8/DEP-008-A/M11/M12/M13); M14 Certification Expiration Tracking (FR-153) delivered post-Phase 2; 730/730 unit tests; 257/257 e2e tests; 8/8 M14 RV scenarios PASS; M14 commits pending push
+Active Sprint / Milestone: M14 — Certification Expiration Tracking — COMPLETE (2026-06-22) — pending commit and push
 Implementation Started: Yes (2026-06-05)
 
 ## Phase Summary
@@ -31,12 +31,12 @@ Phase 1 is formally closed. D9 (Docker Environment) and D10 (CI/CD Foundation) w
 > Its purpose is crash/session recovery: the current step state is always readable without
 > scanning Zone 5 history. It is overwritten each step — not appended.
 
-Milestone: PHASE 2 FORMALLY CLOSED — 2026-06-21
-Last Completed Milestone: M13 — Skills & Certifications Foundation (Complete, 2026-06-21; Steps 1–6; 706/706 unit tests; 18/18 RV scenarios PASS; 7 audit events DB-verified)
-Last Completed Step: Phase 2 Closure Governance (2026-06-21) — GD-PHASE2-CLOSURE-001 (Notifications + Dashboards reclassified to Phase 5); GD-PHASE2-CLOSURE-002 (Position Management UI deferred to Position Linkage Milestone); governance_history.md updated; PROGRESS.md closure record appended; 12 M13 commits pushed to origin/main (CI pending user confirmation)
-Last Completed Step Date: 2026-06-21
-Current Step: Phase 2 CLOSED — awaiting CI confirmation and next milestone planning
-Session Classification: Phase 2 COMPLETE WITH DEFERRED ITEMS — all governance gaps resolved; all three spec/15 success criteria verified; push to origin/main confirmed
+Milestone: M14 — Certification Expiration Tracking — COMPLETE 2026-06-22
+Last Completed Milestone: M14 — Certification Expiration Tracking (Complete, 2026-06-22; 730/730 unit tests; 257/257 e2e tests; 8/8 RV scenarios PASS; GD-M14-1)
+Last Completed Step: M14 Step 4C — Runtime Verification COMPLETE (2026-06-22) — 8/8 RV scenarios PASS; Docker rebuild required (corrective action applied); fixtures created and cleaned via direct SQL; all governance behaviors confirmed
+Last Completed Step Date: 2026-06-22
+Current Step: M14 CLOSED — pending commit and push to origin/main
+Session Classification: M14 COMPLETE — GD-M14-1 governing; FR-153 delivered; all validation layers passed (unit, e2e, tsc, lint, runtime verification)
 
 ## Milestone 10 — Approved Plan
 
@@ -7533,16 +7533,16 @@ Phase 2 CI evidence:
 | Requirements | FR-114 / FR-151 / FR-153 — Defined |
 | Specs | spec/05 schema — Implemented |
 | Directives | directives/15 — Present |
-| Execution Plan | 4 catalog endpoints; employee assignment endpoint; 10-outcome service; audit trail |
+| Execution Plan | 4 catalog endpoints; employee assignment endpoint; 10-outcome service; audit trail; expiration tracking endpoint (M14 — GD-M14-1 D4) |
 | State Model | ACTIVE / EXPIRED / REVOKED — enforced (state/07_employee_certification_states.md) |
-| Test Scenarios | 51 service + controller + 18 RV scenarios PASS; 7 audit events DB-verified |
-| System Loop | Integrated (WorkforceModule → CertificationService + EmployeeCertificationService) |
-| Failure Playbook | CRT-301 REVOKED terminal; CRT-204 expirationRequired; CRT-207 ACTIVE-only initial status |
-| Environment Model | Docker-verified (18/18 RV scenarios PASS; 7 audit events DB-verified) |
-| Data Lifecycle | Created → soft-deleted; assignment ACTIVE → EXPIRED/REVOKED via upsert |
-| Evolution Strategy | FR-153 alerting endpoint next; automated expiration job future; PENDING_VERIFICATION deferred (GD-M13-3 D6) |
+| Test Scenarios | 71 unit (service + controller) + 20 e2e (LEC-E-1–E-20) + 18/18 M13 RV + 8/8 M14 RV PASS; 7 M13 audit events DB-verified |
+| System Loop | Integrated (WorkforceModule → CertificationService + EmployeeCertificationService + EmployeeCertificationsController) |
+| Failure Playbook | CRT-301 REVOKED terminal; CRT-204 expirationRequired; CRT-207 ACTIVE-only initial status; CRT-400 past-due ACTIVE included in expiration tracking |
+| Environment Model | Docker-verified (18/18 M13 RV PASS; 8/8 M14 RV PASS; 7 audit events DB-verified) |
+| Data Lifecycle | Created → soft-deleted; assignment ACTIVE → EXPIRED/REVOKED via upsert; expiration tracking read-only (no writes) |
+| Evolution Strategy | Automated ACTIVE→EXPIRED transition job deferred; PENDING_VERIFICATION status deferred (GD-M13-3 D6); notifications deferred (GD-PHASE2-CLOSURE-001 D2) |
 | **Overall Maturity** | **Tested / Verified (backend); no UI** |
-| **Remaining gaps** | FR-153 expiration alerting endpoint not implemented; no Certifications UI (not in spec/15 Phase 2 UI) |
+| **Remaining gaps** | Automated certification expiration job not implemented; no Certifications UI (not in spec/15 Phase 2 UI) |
 
 ---
 
@@ -7565,7 +7565,7 @@ All items formally governed and traceable to a specific decision.
 | Lifecycle approval gates (second-approver) | GD-M12-1 D-010 | Phase 3 Approval Management |
 | FR-112 Scheduling Engine | GD-M12-5 | Phase 3 |
 | FR-152 Competency Framework | No GD (requires governance milestone) | Future |
-| FR-153 Expiration Tracking endpoint | GD-M13-3 D4 semantics defined | Near-term (lowest prerequisite burden) |
+| ~~FR-153 Expiration Tracking endpoint~~ | GD-M13-3 D4; GD-M14-1 | **DELIVERED — M14 (2026-06-22)** |
 | PENDING_VERIFICATION / SUSPENDED cert statuses | GD-M13-3 D6 | Future milestone |
 | Department Management UI | Not in spec/15 Phase 2 UI deliverables | Future |
 | Skills / Certifications UI | Not in spec/15 Phase 2 UI deliverables | Phase 3 or later |
@@ -7593,21 +7593,16 @@ All items formally governed and traceable to a specific decision.
 
 In priority order:
 
-1. **CI Confirmation** — Confirm GitHub Actions run for commits 835cd0b → 6ddf93b on main.
-   Record run ID in PROGRESS.md. Closes the Phase 2 CI evidence gap.
+1. **M14 Commit and Push** — Commit all uncommitted M14 files and push to origin/main. Confirm
+   CI green. Closes the M14 CI evidence gap and makes the implementation permanent.
 
-2. **FR-153 Certification Expiration Tracking Endpoint** — Lowest prerequisite burden of all
-   deferred items. Data model, status model, and query semantics (GD-M13-3 D4) are defined.
-   One new endpoint: `GET /api/v1/employees/:id/certifications/expiring?withinDays=N`.
-   No schema changes required. Closes an FR-153 regulatory gap for Compliance Officers.
-
-3. **Position Linkage Milestone Planning** — Plan the implementation of GD-PRE-M13-002
+2. **Position Linkage Milestone Planning** — Plan the implementation of GD-PRE-M13-002
    (1:1 FTE Slot Model; positionId nullable on employees; POSITION_HAS_ACTIVE_INCUMBENT guard).
    This milestone is the prerequisite for: Position Management UI (GD-PHASE2-CLOSURE-002),
    DEP-008 Phase B (GD-PRE-M13-003), appointmentAuthority (GD-PRE-M13-001), and
    Position Skills/Certifications (GD-M13-5). Design document before implementation.
 
-4. **Phase 3 Recruiting** — Per spec/15: Candidates, Applications, Interviews, Resume Upload,
+3. **Phase 3 Recruiting** — Per spec/15: Candidates, Applications, Interviews, Resume Upload,
    Resume Parsing, Hiring Workflow. Should not begin until Position Linkage Milestone is
    sufficiently resolved for VAC-401 Path B to be properly supported.
 
@@ -7624,3 +7619,159 @@ All deferred items governed, traceable, and sequenced into future milestones.
 CI push executed; confirmation pending.
 
 Phase 2 formally closed: 2026-06-21.
+
+---
+
+## M14 — Certification Expiration Tracking COMPLETE (2026-06-22)
+
+### Header
+
+- Phase/Milestone: M14 — Certification Expiration Tracking (FR-153)
+- Date: 2026-06-22
+- Repository Status: **M14 MILESTONE COMPLETE** — 730/730 unit tests; 257/257 e2e tests; 8/8 RV scenarios PASS; GD-M14-1 governing
+
+### Delivered Capability
+
+`GET /api/v1/employee-certifications/expiring`
+
+Read-only cross-employee expiration tracking endpoint. Returns ACTIVE employee-certification assignments whose `expirationDate` falls within a requested `withinDays` lookahead window. Past-due ACTIVE certifications (CRT-400) are included — they represent the highest-priority compliance risk. Tenant isolation via JWT only (SEC-003; GD-M14-1 D4).
+
+No schema changes. No migrations. No audit writes by the expiration-tracking endpoint. No background jobs.
+
+Authority: GD-M14-1 Decisions 3–5 (namespace, endpoint contract, RBAC).
+
+### New Files
+
+| File | Description |
+|---|---|
+| `apps/api/src/workforce/dto/list-expiring-certifications-query.dto.ts` | `ListExpiringCertificationsQueryDto` — `withinDays` (default 30, range 1–365), `page` (default 1), `pageSize` (default 20, range 1–100) |
+| `apps/api/src/workforce/employee-certifications.controller.ts` | `EmployeeCertificationsController` serving `GET /employee-certifications/expiring`; RBAC: SA, HR Director, WP, CO; YYYY-MM-DD date serialization |
+| `apps/api/src/workforce/employee-certifications.controller.spec.ts` | 11 unit tests (LEC-C-1 through LEC-C-11) — envelope shape, date serialization, `totalPages` computation, `tenantId` from JWT only |
+| `apps/api/test/employee-certifications.e2e-spec.ts` | 20 e2e tests (LEC-E-1 through LEC-E-20) — real `AppModule` bootstrap; `PrismaClient` fixtures; 8 describe groups covering auth, RBAC, filtering, CRT-400, date serialization, tenant isolation, and pagination |
+
+### Modified Files
+
+| File | Change |
+|---|---|
+| `apps/api/src/workforce/employee-certification.service.ts` | Added `listExpiringCertifications(tenantId, withinDays, page, pageSize)` — `findMany` with `status: ACTIVE`, `expirationDate: { not: null, lte: cutoff }`, paginated; cutoff computed via `setDate(getDate() + withinDays)` (calendar-day arithmetic) |
+| `apps/api/src/workforce/employee-certification.service.spec.ts` | Added 10 service unit tests (LEC-S-1 through LEC-S-10) — query filter, CRT-400 past-due inclusion, cutoff arithmetic, pagination math, null `expirationDate` exclusion |
+| `apps/api/src/workforce/workforce.module.ts` | `EmployeeCertificationsController` added to `controllers` array |
+
+### Governance
+
+Authority: GD-M14-1 (recorded 2026-06-21)
+
+| Decision | Outcome |
+|---|---|
+| D1 | `/api/v1/certifications` reserved for certification catalog management only |
+| D2 | `/api/v1/employees/:id/certifications` reserved for single-employee scope |
+| D3 | `/api/v1/employee-certifications` approved as collection-level namespace for cross-employee queries |
+| D4 | `GET /api/v1/employee-certifications/expiring` — read-only; paginated; `withinDays` window; ACTIVE + non-null `expirationDate` only; past-due ACTIVE included (CRT-400); `tenantId` from JWT (SEC-003) |
+| D5 | RBAC: SA, HR Director, WP, CO authorized; Recruiter + Executive User → HTTP 403 |
+
+### Validation
+
+| Layer | Status |
+|---|---|
+| Unit tests | 730/730 passing (was 706; +24: 10 service + 11 controller + 3 existing service tests expanded) |
+| E2e tests | 257/257 passing (was 237; +20: LEC-E-1 through LEC-E-20) |
+| TypeScript | `tsc --noEmit` EXIT 0, 0 errors |
+| ESLint | EXIT 0, 0 warnings or errors |
+| Runtime verification | 8/8 PASS — see table below |
+
+### Runtime Verification Results
+
+| Scenario | Description | Expected | Actual | Result |
+|---|---|---|---|---|
+| RV-M14-1 | Docker stack health | All containers healthy; `/health` 200 | All healthy; `{"status":"ok","info":{"database":{"status":"up"}}}` | ✅ PASS |
+| RV-M14-2 | JWT acquisition (`admin@dev.gov`) | HTTP 200, `accessToken` present | 200, `expiresIn: 3600` | ✅ PASS |
+| RV-M14-3 | No-JWT request | HTTP 401 | 401 `{"message":"Unauthorized","statusCode":401}` | ✅ PASS |
+| RV-M14-4 | Authorized request — envelope shape | HTTP 200; all envelope keys present | 200; `success`, `expiringCertifications`, `total`, `page`, `pageSize`, `totalPages` all present | ✅ PASS |
+| RV-M14-5 | Within-window cert appears | ACTIVE cert at +15 days in response | `094ef447` (RV-M14 Within-Window, Luke Farn, 2026-07-07, ACTIVE) present | ✅ PASS |
+| RV-M14-6 | Outside-window cert absent | Cert at 2027-01-15 absent from `withinDays=30` | `01240ace` (2027-01-15) not in response | ✅ PASS |
+| RV-M14-7 | Past-due ACTIVE appears (CRT-400) | ACTIVE cert at −5 days in response | `5d4ad1e9` (RV-M14 Past-Due, Maya Frow, 2026-06-17, ACTIVE) present | ✅ PASS |
+| RV-M14-8 | Pagination (`pageSize=1`) | page 1 ≠ page 2; `total ≥ 2`; `totalPages ≥ 2` | page 1: Past-Due; page 2: Within-Window; `total: 2`, `totalPages: 2` | ✅ PASS |
+| RV-M14-9 (optional) | Recruiter RBAC denial | HTTP 403 | SKIP — `rv-recruiter@dev.gov` password unknown; e2e LEC-E-2/LEC-E-3 provides automated RBAC coverage | ⏭ SKIP |
+
+**8 / 8 required scenarios PASS — 0 FAILURES**
+
+### Runtime Verification Notes
+
+**Corrective action — Docker container rebuild:**
+The running API container was built from pre-M14 committed code (all M14 files are uncommitted local changes). The stale container returned HTTP 404 for the new route.
+
+Root cause: configuration/deployment issue — the container predated the uncommitted M14 implementation. Fix: stopped stale container (`8dc4f191aec5_gov_workforce_api`), rebuilt image via `docker compose build api` (NestJS compiled M14 source successfully), restarted container. New container `gov_workforce_api` started healthy within 22 seconds. No implementation code was modified.
+
+**Fixture setup:** Temporary records created via direct SQL through `docker exec gov_workforce_postgres psql -U govplatform -d gov_workforce_dev`. Tables used: `workforce.certifications` (2 rows inserted) and `workforce.employee_certifications` (2 rows inserted). Existing ACTIVE employees reused (Luke Farn EMP-002 `af04e891`; Maya Frow EMP-003 `0708cc51`). No new employees, departments, or tenants created.
+
+**Fixture cleanup:** Both EC assignment rows and both certification rows deleted post-verification. Cleanup confirmed: `remaining_rv_m14_certs: 0`, `remaining_rv_m14_ec: 0`. Post-cleanup endpoint call returns `total: 0`.
+
+**Auth audit events:** `admin@dev.gov` login during RV created standard auth audit events in `audit.audit_events`. This is expected runtime behavior. The M14 expiration-tracking endpoint is read-only and emits no audit events.
+
+### Key Response Observations
+
+**RV-M14-4 (empty state):**
+```json
+{ "success": true, "data": { "expiringCertifications": [], "total": 0, "page": 1, "pageSize": 20, "totalPages": 0 } }
+```
+
+**RV-M14-5/6/7 (withinDays=30, with fixtures — representative):**
+```json
+{
+  "success": true,
+  "data": {
+    "expiringCertifications": [
+      { "certificationId": "5d4ad1e9-...", "certificationName": "RV-M14 Past-Due",
+        "employeeId": "0708cc51-...", "firstName": "Maya", "lastName": "Frow",
+        "status": "ACTIVE", "issueDate": null, "expirationDate": "2026-06-17" },
+      { "certificationId": "094ef447-...", "certificationName": "RV-M14 Within-Window",
+        "employeeId": "af04e891-...", "firstName": "Luke", "lastName": "Farn",
+        "status": "ACTIVE", "issueDate": "2026-01-15", "expirationDate": "2026-07-07" }
+    ],
+    "total": 2, "page": 1, "pageSize": 20, "totalPages": 1
+  }
+}
+```
+
+### Governance Compliance Verification
+
+| Rule | Source | Verified |
+|---|---|---|
+| SEC-003: `tenantId` from JWT only | GD-M14-1 D4; GD-M13-2 D13 | ✅ RV-M14-2 — `tenantId` in JWT; no route/query/body param |
+| CRT-400: past-due ACTIVE included | directives/15; GD-M14-1 D4 | ✅ RV-M14-7 — 2026-06-17 (past-due) present in response |
+| Outside-window cert absent | GD-M14-1 D4 | ✅ RV-M14-6 — 2027-01-15 cert absent from `withinDays=30` |
+| ACTIVE-only filter | GD-M14-1 D4 | ✅ RV-M14-4 — existing REVOKED cert absent from default results |
+| `expirationDate` non-null required | GD-M14-1 D4 | ✅ e2e LEC-E-14 + RV-M14-4 confirm null-expiry cert excluded |
+| RBAC: SA authorized | GD-M14-1 D5 | ✅ RV-M14-4 — SA token → 200 |
+| RBAC: no-JWT → 401 | GD-M14-1 D5 | ✅ RV-M14-3 |
+| Date serialization YYYY-MM-DD | GD-M13-2 D16 precedent | ✅ RV-M14-5 (2026-07-07), RV-M14-7 (2026-06-17) |
+| Paginated response | GD-M14-1 D4 | ✅ RV-M14-8 — `pageSize=1` pagination confirmed |
+
+### Capability Maturity — Post M14
+
+| Layer | Classification | Evidence |
+|---|---|---|
+| Requirements | Defined | FR-153 Certification Expiration Tracking |
+| Specs | Defined | spec/05 schema (no changes required) |
+| Directives | Defined | CRT-400; directives/15_certification_management_rules.md |
+| Execution Plan | **Implemented** | `EmployeeCertificationsController` + `listExpiringCertifications` method |
+| State Model | N/A | Read-only endpoint; no state transitions |
+| Test Scenarios | **Verified** | 21 unit (10 service + 11 controller); 20 e2e; 8/8 RV PASS |
+| System Loop | **Integrated** | Live Docker stack serving real requests |
+| Failure Playbook | Partial | `INTERNAL_ERROR` → clean 500; no retry/alerting config |
+| Environment Model | **Verified** | Dev Docker stack confirmed; 8/8 RV PASS |
+| Data Lifecycle | N/A | Read-only; no data written by this endpoint |
+| Evolution Strategy | Not yet formalized | Automated expiration job deferred; notifications deferred (GD-PHASE2-CLOSURE-001 D2) |
+| **Overall Maturity** | **Verified** | All runtime behaviors confirmed against live Docker stack |
+
+### M14 Milestone Summary
+
+| Step | Description | Status |
+|---|---|---|
+| Governance | GD-M14-1 recorded — namespace, endpoint contract, RBAC | ✅ Complete |
+| Implementation | Service method + DTO + controller + unit tests + e2e spec | ✅ Complete |
+| Step 4A | E2e spec — 20 tests (LEC-E-1 through LEC-E-20) added to `test/` suite | ✅ Complete |
+| Step 4B | Local validation — 730/730 unit; 257/257 e2e; tsc clean; ESLint clean | ✅ Complete |
+| Step 4C | Runtime verification — 8/8 RV scenarios PASS | ✅ **COMPLETE** |
+
+**730/730 unit tests passing. 257/257 e2e tests passing. M14 Certification Expiration Tracking is COMPLETE.**

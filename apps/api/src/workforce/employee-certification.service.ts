@@ -1,10 +1,11 @@
-// Reference: spec/01_requirements.md — FR-114 Employee Certification Assignment
+// Reference: spec/01_requirements.md — FR-114 Employee Certification Assignment; FR-153 Certification Expiration Tracking
 // Reference: spec/07_security_architecture.md — SEC-003 Tenant Isolation
-// Reference: directives/15_certification_management_rules.md — CRT-200 through CRT-302
+// Reference: directives/15_certification_management_rules.md — CRT-200 through CRT-302; CRT-400 (expiration tracking)
 // Reference: governance/GD-M13-1.md — Decision 7 (no tenant_id on junction)
 // Reference: governance/GD-M13-2.md — Decision 16 (GET contract), Decision 15 (HTTP status)
 // Reference: governance/GD-M13-3.md — Decisions 1–7 (status enumeration and constraints)
 // Reference: governance/GD-M13-4.md — Decision 3 (upsert semantics), Decisions 4–5 (audit events)
+// Reference: governance/GD-M14-1.md — Decision 4 (listExpiringCertifications; withinDays behavioral contract)
 //
 // Transport-agnostic service — no HTTP exceptions, no HttpStatus references.
 //
@@ -73,6 +74,23 @@ export type ListEmployeeCertificationsResult =
   | { outcome: 'NOT_FOUND' }
   | { outcome: 'INTERNAL_ERROR' };
 
+export type ExpiringCertificationRecord = {
+  employeeId:        string;
+  employeeNumber:    string;
+  firstName:         string;
+  lastName:          string;
+  certificationId:   string;
+  certificationName: string | null;  // null only if catalog entry hard-deleted
+  issuer:            string | null;
+  status:            string;         // always 'ACTIVE' per WHERE filter (GD-M14-1 D4; CRT-400)
+  issueDate:         Date | null;
+  expirationDate:    Date;           // always non-null per WHERE filter (CRT-400)
+};
+
+export type ListExpiringCertificationsResult =
+  | { outcome: 'SUCCESS'; items: ExpiringCertificationRecord[]; total: number; page: number; pageSize: number }
+  | { outcome: 'INTERNAL_ERROR' };
+
 // ---------------------------------------------------------------------------
 // Internal helpers
 // ---------------------------------------------------------------------------
@@ -110,6 +128,62 @@ const EMPLOYEE_CERT_SELECT = {
 
 function toEmployeeCertificationRecord(row: EmployeeCertificationRow): EmployeeCertificationRecord {
   return {
+    certificationId:   row.certificationId,
+    certificationName: row.certification.name,
+    issuer:            row.certification.issuer,
+    status:            row.status,
+    issueDate:         row.issueDate,
+    expirationDate:    row.expirationDate,
+  };
+}
+
+// ExpiringCertificationRow: extends the per-employee row with an employee join.
+// expirationDate is typed non-null because the WHERE filter guarantees it (CRT-400).
+type ExpiringCertificationRow = {
+  certificationId: string;
+  status:          string;
+  issueDate:       Date | null;
+  expirationDate:  Date;
+  employee: {
+    id:             string;
+    employeeNumber: string;
+    firstName:      string;
+    lastName:       string;
+  };
+  certification: {
+    name:   string;
+    issuer: string | null;
+  };
+};
+
+// Extends EMPLOYEE_CERT_SELECT with employee join for cross-employee expiration queries (GD-M14-1 D3).
+const EXPIRING_CERT_SELECT = {
+  certificationId: true,
+  status:          true,
+  issueDate:       true,
+  expirationDate:  true,
+  employee: {
+    select: {
+      id:             true,
+      employeeNumber: true,
+      firstName:      true,
+      lastName:       true,
+    },
+  },
+  certification: {
+    select: {
+      name:   true,
+      issuer: true,
+    },
+  },
+} as const;
+
+function toExpiringCertificationRecord(row: ExpiringCertificationRow): ExpiringCertificationRecord {
+  return {
+    employeeId:        row.employee.id,
+    employeeNumber:    row.employee.employeeNumber,
+    firstName:         row.employee.firstName,
+    lastName:          row.employee.lastName,
     certificationId:   row.certificationId,
     certificationName: row.certification.name,
     issuer:            row.certification.issuer,
@@ -410,5 +484,66 @@ export class EmployeeCertificationService {
     }
 
     return { outcome: 'SUCCESS', certifications: rows.map(toEmployeeCertificationRecord) };
+  }
+
+  // -------------------------------------------------------------------------
+  // listExpiringCertifications — cross-employee expiration tracking (FR-153)
+  // -------------------------------------------------------------------------
+  //
+  // Tenant isolation via employee relation (GD-M13-1 D7; GD-M14-1 D4; SEC-003):
+  //   workforce.employee_certifications has no tenant_id column.
+  //   Isolation is enforced by filtering employee.tenantId through the FK chain.
+  //
+  // Cutoff semantics (CRT-400; GD-M13-3 D4):
+  //   status = ACTIVE AND expirationDate IS NOT NULL AND expirationDate <= cutoff
+  //   where cutoff = today + withinDays calendar days.
+  //   Past-due ACTIVE certifications (expirationDate < today) satisfy lte: cutoff
+  //   and are intentionally included as the highest-priority compliance risk.
+
+  async listExpiringCertifications(
+    tenantId:   string,
+    withinDays: number,
+    page:       number,
+    pageSize:   number,
+  ): Promise<ListExpiringCertificationsResult> {
+    // setDate handles month/year rollovers; avoids DST ms-arithmetic skew on @db.Date fields.
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() + withinDays);
+
+    const where = {
+      employee:       { tenantId, deletedAt: null },
+      status:         'ACTIVE',
+      expirationDate: { not: null, lte: cutoff },
+    };
+
+    let total: number;
+    try {
+      total = await this.prisma.employeeCertification.count({ where });
+    } catch (err) {
+      this.logger.error('listExpiringCertifications: count failed', err);
+      return { outcome: 'INTERNAL_ERROR' };
+    }
+
+    let rows: ExpiringCertificationRow[];
+    try {
+      rows = (await this.prisma.employeeCertification.findMany({
+        where,
+        select:  EXPIRING_CERT_SELECT,
+        orderBy: { expirationDate: 'asc' },
+        skip:    (page - 1) * pageSize,
+        take:    pageSize,
+      })) as ExpiringCertificationRow[];
+    } catch (err) {
+      this.logger.error('listExpiringCertifications: findMany failed', err);
+      return { outcome: 'INTERNAL_ERROR' };
+    }
+
+    return {
+      outcome:  'SUCCESS',
+      items:    rows.map(toExpiringCertificationRecord),
+      total,
+      page,
+      pageSize,
+    };
   }
 }
