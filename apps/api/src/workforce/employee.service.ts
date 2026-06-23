@@ -3,6 +3,9 @@
 // Reference: spec/07_security_architecture.md — SEC-003 Tenant Isolation
 // Reference: directives/13_employee_management_rules.md — EMP-001 through EMP-805
 // Reference: directives/13_employee_management_rules.md — GD-M12-1 through GD-M12-8
+// Reference: governance/GD-M15-1.md — Decision 1, 4, 8, 9 (appointmentAuthority; positionId at creation)
+// Reference: governance/GD-PRE-M13-001.md — appointment authority design
+// Reference: governance/GD-PRE-M13-002.md — 1:1 FTE Slot Model (service-layer occupancy check only)
 //
 // EmployeeService is transport-agnostic: no HTTP exceptions thrown, no HTTP responses returned.
 // HTTP status mapping is the sole responsibility of EmployeeController (Step 3).
@@ -14,11 +17,16 @@
 // Audit events are emitted after write operations, not inside transactions (EMP-700).
 // EMP-401: Field values (names, emails) must not appear in audit metadata — field names only.
 // GD-M12-6/EMP-304: employeeNumber is immutable after creation — checked before any DB operation.
+// GD-M15-1 D8: appointmentAuthority is immutable after creation — checked before any DB operation.
 // GD-M12-1/EMP-001: PENDING_ONBOARDING is the initial state for all created employees.
 // EMP-302: SEPARATED employees are read-only — updateEmployee returns EMPLOYEE_IS_SEPARATED.
 // EMP-303: terminationDate is system-managed — set to now() when ACTIVE → SEPARATED.
 // SEPARATED is a terminal state — changeEmployeeStatus returns INVALID_TRANSITION.
 // GD-M12-8/EMP-805: SEPARATED rejected when terminationDate (now) < hireDate — returns TERMINATION_BEFORE_HIRE_DATE.
+// GD-M15-1 D1: VALID_APPOINTMENT_AUTHORITIES are the 7 Path A values. COMPETITIVE_APPOINTMENT is DB-only.
+// GD-M15-1 D4: positionId optional at creation; if provided: must be ACTIVE and unoccupied (service-layer check).
+// GD-PRE-M13-002 D1: occupancy enforced at service layer only — no DB unique constraint on position_id.
+// GD-M15-1 D9: WORKFORCE_EMPLOYEE_POSITION_ASSIGNED emitted when employee created with initial positionId.
 
 import { Injectable, Logger } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
@@ -38,6 +46,8 @@ export type CreateEmployeeParams = {
   firstName: string;
   lastName: string;
   departmentId: string;
+  appointmentAuthority?: string;   // optional: missing field → APPOINTMENT_AUTHORITY_REQUIRED (GD-M15-1 D4)
+  positionId?: string;
   email?: string;
   hireDate?: Date;
 };
@@ -49,6 +59,7 @@ export type UpdateEmployeeParams = {
   departmentId?: string;
   hireDate?: Date;
   employeeNumber?: string;
+  appointmentAuthority?: string;
 };
 
 export type ListEmployeesParams = {
@@ -65,7 +76,7 @@ export type ChangeEmployeeStatusParams = {
 
 // ---------------------------------------------------------------------------
 // EmployeeRecord — shared read shape produced by all service read paths.
-// Includes joined department name field.
+// Includes joined department name field and M15 position linkage fields.
 // ---------------------------------------------------------------------------
 
 export type EmployeeRecord = {
@@ -73,11 +84,13 @@ export type EmployeeRecord = {
   tenantId: string;
   departmentId: string;
   departmentName: string;
+  positionId: string | null;
   employeeNumber: string | null;
   firstName: string;
   lastName: string;
   email: string | null;
   employmentStatus: string;
+  appointmentAuthority: string;
   hireDate: Date | null;
   terminationDate: Date | null;
   createdAt: Date;
@@ -92,6 +105,12 @@ export type CreateEmployeeResult =
   | { outcome: 'SUCCESS'; employee: EmployeeRecord }
   | { outcome: 'DEPARTMENT_NOT_FOUND' }
   | { outcome: 'EMPLOYEE_NUMBER_CONFLICT' }
+  | { outcome: 'APPOINTMENT_AUTHORITY_REQUIRED' }
+  | { outcome: 'INVALID_APPOINTMENT_AUTHORITY' }
+  | { outcome: 'COMPETITIVE_APPOINTMENT_SYSTEM_ONLY' }
+  | { outcome: 'POSITION_NOT_FOUND' }
+  | { outcome: 'POSITION_NOT_ACTIVE_FOR_ASSIGNMENT' }
+  | { outcome: 'POSITION_ALREADY_OCCUPIED' }
   | { outcome: 'INTERNAL_ERROR' };
 
 export type ListEmployeesResult =
@@ -114,6 +133,7 @@ export type UpdateEmployeeResult =
   | { outcome: 'NOT_FOUND' }
   | { outcome: 'EMPLOYEE_IS_SEPARATED' }
   | { outcome: 'EMPLOYEE_NUMBER_IMMUTABLE' }
+  | { outcome: 'APPOINTMENT_AUTHORITY_IMMUTABLE' }
   | { outcome: 'DEPARTMENT_NOT_FOUND' }
   | { outcome: 'INTERNAL_ERROR' };
 
@@ -133,11 +153,13 @@ type EmployeeRow = {
   id: string;
   tenantId: string;
   departmentId: string;
+  positionId: string | null;
   employeeNumber: string | null;
   firstName: string;
   lastName: string;
   email: string | null;
   employmentStatus: string;
+  appointmentAuthority: string;
   hireDate: Date | null;
   terminationDate: Date | null;
   createdAt: Date;
@@ -152,11 +174,13 @@ const EMPLOYEE_READ_SELECT = {
   id: true,
   tenantId: true,
   departmentId: true,
+  positionId: true,
   employeeNumber: true,
   firstName: true,
   lastName: true,
   email: true,
   employmentStatus: true,
+  appointmentAuthority: true,
   hireDate: true,
   terminationDate: true,
   createdAt: true,
@@ -167,6 +191,18 @@ const EMPLOYEE_READ_SELECT = {
     },
   },
 } as const;
+
+// GD-M15-1 D1 / GD-PRE-M13-001: Valid Path A appointment authority values.
+// COMPETITIVE_APPOINTMENT is reserved for system use and rejected at the API layer.
+const VALID_APPOINTMENT_AUTHORITIES = new Set([
+  'LATERAL_TRANSFER',
+  'EMERGENCY_APPOINTMENT',
+  'SCHEDULE_A',
+  'SCHEDULE_C',
+  'REINSTATEMENT',
+  'SENIOR_EXECUTIVE',
+  'ADMINISTRATIVE',
+]);
 
 // GD-M12-1: Allowed lifecycle transitions and their corresponding audit events.
 // Map key format: "<fromState>→<toState>"
@@ -186,11 +222,13 @@ function toEmployeeRecord(row: EmployeeRow): EmployeeRecord {
     tenantId: row.tenantId,
     departmentId: row.departmentId,
     departmentName: row.department.name,
+    positionId: row.positionId,
     employeeNumber: row.employeeNumber,
     firstName: row.firstName,
     lastName: row.lastName,
     email: row.email,
     employmentStatus: row.employmentStatus,
+    appointmentAuthority: row.appointmentAuthority,
     hireDate: row.hireDate,
     terminationDate: row.terminationDate,
     createdAt: row.createdAt,
@@ -216,6 +254,23 @@ export class EmployeeService {
     tenantId: string,
     actorId: string,
   ): Promise<CreateEmployeeResult> {
+    // GD-M15-1 D4: appointmentAuthority is required at creation.
+    // Missing field (undefined) returns APPOINTMENT_AUTHORITY_REQUIRED → HTTP 422.
+    // DTO makes the field @IsOptional so a missing body key bypasses ValidationPipe
+    // and reaches this guard, satisfying the GD-M15-1 D4 HTTP 422 specification.
+    if (!params.appointmentAuthority) {
+      return { outcome: 'APPOINTMENT_AUTHORITY_REQUIRED' };
+    }
+    // GD-M15-1 D1/D4: appointmentAuthority domain validation.
+    // COMPETITIVE_APPOINTMENT is reserved for system use — rejected via API per GD-PRE-M13-001.
+    // Value validation runs before any DB operation to fail fast on invalid input.
+    if (params.appointmentAuthority === 'COMPETITIVE_APPOINTMENT') {
+      return { outcome: 'COMPETITIVE_APPOINTMENT_SYSTEM_ONLY' };
+    }
+    if (!VALID_APPOINTMENT_AUTHORITIES.has(params.appointmentAuthority)) {
+      return { outcome: 'INVALID_APPOINTMENT_AUTHORITY' };
+    }
+
     // Department validation: must exist, belong to tenant, not soft-deleted (EMP-202).
     // Prisma-direct query — no DepartmentService dependency.
     // DEPARTMENT_NOT_FOUND returned for absent, cross-tenant, and soft-deleted — prevents enumeration (SEC-003).
@@ -239,18 +294,54 @@ export class EmployeeService {
 
     if (!eligibleDepartment) return { outcome: 'DEPARTMENT_NOT_FOUND' };
 
+    // GD-M15-1 D4: positionId validation at creation time (optional field).
+    // If provided: position must exist in this tenant, be ACTIVE, and have no current incumbent.
+    // GD-PRE-M13-002 D1: occupancy enforced at service layer only — no DB unique constraint.
+    let positionTitle: string | null = null;
+    if (params.positionId) {
+      try {
+        const position = await this.prisma.position.findFirst({
+          where: { id: params.positionId, tenantId, deletedAt: null },
+          select: { id: true, status: true, title: true },
+        });
+
+        if (!position) return { outcome: 'POSITION_NOT_FOUND' };
+        if (position.status !== 'ACTIVE') return { outcome: 'POSITION_NOT_ACTIVE_FOR_ASSIGNMENT' };
+
+        const incumbent = await this.prisma.employee.findFirst({
+          where: {
+            positionId: params.positionId,
+            employmentStatus: { in: ['PENDING_ONBOARDING', 'ACTIVE', 'ON_LEAVE', 'SUSPENDED'] },
+            deletedAt: null,
+          },
+          select: { id: true },
+        });
+        if (incumbent) return { outcome: 'POSITION_ALREADY_OCCUPIED' };
+
+        positionTitle = position.title;
+      } catch (err) {
+        this.logger.error(
+          'createEmployee position validation failed',
+          err instanceof Error ? err.stack : String(err),
+        );
+        return { outcome: 'INTERNAL_ERROR' };
+      }
+    }
+
     let row: EmployeeRow;
     try {
       row = await this.prisma.employee.create({
         data: {
           tenantId,
           departmentId: params.departmentId,
+          positionId: params.positionId ?? null,
           employeeNumber: params.employeeNumber,
           firstName: params.firstName,
           lastName: params.lastName,
           email: params.email ?? null,
           hireDate: params.hireDate ?? null,
           employmentStatus: 'PENDING_ONBOARDING',
+          appointmentAuthority: params.appointmentAuthority,
         },
         select: EMPLOYEE_READ_SELECT,
       });
@@ -283,8 +374,25 @@ export class EmployeeService {
         employeeNumber: row.employeeNumber,
         departmentId: row.departmentId,
         employmentStatus: row.employmentStatus,
+        appointmentAuthority: row.appointmentAuthority,
       },
     });
+
+    // GD-M15-1 D9: emit WORKFORCE_EMPLOYEE_POSITION_ASSIGNED when employee is created with initial positionId.
+    if (params.positionId) {
+      await this.auditService.logEvent({
+        tenantId,
+        userId: actorId,
+        action: AuditEventType.WORKFORCE_EMPLOYEE_POSITION_ASSIGNED,
+        result: 'SUCCESS',
+        entityType: 'EMPLOYEE',
+        entityId: row.id,
+        metadata: {
+          new_position_id: params.positionId,
+          new_position_title: positionTitle,
+        },
+      });
+    }
 
     return { outcome: 'SUCCESS', employee: toEmployeeRecord(row) };
   }
@@ -367,6 +475,12 @@ export class EmployeeService {
     // Check runs before any DB operation — no partial execution on immutability violation.
     if (params.employeeNumber !== undefined) {
       return { outcome: 'EMPLOYEE_NUMBER_IMMUTABLE' };
+    }
+
+    // GD-M15-1 D8: appointmentAuthority is immutable after creation.
+    // Same pattern as employeeNumber — presence of the field triggers rejection.
+    if (params.appointmentAuthority !== undefined) {
+      return { outcome: 'APPOINTMENT_AUTHORITY_IMMUTABLE' };
     }
 
     try {

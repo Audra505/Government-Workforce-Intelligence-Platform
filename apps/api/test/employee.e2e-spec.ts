@@ -170,6 +170,8 @@ describe('Employee (e2e)', () => {
     crossTenantDeptId = crossDept.id;
 
     // ---- Pre-created employees (Prisma-direct — not via API) ----
+    // appointmentAuthority required after M15 schema migration (GD-M15-1 D1).
+    // Using ADMINISTRATIVE as the designated catch-all for test fixtures (GD-M15-1 D3).
     const mkEmp = async (
       tenantId: string,
       deptId: string,
@@ -185,6 +187,7 @@ describe('Employee (e2e)', () => {
           firstName: 'E2E',
           lastName: 'Employee',
           employmentStatus: status,
+          appointmentAuthority: 'ADMINISTRATIVE',
           ...extra,
         },
       });
@@ -270,6 +273,7 @@ describe('Employee (e2e)', () => {
           firstName: 'Alice',
           lastName: 'Test',
           departmentId: primaryDeptId,
+          appointmentAuthority: 'ADMINISTRATIVE',
         });
 
       expect(res.status).toBe(201);
@@ -278,8 +282,10 @@ describe('Employee (e2e)', () => {
         employmentStatus: 'PENDING_ONBOARDING',
         employeeNumber: `EMP-${SUFFIX}-api-1`,
         departmentId: primaryDeptId,
+        appointmentAuthority: 'ADMINISTRATIVE',
       });
       expect(res.body.data.id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i);
+      expect(res.body.data).toHaveProperty('positionId', null);
       // tenantId must NOT be present in response (SEC-003)
       expect(res.body.data).not.toHaveProperty('tenantId');
 
@@ -295,6 +301,7 @@ describe('Employee (e2e)', () => {
           firstName: 'Bob',
           lastName: 'Test',
           departmentId: primaryDeptId,
+          appointmentAuthority: 'LATERAL_TRANSFER',
         });
 
       expect(res.status).toBe(201);
@@ -356,6 +363,7 @@ describe('Employee (e2e)', () => {
           firstName: 'X',
           lastName: 'Y',
           departmentId: '00000000-0000-4000-8000-000000000099',
+          appointmentAuthority: 'ADMINISTRATIVE',
         });
 
       expect(res.status).toBe(422);
@@ -371,6 +379,7 @@ describe('Employee (e2e)', () => {
           firstName: 'X',
           lastName: 'Y',
           departmentId: crossTenantDeptId,
+          appointmentAuthority: 'ADMINISTRATIVE',
         });
 
       expect(res.status).toBe(422);
@@ -387,10 +396,58 @@ describe('Employee (e2e)', () => {
           firstName: 'Duplicate',
           lastName: 'Test',
           departmentId: primaryDeptId,
+          appointmentAuthority: 'ADMINISTRATIVE',
         });
 
       expect(res.status).toBe(409);
       expect(res.body).toMatchObject({ success: false, error: { code: 'EMPLOYEE_NUMBER_CONFLICT' } });
+    });
+
+    it('missing appointmentAuthority → HTTP 422 + APPOINTMENT_AUTHORITY_REQUIRED (GD-M15-1 D4)', async () => {
+      const res = await request(app.getHttpServer())
+        .post('/api/v1/employees')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({
+          employeeNumber: `EMP-${SUFFIX}-noauth`,
+          firstName: 'X',
+          lastName: 'Y',
+          departmentId: primaryDeptId,
+        });
+
+      expect(res.status).toBe(422);
+      expect(res.body).toMatchObject({ success: false, error: { code: 'APPOINTMENT_AUTHORITY_REQUIRED' } });
+    });
+
+    it('COMPETITIVE_APPOINTMENT submitted via API → HTTP 422 + COMPETITIVE_APPOINTMENT_SYSTEM_ONLY (GD-PRE-M13-001)', async () => {
+      const res = await request(app.getHttpServer())
+        .post('/api/v1/employees')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({
+          employeeNumber: `EMP-${SUFFIX}-comp`,
+          firstName: 'X',
+          lastName: 'Y',
+          departmentId: primaryDeptId,
+          appointmentAuthority: 'COMPETITIVE_APPOINTMENT',
+        });
+
+      expect(res.status).toBe(422);
+      expect(res.body).toMatchObject({ success: false, error: { code: 'COMPETITIVE_APPOINTMENT_SYSTEM_ONLY' } });
+    });
+
+    it('invalid appointmentAuthority value → HTTP 422 + INVALID_APPOINTMENT_AUTHORITY (GD-M15-1 D1)', async () => {
+      const res = await request(app.getHttpServer())
+        .post('/api/v1/employees')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({
+          employeeNumber: `EMP-${SUFFIX}-badauth`,
+          firstName: 'X',
+          lastName: 'Y',
+          departmentId: primaryDeptId,
+          appointmentAuthority: 'NOT_A_REAL_AUTHORITY',
+        });
+
+      expect(res.status).toBe(422);
+      expect(res.body).toMatchObject({ success: false, error: { code: 'INVALID_APPOINTMENT_AUTHORITY' } });
     });
   });
 
@@ -667,6 +724,16 @@ describe('Employee (e2e)', () => {
 
       expect(res.status).toBe(422);
       expect(res.body).toMatchObject({ success: false, error: { code: 'EMPLOYEE_NUMBER_IMMUTABLE' } });
+    });
+
+    it('body includes appointmentAuthority → HTTP 422 + APPOINTMENT_AUTHORITY_IMMUTABLE (GD-M15-1 D8)', async () => {
+      const res = await request(app.getHttpServer())
+        .put(`/api/v1/employees/${updateTargetId}`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ appointmentAuthority: 'SCHEDULE_A', firstName: 'Janet' });
+
+      expect(res.status).toBe(422);
+      expect(res.body).toMatchObject({ success: false, error: { code: 'APPOINTMENT_AUTHORITY_IMMUTABLE' } });
     });
 
     it('SEPARATED employee → HTTP 422 + EMPLOYEE_IS_SEPARATED (EMP-302: read-only)', async () => {

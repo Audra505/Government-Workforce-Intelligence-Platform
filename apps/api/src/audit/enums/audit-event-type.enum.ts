@@ -80,6 +80,13 @@ export enum AuditEventType {
   WORKFORCE_EMPLOYEE_CERT_REVOKED       = 'WORKFORCE_EMPLOYEE_CERT_REVOKED',
 
   // -------------------------------------------------------------------------
+  // AUD-400: Workforce Events — M15 Position Linkage (GD-M15-1 Decision 9)
+  // -------------------------------------------------------------------------
+  WORKFORCE_EMPLOYEE_POSITION_ASSIGNED   = 'WORKFORCE_EMPLOYEE_POSITION_ASSIGNED',
+  WORKFORCE_EMPLOYEE_POSITION_REASSIGNED = 'WORKFORCE_EMPLOYEE_POSITION_REASSIGNED',
+  WORKFORCE_EMPLOYEE_POSITION_CLEARED    = 'WORKFORCE_EMPLOYEE_POSITION_CLEARED',
+
+  // -------------------------------------------------------------------------
   // AUD-500: Recruiting Events
   // -------------------------------------------------------------------------
   RECRUITING_CANDIDATE_CREATED = 'RECRUITING_CANDIDATE_CREATED',

@@ -113,6 +113,8 @@ export class EmployeeController {
         firstName: dto.firstName,
         lastName: dto.lastName,
         departmentId: dto.departmentId,
+        appointmentAuthority: dto.appointmentAuthority,
+        positionId: dto.positionId,
         email: dto.email,
         hireDate: dto.hireDate ? new Date(dto.hireDate) : undefined,
       },
@@ -139,6 +141,64 @@ export class EmployeeController {
           error: {
             code: 'EMPLOYEE_NUMBER_CONFLICT',
             message: 'employee number already in use within this tenant (EMP-803)',
+          },
+        });
+
+      case 'APPOINTMENT_AUTHORITY_REQUIRED':
+        throw new UnprocessableEntityException({
+          success: false,
+          error: {
+            code: 'APPOINTMENT_AUTHORITY_REQUIRED',
+            message: 'appointmentAuthority is required at creation (GD-M15-1 D4)',
+          },
+        });
+
+      case 'INVALID_APPOINTMENT_AUTHORITY':
+        throw new UnprocessableEntityException({
+          success: false,
+          error: {
+            code: 'INVALID_APPOINTMENT_AUTHORITY',
+            message:
+              'appointmentAuthority must be one of: LATERAL_TRANSFER, EMERGENCY_APPOINTMENT, ' +
+              'SCHEDULE_A, SCHEDULE_C, REINSTATEMENT, SENIOR_EXECUTIVE, ADMINISTRATIVE (GD-M15-1 D1)',
+          },
+        });
+
+      case 'COMPETITIVE_APPOINTMENT_SYSTEM_ONLY':
+        throw new UnprocessableEntityException({
+          success: false,
+          error: {
+            code: 'COMPETITIVE_APPOINTMENT_SYSTEM_ONLY',
+            message:
+              'COMPETITIVE_APPOINTMENT is reserved for system use only and cannot be set via API (GD-PRE-M13-001)',
+          },
+        });
+
+      case 'POSITION_NOT_FOUND':
+        throw new UnprocessableEntityException({
+          success: false,
+          error: {
+            code: 'POSITION_NOT_FOUND',
+            message: 'position does not exist in this tenant (GD-M15-1 D4)',
+          },
+        });
+
+      case 'POSITION_NOT_ACTIVE_FOR_ASSIGNMENT':
+        throw new UnprocessableEntityException({
+          success: false,
+          error: {
+            code: 'POSITION_NOT_ACTIVE_FOR_ASSIGNMENT',
+            message: 'position must be in ACTIVE status to accept an employee assignment (GD-M15-1 D4)',
+          },
+        });
+
+      case 'POSITION_ALREADY_OCCUPIED':
+        throw new UnprocessableEntityException({
+          success: false,
+          error: {
+            code: 'POSITION_ALREADY_OCCUPIED',
+            message:
+              'position already has an active incumbent — use assign-position endpoint after the incumbent separates (GD-M15-1 D4; GD-PRE-M13-002)',
           },
         });
 
@@ -262,6 +322,7 @@ export class EmployeeController {
         departmentId: dto.departmentId,
         hireDate: dto.hireDate ? new Date(dto.hireDate) : undefined,
         employeeNumber: dto.employeeNumber,
+        appointmentAuthority: dto.appointmentAuthority,
       },
       actor.tenantId,
       actor.userId,
@@ -283,6 +344,15 @@ export class EmployeeController {
           error: {
             code: 'EMPLOYEE_NUMBER_IMMUTABLE',
             message: 'employeeNumber may not be changed after creation (GD-M12-6/EMP-304)',
+          },
+        });
+
+      case 'APPOINTMENT_AUTHORITY_IMMUTABLE':
+        throw new UnprocessableEntityException({
+          success: false,
+          error: {
+            code: 'APPOINTMENT_AUTHORITY_IMMUTABLE',
+            message: 'appointmentAuthority may not be changed after creation (GD-M15-1 D8)',
           },
         });
 
@@ -689,18 +759,20 @@ export class EmployeeController {
 // ---------------------------------------------------------------------------
 function toEmployeeShape(record: EmployeeRecord): object {
   return {
-    id:               record.id,
-    departmentId:     record.departmentId,
-    departmentName:   record.departmentName,
-    employeeNumber:   record.employeeNumber,
-    firstName:        record.firstName,
-    lastName:         record.lastName,
-    email:            record.email,
-    employmentStatus: record.employmentStatus,
-    hireDate:         record.hireDate ? record.hireDate.toISOString() : null,
-    terminationDate:  record.terminationDate ? record.terminationDate.toISOString() : null,
-    createdAt:        record.createdAt.toISOString(),
-    updatedAt:        record.updatedAt.toISOString(),
+    id:                   record.id,
+    departmentId:         record.departmentId,
+    departmentName:       record.departmentName,
+    positionId:           record.positionId,
+    employeeNumber:       record.employeeNumber,
+    firstName:            record.firstName,
+    lastName:             record.lastName,
+    email:                record.email,
+    employmentStatus:     record.employmentStatus,
+    appointmentAuthority: record.appointmentAuthority,
+    hireDate:             record.hireDate ? record.hireDate.toISOString() : null,
+    terminationDate:      record.terminationDate ? record.terminationDate.toISOString() : null,
+    createdAt:            record.createdAt.toISOString(),
+    updatedAt:            record.updatedAt.toISOString(),
   };
 }
 

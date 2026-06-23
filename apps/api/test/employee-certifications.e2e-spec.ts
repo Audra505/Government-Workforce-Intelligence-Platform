@@ -212,11 +212,13 @@ describe('EmployeeCertifications (e2e)', () => {
     deptBId = deptB.id;
 
     // ---- Employees ----
+    // appointmentAuthority required after M15 schema migration (GD-M15-1 D1).
     const mkEmp = async (tenantId: string, deptId: string, empNum: string): Promise<string> => {
       const e = await prisma.employee.create({
         data: {
           tenantId, departmentId: deptId, employeeNumber: empNum,
           firstName: 'E2E', lastName: 'ECert', employmentStatus: 'ACTIVE',
+          appointmentAuthority: 'ADMINISTRATIVE',
         },
       });
       return e.id;

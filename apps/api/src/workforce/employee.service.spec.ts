@@ -2,6 +2,9 @@
 // Reference: directives/13_employee_management_rules.md — EMP-001 through EMP-805
 // Reference: directives/13_employee_management_rules.md — GD-M12-1 through GD-M12-8
 // Reference: directives/08_audit_rules.md — EMP-700 through EMP-702
+// Reference: governance/GD-M15-1.md — Decision 1, 4, 8, 9 (appointmentAuthority; positionId at creation)
+// Reference: governance/GD-PRE-M13-001.md — appointment authority design
+// Reference: governance/GD-PRE-M13-002.md — 1:1 FTE Slot Model occupancy check
 //
 // Pure unit tests — no database.
 // PrismaService and AuditService replaced with jest.fn() mocks.
@@ -9,6 +12,9 @@
 // SEC-003 tenant isolation: tenantId and deletedAt: null always present in where clauses.
 // Lifecycle state machine: all 6 allowed and 10 forbidden transitions verified.
 // GD-M12-6: employeeNumber immutability checked before any DB operation.
+// GD-M15-1 D8: appointmentAuthority immutability checked before any DB operation.
+// GD-M15-1 D1/D4: appointmentAuthority domain validation; positionId validation at creation.
+// GD-M15-1 D9: WORKFORCE_EMPLOYEE_POSITION_ASSIGNED emitted for creation-time positionId.
 // EMP-401: audit metadata must not contain PII field values (names, emails).
 // EMP-303: terminationDate set by service on ACTIVE → SEPARATED — not client-supplied.
 // GD-M12-8/EMP-805: SEPARATED rejected when hireDate is set and in the future.
@@ -34,6 +40,7 @@ const TENANT_ID   = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
 const ACTOR_ID    = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb';
 const DEPT_ID     = 'cccccccc-cccc-cccc-cccc-cccccccccccc';
 const EMPLOYEE_ID = 'dddddddd-dddd-dddd-dddd-dddddddddddd';
+const POSITION_ID = 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee';
 
 const CREATED_AT = new Date('2026-01-01T00:00:00.000Z');
 const UPDATED_AT = new Date('2026-01-02T00:00:00.000Z');
@@ -42,11 +49,13 @@ const EMPLOYEE_ROW = {
   id: EMPLOYEE_ID,
   tenantId: TENANT_ID,
   departmentId: DEPT_ID,
+  positionId: null as string | null,
   employeeNumber: 'EMP-001' as string | null,
   firstName: 'Jane',
   lastName: 'Smith',
   email: 'jane.smith@agency.gov' as string | null,
   employmentStatus: 'PENDING_ONBOARDING',
+  appointmentAuthority: 'ADMINISTRATIVE',
   hireDate: null as Date | null,
   terminationDate: null as Date | null,
   createdAt: CREATED_AT,
@@ -61,6 +70,7 @@ const CREATE_PARAMS: CreateEmployeeParams = {
   firstName: 'Jane',
   lastName: 'Smith',
   departmentId: DEPT_ID,
+  appointmentAuthority: 'ADMINISTRATIVE',
 };
 
 // ---------------------------------------------------------------------------
@@ -72,6 +82,9 @@ describe('EmployeeService', () => {
 
   const mockPrisma = {
     department: {
+      findFirst: jest.fn(),
+    },
+    position: {
       findFirst: jest.fn(),
     },
     employee: {
@@ -243,6 +256,193 @@ describe('EmployeeService', () => {
       await service.createEmployee(CREATE_PARAMS, TENANT_ID, ACTOR_ID);
 
       expect(mockAuditService.logEvent).not.toHaveBeenCalled();
+    });
+
+    // M15 appointmentAuthority validation (GD-M15-1 D1/D4)
+
+    it('missing appointmentAuthority (undefined) → APPOINTMENT_AUTHORITY_REQUIRED, no DB query (GD-M15-1 D4)', async () => {
+      const result = await service.createEmployee(
+        { ...CREATE_PARAMS, appointmentAuthority: undefined },
+        TENANT_ID,
+        ACTOR_ID,
+      );
+
+      expect(result.outcome).toBe('APPOINTMENT_AUTHORITY_REQUIRED');
+      expect(mockPrisma.department.findFirst).not.toHaveBeenCalled();
+      expect(mockPrisma.employee.create).not.toHaveBeenCalled();
+      expect(mockAuditService.logEvent).not.toHaveBeenCalled();
+    });
+
+    it('COMPETITIVE_APPOINTMENT → COMPETITIVE_APPOINTMENT_SYSTEM_ONLY, no DB query (GD-M15-1 D1; GD-PRE-M13-001)', async () => {
+      const result = await service.createEmployee(
+        { ...CREATE_PARAMS, appointmentAuthority: 'COMPETITIVE_APPOINTMENT' },
+        TENANT_ID,
+        ACTOR_ID,
+      );
+
+      expect(result.outcome).toBe('COMPETITIVE_APPOINTMENT_SYSTEM_ONLY');
+      expect(mockPrisma.department.findFirst).not.toHaveBeenCalled();
+      expect(mockPrisma.employee.create).not.toHaveBeenCalled();
+      expect(mockAuditService.logEvent).not.toHaveBeenCalled();
+    });
+
+    it('unknown appointmentAuthority value → INVALID_APPOINTMENT_AUTHORITY, no DB query (GD-M15-1 D1)', async () => {
+      const result = await service.createEmployee(
+        { ...CREATE_PARAMS, appointmentAuthority: 'BANANA' },
+        TENANT_ID,
+        ACTOR_ID,
+      );
+
+      expect(result.outcome).toBe('INVALID_APPOINTMENT_AUTHORITY');
+      expect(mockPrisma.department.findFirst).not.toHaveBeenCalled();
+      expect(mockPrisma.employee.create).not.toHaveBeenCalled();
+    });
+
+    it('create data includes appointmentAuthority from params (GD-M15-1 D4)', async () => {
+      mockPrisma.department.findFirst.mockResolvedValue({ id: DEPT_ID });
+      mockPrisma.employee.create.mockResolvedValue(EMPLOYEE_ROW);
+      mockAuditService.logEvent.mockResolvedValue(undefined);
+
+      await service.createEmployee(CREATE_PARAMS, TENANT_ID, ACTOR_ID);
+
+      expect(mockPrisma.employee.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ appointmentAuthority: 'ADMINISTRATIVE' }),
+        }),
+      );
+    });
+
+    // M15 positionId validation at creation time (GD-M15-1 D4; GD-PRE-M13-002)
+
+    it('positionId provided + position not in tenant → POSITION_NOT_FOUND (GD-M15-1 D4)', async () => {
+      mockPrisma.department.findFirst.mockResolvedValue({ id: DEPT_ID });
+      mockPrisma.position.findFirst.mockResolvedValue(null);
+
+      const result = await service.createEmployee(
+        { ...CREATE_PARAMS, positionId: POSITION_ID },
+        TENANT_ID,
+        ACTOR_ID,
+      );
+
+      expect(result.outcome).toBe('POSITION_NOT_FOUND');
+      expect(mockPrisma.employee.create).not.toHaveBeenCalled();
+    });
+
+    it('positionId provided + position not ACTIVE → POSITION_NOT_ACTIVE_FOR_ASSIGNMENT (GD-M15-1 D4)', async () => {
+      mockPrisma.department.findFirst.mockResolvedValue({ id: DEPT_ID });
+      mockPrisma.position.findFirst.mockResolvedValue({
+        id: POSITION_ID, status: 'DRAFT', title: 'Staff Analyst',
+      });
+
+      const result = await service.createEmployee(
+        { ...CREATE_PARAMS, positionId: POSITION_ID },
+        TENANT_ID,
+        ACTOR_ID,
+      );
+
+      expect(result.outcome).toBe('POSITION_NOT_ACTIVE_FOR_ASSIGNMENT');
+      expect(mockPrisma.employee.create).not.toHaveBeenCalled();
+    });
+
+    it('positionId provided + position ACTIVE but has incumbent → POSITION_ALREADY_OCCUPIED (GD-PRE-M13-002)', async () => {
+      mockPrisma.department.findFirst.mockResolvedValue({ id: DEPT_ID });
+      mockPrisma.position.findFirst.mockResolvedValue({
+        id: POSITION_ID, status: 'ACTIVE', title: 'Staff Analyst',
+      });
+      mockPrisma.employee.findFirst.mockResolvedValue({ id: 'existing-emp-id' });
+
+      const result = await service.createEmployee(
+        { ...CREATE_PARAMS, positionId: POSITION_ID },
+        TENANT_ID,
+        ACTOR_ID,
+      );
+
+      expect(result.outcome).toBe('POSITION_ALREADY_OCCUPIED');
+      expect(mockPrisma.employee.create).not.toHaveBeenCalled();
+    });
+
+    it('positionId provided + valid unoccupied ACTIVE position → SUCCESS with positionId in data (GD-M15-1 D4)', async () => {
+      mockPrisma.department.findFirst.mockResolvedValue({ id: DEPT_ID });
+      mockPrisma.position.findFirst.mockResolvedValue({
+        id: POSITION_ID, status: 'ACTIVE', title: 'Staff Analyst',
+      });
+      mockPrisma.employee.findFirst.mockResolvedValue(null); // no incumbent
+      mockPrisma.employee.create.mockResolvedValue({ ...EMPLOYEE_ROW, positionId: POSITION_ID });
+      mockAuditService.logEvent.mockResolvedValue(undefined);
+
+      const result = await service.createEmployee(
+        { ...CREATE_PARAMS, positionId: POSITION_ID },
+        TENANT_ID,
+        ACTOR_ID,
+      );
+
+      expect(result.outcome).toBe('SUCCESS');
+      expect(mockPrisma.employee.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ positionId: POSITION_ID }),
+        }),
+      );
+    });
+
+    it('positionId provided + valid position → WORKFORCE_EMPLOYEE_POSITION_ASSIGNED audit event emitted (GD-M15-1 D9)', async () => {
+      mockPrisma.department.findFirst.mockResolvedValue({ id: DEPT_ID });
+      mockPrisma.position.findFirst.mockResolvedValue({
+        id: POSITION_ID, status: 'ACTIVE', title: 'Staff Analyst',
+      });
+      mockPrisma.employee.findFirst.mockResolvedValue(null);
+      mockPrisma.employee.create.mockResolvedValue({ ...EMPLOYEE_ROW, positionId: POSITION_ID });
+      mockAuditService.logEvent.mockResolvedValue(undefined);
+
+      await service.createEmployee(
+        { ...CREATE_PARAMS, positionId: POSITION_ID },
+        TENANT_ID,
+        ACTOR_ID,
+      );
+
+      const auditCalls = (mockAuditService.logEvent.mock.calls as [Record<string, unknown>][]).map(
+        ([arg]) => (arg as Record<string, unknown>).action,
+      );
+      expect(auditCalls).toContain(AuditEventType.WORKFORCE_EMPLOYEE_CREATED);
+      expect(auditCalls).toContain(AuditEventType.WORKFORCE_EMPLOYEE_POSITION_ASSIGNED);
+    });
+
+    it('no positionId provided → WORKFORCE_EMPLOYEE_POSITION_ASSIGNED NOT emitted (GD-M15-1 D9)', async () => {
+      mockPrisma.department.findFirst.mockResolvedValue({ id: DEPT_ID });
+      mockPrisma.employee.create.mockResolvedValue(EMPLOYEE_ROW);
+      mockAuditService.logEvent.mockResolvedValue(undefined);
+
+      await service.createEmployee(CREATE_PARAMS, TENANT_ID, ACTOR_ID);
+
+      const auditCalls = (mockAuditService.logEvent.mock.calls as [Record<string, unknown>][]).map(
+        ([arg]) => (arg as Record<string, unknown>).action,
+      );
+      expect(auditCalls).not.toContain(AuditEventType.WORKFORCE_EMPLOYEE_POSITION_ASSIGNED);
+    });
+
+    it('occupancy check where clause includes non-SEPARATED statuses and deletedAt: null (GD-PRE-M13-002)', async () => {
+      mockPrisma.department.findFirst.mockResolvedValue({ id: DEPT_ID });
+      mockPrisma.position.findFirst.mockResolvedValue({
+        id: POSITION_ID, status: 'ACTIVE', title: 'Staff Analyst',
+      });
+      mockPrisma.employee.findFirst.mockResolvedValue(null);
+      mockPrisma.employee.create.mockResolvedValue({ ...EMPLOYEE_ROW, positionId: POSITION_ID });
+      mockAuditService.logEvent.mockResolvedValue(undefined);
+
+      await service.createEmployee(
+        { ...CREATE_PARAMS, positionId: POSITION_ID },
+        TENANT_ID,
+        ACTOR_ID,
+      );
+
+      expect(mockPrisma.employee.findFirst).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            positionId: POSITION_ID,
+            employmentStatus: { in: ['PENDING_ONBOARDING', 'ACTIVE', 'ON_LEAVE', 'SUSPENDED'] },
+            deletedAt: null,
+          }),
+        }),
+      );
     });
   });
 
@@ -418,6 +618,30 @@ describe('EmployeeService', () => {
       await service.updateEmployee(
         EMPLOYEE_ID,
         { employeeNumber: 'NEW-NUM' } as UpdateEmployeeParams,
+        TENANT_ID,
+        ACTOR_ID,
+      );
+
+      expect(mockAuditService.logEvent).not.toHaveBeenCalled();
+    });
+
+    it('params.appointmentAuthority !== undefined → APPOINTMENT_AUTHORITY_IMMUTABLE without any DB query (GD-M15-1 D8)', async () => {
+      const result = await service.updateEmployee(
+        EMPLOYEE_ID,
+        { appointmentAuthority: 'SCHEDULE_A' } as UpdateEmployeeParams,
+        TENANT_ID,
+        ACTOR_ID,
+      );
+
+      expect(result.outcome).toBe('APPOINTMENT_AUTHORITY_IMMUTABLE');
+      expect(mockPrisma.employee.findFirst).not.toHaveBeenCalled();
+      expect(mockPrisma.employee.update).not.toHaveBeenCalled();
+    });
+
+    it('APPOINTMENT_AUTHORITY_IMMUTABLE: no audit event emitted (GD-M15-1 D8)', async () => {
+      await service.updateEmployee(
+        EMPLOYEE_ID,
+        { appointmentAuthority: 'SCHEDULE_A' } as UpdateEmployeeParams,
         TENANT_ID,
         ACTOR_ID,
       );

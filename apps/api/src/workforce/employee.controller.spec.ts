@@ -67,11 +67,13 @@ const employeeRecord: EmployeeRecord = {
   tenantId: TENANT_ID,
   departmentId: DEPT_ID,
   departmentName: 'Engineering',
+  positionId: null,
   employeeNumber: 'EMP-001',
   firstName: 'Jane',
   lastName: 'Smith',
   email: 'jane.smith@agency.gov',
   employmentStatus: 'PENDING_ONBOARDING',
+  appointmentAuthority: 'ADMINISTRATIVE',
   hireDate: null,
   terminationDate: null,
   createdAt: CREATED_AT,
@@ -83,6 +85,7 @@ const createDto: CreateEmployeeDto = {
   firstName: 'Jane',
   lastName: 'Smith',
   departmentId: DEPT_ID,
+  appointmentAuthority: 'ADMINISTRATIVE',
 };
 
 const updateDto: UpdateEmployeeDto = { firstName: 'Janet' };
@@ -251,6 +254,87 @@ describe('EmployeeController', () => {
 
       await expect(controller.createEmployee(createDto, mockActor)).rejects.toThrow(InternalServerErrorException);
     });
+
+    it('SUCCESS: response shape includes appointmentAuthority and positionId (GD-M15-1 D4)', async () => {
+      mockService.createEmployee.mockResolvedValue({ outcome: 'SUCCESS', employee: employeeRecord });
+
+      const result = await controller.createEmployee(createDto, mockActor) as Record<string, Record<string, unknown>>;
+
+      expect(result['data']).toHaveProperty('appointmentAuthority', 'ADMINISTRATIVE');
+      expect(result['data']).toHaveProperty('positionId', null);
+    });
+
+    it('SUCCESS: dto.appointmentAuthority and dto.positionId forwarded to service (GD-M15-1 D4)', async () => {
+      mockService.createEmployee.mockResolvedValue({ outcome: 'SUCCESS', employee: employeeRecord });
+
+      await controller.createEmployee(createDto, mockActor);
+
+      expect(mockService.createEmployee).toHaveBeenCalledWith(
+        expect.objectContaining({ appointmentAuthority: 'ADMINISTRATIVE' }),
+        TENANT_ID,
+        ACTOR_ID,
+      );
+    });
+
+    it('APPOINTMENT_AUTHORITY_REQUIRED: throws UnprocessableEntityException with code APPOINTMENT_AUTHORITY_REQUIRED (GD-M15-1 D4)', async () => {
+      mockService.createEmployee.mockResolvedValue({ outcome: 'APPOINTMENT_AUTHORITY_REQUIRED' });
+
+      let thrown: unknown;
+      try { await controller.createEmployee(createDto, mockActor); } catch (e) { thrown = e; }
+      expect(thrown).toBeInstanceOf(UnprocessableEntityException);
+      const body = (thrown as UnprocessableEntityException).getResponse() as Record<string, Record<string, string>>;
+      expect(body['error']['code']).toBe('APPOINTMENT_AUTHORITY_REQUIRED');
+    });
+
+    it('INVALID_APPOINTMENT_AUTHORITY: throws UnprocessableEntityException with code INVALID_APPOINTMENT_AUTHORITY (GD-M15-1 D1)', async () => {
+      mockService.createEmployee.mockResolvedValue({ outcome: 'INVALID_APPOINTMENT_AUTHORITY' });
+
+      let thrown: unknown;
+      try { await controller.createEmployee(createDto, mockActor); } catch (e) { thrown = e; }
+      expect(thrown).toBeInstanceOf(UnprocessableEntityException);
+      const body = (thrown as UnprocessableEntityException).getResponse() as Record<string, Record<string, string>>;
+      expect(body['error']['code']).toBe('INVALID_APPOINTMENT_AUTHORITY');
+    });
+
+    it('COMPETITIVE_APPOINTMENT_SYSTEM_ONLY: throws UnprocessableEntityException with code COMPETITIVE_APPOINTMENT_SYSTEM_ONLY (GD-PRE-M13-001)', async () => {
+      mockService.createEmployee.mockResolvedValue({ outcome: 'COMPETITIVE_APPOINTMENT_SYSTEM_ONLY' });
+
+      let thrown: unknown;
+      try { await controller.createEmployee(createDto, mockActor); } catch (e) { thrown = e; }
+      expect(thrown).toBeInstanceOf(UnprocessableEntityException);
+      const body = (thrown as UnprocessableEntityException).getResponse() as Record<string, Record<string, string>>;
+      expect(body['error']['code']).toBe('COMPETITIVE_APPOINTMENT_SYSTEM_ONLY');
+    });
+
+    it('POSITION_NOT_FOUND: throws UnprocessableEntityException with code POSITION_NOT_FOUND (GD-M15-1 D4)', async () => {
+      mockService.createEmployee.mockResolvedValue({ outcome: 'POSITION_NOT_FOUND' });
+
+      let thrown: unknown;
+      try { await controller.createEmployee(createDto, mockActor); } catch (e) { thrown = e; }
+      expect(thrown).toBeInstanceOf(UnprocessableEntityException);
+      const body = (thrown as UnprocessableEntityException).getResponse() as Record<string, Record<string, string>>;
+      expect(body['error']['code']).toBe('POSITION_NOT_FOUND');
+    });
+
+    it('POSITION_NOT_ACTIVE_FOR_ASSIGNMENT: throws UnprocessableEntityException with code POSITION_NOT_ACTIVE_FOR_ASSIGNMENT (GD-M15-1 D4)', async () => {
+      mockService.createEmployee.mockResolvedValue({ outcome: 'POSITION_NOT_ACTIVE_FOR_ASSIGNMENT' });
+
+      let thrown: unknown;
+      try { await controller.createEmployee(createDto, mockActor); } catch (e) { thrown = e; }
+      expect(thrown).toBeInstanceOf(UnprocessableEntityException);
+      const body = (thrown as UnprocessableEntityException).getResponse() as Record<string, Record<string, string>>;
+      expect(body['error']['code']).toBe('POSITION_NOT_ACTIVE_FOR_ASSIGNMENT');
+    });
+
+    it('POSITION_ALREADY_OCCUPIED: throws UnprocessableEntityException with code POSITION_ALREADY_OCCUPIED (GD-M15-1 D4)', async () => {
+      mockService.createEmployee.mockResolvedValue({ outcome: 'POSITION_ALREADY_OCCUPIED' });
+
+      let thrown: unknown;
+      try { await controller.createEmployee(createDto, mockActor); } catch (e) { thrown = e; }
+      expect(thrown).toBeInstanceOf(UnprocessableEntityException);
+      const body = (thrown as UnprocessableEntityException).getResponse() as Record<string, Record<string, string>>;
+      expect(body['error']['code']).toBe('POSITION_ALREADY_OCCUPIED');
+    });
   });
 
   // --------------------------------------------------------------------------
@@ -371,6 +455,16 @@ describe('EmployeeController', () => {
       expect(thrown).toBeInstanceOf(UnprocessableEntityException);
       const body = (thrown as UnprocessableEntityException).getResponse() as Record<string, Record<string, string>>;
       expect(body['error']['code']).toBe('EMPLOYEE_NUMBER_IMMUTABLE');
+    });
+
+    it('APPOINTMENT_AUTHORITY_IMMUTABLE: throws UnprocessableEntityException with code APPOINTMENT_AUTHORITY_IMMUTABLE (GD-M15-1 D8)', async () => {
+      mockService.updateEmployee.mockResolvedValue({ outcome: 'APPOINTMENT_AUTHORITY_IMMUTABLE' });
+
+      let thrown: unknown;
+      try { await controller.updateEmployee(EMPLOYEE_ID, updateDto, mockActor); } catch (e) { thrown = e; }
+      expect(thrown).toBeInstanceOf(UnprocessableEntityException);
+      const body = (thrown as UnprocessableEntityException).getResponse() as Record<string, Record<string, string>>;
+      expect(body['error']['code']).toBe('APPOINTMENT_AUTHORITY_IMMUTABLE');
     });
 
     it('EMPLOYEE_IS_SEPARATED: throws UnprocessableEntityException with code EMPLOYEE_IS_SEPARATED', async () => {
