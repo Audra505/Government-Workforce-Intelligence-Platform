@@ -71,6 +71,14 @@ and is tracked in state/02_employee_lifecycle.md.
 
 ---
 
+## M15 — Position Linkage
+
+| ID | Date | Subject | Impact |
+|---|---|---|---|
+| GD-M15-1 | 2026-06-22 | M15 Position Linkage Milestone — Schema, API, and Lifecycle Design Authority | Resolves 10 unspecified decisions from GD-PRE-M13-001/002/003 and GD-PHASE2-CLOSURE-002: authorizes spec/05 deviations (appointment_authority and position_id columns on employees); authorizes backfill of existing records with ADMINISTRATIVE; amends POST /employees body (appointmentAuthority required; positionId optional); establishes POST /employees/{id}/assign-position as dedicated action endpoint; defines position clearance rules (PENDING_ONBOARDING only); records GET /positions/{id} occupant response contract; defines APPOINTMENT_AUTHORITY_IMMUTABLE error code; adds 3 AuditEventType values; confirms RBAC (SA + HR Director) |
+
+---
+
 ## Shared Column Confirmation (Implementation Confirmation — Not a Governance Decision)
 
 | Date | Subject | Outcome |
