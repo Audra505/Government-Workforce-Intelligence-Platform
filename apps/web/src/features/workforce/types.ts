@@ -179,3 +179,64 @@ export type UpdateEmployeeBffResponse =
 export type ChangeEmployeeStatusBffResponse =
   | { success: true; data: EmployeeRow }
   | { success: false; error: { code: string; message: string } };
+
+// ===========================================================================
+// M15 Step 5 — Position Management UI Types
+// Reference: apps/api/src/workforce/position.service.ts — PositionRecord, PositionDetailRecord
+// Reference: governance/GD-M15-1.md — Decision 7 (occupant response contract)
+// Reference: governance/GD-PHASE2-CLOSURE-002.md — Decision 3 (UI surface requirement)
+// tenantId intentionally absent — excluded by toPositionShape() per SEC-003.
+// ===========================================================================
+
+export type PositionStatus = 'DRAFT' | 'ACTIVE' | 'FROZEN' | 'CLOSED';
+
+export type OccupantRecord = {
+  id: string;
+  firstName: string;
+  lastName: string;
+  employeeNumber: string | null;
+  employmentStatus: string;
+  hireDate: string | null; // YYYY-MM-DD per GD-M15-1 D7
+};
+
+export type PositionRow = {
+  id: string;
+  title: string;
+  status: PositionStatus;
+  departmentId: string;
+  classification: string | null;
+  salaryBand: string | null;
+  createdAt: string;
+};
+
+export type PositionDetailRow = PositionRow & {
+  occupant: OccupantRecord | null;
+};
+
+export type PositionFullListApiResponse = {
+  success: true;
+  data: {
+    positions: PositionRow[];
+    total: number;
+    page: number;
+    pageSize: number;
+    totalPages: number;
+  };
+};
+
+export type PositionDetailApiResponse = {
+  success: true;
+  data: PositionDetailRow;
+};
+
+export type CreatePositionBffResponse =
+  | { success: true; data: PositionRow }
+  | { success: false; error: { code: string; message: string } };
+
+export type UpdatePositionBffResponse =
+  | { success: true; data: PositionRow }
+  | { success: false; error: { code: string; message: string } };
+
+export type ClosePositionBffResponse =
+  | { success: true; data: PositionRow }
+  | { success: false; error: { code: string; message: string } };
