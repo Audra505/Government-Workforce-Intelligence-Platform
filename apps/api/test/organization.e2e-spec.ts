@@ -73,8 +73,6 @@ describe('Organization (e2e)', () => {
   let deptWithActivePositionsId: string;   // dept with 1 ACTIVE position, no employees → blocks with DEPARTMENT_HAS_ACTIVE_POSITIONS
   let deptWithBothId: string;              // dept with 1 ACTIVE position + 1 ACTIVE employee → DEPARTMENT_HAS_ACTIVE_DEPENDENTS
   let blockingPositionId: string;          // ACTIVE position in deptWithActivePositionsId
-  let combinedPositionId: string;          // ACTIVE position in deptWithBothId
-  let combinedEmployeeId: string;          // ACTIVE employee in deptWithBothId
 
   // API-created department IDs — captured from POST responses for cleanup
   const apiCreatedDeptIds: string[] = [];
@@ -214,7 +212,7 @@ describe('Organization (e2e)', () => {
     });
     deptWithBothId = deptWithBoth.id;
 
-    const combinedPosition = await prisma.position.create({
+    await prisma.position.create({
       data: {
         tenantId: fixtureTenantId,
         departmentId: deptWithBothId,
@@ -222,9 +220,7 @@ describe('Organization (e2e)', () => {
         status: 'ACTIVE',
       },
     });
-    combinedPositionId = combinedPosition.id;
-
-    const combinedEmployee = await prisma.employee.create({
+    await prisma.employee.create({
       data: {
         tenantId: fixtureTenantId,
         departmentId: deptWithBothId,
@@ -235,7 +231,6 @@ describe('Organization (e2e)', () => {
       },
       select: { id: true },
     });
-    combinedEmployeeId = combinedEmployee.id;
 
     // Authenticate all fixture users
     const adminRes = await request(app.getHttpServer())
