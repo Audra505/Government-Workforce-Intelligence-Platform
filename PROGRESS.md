@@ -9,16 +9,16 @@
 
 ---
 
-Last Updated: 2026-06-22 (GD-PHASE2-CLOSURE-003 — D-005 Scheduling roadmap gap resolved; CI CONFIRMED GREEN commit 43b55a1)
-Updated By: Claude Code (GD-PHASE2-CLOSURE-003 governance gap closure: D-005 assigned Phase 8; governance_history.md updated; stale PROGRESS.md D-005 entry corrected; CI confirmed via GitHub API)
+Last Updated: 2026-06-23 (M15 — Position Linkage + Position Management UI — LOCALLY COMPLETE; 8 commits; CI pending push; GD-M15-1; GD-PRE-M13-002; GD-PHASE2-CLOSURE-002)
+Updated By: Claude Code (M15 closeout: position linkage schema; appointmentAuthority contract; assign-position endpoint + UI; position management UI; position/department guards; UI polish; 804/804 unit tests; 46/46 position e2e; 39/39 org e2e; tsc + ESLint + next build + Docker runtime all clean)
 
-Previous Update: 2026-06-22 (M14 — Certification Expiration Tracking COMPLETE — CI CONFIRMED GREEN; commit 941c7be; 730/730 unit tests; 257/257 e2e tests; 8/8 RV scenarios PASS; GD-M14-1)
+Previous Update: 2026-06-22 (GD-PHASE2-CLOSURE-003 — D-005 Scheduling roadmap gap resolved; CI CONFIRMED GREEN commit 43b55a1)
 
 ## Repository Status
 
-Current Phase: **Post-Phase 2 — Active (M14 COMPLETE)**
-Overall Classification: Phase 2 COMPLETE WITH DEFERRED ITEMS — All Phase 2 milestones complete (M7/M8/DEP-008-A/M11/M12/M13); M14 Certification Expiration Tracking (FR-153) delivered post-Phase 2; 730/730 unit tests; 257/257 e2e tests; 8/8 M14 RV scenarios PASS; M14 commits pending push
-Active Sprint / Milestone: M14 — Certification Expiration Tracking — COMPLETE (2026-06-22) — pending commit and push
+Current Phase: **Post-Phase 2 — Active (M15 LOCALLY COMPLETE)**
+Overall Classification: Phase 2 COMPLETE WITH DEFERRED ITEMS — Post-Phase 2 delivery: M14 Certification Expiration Tracking (FR-153) complete and CI-confirmed (941c7be); M15 Position Linkage + Position Management UI locally complete (8 commits ahead, CI pending push); 804/804 unit tests; 46/46 position e2e; 39/39 org e2e; tsc + ESLint + next build + Docker runtime all clean
+Active Sprint / Milestone: M15 — Position Linkage + Position Management UI — LOCALLY COMPLETE (2026-06-23) — 8 commits ahead of origin/main; CI verification pending grouped push
 Implementation Started: Yes (2026-06-05)
 
 ## Phase Summary
@@ -33,12 +33,12 @@ Phase 1 is formally closed. D9 (Docker Environment) and D10 (CI/CD Foundation) w
 > Its purpose is crash/session recovery: the current step state is always readable without
 > scanning Zone 5 history. It is overwritten each step — not appended.
 
-Milestone: M14 — Certification Expiration Tracking — COMPLETE 2026-06-22
-Last Completed Milestone: M14 — Certification Expiration Tracking (Complete, 2026-06-22; 730/730 unit tests; 257/257 e2e tests; 8/8 RV scenarios PASS; GD-M14-1)
-Last Completed Step: M14 Step 4C — Runtime Verification COMPLETE (2026-06-22) — 8/8 RV scenarios PASS; Docker rebuild required (corrective action applied); fixtures created and cleaned via direct SQL; all governance behaviors confirmed
-Last Completed Step Date: 2026-06-22
-Current Step: M14 CLOSED — commit 941c7be pushed; CI / Install, Lint, Build, Test CONFIRMED GREEN (2026-06-22; successful in 2m)
-Session Classification: M14 COMPLETE AND CI-VERIFIED — GD-M14-1 governing; FR-153 delivered; all validation layers passed (unit, e2e, tsc, lint, runtime verification, CI)
+Milestone: M15 — Position Linkage + Position Management UI — LOCALLY COMPLETE 2026-06-23
+Last Completed Milestone: M15 — Position Linkage + Position Management UI (locally complete, 2026-06-23; 804/804 unit tests; 46/46 position e2e; 39/39 org e2e; tsc + ESLint + next build clean; Docker runtime verified)
+Last Completed Step: M15 Employee Position Assignment UI (9f46bee) — Current Position field + Assign/Reassign/Clear modals + BFF route; end-to-end assignment → title display → button-label toggle verified in Docker runtime (2026-06-23)
+Last Completed Step Date: 2026-06-23
+Current Step: M15 LOCALLY CLOSED — 8 commits ahead of origin/main (4ab4a50 through 9f46bee); CI verification pending grouped push
+Session Classification: M15 LOCALLY COMPLETE — GD-M15-1 + GD-PRE-M13-002 + GD-PHASE2-CLOSURE-002 governing; all validation layers passed (unit, e2e, tsc, ESLint, next build, Docker runtime); CI pending push
 
 ## Milestone 10 — Approved Plan
 
@@ -7776,3 +7776,238 @@ Root cause: configuration/deployment issue — the container predated the uncomm
 | Step 4C | Runtime verification — 8/8 RV scenarios PASS | ✅ **COMPLETE** |
 
 **730/730 unit tests passing. 257/257 e2e tests passing. M14 Certification Expiration Tracking is COMPLETE.**
+
+---
+
+## M15 — Position Linkage + Position Management UI — LOCALLY COMPLETE (2026-06-23)
+
+### Header
+
+- Phase/Milestone: M15 — Position Linkage + Position Management UI
+- Date: 2026-06-23
+- Repository Status: **LOCALLY COMPLETE** — 8 commits ahead of origin/main; CI pending grouped push
+- Governing Documents: GD-M15-1; GD-PRE-M13-002 (Position Linkage FTE Slot Model); GD-PHASE2-CLOSURE-002 D3 (Position Management UI requirement); GD-PRE-M13-001 (appointmentAuthority design)
+
+### Commits
+
+| Commit | Description |
+|--------|-------------|
+| 4ab4a50 | Implement M15 position linkage schema migration |
+| 0e19b47 | Implement M15 employee contract updates |
+| 4c98de3 | Implement M15 employee position assignment endpoint |
+| 9118141 | Implement M15 position and department linkage guards |
+| 7ca6206 | Implement M15 position management UI |
+| 19af8a6 | Fix M15 organization e2e lint cleanup |
+| f0ec268 | Polish M15 workforce UI workflow |
+| 9f46bee | Add M15 employee position assignment UI |
+
+### Capabilities Delivered
+
+#### 1. Position Linkage Schema
+
+- `employees.position_id` — nullable UUID FK to `workforce.positions`; set exclusively by `assign-position` endpoint
+- `employees.appointment_authority` — required string at creation; immutable after creation
+- Existing employees backfilled to `ADMINISTRATIVE` appointment authority at migration time
+- Source: GD-PRE-M13-001 (VAC-401 Dual-Path Authority); GD-PRE-M13-002 (1:1 FTE Slot Model)
+
+#### 2. Employee Create Contract (appointmentAuthority)
+
+- `appointmentAuthority` required at creation; 7 Path A values available in UI (ADMINISTRATIVE, LATERAL_TRANSFER, REINSTATEMENT, EMERGENCY_APPOINTMENT, SCHEDULE_A, SCHEDULE_C, SENIOR_EXECUTIVE)
+- `COMPETITIVE_APPOINTMENT` excluded from manual UI selection — system-only reservation per GD-PRE-M13-001
+- `positionId` optional at API level at creation; set exclusively via dedicated `assign-position` endpoint
+- Frontend: Employee Create form includes required Appointment Authority selector with helper text ("Cannot be changed after the employee record is created.")
+- Fix: Employee Create previously returned generic "Service unavailable" for missing `appointmentAuthority` — now surfaces correct error code `APPOINTMENT_AUTHORITY_REQUIRED`
+
+#### 3. Employee Position Assignment Endpoint
+
+- `POST /api/v1/employees/:id/assign-position { positionId: UUID | null }`
+- Assign: `positionId` = UUID of an ACTIVE position
+- Reassign: same endpoint with a different ACTIVE position UUID
+- Governed clearance: `positionId` = null; permitted only when `employmentStatus === 'PENDING_ONBOARDING'` (GD-M15-1 D6)
+- RBAC: System Administrator + HR Director only (GD-M15-1 D10)
+- Audit events implemented for assignment, reassignment, and clearance
+- Error outcomes: NOT_FOUND, EMPLOYEE_SEPARATED, POSITION_NOT_FOUND, POSITION_NOT_ACTIVE_FOR_ASSIGNMENT, POSITION_ALREADY_OCCUPIED, POSITION_CLEARANCE_NOT_PERMITTED_FOR_STATUS
+
+#### 4. Employee Position Assignment UI
+
+- Employee detail page: "Current Position" field in Employment section
+  - Unassigned: "Unassigned — no position is currently held."
+  - Assigned: resolves position title via secondary `GET /api/v1/positions/:positionId` serverFetch; degrades gracefully to raw positionId UUID on 403/404
+- Action buttons (SA + HR Director only; hidden for SEPARATED employees per EMP-302):
+  - "Assign Position" when `positionId === null`
+  - "Reassign Position" when `positionId !== null`
+  - "Clear Position" when `positionId !== null` AND `employmentStatus === 'PENDING_ONBOARDING'`
+- BFF route: `POST /api/employees/:id/assign-position` (JWT relay from httpOnly session cookie; SEC-003 compliant)
+- Active positions fetched in parallel with employee detail on page load; passed to `EmployeePositionActions` dropdown
+- `EmployeeRow` type updated: `positionId: string | null` and `appointmentAuthority: string` added
+- `AssignPositionBffResponse` discriminated union type added
+
+#### 5. Position Management UI (GD-PHASE2-CLOSURE-002 D3)
+
+- Full position list with status filter
+- Create position form (title, classification, salary band with format helper `$MIN-$MAX e.g. $90,000-$115,000`, departmentId)
+- Position detail with occupant display ("Vacant — no employee is currently assigned" or occupant name + employeeNumber + status + hireDate)
+- Edit position form
+- Lifecycle action buttons:
+  - Activate (DRAFT → ACTIVE)
+  - Freeze (ACTIVE → FROZEN)
+  - Resume (FROZEN → ACTIVE) — UI added in M15 polish; backend already supported this transition
+  - Close (guarded — blocked by active vacancies or active incumbent)
+- Lifecycle guard errors surfaced in UI: HAS_ACTIVE_VACANCIES, HAS_ACTIVE_INCUMBENT
+
+#### 6. Position and Department Guards (DEP-008 Phase B + Linkage Guards)
+
+- Close position blocked by active vacancies (HAS_ACTIVE_VACANCIES → 409)
+- Close position blocked by active incumbent (HAS_ACTIVE_INCUMBENT → 409)
+- Department deactivation blocked by active positions (DEPARTMENT_HAS_ACTIVE_POSITIONS → 422)
+- Department deactivation blocked by active employees (DEPARTMENT_HAS_ACTIVE_EMPLOYEES → 422; DEP-008 Phase A, previously complete)
+
+#### 7. UI Polish (M15 Closeout)
+
+- Workforce nav order changed: Positions · Employees · Vacancies → **Positions · Vacancies · Employees**
+- Salary Band field: placeholder `$90,000-$115,000`; helper text `Use the format $MIN-$MAX`
+- Resume Position button exposed for FROZEN positions (FROZEN → ACTIVE path previously had no UI entry point)
+- Employee Create: Appointment Authority selector prevents silent generic error on missing field
+
+### What Changed
+
+**Created:**
+- `apps/api/prisma/migrations/[M15]/migration.sql` — adds `position_id` nullable FK and `appointment_authority` with ADMINISTRATIVE backfill
+- `apps/web/src/app/api/employees/[id]/assign-position/route.ts` — BFF POST route; JWT relay; error passthrough
+- `apps/web/src/features/workforce/components/employee-position-actions.tsx` — Client Component with Assign/Reassign/Clear modals
+
+**Modified (representative list):**
+- `apps/api/prisma/schema.prisma` — `position_id` nullable FK; `appointment_authority` String
+- `apps/api/src/workforce/employee.service.ts` — `assignPosition()` method; `toEmployeeShape()` updated
+- `apps/api/src/workforce/employee.controller.ts` — `POST /employees/:id/assign-position` route; `appointmentAuthority` validation
+- `apps/web/src/features/workforce/types.ts` — `EmployeeRow` gains `positionId` + `appointmentAuthority`; `AssignPositionBffResponse` added
+- `apps/web/src/app/(dashboard)/workforce/employees/[id]/page.tsx` — parallel position fetch; `EmployeePositionActions` wired
+- `apps/web/src/features/workforce/components/employee-detail.tsx` — Current Position field
+- `apps/web/src/features/workforce/components/create-employee-form.tsx` — Appointment Authority selector
+- `apps/web/src/features/workforce/components/position-actions.tsx` — Resume Position button + modal
+- `apps/web/src/app/(dashboard)/workforce/positions/page.tsx` + `employees/page.tsx` + `vacancies/page.tsx` — nav order
+
+### Validation
+
+#### Backend / Local
+
+| Check | Result |
+|-------|--------|
+| Unit tests | **804/804 passing** |
+| Position e2e | **46/46 passing** |
+| Organization e2e | **39/39 passing** |
+| Employee e2e | Passing — after M15 assignment endpoint work |
+| TypeScript (`tsc --noEmit`) | EXIT 0 — 0 errors |
+| Backend ESLint | Clean — lint cleanup committed (19af8a6) |
+
+#### Frontend / Local
+
+| Check | Result |
+|-------|--------|
+| TypeScript (`tsc --noEmit` on `apps/web`) | EXIT 0 — 0 errors |
+| ESLint (changed frontend files) | Clean |
+| `next build apps/web` | EXIT 0; `/workforce/employees/[id]` bundle 3.85 kB |
+| Docker web rebuild | Confirmed — new image `e3b02793` serving all M15 changes |
+
+#### Runtime / Manual (Docker Stack)
+
+| Scenario | Result |
+|----------|--------|
+| `/workforce/positions` renders | ✅ PASS |
+| `/workforce/positions/new` renders | ✅ PASS |
+| `/workforce/positions/[id]` renders with occupant field | ✅ PASS |
+| `/workforce/positions/[id]/edit` renders | ✅ PASS |
+| `/workforce/employees/new` shows Appointment Authority selector | ✅ PASS |
+| Workforce nav shows Positions · Vacancies · Employees order | ✅ PASS |
+| Salary Band format helper appears | ✅ PASS |
+| Resume Position button appears for FROZEN positions | ✅ PASS |
+| Employee detail shows Current Position field | ✅ PASS |
+| Assign Position modal opens; active positions populate dropdown | ✅ PASS |
+| BFF `POST /api/employees/:id/assign-position` returns `success: true` with `positionId` set | ✅ PASS |
+| After assignment: Current Position shows position title; button switches to "Reassign Position" | ✅ PASS |
+| ACTIVE employee clearance correctly blocked: `POSITION_CLEARANCE_NOT_PERMITTED_FOR_STATUS` (BFF + NestJS) | ✅ PASS |
+| Position close with active incumbent blocked (HAS_ACTIVE_INCUMBENT → 409) | ✅ PASS |
+
+#### CI
+
+- **PENDING** — 8 commits ahead of origin/main at time of closeout; CI confirmation awaiting grouped push
+
+### Capability Maturity — Post M15
+
+#### Position Linkage (position_id + appointmentAuthority)
+
+| Layer | Classification | Evidence |
+|-------|----------------|----------|
+| Requirements | Defined | GD-PRE-M13-001; GD-PRE-M13-002 |
+| Specs | Defined | Prisma schema migration; nullable FK pattern |
+| Directives | Defined | GD-M15-1 D1–D10; directives/13_employee_management_rules.md |
+| Execution Plan | **Implemented** | Schema migration; `assignPosition()` service; BFF route |
+| State Model | **Implemented** | PENDING_ONBOARDING-only clearance enforced; position state constraint at assignment |
+| Test Scenarios | **Verified** | 804/804 unit + 46/46 position e2e; runtime manual verification complete |
+| System Loop | **Integrated** | Live Docker stack; BFF → NestJS confirmed end-to-end |
+| Failure Playbook | Partial | All error codes surfaced in UI; no retry/alerting config |
+| Environment Model | **Verified** | Docker stack confirmed; all guard behaviors runtime-verified |
+| Data Lifecycle | **Verified** | Assignment, reassignment, clearance verified; backfill confirmed at migration |
+| Evolution Strategy | Not yet formalized | Vacancy-to-employee automation deferred; D-005 scheduling deferred (Phase 8) |
+| **Overall Maturity** | **Verified** | Runtime confirmed end-to-end; CI pending |
+
+#### Position Management UI (GD-PHASE2-CLOSURE-002 D3)
+
+| Layer | Classification | Evidence |
+|-------|----------------|----------|
+| Requirements | Defined | GD-PHASE2-CLOSURE-002 D3; FR-100 |
+| Specs | Defined | 4-state lifecycle; occupant response contract (GD-M15-1 D7) |
+| Directives | Defined | directives/02_position_management_rules.md |
+| Execution Plan | **Implemented** | List, create, detail, edit, activate, freeze, resume, close UI |
+| State Model | **Implemented** | Full 4-state lifecycle + FROZEN→ACTIVE resume in UI |
+| Test Scenarios | **Verified** | tsc + ESLint + next build; 14 manual runtime scenarios PASS |
+| System Loop | **Integrated** | Live Docker stack; all routes confirmed serving |
+| Failure Playbook | Partial | HAS_ACTIVE_VACANCIES + HAS_ACTIVE_INCUMBENT guard errors surfaced in UI; no playbook doc |
+| Environment Model | **Verified** | Docker stack confirmed |
+| Data Lifecycle | **Verified** | Occupant display reflects live assignment state post-assignment |
+| Evolution Strategy | Not yet formalized | |
+| **Overall Maturity** | **Verified** | All UI routes + lifecycle actions runtime-confirmed; CI pending |
+
+### Deferred / Out of Scope — Explicitly Visible
+
+The following items remain deferred and are **not** part of M15:
+
+| Item | Status | Authority |
+|------|--------|-----------|
+| Skills UI | Not implemented | Deferred from M13 scope |
+| Certifications UI | Not implemented | Deferred from M13 scope |
+| Department Management UI (beyond current guards) | Not implemented | Deferred |
+| User Management UI | Not implemented | Deferred |
+| Scheduling (D-005) | Not implemented | Phase 8 per GD-PHASE2-CLOSURE-003 |
+| Dashboards / Reporting | Not implemented | Phase 5 per GD-PHASE2-CLOSURE-001 |
+| Notifications | Not implemented | Phase 5 per GD-PHASE2-CLOSURE-001 |
+| Candidate / Recruiting workflow | Not implemented | Phase 3 |
+| Vacancy-to-employee automation | Not implemented | Phase 3 |
+| Critical vacancy approval gate (FR-152) | Not implemented | Phase 3 |
+| GD-M13-5 future tables (Position Skills / Position Certifications) | Not implemented | Phase 3+ |
+
+### Post-M15 Operational Follow-Up (Non-Blocking)
+
+1. **Runtime playbook** — Create a formal Docker operational playbook after M15 closeout to reduce repeated rediscovery of the `--env-file .env` requirement, container rebuild sequence, route warmup timing, and verification method across sessions.
+2. **Local runtime performance** — First-request latency (~15–25s per route) after Docker web container rebuild is Next.js lazy compilation behavior, not a bug. Review persistence after machine restart; consider route warmup script in Docker health check if it recurs.
+
+### Risks / Limitations
+
+- CI not yet confirmed — 8 commits uncommitted to origin/main; CI may surface issues not caught locally
+- Runtime playbook does not exist as a formal document — Docker operational knowledge lives in PROGRESS.md session notes only
+- Assign-position audit event DB verification deferred — endpoint functional verification confirmed; unit test coverage exists; full DB audit log check not performed in M15 session
+
+### M15 Milestone Summary
+
+| Capability | Status |
+|------------|--------|
+| Position Linkage Schema (`position_id` FK + `appointment_authority`) | ✅ Locally Complete |
+| Employee Create Contract (`appointmentAuthority` required; selector in UI) | ✅ Locally Complete |
+| Employee Position Assignment Endpoint (`POST /assign-position`; SA+HR; governed clearance; audit) | ✅ Locally Complete |
+| Employee Position Assignment UI (Current Position; Assign/Reassign/Clear; BFF) | ✅ Locally Complete |
+| Position Management UI (list, create, detail with occupant, edit, full lifecycle) | ✅ Locally Complete |
+| Position/Department Guards (DEP-008 Phase B; close guards) | ✅ Locally Complete |
+| UI Polish (nav order; salary band helper; Resume Position; Create fix) | ✅ Locally Complete |
+| CI Verification | ⏳ Pending — grouped push required |
+
+**804/804 unit tests passing. 46/46 position e2e passing. 39/39 org e2e passing. M15 Position Linkage + Position Management UI is LOCALLY COMPLETE — CI verification pending grouped push.**
