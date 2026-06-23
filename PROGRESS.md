@@ -9,8 +9,8 @@
 
 ---
 
-Last Updated: 2026-06-22 (GD-PHASE2-CLOSURE-003 — D-005 Scheduling roadmap gap resolved; Phase 8 assignment provisional pending project owner review; stale D-005 PROGRESS.md entry corrected; Deferred Items Register updated)
-Updated By: Claude Code (GD-PHASE2-CLOSURE-003 governance gap closure: D-005 assigned Phase 8; governance_history.md updated; stale PROGRESS.md D-005 entry corrected)
+Last Updated: 2026-06-22 (GD-PHASE2-CLOSURE-003 — D-005 Scheduling roadmap gap resolved; CI CONFIRMED GREEN commit 43b55a1)
+Updated By: Claude Code (GD-PHASE2-CLOSURE-003 governance gap closure: D-005 assigned Phase 8; governance_history.md updated; stale PROGRESS.md D-005 entry corrected; CI confirmed via GitHub API)
 
 Previous Update: 2026-06-22 (M14 — Certification Expiration Tracking COMPLETE — CI CONFIRMED GREEN; commit 941c7be; 730/730 unit tests; 257/257 e2e tests; 8/8 RV scenarios PASS; GD-M14-1)
 
