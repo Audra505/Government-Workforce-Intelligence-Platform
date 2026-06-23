@@ -115,9 +115,9 @@ export default async function PositionsPage({ searchParams }: Props) {
         <nav className="mb-6 flex items-center gap-4 text-sm text-muted-foreground">
           <Link href="/workforce/positions" className="font-medium text-foreground">Positions</Link>
           <span aria-hidden="true">·</span>
-          <Link href="/workforce/employees" className="hover:text-foreground transition-colors">Employees</Link>
-          <span aria-hidden="true">·</span>
           <Link href="/workforce/vacancies" className="hover:text-foreground transition-colors">Vacancies</Link>
+          <span aria-hidden="true">·</span>
+          <Link href="/workforce/employees" className="hover:text-foreground transition-colors">Employees</Link>
         </nav>
 
         <div className="mb-6 flex items-start justify-between">

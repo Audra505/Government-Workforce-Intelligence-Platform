@@ -4,8 +4,11 @@
 // Calls BFF POST /api/employees (not NestJS directly — JWT is in httpOnly cookie).
 // departmentId: select from ACTIVE departments passed as prop from Server Component.
 // employeeNumber: required; immutable after creation per GD-M12-6 (EMP-304).
+// appointmentAuthority: required at creation; immutable after creation (GD-M15-1 D1/D4/D8).
+//   Valid values: 7 Path A authorities. COMPETITIVE_APPOINTMENT is system-only (GD-PRE-M13-001).
 // tenantId is NOT in the form — derived from JWT by NestJS (SEC-003).
 // Reference: directives/13_employee_management_rules.md — EMP-AUTH-001, GD-M12-6, EMP-201 through EMP-204
+// Reference: governance/GD-M15-1.md — Decision 1, 4, 8
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -18,16 +21,32 @@ import { Label } from '@/components/ui/label';
 import type { DepartmentOption, CreateEmployeeBffResponse } from '@/features/workforce/types';
 
 // ---------------------------------------------------------------------------
+// Appointment authority options — Path A values only (GD-M15-1 D1)
+// COMPETITIVE_APPOINTMENT is intentionally excluded — reserved for system use
+// ---------------------------------------------------------------------------
+
+const APPOINTMENT_AUTHORITY_OPTIONS = [
+  { value: 'ADMINISTRATIVE',         label: 'Administrative' },
+  { value: 'LATERAL_TRANSFER',       label: 'Lateral Transfer' },
+  { value: 'REINSTATEMENT',          label: 'Reinstatement' },
+  { value: 'EMERGENCY_APPOINTMENT',  label: 'Emergency Appointment' },
+  { value: 'SCHEDULE_A',             label: 'Schedule A' },
+  { value: 'SCHEDULE_C',             label: 'Schedule C' },
+  { value: 'SENIOR_EXECUTIVE',       label: 'Senior Executive' },
+] as const;
+
+// ---------------------------------------------------------------------------
 // Zod schema
 // ---------------------------------------------------------------------------
 
 const schema = z.object({
-  employeeNumber: z.string().min(1, 'Employee number is required').max(100, 'Employee number must be 100 characters or fewer'),
-  firstName:      z.string().min(1, 'First name is required'),
-  lastName:       z.string().min(1, 'Last name is required'),
-  departmentId:   z.string().uuid('Please select a department'),
-  email:          z.string().email('Please enter a valid email address').optional().or(z.literal('')),
-  hireDate:       z.string().optional(),
+  employeeNumber:       z.string().min(1, 'Employee number is required').max(100, 'Employee number must be 100 characters or fewer'),
+  firstName:            z.string().min(1, 'First name is required'),
+  lastName:             z.string().min(1, 'Last name is required'),
+  departmentId:         z.string().uuid('Please select a department'),
+  appointmentAuthority: z.string().min(1, 'Please select an appointment authority'),
+  email:                z.string().email('Please enter a valid email address').optional().or(z.literal('')),
+  hireDate:             z.string().optional(),
 });
 
 type FormValues = z.infer<typeof schema>;
@@ -37,12 +56,15 @@ type FormValues = z.infer<typeof schema>;
 // ---------------------------------------------------------------------------
 
 const ERROR_MESSAGES: Record<string, string> = {
-  DEPARTMENT_NOT_FOUND:     'The selected department is no longer available. Please refresh and try again.',
-  EMPLOYEE_NUMBER_CONFLICT: 'This employee number is already in use within your organization.',
-  FORBIDDEN:                "You don't have permission to create employees.",
-  UNAUTHORIZED:             'Session expired. Please sign in again.',
-  VALIDATION_ERROR:         'Invalid form data. Please review your entries.',
-  INTERNAL_ERROR:           'Service unavailable. Please try again.',
+  DEPARTMENT_NOT_FOUND:               'The selected department is no longer available. Please refresh and try again.',
+  EMPLOYEE_NUMBER_CONFLICT:           'This employee number is already in use within your organization.',
+  APPOINTMENT_AUTHORITY_REQUIRED:     'Please select an appointment authority.',
+  INVALID_APPOINTMENT_AUTHORITY:      'The selected appointment authority is not valid. Please choose from the available options.',
+  COMPETITIVE_APPOINTMENT_SYSTEM_ONLY:'Competitive appointment is reserved for system use and cannot be selected here.',
+  FORBIDDEN:                          "You don't have permission to create employees.",
+  UNAUTHORIZED:                       'Session expired. Please sign in again.',
+  VALIDATION_ERROR:                   'Invalid form data. Please review your entries.',
+  INTERNAL_ERROR:                     'Service unavailable. Please try again.',
 };
 
 const INPUT_CLASS =
@@ -75,10 +97,11 @@ export function CreateEmployeeForm({ departments }: Props) {
 
     // Omit empty optional fields — empty string email treated as absent
     const body: Record<string, string> = {
-      employeeNumber: values.employeeNumber,
-      firstName:      values.firstName,
-      lastName:       values.lastName,
-      departmentId:   values.departmentId,
+      employeeNumber:       values.employeeNumber,
+      firstName:            values.firstName,
+      lastName:             values.lastName,
+      departmentId:         values.departmentId,
+      appointmentAuthority: values.appointmentAuthority,
     };
     if (values.email)    body.email    = values.email;
     if (values.hireDate) body.hireDate = values.hireDate;
@@ -217,6 +240,35 @@ export function CreateEmployeeForm({ departments }: Props) {
         {errors.departmentId && (
           <p id="departmentId-error" className="text-sm text-destructive">
             {errors.departmentId.message}
+          </p>
+        )}
+      </div>
+
+      {/* Appointment Authority — required; immutable after creation (GD-M15-1 D1/D4/D8) */}
+      <div className="space-y-2">
+        <Label htmlFor="appointmentAuthority">
+          Appointment Authority{' '}
+          <span aria-hidden="true" className="text-destructive">*</span>
+        </Label>
+        <select
+          id="appointmentAuthority"
+          {...register('appointmentAuthority')}
+          className={INPUT_CLASS}
+          aria-describedby={errors.appointmentAuthority ? 'appointmentAuthority-error' : undefined}
+        >
+          <option value="">Select an appointment authority...</option>
+          {APPOINTMENT_AUTHORITY_OPTIONS.map((opt) => (
+            <option key={opt.value} value={opt.value}>
+              {opt.label}
+            </option>
+          ))}
+        </select>
+        <p className="text-xs text-muted-foreground">
+          Cannot be changed after the employee record is created.
+        </p>
+        {errors.appointmentAuthority && (
+          <p id="appointmentAuthority-error" className="text-sm text-destructive">
+            {errors.appointmentAuthority.message}
           </p>
         )}
       </div>

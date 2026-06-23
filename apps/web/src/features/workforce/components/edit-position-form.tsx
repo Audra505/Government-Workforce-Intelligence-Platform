@@ -152,9 +152,12 @@ export function EditPositionForm({ position }: Props) {
           type="text"
           {...register('salaryBand')}
           className={INPUT_CLASS}
-          placeholder="e.g. $90,000–$117,000"
+          placeholder="e.g. $90,000-$115,000"
           aria-describedby={errors.salaryBand ? 'salaryBand-error' : undefined}
         />
+        <p className="text-xs text-muted-foreground">
+          Use the format $MIN-$MAX, e.g. $90,000-$115,000
+        </p>
         {errors.salaryBand && (
           <p id="salaryBand-error" className="text-sm text-destructive">{errors.salaryBand.message}</p>
         )}

@@ -3,6 +3,7 @@
 // Lifecycle action buttons for the Position Detail page.
 // Activate: DRAFT → ACTIVE via PUT /api/positions/:id { status: 'ACTIVE' }
 // Freeze: ACTIVE → FROZEN via PUT /api/positions/:id { status: 'FROZEN' }
+// Resume: FROZEN → ACTIVE via PUT /api/positions/:id { status: 'ACTIVE' } (GD-M15-1 UpdatePositionDto)
 // Close: ACTIVE/FROZEN → CLOSED via POST /api/positions/:id/close
 //   Surfaces HAS_ACTIVE_VACANCIES and HAS_ACTIVE_INCUMBENT errors per GD-PHASE2-CLOSURE-002 D3.
 // canWrite derived server-side from JWT roles (GD-12-4 pattern).
@@ -45,6 +46,14 @@ const FREEZE_ERROR_MESSAGES: Record<string, string> = {
   INTERNAL_ERROR:     'Service unavailable. Please try again.',
 };
 
+const RESUME_ERROR_MESSAGES: Record<string, string> = {
+  NOT_FOUND:       'Position could not be found.',
+  POSITION_CLOSED: 'This position is closed and cannot be resumed.',
+  FORBIDDEN:       "You don't have permission to resume positions.",
+  UNAUTHORIZED:    'Session expired. Please sign in again.',
+  INTERNAL_ERROR:  'Service unavailable. Please try again.',
+};
+
 const CLOSE_ERROR_MESSAGES: Record<string, string> = {
   NOT_FOUND:              'Position could not be found.',
   ALREADY_CLOSED:         'This position is already closed.',
@@ -69,6 +78,10 @@ export function PositionActions({ id, status, canWrite }: Props) {
   const [isFreezeOpen, setIsFreezeOpen] = useState(false);
   const [isFreezeLoading, setIsFreezeLoading] = useState(false);
   const [freezeError, setFreezeError] = useState<string | null>(null);
+
+  const [isResumeOpen, setIsResumeOpen] = useState(false);
+  const [isResumeLoading, setIsResumeLoading] = useState(false);
+  const [resumeError, setResumeError] = useState<string | null>(null);
 
   const [isCloseOpen, setIsCloseOpen] = useState(false);
   const [isCloseLoading, setIsCloseLoading] = useState(false);
@@ -146,6 +159,38 @@ export function PositionActions({ id, status, canWrite }: Props) {
   }
 
   // --------------------------------------------------------------------------
+  // Resume handler (FROZEN → ACTIVE)
+  // --------------------------------------------------------------------------
+
+  async function handleResume() {
+    setIsResumeLoading(true);
+    setResumeError(null);
+    try {
+      const res = await fetch(`/api/positions/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'ACTIVE' }),
+      });
+      if (res.ok) {
+        setIsResumeOpen(false);
+        setIsResumeLoading(false);
+        router.refresh();
+        return;
+      }
+      let errorCode = 'INTERNAL_ERROR';
+      try {
+        const data = (await res.json()) as { success: false; error?: { code: string } };
+        if (data.error?.code) errorCode = data.error.code;
+      } catch { /* ignore */ }
+      setResumeError(RESUME_ERROR_MESSAGES[errorCode] ?? RESUME_ERROR_MESSAGES.INTERNAL_ERROR);
+      setIsResumeLoading(false);
+    } catch {
+      setResumeError('Unable to reach the server. Please check your connection.');
+      setIsResumeLoading(false);
+    }
+  }
+
+  // --------------------------------------------------------------------------
   // Close handler (ACTIVE/FROZEN → CLOSED)
   // --------------------------------------------------------------------------
 
@@ -212,6 +257,17 @@ export function PositionActions({ id, status, canWrite }: Props) {
             onClick={() => { setIsFreezeOpen(true); setFreezeError(null); }}
           >
             Freeze
+          </Button>
+        )}
+
+        {/* Resume — FROZEN only */}
+        {isFrozen && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => { setIsResumeOpen(true); setResumeError(null); }}
+          >
+            Resume Position
           </Button>
         )}
 
@@ -288,6 +344,40 @@ export function PositionActions({ id, status, canWrite }: Props) {
               </Button>
               <Button size="sm" disabled={isFreezeLoading} onClick={handleFreeze}>
                 {isFreezeLoading ? 'Freezing…' : 'Confirm — Freeze'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Resume modal */}
+      {isResumeOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="resume-modal-title"
+        >
+          <div className="w-full max-w-md rounded-lg border bg-background p-6 shadow-lg">
+            <h3 id="resume-modal-title" className="text-lg font-semibold">Resume Position</h3>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Resuming this position returns it to Active status. Vacancy creation and employee
+              assignment will be available again.
+            </p>
+            {resumeError && (
+              <p role="alert" className="mt-3 text-sm font-medium text-destructive">{resumeError}</p>
+            )}
+            <div className="mt-6 flex justify-end gap-3">
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={isResumeLoading}
+                onClick={() => { setIsResumeOpen(false); setResumeError(null); }}
+              >
+                Cancel
+              </Button>
+              <Button size="sm" disabled={isResumeLoading} onClick={handleResume}>
+                {isResumeLoading ? 'Resuming…' : 'Confirm — Resume'}
               </Button>
             </div>
           </div>
