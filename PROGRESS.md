@@ -9,16 +9,16 @@
 
 ---
 
-Last Updated: 2026-06-23 (M15 — Position Linkage + Position Management UI — LOCALLY COMPLETE; 8 commits; CI pending push; GD-M15-1; GD-PRE-M13-002; GD-PHASE2-CLOSURE-002)
-Updated By: Claude Code (M15 closeout: position linkage schema; appointmentAuthority contract; assign-position endpoint + UI; position management UI; position/department guards; UI polish; 804/804 unit tests; 46/46 position e2e; 39/39 org e2e; tsc + ESLint + next build + Docker runtime all clean)
+Last Updated: 2026-06-23 (M15 — Position Linkage + Position Management UI — CI CONFIRMED GREEN; commit c4c903a; 804/804 unit tests; 46/46 position e2e; 39/39 org e2e; GD-M15-1; GD-PRE-M13-002; GD-PHASE2-CLOSURE-002)
+Updated By: Claude Code (M15 CI confirmation: CI / Install, Lint, Build, Test — success on c4c903a; run 28056202899; all 9 M15 commits pushed and verified)
 
-Previous Update: 2026-06-22 (GD-PHASE2-CLOSURE-003 — D-005 Scheduling roadmap gap resolved; CI CONFIRMED GREEN commit 43b55a1)
+Previous Update: 2026-06-23 (M15 — Position Linkage + Position Management UI — LOCALLY COMPLETE; 8 commits; CI pending push; GD-M15-1; GD-PRE-M13-002; GD-PHASE2-CLOSURE-002)
 
 ## Repository Status
 
-Current Phase: **Post-Phase 2 — Active (M15 LOCALLY COMPLETE)**
-Overall Classification: Phase 2 COMPLETE WITH DEFERRED ITEMS — Post-Phase 2 delivery: M14 Certification Expiration Tracking (FR-153) complete and CI-confirmed (941c7be); M15 Position Linkage + Position Management UI locally complete (8 commits ahead, CI pending push); 804/804 unit tests; 46/46 position e2e; 39/39 org e2e; tsc + ESLint + next build + Docker runtime all clean
-Active Sprint / Milestone: M15 — Position Linkage + Position Management UI — LOCALLY COMPLETE (2026-06-23) — 8 commits ahead of origin/main; CI verification pending grouped push
+Current Phase: **Post-Phase 2 — Active (M15 COMPLETE)**
+Overall Classification: Phase 2 COMPLETE WITH DEFERRED ITEMS — Post-Phase 2 delivery: M14 Certification Expiration Tracking (FR-153) complete and CI-confirmed (941c7be); M15 Position Linkage + Position Management UI complete and CI-confirmed (c4c903a); 804/804 unit tests; 46/46 position e2e; 39/39 org e2e; CI / Install, Lint, Build, Test — GREEN
+Active Sprint / Milestone: M15 — Position Linkage + Position Management UI — COMPLETE (2026-06-23) — CI CONFIRMED GREEN; commit c4c903a
 Implementation Started: Yes (2026-06-05)
 
 ## Phase Summary
@@ -33,12 +33,12 @@ Phase 1 is formally closed. D9 (Docker Environment) and D10 (CI/CD Foundation) w
 > Its purpose is crash/session recovery: the current step state is always readable without
 > scanning Zone 5 history. It is overwritten each step — not appended.
 
-Milestone: M15 — Position Linkage + Position Management UI — LOCALLY COMPLETE 2026-06-23
-Last Completed Milestone: M15 — Position Linkage + Position Management UI (locally complete, 2026-06-23; 804/804 unit tests; 46/46 position e2e; 39/39 org e2e; tsc + ESLint + next build clean; Docker runtime verified)
-Last Completed Step: M15 Employee Position Assignment UI (9f46bee) — Current Position field + Assign/Reassign/Clear modals + BFF route; end-to-end assignment → title display → button-label toggle verified in Docker runtime (2026-06-23)
+Milestone: M15 — Position Linkage + Position Management UI — COMPLETE 2026-06-23
+Last Completed Milestone: M15 — Position Linkage + Position Management UI (COMPLETE, 2026-06-23; 804/804 unit tests; 46/46 position e2e; 39/39 org e2e; CI CONFIRMED GREEN; commit c4c903a; run 28056202899)
+Last Completed Step: M15 CI Verification — CI / Install, Lint, Build, Test CONFIRMED GREEN (2026-06-23; commit c4c903a; run 28056202899; 9 M15 commits pushed)
 Last Completed Step Date: 2026-06-23
-Current Step: M15 LOCALLY CLOSED — 8 commits ahead of origin/main (4ab4a50 through 9f46bee); CI verification pending grouped push
-Session Classification: M15 LOCALLY COMPLETE — GD-M15-1 + GD-PRE-M13-002 + GD-PHASE2-CLOSURE-002 governing; all validation layers passed (unit, e2e, tsc, ESLint, next build, Docker runtime); CI pending push
+Current Step: M15 CLOSED — commit c4c903a pushed and CI-confirmed; branch at origin/main
+Session Classification: M15 COMPLETE AND CI-VERIFIED — GD-M15-1 + GD-PRE-M13-002 + GD-PHASE2-CLOSURE-002 governing; all validation layers passed (unit, e2e, tsc, ESLint, next build, Docker runtime, CI)
 
 ## Milestone 10 — Approved Plan
 
@@ -7930,7 +7930,7 @@ Root cause: configuration/deployment issue — the container predated the uncomm
 
 #### CI
 
-- **PENDING** — 8 commits ahead of origin/main at time of closeout; CI confirmation awaiting grouped push
+- **CONFIRMED GREEN** — CI / Install, Lint, Build, Test — success; commit c4c903a; run 28056202899 (2026-06-23)
 
 ### Capability Maturity — Post M15
 
@@ -7949,7 +7949,7 @@ Root cause: configuration/deployment issue — the container predated the uncomm
 | Environment Model | **Verified** | Docker stack confirmed; all guard behaviors runtime-verified |
 | Data Lifecycle | **Verified** | Assignment, reassignment, clearance verified; backfill confirmed at migration |
 | Evolution Strategy | Not yet formalized | Vacancy-to-employee automation deferred; D-005 scheduling deferred (Phase 8) |
-| **Overall Maturity** | **Verified** | Runtime confirmed end-to-end; CI pending |
+| **Overall Maturity** | **Verified** | Runtime confirmed end-to-end; CI CONFIRMED GREEN (c4c903a) |
 
 #### Position Management UI (GD-PHASE2-CLOSURE-002 D3)
 
@@ -7966,7 +7966,7 @@ Root cause: configuration/deployment issue — the container predated the uncomm
 | Environment Model | **Verified** | Docker stack confirmed |
 | Data Lifecycle | **Verified** | Occupant display reflects live assignment state post-assignment |
 | Evolution Strategy | Not yet formalized | |
-| **Overall Maturity** | **Verified** | All UI routes + lifecycle actions runtime-confirmed; CI pending |
+| **Overall Maturity** | **Verified** | All UI routes + lifecycle actions runtime-confirmed; CI CONFIRMED GREEN (c4c903a) |
 
 ### Deferred / Out of Scope — Explicitly Visible
 
@@ -8008,6 +8008,6 @@ The following items remain deferred and are **not** part of M15:
 | Position Management UI (list, create, detail with occupant, edit, full lifecycle) | ✅ Locally Complete |
 | Position/Department Guards (DEP-008 Phase B; close guards) | ✅ Locally Complete |
 | UI Polish (nav order; salary band helper; Resume Position; Create fix) | ✅ Locally Complete |
-| CI Verification | ⏳ Pending — grouped push required |
+| CI Verification | ✅ CONFIRMED GREEN — CI / Install, Lint, Build, Test — success; commit c4c903a; run 28056202899 |
 
-**804/804 unit tests passing. 46/46 position e2e passing. 39/39 org e2e passing. M15 Position Linkage + Position Management UI is LOCALLY COMPLETE — CI verification pending grouped push.**
+**804/804 unit tests passing. 46/46 position e2e passing. 39/39 org e2e passing. CI CONFIRMED GREEN (c4c903a). M15 Position Linkage + Position Management UI is COMPLETE.**
