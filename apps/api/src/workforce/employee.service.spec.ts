@@ -1200,4 +1200,253 @@ describe('EmployeeService', () => {
       expect(result.outcome).toBe('STATUS_CHANGED');
     });
   });
+
+  // ---------------------------------------------------------------------------
+  // assignPosition (GD-M15-1 D5/D6/D9)
+  // ---------------------------------------------------------------------------
+
+  describe('assignPosition()', () => {
+    const POSITION_ID_2 = 'f0f0f0f0-f0f0-f0f0-f0f0-f0f0f0f0f0f0';
+
+    const makeEmpRow = (positionId: string | null, status: string) => ({
+      id: EMPLOYEE_ID,
+      positionId,
+      employmentStatus: status,
+      appointmentAuthority: 'ADMINISTRATIVE',
+      position: positionId ? { title: 'Staff Analyst' } : null,
+    });
+
+    const UPDATED_EMPLOYEE_ROW = { ...EMPLOYEE_ROW, positionId: POSITION_ID };
+
+    it('employee not found → NOT_FOUND', async () => {
+      mockPrisma.employee.findFirst.mockResolvedValue(null);
+
+      const result = await service.assignPosition(EMPLOYEE_ID, { positionId: POSITION_ID }, TENANT_ID, ACTOR_ID);
+
+      expect(result.outcome).toBe('NOT_FOUND');
+    });
+
+    it('SEPARATED employee (UUID assignment) → EMPLOYEE_SEPARATED (GD-M15-1 D5)', async () => {
+      mockPrisma.employee.findFirst.mockResolvedValue(makeEmpRow(null, 'SEPARATED'));
+
+      const result = await service.assignPosition(EMPLOYEE_ID, { positionId: POSITION_ID }, TENANT_ID, ACTOR_ID);
+
+      expect(result.outcome).toBe('EMPLOYEE_SEPARATED');
+      expect(mockPrisma.position.findFirst).not.toHaveBeenCalled();
+    });
+
+    it('SEPARATED employee (clearance) → EMPLOYEE_SEPARATED (GD-M15-1 D6)', async () => {
+      mockPrisma.employee.findFirst.mockResolvedValue(makeEmpRow(POSITION_ID, 'SEPARATED'));
+
+      const result = await service.assignPosition(EMPLOYEE_ID, { positionId: null }, TENANT_ID, ACTOR_ID);
+
+      expect(result.outcome).toBe('EMPLOYEE_SEPARATED');
+      expect(mockPrisma.employee.update).not.toHaveBeenCalled();
+    });
+
+    // --- Clearance path (positionId: null) ---
+
+    it('clearance on ACTIVE employee → POSITION_CLEARANCE_NOT_PERMITTED_FOR_STATUS (GD-M15-1 D6)', async () => {
+      mockPrisma.employee.findFirst.mockResolvedValue(makeEmpRow(POSITION_ID, 'ACTIVE'));
+
+      const result = await service.assignPosition(EMPLOYEE_ID, { positionId: null }, TENANT_ID, ACTOR_ID);
+
+      expect(result.outcome).toBe('POSITION_CLEARANCE_NOT_PERMITTED_FOR_STATUS');
+      expect(mockPrisma.employee.update).not.toHaveBeenCalled();
+    });
+
+    it('clearance on ON_LEAVE employee → POSITION_CLEARANCE_NOT_PERMITTED_FOR_STATUS (GD-M15-1 D6)', async () => {
+      mockPrisma.employee.findFirst.mockResolvedValue(makeEmpRow(POSITION_ID, 'ON_LEAVE'));
+
+      const result = await service.assignPosition(EMPLOYEE_ID, { positionId: null }, TENANT_ID, ACTOR_ID);
+
+      expect(result.outcome).toBe('POSITION_CLEARANCE_NOT_PERMITTED_FOR_STATUS');
+    });
+
+    it('clearance no-op: PENDING_ONBOARDING with no position → SUCCESS, no DB write, no audit (GD-M15-1 D9)', async () => {
+      mockPrisma.employee.findFirst
+        .mockResolvedValueOnce(makeEmpRow(null, 'PENDING_ONBOARDING'))  // employee lookup
+        .mockResolvedValueOnce(EMPLOYEE_ROW);                           // no-op read
+
+      const result = await service.assignPosition(EMPLOYEE_ID, { positionId: null }, TENANT_ID, ACTOR_ID);
+
+      expect(result.outcome).toBe('SUCCESS');
+      expect(mockPrisma.employee.update).not.toHaveBeenCalled();
+      expect(mockAuditService.logEvent).not.toHaveBeenCalled();
+    });
+
+    it('clearance success: PENDING_ONBOARDING with position → SUCCESS, positionId set to null, POSITION_CLEARED emitted (GD-M15-1 D6/D9)', async () => {
+      const clearedRow = { ...EMPLOYEE_ROW, positionId: null };
+      mockPrisma.employee.findFirst.mockResolvedValue(makeEmpRow(POSITION_ID, 'PENDING_ONBOARDING'));
+      mockPrisma.employee.update.mockResolvedValue(clearedRow);
+      mockAuditService.logEvent.mockResolvedValue(undefined);
+
+      const result = await service.assignPosition(EMPLOYEE_ID, { positionId: null }, TENANT_ID, ACTOR_ID);
+
+      expect(result.outcome).toBe('SUCCESS');
+      expect(mockPrisma.employee.update).toHaveBeenCalledWith(
+        expect.objectContaining({ data: { positionId: null } }),
+      );
+      expect(mockAuditService.logEvent).toHaveBeenCalledWith(
+        expect.objectContaining({ action: AuditEventType.WORKFORCE_EMPLOYEE_POSITION_CLEARED }),
+      );
+    });
+
+    it('clearance audit metadata includes prior_position_id and employment_status_at_clearance (GD-M15-1 D9)', async () => {
+      mockPrisma.employee.findFirst.mockResolvedValue(makeEmpRow(POSITION_ID, 'PENDING_ONBOARDING'));
+      mockPrisma.employee.update.mockResolvedValue({ ...EMPLOYEE_ROW, positionId: null });
+      mockAuditService.logEvent.mockResolvedValue(undefined);
+
+      await service.assignPosition(EMPLOYEE_ID, { positionId: null }, TENANT_ID, ACTOR_ID);
+
+      const call = (mockAuditService.logEvent.mock.calls[0] as [Record<string, unknown>])[0];
+      const metadata = call.metadata as Record<string, unknown>;
+      expect(metadata['prior_position_id']).toBe(POSITION_ID);
+      expect(metadata['employment_status_at_clearance']).toBe('PENDING_ONBOARDING');
+    });
+
+    // --- Assignment path (positionId: UUID) ---
+
+    it('position not found in tenant → POSITION_NOT_FOUND (SEC-003; GD-M15-1 D5)', async () => {
+      mockPrisma.employee.findFirst.mockResolvedValue(makeEmpRow(null, 'PENDING_ONBOARDING'));
+      mockPrisma.position.findFirst.mockResolvedValue(null);
+
+      const result = await service.assignPosition(EMPLOYEE_ID, { positionId: POSITION_ID }, TENANT_ID, ACTOR_ID);
+
+      expect(result.outcome).toBe('POSITION_NOT_FOUND');
+      expect(mockPrisma.employee.update).not.toHaveBeenCalled();
+    });
+
+    it('position not ACTIVE → POSITION_NOT_ACTIVE_FOR_ASSIGNMENT (GD-M15-1 D5)', async () => {
+      mockPrisma.employee.findFirst.mockResolvedValue(makeEmpRow(null, 'PENDING_ONBOARDING'));
+      mockPrisma.position.findFirst.mockResolvedValue({ id: POSITION_ID, status: 'DRAFT', title: 'Analyst' });
+
+      const result = await service.assignPosition(EMPLOYEE_ID, { positionId: POSITION_ID }, TENANT_ID, ACTOR_ID);
+
+      expect(result.outcome).toBe('POSITION_NOT_ACTIVE_FOR_ASSIGNMENT');
+      expect(mockPrisma.employee.update).not.toHaveBeenCalled();
+    });
+
+    it('no-op: same position already assigned → SUCCESS, no DB write, no audit (GD-M15-1 D9)', async () => {
+      mockPrisma.employee.findFirst
+        .mockResolvedValueOnce(makeEmpRow(POSITION_ID, 'PENDING_ONBOARDING'))  // employee lookup
+        .mockResolvedValueOnce(UPDATED_EMPLOYEE_ROW);                          // no-op read
+      mockPrisma.position.findFirst.mockResolvedValue({ id: POSITION_ID, status: 'ACTIVE', title: 'Analyst' });
+
+      const result = await service.assignPosition(EMPLOYEE_ID, { positionId: POSITION_ID }, TENANT_ID, ACTOR_ID);
+
+      expect(result.outcome).toBe('SUCCESS');
+      expect(mockPrisma.employee.update).not.toHaveBeenCalled();
+      expect(mockAuditService.logEvent).not.toHaveBeenCalled();
+    });
+
+    it('position has non-SEPARATED incumbent (excluding self) → POSITION_ALREADY_OCCUPIED (GD-M15-1 D5; GD-PRE-M13-002 D1)', async () => {
+      mockPrisma.employee.findFirst
+        .mockResolvedValueOnce(makeEmpRow(null, 'PENDING_ONBOARDING'))    // employee
+        .mockResolvedValueOnce({ id: 'other-emp' });                       // incumbent
+      mockPrisma.position.findFirst.mockResolvedValue({ id: POSITION_ID, status: 'ACTIVE', title: 'Analyst' });
+
+      const result = await service.assignPosition(EMPLOYEE_ID, { positionId: POSITION_ID }, TENANT_ID, ACTOR_ID);
+
+      expect(result.outcome).toBe('POSITION_ALREADY_OCCUPIED');
+      expect(mockPrisma.employee.update).not.toHaveBeenCalled();
+    });
+
+    it('occupancy check excludes self via NOT: { id: employeeId } (GD-M15-1 D5 rule 3)', async () => {
+      mockPrisma.employee.findFirst
+        .mockResolvedValueOnce(makeEmpRow(null, 'ACTIVE'))  // employee
+        .mockResolvedValueOnce(null);                        // no other incumbent
+      mockPrisma.position.findFirst.mockResolvedValue({ id: POSITION_ID, status: 'ACTIVE', title: 'Analyst' });
+      mockPrisma.employee.update.mockResolvedValue(UPDATED_EMPLOYEE_ROW);
+      mockAuditService.logEvent.mockResolvedValue(undefined);
+
+      await service.assignPosition(EMPLOYEE_ID, { positionId: POSITION_ID }, TENANT_ID, ACTOR_ID);
+
+      const occupancyArgs = mockPrisma.employee.findFirst.mock.calls[1] as unknown[];
+      const where = (occupancyArgs[0] as { where: Record<string, unknown> }).where;
+      expect(where['NOT']).toEqual({ id: EMPLOYEE_ID });
+    });
+
+    it('initial assignment (null → UUID) → SUCCESS, WORKFORCE_EMPLOYEE_POSITION_ASSIGNED emitted (GD-M15-1 D9)', async () => {
+      mockPrisma.employee.findFirst
+        .mockResolvedValueOnce(makeEmpRow(null, 'PENDING_ONBOARDING'))
+        .mockResolvedValueOnce(null);  // no incumbent
+      mockPrisma.position.findFirst.mockResolvedValue({ id: POSITION_ID, status: 'ACTIVE', title: 'Staff Analyst' });
+      mockPrisma.employee.update.mockResolvedValue(UPDATED_EMPLOYEE_ROW);
+      mockAuditService.logEvent.mockResolvedValue(undefined);
+
+      const result = await service.assignPosition(EMPLOYEE_ID, { positionId: POSITION_ID }, TENANT_ID, ACTOR_ID);
+
+      expect(result.outcome).toBe('SUCCESS');
+      expect(mockAuditService.logEvent).toHaveBeenCalledWith(
+        expect.objectContaining({ action: AuditEventType.WORKFORCE_EMPLOYEE_POSITION_ASSIGNED }),
+      );
+    });
+
+    it('POSITION_ASSIGNED audit metadata includes new_position_id, new_position_title, appointment_authority (GD-M15-1 D9)', async () => {
+      mockPrisma.employee.findFirst
+        .mockResolvedValueOnce(makeEmpRow(null, 'PENDING_ONBOARDING'))
+        .mockResolvedValueOnce(null);
+      mockPrisma.position.findFirst.mockResolvedValue({ id: POSITION_ID, status: 'ACTIVE', title: 'Staff Analyst' });
+      mockPrisma.employee.update.mockResolvedValue(UPDATED_EMPLOYEE_ROW);
+      mockAuditService.logEvent.mockResolvedValue(undefined);
+
+      await service.assignPosition(EMPLOYEE_ID, { positionId: POSITION_ID }, TENANT_ID, ACTOR_ID);
+
+      const call = (mockAuditService.logEvent.mock.calls[0] as [Record<string, unknown>])[0];
+      const metadata = call.metadata as Record<string, unknown>;
+      expect(metadata['new_position_id']).toBe(POSITION_ID);
+      expect(metadata['new_position_title']).toBe('Staff Analyst');
+      expect(metadata['appointment_authority']).toBe('ADMINISTRATIVE');
+    });
+
+    it('reassignment (UUID A → UUID B) → SUCCESS, WORKFORCE_EMPLOYEE_POSITION_REASSIGNED emitted (GD-M15-1 D9)', async () => {
+      mockPrisma.employee.findFirst
+        .mockResolvedValueOnce(makeEmpRow(POSITION_ID, 'ACTIVE'))  // employee has prior position
+        .mockResolvedValueOnce(null);                               // no other incumbent at pos2
+      mockPrisma.position.findFirst.mockResolvedValue({ id: POSITION_ID_2, status: 'ACTIVE', title: 'Senior Analyst' });
+      mockPrisma.employee.update.mockResolvedValue({ ...UPDATED_EMPLOYEE_ROW, positionId: POSITION_ID_2 });
+      mockAuditService.logEvent.mockResolvedValue(undefined);
+
+      const result = await service.assignPosition(EMPLOYEE_ID, { positionId: POSITION_ID_2 }, TENANT_ID, ACTOR_ID);
+
+      expect(result.outcome).toBe('SUCCESS');
+      expect(mockAuditService.logEvent).toHaveBeenCalledWith(
+        expect.objectContaining({ action: AuditEventType.WORKFORCE_EMPLOYEE_POSITION_REASSIGNED }),
+      );
+    });
+
+    it('POSITION_REASSIGNED audit metadata includes prior and new position IDs and titles (GD-M15-1 D9)', async () => {
+      mockPrisma.employee.findFirst
+        .mockResolvedValueOnce(makeEmpRow(POSITION_ID, 'ACTIVE'))
+        .mockResolvedValueOnce(null);
+      mockPrisma.position.findFirst.mockResolvedValue({ id: POSITION_ID_2, status: 'ACTIVE', title: 'Senior Analyst' });
+      mockPrisma.employee.update.mockResolvedValue({ ...UPDATED_EMPLOYEE_ROW, positionId: POSITION_ID_2 });
+      mockAuditService.logEvent.mockResolvedValue(undefined);
+
+      await service.assignPosition(EMPLOYEE_ID, { positionId: POSITION_ID_2 }, TENANT_ID, ACTOR_ID);
+
+      const call = (mockAuditService.logEvent.mock.calls[0] as [Record<string, unknown>])[0];
+      const metadata = call.metadata as Record<string, unknown>;
+      expect(metadata['prior_position_id']).toBe(POSITION_ID);
+      expect(metadata['prior_position_title']).toBe('Staff Analyst');
+      expect(metadata['new_position_id']).toBe(POSITION_ID_2);
+      expect(metadata['new_position_title']).toBe('Senior Analyst');
+    });
+
+    it('initial assignment: employee.update called with positionId in data', async () => {
+      mockPrisma.employee.findFirst
+        .mockResolvedValueOnce(makeEmpRow(null, 'PENDING_ONBOARDING'))
+        .mockResolvedValueOnce(null);
+      mockPrisma.position.findFirst.mockResolvedValue({ id: POSITION_ID, status: 'ACTIVE', title: 'Analyst' });
+      mockPrisma.employee.update.mockResolvedValue(UPDATED_EMPLOYEE_ROW);
+      mockAuditService.logEvent.mockResolvedValue(undefined);
+
+      await service.assignPosition(EMPLOYEE_ID, { positionId: POSITION_ID }, TENANT_ID, ACTOR_ID);
+
+      expect(mockPrisma.employee.update).toHaveBeenCalledWith(
+        expect.objectContaining({ data: { positionId: POSITION_ID } }),
+      );
+    });
+  });
 });

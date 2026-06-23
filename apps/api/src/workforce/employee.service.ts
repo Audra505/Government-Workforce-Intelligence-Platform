@@ -3,7 +3,7 @@
 // Reference: spec/07_security_architecture.md — SEC-003 Tenant Isolation
 // Reference: directives/13_employee_management_rules.md — EMP-001 through EMP-805
 // Reference: directives/13_employee_management_rules.md — GD-M12-1 through GD-M12-8
-// Reference: governance/GD-M15-1.md — Decision 1, 4, 8, 9 (appointmentAuthority; positionId at creation)
+// Reference: governance/GD-M15-1.md — Decision 1, 4, 5, 6, 8, 9 (appointmentAuthority; positionId at creation; assign-position endpoint)
 // Reference: governance/GD-PRE-M13-001.md — appointment authority design
 // Reference: governance/GD-PRE-M13-002.md — 1:1 FTE Slot Model (service-layer occupancy check only)
 //
@@ -73,6 +73,21 @@ export type ChangeEmployeeStatusParams = {
   status: string;
   separationReason?: string;
 };
+
+// GD-M15-1 D5/D6: assign-position endpoint params and result types.
+export type AssignPositionParams = {
+  positionId: string | null;
+};
+
+export type AssignPositionResult =
+  | { outcome: 'SUCCESS'; employee: EmployeeRecord }
+  | { outcome: 'NOT_FOUND' }
+  | { outcome: 'EMPLOYEE_SEPARATED' }
+  | { outcome: 'POSITION_NOT_FOUND' }
+  | { outcome: 'POSITION_NOT_ACTIVE_FOR_ASSIGNMENT' }
+  | { outcome: 'POSITION_ALREADY_OCCUPIED' }
+  | { outcome: 'POSITION_CLEARANCE_NOT_PERMITTED_FOR_STATUS' }
+  | { outcome: 'INTERNAL_ERROR' };
 
 // ---------------------------------------------------------------------------
 // EmployeeRecord — shared read shape produced by all service read paths.
@@ -617,5 +632,217 @@ export class EmployeeService {
       );
       return { outcome: 'INTERNAL_ERROR' };
     }
+  }
+
+  // ---------------------------------------------------------------------------
+  // assignPosition — GD-M15-1 D5 / D6 / D9
+  //
+  // Handles three distinct operations:
+  //   positionId = null         → clearance (PENDING_ONBOARDING only — D6)
+  //   positionId = current UUID → no-op (no write, no audit — D9)
+  //   positionId = new UUID     → initial assignment or reassignment (D5)
+  //
+  // SEPARATED employees are rejected for all three operations (D5/D6).
+  // tenantId from JWT; position looked up with tenantId filter (SEC-003 — D5 rule 4).
+  // Cross-tenant position returns POSITION_NOT_FOUND (→ HTTP 404) per SEC-003.
+  // Occupancy check excludes self to support the no-op and reassignment paths (D5 rule 3).
+  // Audit events selected per D9 event-selection rules.
+  // ---------------------------------------------------------------------------
+
+  async assignPosition(
+    employeeId: string,
+    params: AssignPositionParams,
+    tenantId: string,
+    actorId: string,
+  ): Promise<AssignPositionResult> {
+    // Step 1: fetch employee with current position info for audit metadata.
+    let existing: {
+      id: string;
+      positionId: string | null;
+      employmentStatus: string;
+      appointmentAuthority: string;
+      position: { title: string } | null;
+    } | null;
+
+    try {
+      existing = await this.prisma.employee.findFirst({
+        where: { id: employeeId, tenantId, deletedAt: null },
+        select: {
+          id: true,
+          positionId: true,
+          employmentStatus: true,
+          appointmentAuthority: true,
+          position: { select: { title: true } },
+        },
+      });
+    } catch (err) {
+      this.logger.error(
+        'assignPosition employee lookup failed',
+        err instanceof Error ? err.stack : String(err),
+      );
+      return { outcome: 'INTERNAL_ERROR' };
+    }
+
+    if (!existing) return { outcome: 'NOT_FOUND' };
+    // GD-M15-1 D5 / D6: SEPARATED employees cannot have positionId modified under any operation.
+    if (existing.employmentStatus === 'SEPARATED') return { outcome: 'EMPLOYEE_SEPARATED' };
+
+    const currentPositionId = existing.positionId;
+    const priorPositionTitle = existing.position?.title ?? null;
+    const requestedPositionId = params.positionId;
+
+    // ---- Clearance path: positionId = null (GD-M15-1 D6) ----
+    if (requestedPositionId === null) {
+      // Clearance permitted for PENDING_ONBOARDING only.
+      if (existing.employmentStatus !== 'PENDING_ONBOARDING') {
+        return { outcome: 'POSITION_CLEARANCE_NOT_PERMITTED_FOR_STATUS' };
+      }
+
+      // No-op: positionId is already null — no write, no audit event (GD-M15-1 D9).
+      if (currentPositionId === null) {
+        let noopRow: EmployeeRow | null;
+        try {
+          noopRow = await this.prisma.employee.findFirst({
+            where: { id: employeeId },
+            select: EMPLOYEE_READ_SELECT,
+          });
+        } catch (err) {
+          this.logger.error('assignPosition no-op read failed', err instanceof Error ? err.stack : String(err));
+          return { outcome: 'INTERNAL_ERROR' };
+        }
+        return { outcome: 'SUCCESS', employee: toEmployeeRecord(noopRow!) };
+      }
+
+      // Perform clearance: set positionId = null.
+      let clearedRow: EmployeeRow;
+      try {
+        clearedRow = await this.prisma.employee.update({
+          where: { id: employeeId },
+          data: { positionId: null },
+          select: EMPLOYEE_READ_SELECT,
+        });
+      } catch (err) {
+        this.logger.error('assignPosition clearance update failed', err instanceof Error ? err.stack : String(err));
+        return { outcome: 'INTERNAL_ERROR' };
+      }
+
+      // GD-M15-1 D9 WORKFORCE_EMPLOYEE_POSITION_CLEARED metadata.
+      await this.auditService.logEvent({
+        tenantId,
+        userId: actorId,
+        action: AuditEventType.WORKFORCE_EMPLOYEE_POSITION_CLEARED,
+        result: 'SUCCESS',
+        entityType: 'EMPLOYEE',
+        entityId: employeeId,
+        metadata: {
+          prior_position_id: currentPositionId,
+          prior_position_title: priorPositionTitle,
+          employment_status_at_clearance: existing.employmentStatus,
+        },
+      });
+
+      return { outcome: 'SUCCESS', employee: toEmployeeRecord(clearedRow) };
+    }
+
+    // ---- Assignment / Reassignment path: positionId = UUID ----
+
+    // Look up target position. tenantId filter enforces SEC-003 — cross-tenant returns NOT_FOUND → HTTP 404.
+    let targetPosition: { id: string; status: string; title: string } | null;
+    try {
+      targetPosition = await this.prisma.position.findFirst({
+        where: { id: requestedPositionId, tenantId, deletedAt: null },
+        select: { id: true, status: true, title: true },
+      });
+    } catch (err) {
+      this.logger.error('assignPosition position lookup failed', err instanceof Error ? err.stack : String(err));
+      return { outcome: 'INTERNAL_ERROR' };
+    }
+
+    if (!targetPosition) return { outcome: 'POSITION_NOT_FOUND' };
+    if (targetPosition.status !== 'ACTIVE') return { outcome: 'POSITION_NOT_ACTIVE_FOR_ASSIGNMENT' };
+
+    // No-op: same position already assigned — no write, no audit event (GD-M15-1 D9).
+    if (currentPositionId === requestedPositionId) {
+      let noopRow: EmployeeRow | null;
+      try {
+        noopRow = await this.prisma.employee.findFirst({
+          where: { id: employeeId },
+          select: EMPLOYEE_READ_SELECT,
+        });
+      } catch (err) {
+        this.logger.error('assignPosition no-op read failed', err instanceof Error ? err.stack : String(err));
+        return { outcome: 'INTERNAL_ERROR' };
+      }
+      return { outcome: 'SUCCESS', employee: toEmployeeRecord(noopRow!) };
+    }
+
+    // Occupancy check: no other non-SEPARATED incumbent allowed (GD-M15-1 D5 rule 3; GD-PRE-M13-002 D1).
+    // Self excluded — allows reassignment to same position (which is the no-op case handled above).
+    let incumbent: { id: string } | null;
+    try {
+      incumbent = await this.prisma.employee.findFirst({
+        where: {
+          positionId: requestedPositionId,
+          employmentStatus: { in: ['PENDING_ONBOARDING', 'ACTIVE', 'ON_LEAVE', 'SUSPENDED'] },
+          deletedAt: null,
+          NOT: { id: employeeId },
+        },
+        select: { id: true },
+      });
+    } catch (err) {
+      this.logger.error('assignPosition occupancy check failed', err instanceof Error ? err.stack : String(err));
+      return { outcome: 'INTERNAL_ERROR' };
+    }
+
+    if (incumbent) return { outcome: 'POSITION_ALREADY_OCCUPIED' };
+
+    // Write the assignment.
+    let assignedRow: EmployeeRow;
+    try {
+      assignedRow = await this.prisma.employee.update({
+        where: { id: employeeId },
+        data: { positionId: requestedPositionId },
+        select: EMPLOYEE_READ_SELECT,
+      });
+    } catch (err) {
+      this.logger.error('assignPosition update failed', err instanceof Error ? err.stack : String(err));
+      return { outcome: 'INTERNAL_ERROR' };
+    }
+
+    // GD-M15-1 D9: select audit event based on prior state.
+    if (currentPositionId === null) {
+      // Prior positionId null → new UUID: POSITION_ASSIGNED.
+      await this.auditService.logEvent({
+        tenantId,
+        userId: actorId,
+        action: AuditEventType.WORKFORCE_EMPLOYEE_POSITION_ASSIGNED,
+        result: 'SUCCESS',
+        entityType: 'EMPLOYEE',
+        entityId: employeeId,
+        metadata: {
+          new_position_id: requestedPositionId,
+          new_position_title: targetPosition.title,
+          appointment_authority: existing.appointmentAuthority,
+        },
+      });
+    } else {
+      // Prior positionId UUID → different UUID: POSITION_REASSIGNED.
+      await this.auditService.logEvent({
+        tenantId,
+        userId: actorId,
+        action: AuditEventType.WORKFORCE_EMPLOYEE_POSITION_REASSIGNED,
+        result: 'SUCCESS',
+        entityType: 'EMPLOYEE',
+        entityId: employeeId,
+        metadata: {
+          prior_position_id: currentPositionId,
+          prior_position_title: priorPositionTitle,
+          new_position_id: requestedPositionId,
+          new_position_title: targetPosition.title,
+        },
+      });
+    }
+
+    return { outcome: 'SUCCESS', employee: toEmployeeRecord(assignedRow) };
   }
 }

@@ -38,6 +38,7 @@ import type { ChangeEmployeeStatusDto } from './dto/change-employee-status.dto';
 import type { ListEmployeesQueryDto } from './dto/list-employees-query.dto';
 import type { AssignSkillDto } from './dto/assign-skill.dto';
 import type { AssignCertificationDto } from './dto/assign-certification.dto';
+import type { AssignPositionDto } from './dto/assign-position.dto';
 
 // ---------------------------------------------------------------------------
 // Test constants
@@ -49,6 +50,7 @@ const DEPT_ID     = 'cccccccc-cccc-cccc-cccc-cccccccccccc';
 const EMPLOYEE_ID = 'dddddddd-dddd-dddd-dddd-dddddddddddd';
 const SKILL_ID    = 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee';
 const CERT_ID     = 'ffffffff-ffff-ffff-ffff-ffffffffffff';
+const POSITION_ID = 'a1b2c3d4-a1b2-a1b2-a1b2-a1b2c3d4e5f6';
 const CREATED_AT  = new Date('2026-06-18T12:00:00.000Z');
 const UPDATED_AT  = new Date('2026-06-18T14:00:00.000Z');
 const VERIFIED_AT = new Date('2026-06-15T14:32:00.000Z');
@@ -138,6 +140,7 @@ describe('EmployeeController', () => {
     getEmployeeById:      jest.Mock;
     updateEmployee:       jest.Mock;
     changeEmployeeStatus: jest.Mock;
+    assignPosition:       jest.Mock;
   };
   let mockSkillService: {
     assignSkill:        jest.Mock;
@@ -155,6 +158,7 @@ describe('EmployeeController', () => {
       getEmployeeById:      jest.fn(),
       updateEmployee:       jest.fn(),
       changeEmployeeStatus: jest.fn(),
+      assignPosition:       jest.fn(),
     };
     mockSkillService = {
       assignSkill:        jest.fn(),
@@ -930,6 +934,128 @@ describe('EmployeeController', () => {
         EMPLOYEE_ID,
         TENANT_ID,
       );
+    });
+  });
+
+  // --------------------------------------------------------------------------
+  // assignPosition()  (GD-M15-1 D5/D6/D9/D10)
+  // --------------------------------------------------------------------------
+
+  describe('assignPosition()', () => {
+    const positionedEmployee: EmployeeRecord = { ...employeeRecord, positionId: POSITION_ID };
+    const unpositionedEmployee: EmployeeRecord = { ...employeeRecord, positionId: null };
+
+    const assignDto: AssignPositionDto = { positionId: POSITION_ID };
+    const clearDto: AssignPositionDto = { positionId: null };
+
+    it('SUCCESS (assignment): returns { success: true, data: employee } with HTTP 200', async () => {
+      mockService.assignPosition.mockResolvedValue({ outcome: 'SUCCESS', employee: positionedEmployee });
+
+      const result = await controller.assignPosition(EMPLOYEE_ID, assignDto, mockActor) as Record<string, Record<string, unknown>>;
+
+      expect(result['success']).toBe(true);
+      expect(result['data']!['positionId']).toBe(POSITION_ID);
+    });
+
+    it('SUCCESS (clearance): response positionId is null', async () => {
+      mockService.assignPosition.mockResolvedValue({ outcome: 'SUCCESS', employee: unpositionedEmployee });
+
+      const result = await controller.assignPosition(EMPLOYEE_ID, clearDto, mockActor) as Record<string, Record<string, unknown>>;
+
+      expect(result['success']).toBe(true);
+      expect(result['data']!['positionId']).toBeNull();
+    });
+
+    it('SUCCESS: response shape includes appointmentAuthority and positionId', async () => {
+      mockService.assignPosition.mockResolvedValue({ outcome: 'SUCCESS', employee: positionedEmployee });
+
+      const result = await controller.assignPosition(EMPLOYEE_ID, assignDto, mockActor) as Record<string, Record<string, unknown>>;
+
+      expect(result['data']).toHaveProperty('appointmentAuthority', 'ADMINISTRATIVE');
+      expect(result['data']).toHaveProperty('positionId', POSITION_ID);
+    });
+
+    it('SUCCESS: tenantId absent from response (SEC-003)', async () => {
+      mockService.assignPosition.mockResolvedValue({ outcome: 'SUCCESS', employee: positionedEmployee });
+
+      const result = await controller.assignPosition(EMPLOYEE_ID, assignDto, mockActor) as Record<string, Record<string, unknown>>;
+
+      expect(result['data']).not.toHaveProperty('tenantId');
+    });
+
+    it('service called with positionId from DTO and tenantId/userId from JWT (SEC-003)', async () => {
+      mockService.assignPosition.mockResolvedValue({ outcome: 'SUCCESS', employee: positionedEmployee });
+
+      await controller.assignPosition(EMPLOYEE_ID, assignDto, mockActor);
+
+      expect(mockService.assignPosition).toHaveBeenCalledWith(
+        EMPLOYEE_ID,
+        { positionId: POSITION_ID },
+        TENANT_ID,
+        ACTOR_ID,
+      );
+    });
+
+    it('NOT_FOUND: throws NotFoundException', async () => {
+      mockService.assignPosition.mockResolvedValue({ outcome: 'NOT_FOUND' });
+
+      await expect(controller.assignPosition(EMPLOYEE_ID, assignDto, mockActor)).rejects.toThrow(NotFoundException);
+    });
+
+    it('EMPLOYEE_SEPARATED: throws UnprocessableEntityException with code EMPLOYEE_SEPARATED (GD-M15-1 D5/D6)', async () => {
+      mockService.assignPosition.mockResolvedValue({ outcome: 'EMPLOYEE_SEPARATED' });
+
+      let thrown: unknown;
+      try { await controller.assignPosition(EMPLOYEE_ID, assignDto, mockActor); } catch (e) { thrown = e; }
+      expect(thrown).toBeInstanceOf(UnprocessableEntityException);
+      const body = (thrown as UnprocessableEntityException).getResponse() as Record<string, Record<string, string>>;
+      expect(body['error']['code']).toBe('EMPLOYEE_SEPARATED');
+    });
+
+    it('POSITION_NOT_FOUND: throws NotFoundException with code POSITION_NOT_FOUND (GD-M15-1 D5; SEC-003)', async () => {
+      mockService.assignPosition.mockResolvedValue({ outcome: 'POSITION_NOT_FOUND' });
+
+      let thrown: unknown;
+      try { await controller.assignPosition(EMPLOYEE_ID, assignDto, mockActor); } catch (e) { thrown = e; }
+      expect(thrown).toBeInstanceOf(NotFoundException);
+      const body = (thrown as NotFoundException).getResponse() as Record<string, Record<string, string>>;
+      expect(body['error']['code']).toBe('POSITION_NOT_FOUND');
+    });
+
+    it('POSITION_NOT_ACTIVE_FOR_ASSIGNMENT: throws UnprocessableEntityException (GD-M15-1 D5)', async () => {
+      mockService.assignPosition.mockResolvedValue({ outcome: 'POSITION_NOT_ACTIVE_FOR_ASSIGNMENT' });
+
+      let thrown: unknown;
+      try { await controller.assignPosition(EMPLOYEE_ID, assignDto, mockActor); } catch (e) { thrown = e; }
+      expect(thrown).toBeInstanceOf(UnprocessableEntityException);
+      const body = (thrown as UnprocessableEntityException).getResponse() as Record<string, Record<string, string>>;
+      expect(body['error']['code']).toBe('POSITION_NOT_ACTIVE_FOR_ASSIGNMENT');
+    });
+
+    it('POSITION_ALREADY_OCCUPIED: throws UnprocessableEntityException (GD-M15-1 D5; GD-PRE-M13-002)', async () => {
+      mockService.assignPosition.mockResolvedValue({ outcome: 'POSITION_ALREADY_OCCUPIED' });
+
+      let thrown: unknown;
+      try { await controller.assignPosition(EMPLOYEE_ID, assignDto, mockActor); } catch (e) { thrown = e; }
+      expect(thrown).toBeInstanceOf(UnprocessableEntityException);
+      const body = (thrown as UnprocessableEntityException).getResponse() as Record<string, Record<string, string>>;
+      expect(body['error']['code']).toBe('POSITION_ALREADY_OCCUPIED');
+    });
+
+    it('POSITION_CLEARANCE_NOT_PERMITTED_FOR_STATUS: throws UnprocessableEntityException (GD-M15-1 D6)', async () => {
+      mockService.assignPosition.mockResolvedValue({ outcome: 'POSITION_CLEARANCE_NOT_PERMITTED_FOR_STATUS' });
+
+      let thrown: unknown;
+      try { await controller.assignPosition(EMPLOYEE_ID, clearDto, mockActor); } catch (e) { thrown = e; }
+      expect(thrown).toBeInstanceOf(UnprocessableEntityException);
+      const body = (thrown as UnprocessableEntityException).getResponse() as Record<string, Record<string, string>>;
+      expect(body['error']['code']).toBe('POSITION_CLEARANCE_NOT_PERMITTED_FOR_STATUS');
+    });
+
+    it('INTERNAL_ERROR: throws InternalServerErrorException', async () => {
+      mockService.assignPosition.mockResolvedValue({ outcome: 'INTERNAL_ERROR' });
+
+      await expect(controller.assignPosition(EMPLOYEE_ID, assignDto, mockActor)).rejects.toThrow(InternalServerErrorException);
     });
   });
 });

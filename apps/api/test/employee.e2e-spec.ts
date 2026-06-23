@@ -97,6 +97,22 @@ describe('Employee (e2e)', () => {
   let reinstateTargetId: string;     // SUSPENDED → ACTIVE (Group 5 test 5)
   let separateTargetId: string;      // ACTIVE → SEPARATED (Group 5 test 6)
 
+  // Position fixtures for assign-position tests (Group 8 — GD-M15-1 D5/D6/D9/D10)
+  let apActivePos1Id: string;        // ACTIVE, unoccupied — initial assignment + no-op + reassignment start
+  let apActivePos2Id: string;        // ACTIVE, unoccupied — reassignment target
+  let apInitialPosId: string;        // ACTIVE, pre-occupied by apClearTargetId — clearance success test
+  let apDraftPosId: string;          // DRAFT — POSITION_NOT_ACTIVE_FOR_ASSIGNMENT test
+  let apOccupiedPosId: string;       // ACTIVE, pre-occupied by apBlockerEmpId — POSITION_ALREADY_OCCUPIED test
+  let crossTenantPosId: string;      // ACTIVE in crossTenant — SEC-003 cross-tenant position test
+
+  // Employee fixtures for assign-position tests (Group 8)
+  let apAssignTargetId: string;      // PENDING_ONBOARDING, no position — sequential: assign → no-op → reassign
+  let apClearTargetId: string;       // PENDING_ONBOARDING, starts on apInitialPosId — clearance success
+  let apActiveWithPosId: string;     // ACTIVE — clearance rejection (POSITION_CLEARANCE_NOT_PERMITTED_FOR_STATUS)
+  let apOnLeaveWithPosId: string;    // ON_LEAVE — clearance rejection
+  let apSuspendedWithPosId: string;  // SUSPENDED — clearance rejection
+  let apBlockerEmpId: string;        // ACTIVE, pre-assigned to apOccupiedPosId — incumbent for occupancy test
+
   // API-created employee IDs — captured from POST responses for cleanup
   const apiCreatedEmployeeIds: string[] = [];
 
@@ -207,6 +223,35 @@ describe('Employee (e2e)', () => {
     reinstateTargetId   = await mkEmp(fixtureTenantId, primaryDeptId, `EMP-${SUFFIX}-reinstate`, 'SUSPENDED');
     separateTargetId    = await mkEmp(fixtureTenantId, primaryDeptId, `EMP-${SUFFIX}-separate`, 'ACTIVE');
 
+    // ---- Position fixtures for assign-position tests (Group 8) ----
+    const mkPosition = async (tenantId: string, deptId: string, title: string, status: string) => {
+      const p = await prisma.position.create({
+        data: { tenantId, departmentId: deptId, title, status },
+      });
+      return p.id;
+    };
+
+    apActivePos1Id   = await mkPosition(fixtureTenantId, primaryDeptId, 'AP Active Position 1', 'ACTIVE');
+    apActivePos2Id   = await mkPosition(fixtureTenantId, primaryDeptId, 'AP Active Position 2', 'ACTIVE');
+    apInitialPosId   = await mkPosition(fixtureTenantId, primaryDeptId, 'AP Initial Position',  'ACTIVE');
+    apDraftPosId     = await mkPosition(fixtureTenantId, primaryDeptId, 'AP Draft Position',    'DRAFT');
+    apOccupiedPosId  = await mkPosition(fixtureTenantId, primaryDeptId, 'AP Occupied Position', 'ACTIVE');
+    crossTenantPosId = await mkPosition(crossTenantId, crossTenantDeptId, 'CT Active Position', 'ACTIVE');
+
+    // ---- Employee fixtures for assign-position tests (Group 8) ----
+    apAssignTargetId     = await mkEmp(fixtureTenantId, primaryDeptId, `EMP-${SUFFIX}-ap-assign`,    'PENDING_ONBOARDING');
+    apClearTargetId      = await mkEmp(fixtureTenantId, primaryDeptId, `EMP-${SUFFIX}-ap-clear`,     'PENDING_ONBOARDING');
+    apActiveWithPosId    = await mkEmp(fixtureTenantId, primaryDeptId, `EMP-${SUFFIX}-ap-active`,    'ACTIVE');
+    apOnLeaveWithPosId   = await mkEmp(fixtureTenantId, primaryDeptId, `EMP-${SUFFIX}-ap-leave`,     'ON_LEAVE');
+    apSuspendedWithPosId = await mkEmp(fixtureTenantId, primaryDeptId, `EMP-${SUFFIX}-ap-suspended`, 'SUSPENDED');
+    apBlockerEmpId       = await mkEmp(fixtureTenantId, primaryDeptId, `EMP-${SUFFIX}-ap-blocker`,   'ACTIVE');
+
+    // Pre-assign positions via Prisma so fixtures start in governed state.
+    // apClearTargetId must have a position so the clearance test actually writes a change.
+    // apBlockerEmpId must occupy apOccupiedPosId so the occupancy check fires for apAssignTargetId.
+    await prisma.employee.update({ where: { id: apClearTargetId }, data: { positionId: apInitialPosId } });
+    await prisma.employee.update({ where: { id: apBlockerEmpId  }, data: { positionId: apOccupiedPosId } });
+
     // ---- Authenticate all fixture users ----
     const login = async (email: string) => {
       const res = await request(app.getHttpServer())
@@ -228,9 +273,14 @@ describe('Employee (e2e)', () => {
     if (prisma) {
       const tenantIds = [fixtureTenantId, crossTenantId].filter(Boolean);
 
-      // Employees first — FK constraint to departments
+      // Employees first — employees.positionId FK → positions; employees.departmentId FK → departments
       if (tenantIds.length > 0) {
         await prisma.employee.deleteMany({ where: { tenantId: { in: tenantIds } } }).catch(() => {});
+      }
+
+      // Positions — positions.departmentId FK → departments; must follow employee deletion
+      if (tenantIds.length > 0) {
+        await prisma.position.deleteMany({ where: { tenantId: { in: tenantIds } } }).catch(() => {});
       }
 
       // Departments
@@ -953,6 +1003,313 @@ describe('Employee (e2e)', () => {
         .set('Authorization', `Bearer ${adminToken}`);
 
       expect(res.status).toBe(404);
+    });
+  });
+
+  // --------------------------------------------------------------------------
+  // Group 8: POST /api/v1/employees/:id/assign-position  (GD-M15-1 D5/D6/D9/D10)
+  //
+  // Sequential state in tests marked [STATE]: apAssignTargetId progresses
+  //   null → apActivePos1Id → apActivePos1Id (no-op) → apActivePos2Id
+  // These three [STATE] tests must run in order. Audit verification at end
+  // depends on Groups 8a–8c having completed.
+  // --------------------------------------------------------------------------
+
+  describe('POST /api/v1/employees/:id/assign-position (GD-M15-1 D5/D6/D9/D10)', () => {
+
+    // ---- RBAC / auth ----
+
+    it('Workforce Planner JWT → HTTP 403 (GD-M15-1 D10: SA + HR Director only)', async () => {
+      const res = await request(app.getHttpServer())
+        .post(`/api/v1/employees/${apAssignTargetId}/assign-position`)
+        .set('Authorization', `Bearer ${wpToken}`)
+        .send({ positionId: apActivePos1Id });
+
+      expect(res.status).toBe(403);
+    });
+
+    it('Executive User JWT → HTTP 403 (GD-M15-1 D10; RBAC-952)', async () => {
+      const res = await request(app.getHttpServer())
+        .post(`/api/v1/employees/${apAssignTargetId}/assign-position`)
+        .set('Authorization', `Bearer ${execToken}`)
+        .send({ positionId: apActivePos1Id });
+
+      expect(res.status).toBe(403);
+    });
+
+    it('no Authorization header → HTTP 401', async () => {
+      const res = await request(app.getHttpServer())
+        .post(`/api/v1/employees/${apAssignTargetId}/assign-position`)
+        .send({ positionId: apActivePos1Id });
+
+      expect(res.status).toBe(401);
+    });
+
+    it('HR Director JWT → not HTTP 403 (GD-M15-1 D10 authorizes HR Director)', async () => {
+      // Use separatedEmployeeId — guaranteed 422 EMPLOYEE_SEPARATED, proving HR clears the RBAC guard.
+      const res = await request(app.getHttpServer())
+        .post(`/api/v1/employees/${separatedEmployeeId}/assign-position`)
+        .set('Authorization', `Bearer ${hrToken}`)
+        .send({ positionId: apActivePos1Id });
+
+      expect(res.status).toBe(422);
+      expect(res.body.error?.code).toBe('EMPLOYEE_SEPARATED');
+    });
+
+    // ---- Body validation ----
+
+    it('absent positionId → HTTP 400 (positionId is required — GD-M15-1 D5)', async () => {
+      const res = await request(app.getHttpServer())
+        .post(`/api/v1/employees/${apAssignTargetId}/assign-position`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({});
+
+      expect(res.status).toBe(400);
+    });
+
+    it('positionId not a UUID → HTTP 400', async () => {
+      const res = await request(app.getHttpServer())
+        .post(`/api/v1/employees/${apAssignTargetId}/assign-position`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ positionId: 'not-a-uuid' });
+
+      expect(res.status).toBe(400);
+    });
+
+    // ---- Employee lookup failures ----
+
+    it('non-existent employee UUID → HTTP 404', async () => {
+      const res = await request(app.getHttpServer())
+        .post('/api/v1/employees/00000000-0000-4000-8000-000000000099/assign-position')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ positionId: apActivePos1Id });
+
+      expect(res.status).toBe(404);
+    });
+
+    it('cross-tenant employee UUID → HTTP 404 (SEC-003: absent and cross-tenant look identical)', async () => {
+      // crossTenantEmployeeId belongs to crossTenant; adminToken belongs to fixtureTenant.
+      const res = await request(app.getHttpServer())
+        .post(`/api/v1/employees/${crossTenantEmployeeId}/assign-position`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ positionId: apActivePos1Id });
+
+      expect(res.status).toBe(404);
+    });
+
+    // ---- EMPLOYEE_SEPARATED guard (GD-M15-1 D5/D6) ----
+
+    it('SEPARATED employee (UUID assignment) → HTTP 422 EMPLOYEE_SEPARATED', async () => {
+      const res = await request(app.getHttpServer())
+        .post(`/api/v1/employees/${separatedEmployeeId}/assign-position`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ positionId: apActivePos1Id });
+
+      expect(res.status).toBe(422);
+      expect(res.body.error?.code).toBe('EMPLOYEE_SEPARATED');
+    });
+
+    it('SEPARATED employee (clearance) → HTTP 422 EMPLOYEE_SEPARATED', async () => {
+      const res = await request(app.getHttpServer())
+        .post(`/api/v1/employees/${separatedEmployeeId}/assign-position`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ positionId: null });
+
+      expect(res.status).toBe(422);
+      expect(res.body.error?.code).toBe('EMPLOYEE_SEPARATED');
+    });
+
+    // ---- Position lookup and status failures (GD-M15-1 D5) ----
+
+    it('non-existent positionId → HTTP 404 POSITION_NOT_FOUND (SEC-003)', async () => {
+      const res = await request(app.getHttpServer())
+        .post(`/api/v1/employees/${apAssignTargetId}/assign-position`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ positionId: '11111111-0000-4000-8000-000000000099' });
+
+      expect(res.status).toBe(404);
+      expect(res.body.error?.code).toBe('POSITION_NOT_FOUND');
+    });
+
+    it('cross-tenant positionId → HTTP 404 POSITION_NOT_FOUND (SEC-003)', async () => {
+      // crossTenantPosId belongs to crossTenant; admin's tenantId is fixtureTenant.
+      const res = await request(app.getHttpServer())
+        .post(`/api/v1/employees/${apAssignTargetId}/assign-position`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ positionId: crossTenantPosId });
+
+      expect(res.status).toBe(404);
+      expect(res.body.error?.code).toBe('POSITION_NOT_FOUND');
+    });
+
+    it('DRAFT position → HTTP 422 POSITION_NOT_ACTIVE_FOR_ASSIGNMENT (GD-M15-1 D5)', async () => {
+      const res = await request(app.getHttpServer())
+        .post(`/api/v1/employees/${apAssignTargetId}/assign-position`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ positionId: apDraftPosId });
+
+      expect(res.status).toBe(422);
+      expect(res.body.error?.code).toBe('POSITION_NOT_ACTIVE_FOR_ASSIGNMENT');
+    });
+
+    it('ACTIVE position with incumbent → HTTP 422 POSITION_ALREADY_OCCUPIED (GD-M15-1 D5; GD-PRE-M13-002)', async () => {
+      // apOccupiedPosId is pre-occupied by apBlockerEmpId (ACTIVE) — created in beforeAll.
+      const res = await request(app.getHttpServer())
+        .post(`/api/v1/employees/${apAssignTargetId}/assign-position`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ positionId: apOccupiedPosId });
+
+      expect(res.status).toBe(422);
+      expect(res.body.error?.code).toBe('POSITION_ALREADY_OCCUPIED');
+    });
+
+    // ---- Clearance rejections (GD-M15-1 D6) ----
+
+    it('ACTIVE employee clearance → HTTP 422 POSITION_CLEARANCE_NOT_PERMITTED_FOR_STATUS (GD-M15-1 D6)', async () => {
+      const res = await request(app.getHttpServer())
+        .post(`/api/v1/employees/${apActiveWithPosId}/assign-position`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ positionId: null });
+
+      expect(res.status).toBe(422);
+      expect(res.body.error?.code).toBe('POSITION_CLEARANCE_NOT_PERMITTED_FOR_STATUS');
+    });
+
+    it('ON_LEAVE employee clearance → HTTP 422 POSITION_CLEARANCE_NOT_PERMITTED_FOR_STATUS (GD-M15-1 D6)', async () => {
+      const res = await request(app.getHttpServer())
+        .post(`/api/v1/employees/${apOnLeaveWithPosId}/assign-position`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ positionId: null });
+
+      expect(res.status).toBe(422);
+      expect(res.body.error?.code).toBe('POSITION_CLEARANCE_NOT_PERMITTED_FOR_STATUS');
+    });
+
+    it('SUSPENDED employee clearance → HTTP 422 POSITION_CLEARANCE_NOT_PERMITTED_FOR_STATUS (GD-M15-1 D6)', async () => {
+      const res = await request(app.getHttpServer())
+        .post(`/api/v1/employees/${apSuspendedWithPosId}/assign-position`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ positionId: null });
+
+      expect(res.status).toBe(422);
+      expect(res.body.error?.code).toBe('POSITION_CLEARANCE_NOT_PERMITTED_FOR_STATUS');
+    });
+
+    // ---- Success paths — sequential (GD-M15-1 D5/D9) ----
+    // These three tests intentionally run in order and share apAssignTargetId state:
+    //   initial assignment → no-op → reassignment
+
+    it('[STATE 1/3] initial assignment (null → UUID) → HTTP 200; positionId set; appointmentAuthority in response', async () => {
+      const res = await request(app.getHttpServer())
+        .post(`/api/v1/employees/${apAssignTargetId}/assign-position`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ positionId: apActivePos1Id });
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data.positionId).toBe(apActivePos1Id);
+      expect(res.body.data).toHaveProperty('appointmentAuthority', 'ADMINISTRATIVE');
+      expect(res.body.data).not.toHaveProperty('tenantId');
+    });
+
+    it('[STATE 2/3] no-op (same positionId) → HTTP 200; positionId unchanged (GD-M15-1 D9: no audit event)', async () => {
+      const res = await request(app.getHttpServer())
+        .post(`/api/v1/employees/${apAssignTargetId}/assign-position`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ positionId: apActivePos1Id });
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data.positionId).toBe(apActivePos1Id);
+    });
+
+    it('[STATE 3/3] reassignment (UUID A → UUID B) → HTTP 200; positionId updated to new position', async () => {
+      const res = await request(app.getHttpServer())
+        .post(`/api/v1/employees/${apAssignTargetId}/assign-position`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ positionId: apActivePos2Id });
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data.positionId).toBe(apActivePos2Id);
+    });
+
+    it('clearance (UUID → null) on PENDING_ONBOARDING → HTTP 200; positionId null in response (GD-M15-1 D6)', async () => {
+      const res = await request(app.getHttpServer())
+        .post(`/api/v1/employees/${apClearTargetId}/assign-position`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ positionId: null });
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data.positionId).toBeNull();
+    });
+
+    // ---- Audit event verification (depends on [STATE] tests above) ----
+
+    it('WORKFORCE_EMPLOYEE_POSITION_ASSIGNED written after initial assignment (GD-M15-1 D9)', async () => {
+      const record = await prisma.auditEvent.findFirst({
+        where: { entityId: apAssignTargetId, action: 'WORKFORCE_EMPLOYEE_POSITION_ASSIGNED' },
+      });
+
+      expect(record).not.toBeNull();
+      expect(record!.tenantId).toBe(fixtureTenantId);
+      const meta = record!.metadata as Record<string, unknown>;
+      expect(meta['new_position_id']).toBe(apActivePos1Id);
+      expect(meta['appointment_authority']).toBe('ADMINISTRATIVE');
+    });
+
+    it('exactly one POSITION_ASSIGNED event for apAssignTargetId — no-op emits no event (GD-M15-1 D9)', async () => {
+      const records = await prisma.auditEvent.findMany({
+        where: { entityId: apAssignTargetId, action: 'WORKFORCE_EMPLOYEE_POSITION_ASSIGNED' },
+      });
+
+      expect(records).toHaveLength(1);
+    });
+
+    it('WORKFORCE_EMPLOYEE_POSITION_REASSIGNED written after reassignment; prior and new position IDs in metadata (GD-M15-1 D9)', async () => {
+      const record = await prisma.auditEvent.findFirst({
+        where: { entityId: apAssignTargetId, action: 'WORKFORCE_EMPLOYEE_POSITION_REASSIGNED' },
+      });
+
+      expect(record).not.toBeNull();
+      const meta = record!.metadata as Record<string, unknown>;
+      expect(meta['prior_position_id']).toBe(apActivePos1Id);
+      expect(meta['new_position_id']).toBe(apActivePos2Id);
+    });
+
+    it('WORKFORCE_EMPLOYEE_POSITION_CLEARED written after clearance; prior_position_id in metadata (GD-M15-1 D9)', async () => {
+      const record = await prisma.auditEvent.findFirst({
+        where: { entityId: apClearTargetId, action: 'WORKFORCE_EMPLOYEE_POSITION_CLEARED' },
+      });
+
+      expect(record).not.toBeNull();
+      const meta = record!.metadata as Record<string, unknown>;
+      expect(meta['prior_position_id']).toBe(apInitialPosId);
+      expect(meta['employment_status_at_clearance']).toBe('PENDING_ONBOARDING');
+    });
+
+    it('audit metadata does not contain PII field values — field names only (EMP-401)', async () => {
+      const records = await prisma.auditEvent.findMany({
+        where: {
+          entityId: { in: [apAssignTargetId, apClearTargetId] },
+          action: {
+            in: [
+              'WORKFORCE_EMPLOYEE_POSITION_ASSIGNED',
+              'WORKFORCE_EMPLOYEE_POSITION_REASSIGNED',
+              'WORKFORCE_EMPLOYEE_POSITION_CLEARED',
+            ],
+          },
+        },
+      });
+
+      expect(records.length).toBeGreaterThan(0);
+      for (const rec of records) {
+        const metaStr = JSON.stringify(rec.metadata);
+        // EMP-401: employee names and emails must not appear in audit metadata
+        expect(metaStr).not.toContain('E2E');
+        expect(metaStr).not.toContain('@');
+      }
     });
   });
 });

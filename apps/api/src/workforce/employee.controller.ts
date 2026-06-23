@@ -4,18 +4,20 @@
 // Reference: directives/13_employee_management_rules.md — EMP-AUTH-001 through EMP-AUTH-005
 // Reference: directives/14_skill_management_rules.md — SKL-200 through SKL-211
 // Reference: directives/15_certification_management_rules.md — CRT-200 through CRT-302
+// Reference: governance/GD-M15-1.md — Decision 5, 6, 9, 10 (assign-position endpoint; clearance rules; audit events; RBAC)
 //
 // EmployeeController is the sole HTTP transport layer for the workforce/employee domain.
 // It maps EmployeeService, EmployeeSkillService, and EmployeeCertificationService result types
 // → HTTP status codes + response envelopes.
 // tenantId is never accepted from the request — always derived from the validated JWT (SEC-003/EMP-002).
 //
-// Authorization (directives/13_employee_management_rules.md — GD-M12-3):
+// Authorization (directives/13_employee_management_rules.md — GD-M12-3; GD-M15-1 D10):
 //   POST  /employees                         — System Administrator, HR Director                                     (EMP-AUTH-001)
 //   GET   /employees                         — SA, HR Director, Workforce Planner, Hiring Manager, Compliance Officer (EMP-AUTH-002)
 //   GET   /employees/:id                     — SA, HR Director, Workforce Planner, Hiring Manager, Compliance Officer (EMP-AUTH-003)
 //   PUT   /employees/:id                     — System Administrator, HR Director                                     (EMP-AUTH-004)
 //   POST  /employees/:id/status              — System Administrator, HR Director                                     (EMP-AUTH-005)
+//   POST  /employees/:id/assign-position     — System Administrator, HR Director                                     (GD-M15-1 D10)
 //   POST  /employees/:id/skills              — System Administrator, HR Director                                     (SKL-200)
 //   GET   /employees/:id/skills              — SA, HR Director, Workforce Planner, Compliance Officer                (SKL-200)
 //   POST  /employees/:id/certifications      — System Administrator, HR Director                                     (CRT-200)
@@ -76,6 +78,7 @@ import { ChangeEmployeeStatusDto } from './dto/change-employee-status.dto';
 import { ListEmployeesQueryDto } from './dto/list-employees-query.dto';
 import { AssignSkillDto } from './dto/assign-skill.dto';
 import { AssignCertificationDto } from './dto/assign-certification.dto';
+import { AssignPositionDto } from './dto/assign-position.dto';
 
 @ApiTags('workforce')
 @Controller({ version: '1' })
@@ -435,6 +438,105 @@ export class EmployeeController {
           error: {
             code: 'TERMINATION_BEFORE_HIRE_DATE',
             message: 'separation date cannot precede hire date — update or remove the hire date before separating this employee (GD-M12-8/EMP-805)',
+          },
+        });
+
+      case 'INTERNAL_ERROR':
+        throw new InternalServerErrorException({
+          success: false,
+          error: { code: 'INTERNAL_ERROR', message: 'An unexpected error occurred' },
+        });
+    }
+  }
+
+  // --------------------------------------------------------------------------
+  // POST /api/v1/employees/:id/assign-position  (GD-M15-1 D5/D6/D9/D10)
+  // --------------------------------------------------------------------------
+
+  @Post('employees/:id/assign-position')
+  @HttpCode(200)
+  @RequireRoles('System Administrator', 'HR Director')
+  @ApiOperation({
+    summary:
+      'Assign, reassign, or clear employee position (GD-M15-1 D5/D6) — ' +
+      'positionId=UUID: initial assignment or reassignment; ' +
+      'positionId=null: clearance (PENDING_ONBOARDING only). ' +
+      'No-op if same positionId already assigned. Emits audit event per GD-M15-1 D9.',
+  })
+  @ApiParam({ name: 'id', description: 'Employee UUID v4', type: 'string' })
+  @ApiResponse({ status: 200, description: 'Position assigned, reassigned, cleared, or no-op — updated employee record returned' })
+  @ApiResponse({ status: 400, description: 'Validation error — positionId absent or not a UUID/null' })
+  @ApiResponse({ status: 401, description: 'Not authenticated' })
+  @ApiResponse({ status: 403, description: 'Insufficient role — GD-M15-1 D10 (SA and HR Director only)' })
+  @ApiResponse({ status: 404, description: 'Employee not found (NOT_FOUND) or position not found in this tenant (POSITION_NOT_FOUND — SEC-003)' })
+  @ApiResponse({ status: 422, description: 'EMPLOYEE_SEPARATED | POSITION_NOT_ACTIVE_FOR_ASSIGNMENT | POSITION_ALREADY_OCCUPIED | POSITION_CLEARANCE_NOT_PERMITTED_FOR_STATUS' })
+  @ApiResponse({ status: 500, description: 'Internal server error' })
+  async assignPosition(
+    @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
+    @Body() dto: AssignPositionDto,
+    @CurrentUser() actor: RequestUser,
+  ): Promise<object> {
+    const result = await this.employeeService.assignPosition(
+      id,
+      { positionId: dto.positionId },
+      actor.tenantId,
+      actor.userId,
+    );
+
+    switch (result.outcome) {
+      case 'SUCCESS':
+        return { success: true, data: toEmployeeShape(result.employee) };
+
+      case 'NOT_FOUND':
+        throw new NotFoundException({
+          success: false,
+          error: { code: 'NOT_FOUND', message: 'employee not found' },
+        });
+
+      case 'EMPLOYEE_SEPARATED':
+        throw new UnprocessableEntityException({
+          success: false,
+          error: {
+            code: 'EMPLOYEE_SEPARATED',
+            message: 'SEPARATED employees cannot have position assignments modified (GD-M15-1 D5/D6)',
+          },
+        });
+
+      case 'POSITION_NOT_FOUND':
+        throw new NotFoundException({
+          success: false,
+          error: {
+            code: 'POSITION_NOT_FOUND',
+            message: 'position not found in this tenant — absent and cross-tenant positions return identical response (SEC-003; GD-M15-1 D5)',
+          },
+        });
+
+      case 'POSITION_NOT_ACTIVE_FOR_ASSIGNMENT':
+        throw new UnprocessableEntityException({
+          success: false,
+          error: {
+            code: 'POSITION_NOT_ACTIVE_FOR_ASSIGNMENT',
+            message: 'position must be in ACTIVE status to accept an employee assignment (GD-M15-1 D5)',
+          },
+        });
+
+      case 'POSITION_ALREADY_OCCUPIED':
+        throw new UnprocessableEntityException({
+          success: false,
+          error: {
+            code: 'POSITION_ALREADY_OCCUPIED',
+            message: 'position already has a non-SEPARATED incumbent (GD-M15-1 D5; GD-PRE-M13-002 D1)',
+          },
+        });
+
+      case 'POSITION_CLEARANCE_NOT_PERMITTED_FOR_STATUS':
+        throw new UnprocessableEntityException({
+          success: false,
+          error: {
+            code: 'POSITION_CLEARANCE_NOT_PERMITTED_FOR_STATUS',
+            message:
+              'positionId can only be cleared while employee status is PENDING_ONBOARDING — ' +
+              'reassign or separate the employee through the standard HR process (GD-M15-1 D6)',
           },
         });
 
