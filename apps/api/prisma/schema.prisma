@@ -105,6 +105,7 @@ model Position {
 
   department Department @relation(fields: [departmentId], references: [id])
   vacancies  Vacancy[]
+  employees  Employee[]
 
   @@index([tenantId], map: "idx_positions_tenant")
   @@index([departmentId], map: "idx_positions_department")
@@ -151,6 +152,7 @@ model Vacancy {
 // Schema: workforce — Employee
 // Spec reference: spec/05_database_schema.md — Schema: workforce / employees
 // Milestone 12: Employee Management Foundation (FR-110, FR-111, FR-112)
+// Milestone 15: Position Linkage (GD-M15-1)
 // Approved governance decisions:
 //   - employmentStatus @default("PENDING_ONBOARDING") per GD-M12-1 canonical values
 //   - employmentStatus stored as VARCHAR per platform convention (no Prisma enum)
@@ -158,32 +160,40 @@ model Vacancy {
 //   - departmentId FK to organization.departments — cross-schema relation (multiSchema preview)
 //   - employeeNumber nullable at DB level per spec/05; required at API level per GD-M12-6
 //   - employeeNumber immutable after creation per GD-M12-6 (enforced at service layer)
-//   - No positionId field — GD-M12-2: position association deferred to Phase 3 Scheduling
+//   - positionId: UUID NULL FK → workforce.positions (GD-M15-1 D2; GD-PRE-M13-002 D1)
+//     No DB unique constraint — 1:1 FTE Slot Model enforced at service layer only
+//     Partial index (WHERE NOT NULL) in migration SQL; @@index here is the Prisma representation
+//   - appointmentAuthority: VARCHAR(50) NOT NULL (GD-M15-1 D1); backfilled ADMINISTRATIVE
+//     for pre-M15 records per GD-M15-1 D3; immutable after creation (GD-PRE-M13-001 D4)
 //   - deleted_at per platform soft-delete convention
 // ---------------------------------------------------------------------------
 
 model Employee {
-  id               String    @id @default(uuid()) @db.Uuid
-  tenantId         String    @map("tenant_id") @db.Uuid
-  departmentId     String    @map("department_id") @db.Uuid
-  employeeNumber   String?   @map("employee_number") @db.VarChar(100)
-  firstName        String    @map("first_name") @db.VarChar(100)
-  lastName         String    @map("last_name") @db.VarChar(100)
-  email            String?   @db.VarChar(255)
-  employmentStatus String    @default("PENDING_ONBOARDING") @map("employment_status") @db.VarChar(50)
-  hireDate         DateTime? @map("hire_date") @db.Date
-  terminationDate  DateTime? @map("termination_date") @db.Date
-  createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt        DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
-  deletedAt        DateTime? @map("deleted_at") @db.Timestamptz(6)
+  id                   String    @id @default(uuid()) @db.Uuid
+  tenantId             String    @map("tenant_id") @db.Uuid
+  departmentId         String    @map("department_id") @db.Uuid
+  positionId           String?   @map("position_id") @db.Uuid
+  employeeNumber       String?   @map("employee_number") @db.VarChar(100)
+  firstName            String    @map("first_name") @db.VarChar(100)
+  lastName             String    @map("last_name") @db.VarChar(100)
+  email                String?   @db.VarChar(255)
+  employmentStatus     String    @default("PENDING_ONBOARDING") @map("employment_status") @db.VarChar(50)
+  appointmentAuthority String    @map("appointment_authority") @db.VarChar(50)
+  hireDate             DateTime? @map("hire_date") @db.Date
+  terminationDate      DateTime? @map("termination_date") @db.Date
+  createdAt            DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt            DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  deletedAt            DateTime? @map("deleted_at") @db.Timestamptz(6)
 
   department Department @relation(fields: [departmentId], references: [id])
+  position   Position?  @relation(fields: [positionId], references: [id], map: "fk_employee_position")
 
   employeeSkills         EmployeeSkill[]
   employeeCertifications EmployeeCertification[]
 
   @@unique([tenantId, employeeNumber], map: "idx_employee_number_tenant")
   @@index([tenantId], map: "idx_employees_tenant")
+  @@index([positionId], map: "idx_employees_position")
   @@map("employees")
   @@schema("workforce")
 }
