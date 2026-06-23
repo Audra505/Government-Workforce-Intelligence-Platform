@@ -430,6 +430,8 @@ At the start of any repository work session, Claude must:
 
 Claude must treat `PROGRESS.md` as the primary continuity artifact between sessions, while deriving implementation direction from the gap between the intended deliverable and the current repository maturity.
 
+When performing local runtime verification or issuing Docker commands, read the **Full-Stack Docker Runtime Verification** section of `SETUP.md` first and follow its rebuild decision tree before rebuilding services.
+
 ---
 
 ## Mandatory Update Conditions
