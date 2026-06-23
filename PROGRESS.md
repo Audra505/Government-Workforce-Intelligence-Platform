@@ -9,8 +9,10 @@
 
 ---
 
-Last Updated: 2026-06-22 (M14 — Certification Expiration Tracking COMPLETE — CI CONFIRMED GREEN; commit 941c7be; 730/730 unit tests; 257/257 e2e tests; 8/8 RV scenarios PASS; GD-M14-1)
-Updated By: Claude Code (M14 milestone closure: GD-M14-1; FR-153 delivered; Certifications capability maturity updated; 941c7be pushed and CI green)
+Last Updated: 2026-06-22 (GD-PHASE2-CLOSURE-003 — D-005 Scheduling roadmap gap resolved; Phase 8 assignment provisional pending project owner review; stale D-005 PROGRESS.md entry corrected; Deferred Items Register updated)
+Updated By: Claude Code (GD-PHASE2-CLOSURE-003 governance gap closure: D-005 assigned Phase 8; governance_history.md updated; stale PROGRESS.md D-005 entry corrected)
+
+Previous Update: 2026-06-22 (M14 — Certification Expiration Tracking COMPLETE — CI CONFIRMED GREEN; commit 941c7be; 730/730 unit tests; 257/257 e2e tests; 8/8 RV scenarios PASS; GD-M14-1)
 
 ## Repository Status
 
@@ -4402,11 +4404,11 @@ Source: spec/01_requirements.md — Global Acceptance Criteria
 | FR-204 | Schedule Optimization | Planned |
 
 - Capability: Scheduling
-- Deliverable Status: Required
+- Deliverable Status: Required (platform completeness — not required for Phase 7 Production Launch; see GD-PHASE2-CLOSURE-003 Decision 4)
 - Requirements: Defined — spec/01_requirements.md (FR-200, FR-202, FR-204)
 - Specs: Defined — spec/04_domain_model.md, spec/05_database_schema.md
 - Directives: Present — directives/04_scheduling_rules.md
-- Execution Plan: Planned — execution/03_phase_2_core_workforce_platform.md
+- Execution Plan: Not in current execution plan — execution/03_phase_2_core_workforce_platform.md contains no Scheduling content; roadmap placement recorded in GD-PHASE2-CLOSURE-003
 - State Model: Present — state/03_schedule_lifecycle.md
 - Test Scenarios: Specified (docs only) — tests/03_scheduling_tests.md; no executable tests
 - System Loop: Specified (docs only) — runtime/03_scheduler_engine.md; not implemented
@@ -4414,9 +4416,9 @@ Source: spec/01_requirements.md — Global Acceptance Criteria
 - Environment Model: Specified (docs only) — environment/01_environment_strategy.md; not validated
 - Data Lifecycle: Specified (docs only) — data/01_data_lifecycle.md; not implemented
 - Evolution Strategy: Specified (docs only) — evolution/01_versioning_strategy.md; not formalized
-- Overall Maturity: **Planned**
+- Overall Maturity: **Planned** — Phase 2 closed without this domain; assigned to Phase 8 per GD-PHASE2-CLOSURE-003 (provisional — pending project owner review)
 - Remaining Gaps: All implementation; no schedule creation logic, no assignment validation, no optimization engine, no executable tests
-- Next Recommended Step: Implement FR-200 (Schedule Creation) in Phase 2 after Employee and Workforce Planning domains are integrated
+- Next Recommended Step: Deferred to Phase 8 (Scale & Evolution) per GD-PHASE2-CLOSURE-003 — pending project owner review at next planning session; implementation prerequisite chain: Position Linkage Milestone complete → GD-M13-5 Position Skills/Certifications complete → Phase 4 Intelligence AI architecture complete → D-005 Phase 8 implementation
 
 ---
 
@@ -7563,7 +7565,8 @@ All items formally governed and traceable to a specific decision.
 | VAC-401 Competitive Appointment (Path B) | GD-PRE-M13-001 | Phase 3 Recruiting |
 | IN_RECRUITMENT employee state trigger | GD-14-1 (M11) | Phase 3 Recruiting |
 | Lifecycle approval gates (second-approver) | GD-M12-1 D-010 | Phase 3 Approval Management |
-| FR-112 Scheduling Engine | GD-M12-5 | Phase 3 |
+| FR-112 Scheduling Engine | GD-M12-5 (updated by GD-PHASE2-CLOSURE-003) | Phase 8 (follows D-005) |
+| D-005 Scheduling Domain (FR-200, FR-202, FR-204) | GD-PHASE2-CLOSURE-003 | Phase 8 — provisional pending project owner review |
 | FR-152 Competency Framework | No GD (requires governance milestone) | Future |
 | ~~FR-153 Expiration Tracking endpoint~~ | GD-M13-3 D4; GD-M14-1 | **DELIVERED — M14 (2026-06-22)** |
 | PENDING_VERIFICATION / SUSPENDED cert statuses | GD-M13-3 D6 | Future milestone |
@@ -7599,7 +7602,7 @@ In priority order:
    DEP-008 Phase B (GD-PRE-M13-003), appointmentAuthority (GD-PRE-M13-001), and
    Position Skills/Certifications (GD-M13-5). Design document before implementation.
 
-3. **Phase 3 Recruiting** — Per spec/15: Candidates, Applications, Interviews, Resume Upload,
+2. **Phase 3 Recruiting** — Per spec/15: Candidates, Applications, Interviews, Resume Upload,
    Resume Parsing, Hiring Workflow. Should not begin until Position Linkage Milestone is
    sufficiently resolved for VAC-401 Path B to be properly supported.
 

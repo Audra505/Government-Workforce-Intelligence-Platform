@@ -59,6 +59,7 @@ and is tracked in state/02_employee_lifecycle.md.
 |---|---|---|---|
 | GD-PHASE2-CLOSURE-001 | 2026-06-21 | Phase 2 Exit Criteria Reconciliation — Notification Integration and Workforce Dashboards | Establishes spec/15 authority over execution/03; reclassifies Notifications and Dashboards as Phase 5 deliverables; closes PROGRESS.md Phase 2 blocking records from 2026-06-18 |
 | GD-PHASE2-CLOSURE-002 | 2026-06-21 | Position Management UI — Formal Deferral to Position Linkage Milestone | Defers spec/15 Phase 2 UI deliverable "Position Management" to Position Linkage Milestone; binding requirement on that milestone to deliver complete UI with occupant display, POSITION_HAS_ACTIVE_INCUMBENT guard, and assignment workflow |
+| GD-PHASE2-CLOSURE-003 | 2026-06-22 | D-005 Scheduling Domain — Phase Assignment and Roadmap Gap Resolution | Assigns D-005 (FR-200/FR-202/FR-204) to Phase 8 (Scale & Evolution) — provisional pending project owner review; supersedes incidental "Phase 3 Scheduling" assumption in GD-M12-2 and GD-M12-5 for D-005 phase placement only; corrects stale PROGRESS.md D-005 entry; closes roadmap gap open since Phase 2 closure |
 
 ---
 
