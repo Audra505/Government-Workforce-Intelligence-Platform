@@ -101,6 +101,8 @@ export type CloseVacancyBffResponse =
 // Reference: apps/api/src/workforce/employee.controller.ts — toEmployeeShape()
 // Reference: directives/13_employee_management_rules.md — GD-M12-1, EMP-400
 // tenantId intentionally absent — excluded by toEmployeeShape() per SEC-003.
+// positionId: nullable UUID — set by POST /employees/:id/assign-position (GD-M15-1 D5/D6).
+// appointmentAuthority: required at creation; immutable (GD-M15-1 D1/D4/D8).
 // ===========================================================================
 
 export type EmploymentStatus =
@@ -114,11 +116,13 @@ export type EmployeeRow = {
   id: string;
   departmentId: string;
   departmentName: string;
+  positionId: string | null;
   employeeNumber: string;
   firstName: string;
   lastName: string;
   email: string | null;
   employmentStatus: EmploymentStatus;
+  appointmentAuthority: string;
   hireDate: string | null;
   terminationDate: string | null;
   createdAt: string;
@@ -177,6 +181,10 @@ export type UpdateEmployeeBffResponse =
   | { success: false; error: { code: string; message: string } };
 
 export type ChangeEmployeeStatusBffResponse =
+  | { success: true; data: EmployeeRow }
+  | { success: false; error: { code: string; message: string } };
+
+export type AssignPositionBffResponse =
   | { success: true; data: EmployeeRow }
   | { success: false; error: { code: string; message: string } };
 

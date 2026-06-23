@@ -2,7 +2,9 @@
 // Renders all API fields for a single employee record in labeled card sections.
 // EMP-400/EMP-401: audit metadata not exposed in UI; PII-bearing fields shown only
 // to roles that passed NestJS RBAC (SA, HR, WP, HM, CO — RBAC-952 excludes Executive User).
+// currentPositionTitle: resolved by parent page via secondary serverFetch; null when unavailable.
 // Reference: directives/13_employee_management_rules.md — EMP-302 (SEPARATED read-only indicator)
+// Reference: governance/GD-M15-1.md — Decision 5, 7 (positionId in employee response)
 
 import type { ReactNode } from 'react';
 import type { EmployeeRow } from '@/features/workforce/types';
@@ -27,9 +29,12 @@ function Field({ label, children }: { label: string; children: ReactNode }) {
   );
 }
 
-type Props = { employee: EmployeeRow };
+type Props = {
+  employee: EmployeeRow;
+  currentPositionTitle: string | null;
+};
 
-export function EmployeeDetail({ employee }: Props) {
+export function EmployeeDetail({ employee, currentPositionTitle }: Props) {
   const isSeparated = employee.employmentStatus === 'SEPARATED';
 
   return (
@@ -76,6 +81,22 @@ export function EmployeeDetail({ employee }: Props) {
             <span className="font-mono text-sm">{employee.employeeNumber}</span>
           </Field>
           <Field label="Department">{employee.departmentName}</Field>
+          <Field label="Current Position">
+            {employee.positionId ? (
+              currentPositionTitle ? (
+                <span>{currentPositionTitle}</span>
+              ) : (
+                <span className="font-mono text-xs text-muted-foreground">
+                  {employee.positionId}
+                  <span className="ml-1 font-sans text-xs not-italic"> — title unavailable</span>
+                </span>
+              )
+            ) : (
+              <span className="text-muted-foreground">
+                Unassigned — no position is currently held.
+              </span>
+            )}
+          </Field>
           <Field label="Status">
             <EmploymentStatusBadge status={employee.employmentStatus} />
           </Field>
