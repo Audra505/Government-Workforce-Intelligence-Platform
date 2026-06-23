@@ -192,7 +192,7 @@ export class OrganizationController {
   @ApiResponse({ status: 403, description: 'Insufficient role' })
   @ApiResponse({ status: 404, description: 'Department not found in this tenant' })
   @ApiResponse({ status: 409, description: 'Department code already exists within this tenant' })
-  @ApiResponse({ status: 422, description: 'Department has active employees — reassign before deactivating (DEP-008)' })
+  @ApiResponse({ status: 422, description: 'Department has active employees or non-CLOSED positions — resolve before deactivating (DEP-008 / GD-PRE-M13-003)' })
   @ApiResponse({ status: 500, description: 'Internal server error' })
   async updateDepartment(
     @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
@@ -231,6 +231,24 @@ export class OrganizationController {
           error: {
             code: 'DEPARTMENT_HAS_ACTIVE_EMPLOYEES',
             message: 'Cannot deactivate department: active employees must be reassigned first.',
+          },
+        });
+
+      case 'DEPARTMENT_HAS_ACTIVE_POSITIONS':
+        throw new UnprocessableEntityException({
+          success: false,
+          error: {
+            code: 'DEPARTMENT_HAS_ACTIVE_POSITIONS',
+            message: `Cannot deactivate department: ${result.activePositionCount} active position(s) must be closed or reassigned first (GD-PRE-M13-003 D3).`,
+          },
+        });
+
+      case 'DEPARTMENT_HAS_ACTIVE_DEPENDENTS':
+        throw new UnprocessableEntityException({
+          success: false,
+          error: {
+            code: 'DEPARTMENT_HAS_ACTIVE_DEPENDENTS',
+            message: `Cannot deactivate department: ${result.activeEmployeeCount} active employee(s) and ${result.activePositionCount} active position(s) must be resolved first (GD-PRE-M13-003 D3).`,
           },
         });
 

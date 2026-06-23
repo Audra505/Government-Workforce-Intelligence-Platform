@@ -71,6 +71,10 @@ describe('Position (e2e)', () => {
   let crossTenantPosId: string;      // DRAFT in cross-tenant: isolation tests
   let softDeletedPosId: string;      // DRAFT + deletedAt: soft-delete filter tests
 
+  // Step 4 fixtures: occupant response (GD-M15-1 D7) + incumbent close guard (GD-M15-1 D5)
+  let occupiedPositionId: string;    // ACTIVE: has posOccupantEmpId assigned — occupant tests + close guard
+  let posOccupantEmpId: string;      // ACTIVE employee assigned to occupiedPositionId
+
   // API-created position IDs — captured from POST responses for cleanup
   const apiCreatedPositionIds: string[] = [];
 
@@ -197,6 +201,32 @@ describe('Position (e2e)', () => {
     });
     softDeletedPosId = softDeletedPos.id;
 
+    // Step 4 fixtures: occupied position for occupant response (GD-M15-1 D7)
+    // and incumbent close guard (GD-M15-1 D5 / POS-500 gate 2).
+    const occupiedPos = await prisma.position.create({
+      data: {
+        tenantId: fixtureTenantId, departmentId: primaryDeptId,
+        title: 'E2E Occupied Position', status: 'ACTIVE',
+      },
+    });
+    occupiedPositionId = occupiedPos.id;
+
+    // ACTIVE employee assigned to occupiedPositionId — appears as occupant in detail response.
+    const occupantEmp = await prisma.employee.create({
+      data: {
+        tenantId: fixtureTenantId,
+        departmentId: primaryDeptId,
+        positionId: occupiedPositionId,
+        firstName: 'Pos',
+        lastName: 'Occupant',
+        employmentStatus: 'ACTIVE',
+        appointmentAuthority: 'ADMINISTRATIVE',
+        hireDate: new Date('2024-03-15'),
+      },
+      select: { id: true },
+    });
+    posOccupantEmpId = occupantEmp.id;
+
     // Authenticate all fixture users
     const adminRes = await request(app.getHttpServer())
       .post('/api/v1/auth/login')
@@ -221,8 +251,14 @@ describe('Position (e2e)', () => {
 
   afterAll(async () => {
     if (prisma) {
-      // Positions must be deleted before departments (FK ON DELETE RESTRICT)
       const tenantIds = [fixtureTenantId, crossTenantId].filter(Boolean);
+
+      // Employees must be deleted before positions (FK: employee.positionId → position.id)
+      if (tenantIds.length > 0) {
+        await prisma.employee.deleteMany({ where: { tenantId: { in: tenantIds } } }).catch(() => {});
+      }
+
+      // Positions must be deleted before departments (FK ON DELETE RESTRICT)
       if (tenantIds.length > 0) {
         await prisma.position.deleteMany({ where: { tenantId: { in: tenantIds } } }).catch(() => {});
       }
@@ -658,6 +694,109 @@ describe('Position (e2e)', () => {
         .set('Authorization', `Bearer ${adminToken}`);
 
       expect(res.status).toBe(404);
+    });
+  });
+
+  // --------------------------------------------------------------------------
+  // Group 8: Occupant response (GD-M15-1 D7)
+  // --------------------------------------------------------------------------
+
+  describe('Occupant response (GD-M15-1 D7)', () => {
+    it('GET /positions/:id (vacant) → response.data.occupant is null', async () => {
+      const res = await request(app.getHttpServer())
+        .get(`/api/v1/positions/${primaryPositionId}`)
+        .set('Authorization', `Bearer ${adminToken}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data.occupant).toBeNull();
+    });
+
+    it('GET /positions/:id (occupied, ACTIVE employee) → response.data.occupant populated', async () => {
+      const res = await request(app.getHttpServer())
+        .get(`/api/v1/positions/${occupiedPositionId}`)
+        .set('Authorization', `Bearer ${adminToken}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data.occupant).toMatchObject({
+        id: posOccupantEmpId,
+        firstName: 'Pos',
+        lastName: 'Occupant',
+        employmentStatus: 'ACTIVE',
+      });
+    });
+
+    it('GET /positions/:id → occupant.hireDate serialized as YYYY-MM-DD (GD-M15-1 D7)', async () => {
+      const res = await request(app.getHttpServer())
+        .get(`/api/v1/positions/${occupiedPositionId}`)
+        .set('Authorization', `Bearer ${adminToken}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.data.occupant.hireDate).toBe('2024-03-15');
+    });
+
+    it('GET /positions (list) → position items do NOT include occupant field (GD-M15-1 D7: list excluded)', async () => {
+      const res = await request(app.getHttpServer())
+        .get('/api/v1/positions')
+        .set('Authorization', `Bearer ${adminToken}`);
+
+      expect(res.status).toBe(200);
+      const positions = res.body.data.positions as Array<Record<string, unknown>>;
+      expect(positions.length).toBeGreaterThan(0);
+      for (const pos of positions) {
+        expect(pos).not.toHaveProperty('occupant');
+      }
+    });
+  });
+
+  // --------------------------------------------------------------------------
+  // Group 9: Incumbent close guard (GD-M15-1 D5 / POS-500 gate 2)
+  // --------------------------------------------------------------------------
+
+  describe('Incumbent close guard (GD-M15-1 D5 / POS-500)', () => {
+    it('close with active incumbent → HTTP 409 + HAS_ACTIVE_INCUMBENT', async () => {
+      const res = await request(app.getHttpServer())
+        .post(`/api/v1/positions/${occupiedPositionId}/close`)
+        .set('Authorization', `Bearer ${adminToken}`);
+
+      expect(res.status).toBe(409);
+      expect(res.body).toMatchObject({
+        success: false,
+        error: { code: 'HAS_ACTIVE_INCUMBENT' },
+      });
+    });
+
+    it('close with active incumbent → employee employment status unchanged (no cascade)', async () => {
+      const before = await prisma.employee.findFirst({
+        where: { id: posOccupantEmpId },
+        select: { employmentStatus: true },
+      });
+
+      await request(app.getHttpServer())
+        .post(`/api/v1/positions/${occupiedPositionId}/close`)
+        .set('Authorization', `Bearer ${adminToken}`);
+
+      const after = await prisma.employee.findFirst({
+        where: { id: posOccupantEmpId },
+        select: { employmentStatus: true },
+      });
+
+      expect(after!.employmentStatus).toBe(before!.employmentStatus);
+    });
+
+    it('close with active incumbent → position status unchanged (no write on rejected close)', async () => {
+      const res = await request(app.getHttpServer())
+        .post(`/api/v1/positions/${occupiedPositionId}/close`)
+        .set('Authorization', `Bearer ${adminToken}`);
+
+      expect(res.status).toBe(409);
+
+      const pos = await prisma.position.findFirst({
+        where: { id: occupiedPositionId },
+        select: { status: true },
+      });
+      expect(pos!.status).toBe('ACTIVE');
     });
   });
 });

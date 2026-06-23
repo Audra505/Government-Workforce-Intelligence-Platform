@@ -58,6 +58,8 @@ export type UpdateDepartmentResult =
   | { outcome: 'NOT_FOUND' }
   | { outcome: 'CODE_CONFLICT' }
   | { outcome: 'DEPARTMENT_HAS_ACTIVE_EMPLOYEES'; activeEmployeeCount: number }
+  | { outcome: 'DEPARTMENT_HAS_ACTIVE_POSITIONS'; activePositionCount: number }
+  | { outcome: 'DEPARTMENT_HAS_ACTIVE_DEPENDENTS'; activeEmployeeCount: number; activePositionCount: number }
   | { outcome: 'INTERNAL_ERROR' };
 
 // Helper type — matches the Prisma row shape returned by DEPT_READ_SELECT.
@@ -242,18 +244,36 @@ export class DepartmentService {
 
       if (!existing) return { outcome: 'NOT_FOUND' };
 
-      // DEP-008 Phase A (GD-PRE-M13-003): block deactivation when active employees
-      // reference this department. SEPARATED employees and soft-deleted records do not block.
+      // DEP-008 Phase A+B (GD-PRE-M13-003 D2–D3): block deactivation when active employees
+      // or non-CLOSED positions reference this department.
+      // Both counts run in parallel; combined error emitted when both block.
+      // SEPARATED employees and CLOSED/soft-deleted positions do not block.
       if (dto.status === 'INACTIVE') {
-        const activeEmployeeCount = await this.prisma.employee.count({
-          where: {
-            departmentId: id,
-            deletedAt: null,
-            employmentStatus: { in: ['PENDING_ONBOARDING', 'ACTIVE', 'ON_LEAVE', 'SUSPENDED'] },
-          },
-        });
+        const [activeEmployeeCount, activePositionCount] = await Promise.all([
+          this.prisma.employee.count({
+            where: {
+              departmentId: id,
+              deletedAt: null,
+              employmentStatus: { in: ['PENDING_ONBOARDING', 'ACTIVE', 'ON_LEAVE', 'SUSPENDED'] },
+            },
+          }),
+          this.prisma.position.count({
+            where: {
+              departmentId: id,
+              deletedAt: null,
+              status: { in: ['DRAFT', 'ACTIVE', 'FROZEN'] },
+            },
+          }),
+        ]);
+
+        if (activeEmployeeCount > 0 && activePositionCount > 0) {
+          return { outcome: 'DEPARTMENT_HAS_ACTIVE_DEPENDENTS', activeEmployeeCount, activePositionCount };
+        }
         if (activeEmployeeCount > 0) {
           return { outcome: 'DEPARTMENT_HAS_ACTIVE_EMPLOYEES', activeEmployeeCount };
+        }
+        if (activePositionCount > 0) {
+          return { outcome: 'DEPARTMENT_HAS_ACTIVE_POSITIONS', activePositionCount };
         }
       }
 

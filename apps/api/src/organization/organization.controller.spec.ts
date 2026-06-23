@@ -256,6 +256,47 @@ describe('OrganizationController', () => {
         controller.updateDepartment(DEPT_ID, { status: 'INACTIVE' } as UpdateDepartmentDto, mockActor),
       ).rejects.toThrow(UnprocessableEntityException);
     });
+
+    it('DEP-008-C2: DEPARTMENT_HAS_ACTIVE_POSITIONS → throws UnprocessableEntityException with code DEPARTMENT_HAS_ACTIVE_POSITIONS', async () => {
+      mockDeptService.updateDepartment.mockResolvedValue({
+        outcome: 'DEPARTMENT_HAS_ACTIVE_POSITIONS',
+        activePositionCount: 3,
+      });
+
+      let caught: UnprocessableEntityException | null = null;
+      try {
+        await controller.updateDepartment(DEPT_ID, { status: 'INACTIVE' } as UpdateDepartmentDto, mockActor);
+      } catch (e) {
+        caught = e as UnprocessableEntityException;
+      }
+
+      expect(caught).not.toBeNull();
+      expect(caught).toBeInstanceOf(UnprocessableEntityException);
+      const response = caught!.getResponse() as Record<string, unknown>;
+      const error = response['error'] as Record<string, unknown>;
+      expect(error!['code']).toBe('DEPARTMENT_HAS_ACTIVE_POSITIONS');
+    });
+
+    it('DEP-008-C3: DEPARTMENT_HAS_ACTIVE_DEPENDENTS → throws UnprocessableEntityException with code DEPARTMENT_HAS_ACTIVE_DEPENDENTS', async () => {
+      mockDeptService.updateDepartment.mockResolvedValue({
+        outcome: 'DEPARTMENT_HAS_ACTIVE_DEPENDENTS',
+        activeEmployeeCount: 4,
+        activePositionCount: 2,
+      });
+
+      let caught: UnprocessableEntityException | null = null;
+      try {
+        await controller.updateDepartment(DEPT_ID, { status: 'INACTIVE' } as UpdateDepartmentDto, mockActor);
+      } catch (e) {
+        caught = e as UnprocessableEntityException;
+      }
+
+      expect(caught).not.toBeNull();
+      expect(caught).toBeInstanceOf(UnprocessableEntityException);
+      const response = caught!.getResponse() as Record<string, unknown>;
+      const error = response['error'] as Record<string, unknown>;
+      expect(error!['code']).toBe('DEPARTMENT_HAS_ACTIVE_DEPENDENTS');
+    });
   });
 
   // --------------------------------------------------------------------------

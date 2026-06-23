@@ -45,7 +45,7 @@ import { RolesGuard } from '../identity/roles.guard';
 import { RequireRoles } from '../identity/decorators/require-roles.decorator';
 import { CurrentUser } from '../identity/decorators/current-user.decorator';
 import { RequestUser } from '../identity/jwt.strategy';
-import { PositionService, PositionRecord } from './position.service';
+import { PositionService, PositionRecord, PositionDetailRecord } from './position.service';
 import { CreatePositionDto } from './dto/create-position.dto';
 import { ListPositionsQueryDto } from './dto/list-positions-query.dto';
 import { UpdatePositionDto } from './dto/update-position.dto';
@@ -137,7 +137,7 @@ export class PositionController {
   @RequireRoles('System Administrator', 'HR Director', 'Workforce Planner')
   @ApiOperation({ summary: 'Get a position by ID within the authenticated tenant' })
   @ApiParam({ name: 'id', description: 'Position UUID v4', type: 'string' })
-  @ApiResponse({ status: 200, type: PositionResponseDto, description: 'Position found' })
+  @ApiResponse({ status: 200, type: PositionResponseDto, description: 'Position found — includes occupant field (GD-M15-1 D7)' })
   @ApiResponse({ status: 401, description: 'Not authenticated' })
   @ApiResponse({ status: 403, description: 'Insufficient role' })
   @ApiResponse({ status: 404, description: 'Position not found in this tenant' })
@@ -150,7 +150,7 @@ export class PositionController {
 
     switch (result.outcome) {
       case 'SUCCESS':
-        return { success: true, data: toPositionShape(result.position) };
+        return { success: true, data: toPositionDetailShape(result.position) };
 
       case 'NOT_FOUND':
         throw new NotFoundException({
@@ -225,7 +225,7 @@ export class PositionController {
   @ApiResponse({ status: 401, description: 'Not authenticated' })
   @ApiResponse({ status: 403, description: 'Insufficient role' })
   @ApiResponse({ status: 404, description: 'Position not found in this tenant' })
-  @ApiResponse({ status: 409, description: 'Position is already closed, or has non-CLOSED vacancies that must be resolved first (POS-500)' })
+  @ApiResponse({ status: 409, description: 'Position already closed, has non-CLOSED vacancies (POS-500), or has an active incumbent (GD-M15-1 D5)' })
   @ApiResponse({ status: 500, description: 'Internal server error' })
   async closePosition(
     @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
@@ -265,6 +265,15 @@ export class PositionController {
           },
         });
 
+      case 'HAS_ACTIVE_INCUMBENT':
+        throw new ConflictException({
+          success: false,
+          error: {
+            code: 'HAS_ACTIVE_INCUMBENT',
+            message: 'position has an active incumbent — reassign or separate the employee before closing (GD-M15-1 D5; POS-500)',
+          },
+        });
+
       case 'INTERNAL_ERROR':
         throw new InternalServerErrorException({
           success: false,
@@ -285,5 +294,25 @@ function toPositionShape(position: PositionRecord): object {
     salaryBand: position.salaryBand,
     status: position.status,
     createdAt: position.createdAt.toISOString(),
+  };
+}
+
+// Maps PositionDetailRecord to HTTP response shape for GET /positions/:id only.
+// Includes occupant sub-object; hireDate as YYYY-MM-DD per GD-M15-1 D7.
+function toPositionDetailShape(position: PositionDetailRecord): object {
+  return {
+    ...toPositionShape(position),
+    occupant: position.occupant
+      ? {
+          id: position.occupant.id,
+          firstName: position.occupant.firstName,
+          lastName: position.occupant.lastName,
+          employeeNumber: position.occupant.employeeNumber,
+          employmentStatus: position.occupant.employmentStatus,
+          hireDate: position.occupant.hireDate
+            ? position.occupant.hireDate.toISOString().slice(0, 10)
+            : null,
+        }
+      : null,
   };
 }

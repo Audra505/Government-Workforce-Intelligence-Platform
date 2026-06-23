@@ -56,11 +56,14 @@ describe('PositionService', () => {
     vacancy: {
       findFirst: jest.fn(),
     },
+    employee: {
+      findFirst: jest.fn(),
+    },
   };
   const mockAuditService = { logEvent: jest.fn() };
 
   beforeEach(async () => {
-    jest.clearAllMocks();
+    jest.resetAllMocks();
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -352,6 +355,7 @@ describe('PositionService', () => {
 
     it('findFirst where clause includes id, tenantId, and deletedAt: null (SEC-003)', async () => {
       mockPrisma.position.findFirst.mockResolvedValue(POSITION_ROW);
+      mockPrisma.employee.findFirst.mockResolvedValue(null);
 
       await service.getPositionById(POSITION_ID, TENANT_ID);
 
@@ -360,6 +364,82 @@ describe('PositionService', () => {
           where: expect.objectContaining({ id: POSITION_ID, tenantId: TENANT_ID, deletedAt: null }),
         }),
       );
+    });
+
+    // GD-M15-1 D7 occupant tests
+
+    it('GD-M15-1-D7: position with no occupant → result.position.occupant is null', async () => {
+      mockPrisma.position.findFirst.mockResolvedValue(POSITION_ROW);
+      mockPrisma.employee.findFirst.mockResolvedValue(null);
+
+      const result = await service.getPositionById(POSITION_ID, TENANT_ID);
+
+      expect(result.outcome).toBe('SUCCESS');
+      if (result.outcome === 'SUCCESS') {
+        expect(result.position.occupant).toBeNull();
+      }
+    });
+
+    it('GD-M15-1-D7: position with ACTIVE occupant → result.position.occupant populated', async () => {
+      const occupantRow = {
+        id: 'emp-aaa',
+        firstName: 'Jane',
+        lastName: 'Doe',
+        employeeNumber: 'EMP-001',
+        employmentStatus: 'ACTIVE',
+        hireDate: new Date('2024-03-15'),
+      };
+      mockPrisma.position.findFirst.mockResolvedValue(POSITION_ROW);
+      mockPrisma.employee.findFirst.mockResolvedValue(occupantRow);
+
+      const result = await service.getPositionById(POSITION_ID, TENANT_ID);
+
+      expect(result.outcome).toBe('SUCCESS');
+      if (result.outcome === 'SUCCESS') {
+        expect(result.position.occupant).toMatchObject({
+          id: 'emp-aaa',
+          firstName: 'Jane',
+          lastName: 'Doe',
+          employeeNumber: 'EMP-001',
+          employmentStatus: 'ACTIVE',
+          hireDate: new Date('2024-03-15'),
+        });
+      }
+    });
+
+    it('GD-M15-1-D7: occupant query uses positionId, tenantId, deletedAt: null, and non-SEPARATED statuses (SEC-003)', async () => {
+      mockPrisma.position.findFirst.mockResolvedValue(POSITION_ROW);
+      mockPrisma.employee.findFirst.mockResolvedValue(null);
+
+      await service.getPositionById(POSITION_ID, TENANT_ID);
+
+      expect(mockPrisma.employee.findFirst).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            positionId: POSITION_ID,
+            tenantId: TENANT_ID,
+            deletedAt: null,
+            employmentStatus: { in: ['PENDING_ONBOARDING', 'ACTIVE', 'ON_LEAVE', 'SUSPENDED'] },
+          }),
+        }),
+      );
+    });
+
+    it('GD-M15-1-D7: employee.findFirst NOT called when position is NOT_FOUND (early return)', async () => {
+      mockPrisma.position.findFirst.mockResolvedValue(null);
+
+      await service.getPositionById(POSITION_ID, TENANT_ID);
+
+      expect(mockPrisma.employee.findFirst).not.toHaveBeenCalled();
+    });
+
+    it('GD-M15-1-D7: employee.findFirst throwing → outcome INTERNAL_ERROR', async () => {
+      mockPrisma.position.findFirst.mockResolvedValue(POSITION_ROW);
+      mockPrisma.employee.findFirst.mockRejectedValue(new Error('DB error'));
+
+      const result = await service.getPositionById(POSITION_ID, TENANT_ID);
+
+      expect(result.outcome).toBe('INTERNAL_ERROR');
     });
   });
 
@@ -635,10 +715,11 @@ describe('PositionService', () => {
       expect(result.outcome).toBe('HAS_ACTIVE_VACANCIES');
     });
 
-    it('vacancy.findFirst returns null → no blocking vacancy → closure proceeds to SUCCESS', async () => {
+    it('vacancy.findFirst returns null and no incumbent → closure proceeds to SUCCESS', async () => {
       const closedRow = { ...POSITION_ROW, status: 'CLOSED' };
       mockPrisma.position.findFirst.mockResolvedValue({ id: POSITION_ID, status: 'ACTIVE' });
       mockPrisma.vacancy.findFirst.mockResolvedValue(null);
+      mockPrisma.employee.findFirst.mockResolvedValue(null);
       mockPrisma.position.update.mockResolvedValue(closedRow);
       mockAuditService.logEvent.mockResolvedValue(undefined);
 
@@ -658,6 +739,7 @@ describe('PositionService', () => {
     it('vacancy check where clause includes positionId, tenantId, deletedAt: null, status: { not: CLOSED } (POS-500 / SEC-003)', async () => {
       mockPrisma.position.findFirst.mockResolvedValue({ id: POSITION_ID, status: 'ACTIVE' });
       mockPrisma.vacancy.findFirst.mockResolvedValue(null);
+      mockPrisma.employee.findFirst.mockResolvedValue(null);
       mockPrisma.position.update.mockResolvedValue({ ...POSITION_ROW, status: 'CLOSED' });
       mockAuditService.logEvent.mockResolvedValue(undefined);
 
@@ -691,6 +773,68 @@ describe('PositionService', () => {
       await service.closePosition(POSITION_ID, TENANT_ID, ACTOR_ID);
 
       expect(mockPrisma.position.update).not.toHaveBeenCalled();
+    });
+
+    // POS-500 gate 2: No Active Incumbent (GD-M15-1 D5)
+
+    it('GD-M15-1-D5: active incumbent present → outcome HAS_ACTIVE_INCUMBENT', async () => {
+      mockPrisma.position.findFirst.mockResolvedValue({ id: POSITION_ID, status: 'ACTIVE' });
+      mockPrisma.vacancy.findFirst.mockResolvedValue(null);
+      mockPrisma.employee.findFirst.mockResolvedValue({ id: 'emp-stub' });
+
+      const result = await service.closePosition(POSITION_ID, TENANT_ID, ACTOR_ID);
+
+      expect(result.outcome).toBe('HAS_ACTIVE_INCUMBENT');
+    });
+
+    it('GD-M15-1-D5: incumbent check uses positionId, tenantId, deletedAt: null, non-SEPARATED statuses (SEC-003)', async () => {
+      mockPrisma.position.findFirst.mockResolvedValue({ id: POSITION_ID, status: 'ACTIVE' });
+      mockPrisma.vacancy.findFirst.mockResolvedValue(null);
+      mockPrisma.employee.findFirst.mockResolvedValue(null);
+      mockPrisma.position.update.mockResolvedValue({ ...POSITION_ROW, status: 'CLOSED' });
+      mockAuditService.logEvent.mockResolvedValue(undefined);
+
+      await service.closePosition(POSITION_ID, TENANT_ID, ACTOR_ID);
+
+      expect(mockPrisma.employee.findFirst).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            positionId: POSITION_ID,
+            tenantId: TENANT_ID,
+            deletedAt: null,
+            employmentStatus: { in: ['PENDING_ONBOARDING', 'ACTIVE', 'ON_LEAVE', 'SUSPENDED'] },
+          }),
+        }),
+      );
+    });
+
+    it('GD-M15-1-D5: audit event NOT emitted when outcome is HAS_ACTIVE_INCUMBENT', async () => {
+      mockPrisma.position.findFirst.mockResolvedValue({ id: POSITION_ID, status: 'ACTIVE' });
+      mockPrisma.vacancy.findFirst.mockResolvedValue(null);
+      mockPrisma.employee.findFirst.mockResolvedValue({ id: 'emp-stub' });
+
+      await service.closePosition(POSITION_ID, TENANT_ID, ACTOR_ID);
+
+      expect(mockAuditService.logEvent).not.toHaveBeenCalled();
+    });
+
+    it('GD-M15-1-D5: position.update NOT called when blocked by active incumbent', async () => {
+      mockPrisma.position.findFirst.mockResolvedValue({ id: POSITION_ID, status: 'ACTIVE' });
+      mockPrisma.vacancy.findFirst.mockResolvedValue(null);
+      mockPrisma.employee.findFirst.mockResolvedValue({ id: 'emp-stub' });
+
+      await service.closePosition(POSITION_ID, TENANT_ID, ACTOR_ID);
+
+      expect(mockPrisma.position.update).not.toHaveBeenCalled();
+    });
+
+    it('GD-M15-1-D5: employee.findFirst NOT called when vacancy guard already blocked', async () => {
+      mockPrisma.position.findFirst.mockResolvedValue({ id: POSITION_ID, status: 'ACTIVE' });
+      mockPrisma.vacancy.findFirst.mockResolvedValue({ id: 'vac-stub' });
+
+      await service.closePosition(POSITION_ID, TENANT_ID, ACTOR_ID);
+
+      expect(mockPrisma.employee.findFirst).not.toHaveBeenCalled();
     });
   });
 });

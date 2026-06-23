@@ -34,11 +34,13 @@ const HR_EMAIL            = `e2e-org-hr-${SUFFIX}@test.gov`;
 const WP_EMAIL            = `e2e-org-wp-${SUFFIX}@test.gov`;
 const RESTRICTED_EMAIL    = `e2e-org-restricted-${SUFFIX}@test.gov`;
 
-const EXISTING_DEPT_CODE = `E2E-DEPT-${SUFFIX}`;
-const CONFLICT_CODE      = `E2E-CONFLICT-${SUFFIX}`;
-const DEACT_CODE         = `E2E-DEACT-${SUFFIX}`;
-const CROSS_DEPT_CODE    = `E2E-CROSS-D-${SUFFIX}`;
-const SOFT_DEL_CODE      = `E2E-SDEL-${SUFFIX}`;
+const EXISTING_DEPT_CODE    = `E2E-DEPT-${SUFFIX}`;
+const CONFLICT_CODE         = `E2E-CONFLICT-${SUFFIX}`;
+const DEACT_CODE            = `E2E-DEACT-${SUFFIX}`;
+const CROSS_DEPT_CODE       = `E2E-CROSS-D-${SUFFIX}`;
+const SOFT_DEL_CODE         = `E2E-SDEL-${SUFFIX}`;
+const DEPT_WITH_POS_CODE    = `E2E-DPWP-${SUFFIX}`;
+const DEPT_WITH_BOTH_CODE   = `E2E-DWBOTH-${SUFFIX}`;
 
 // ---------------------------------------------------------------------------
 // Tests
@@ -66,6 +68,13 @@ describe('Organization (e2e)', () => {
   let deactivatableDeptId: string;
   let crossTenantDeptId: string;
   let softDeletedDeptId: string;
+
+  // Step 4 fixtures: department position guard (GD-PRE-M13-003 D3 Phase B)
+  let deptWithActivePositionsId: string;   // dept with 1 ACTIVE position, no employees → blocks with DEPARTMENT_HAS_ACTIVE_POSITIONS
+  let deptWithBothId: string;              // dept with 1 ACTIVE position + 1 ACTIVE employee → DEPARTMENT_HAS_ACTIVE_DEPENDENTS
+  let blockingPositionId: string;          // ACTIVE position in deptWithActivePositionsId
+  let combinedPositionId: string;          // ACTIVE position in deptWithBothId
+  let combinedEmployeeId: string;          // ACTIVE employee in deptWithBothId
 
   // API-created department IDs — captured from POST responses for cleanup
   const apiCreatedDeptIds: string[] = [];
@@ -184,6 +193,50 @@ describe('Organization (e2e)', () => {
     });
     softDeletedDeptId = softDelDept.id;
 
+    // Step 4 fixtures: department position guard (GD-PRE-M13-003 D3 Phase B)
+    const deptWithActivePositions = await prisma.department.create({
+      data: { tenantId: fixtureTenantId, name: 'E2E Dept With Position', code: DEPT_WITH_POS_CODE, status: 'ACTIVE' },
+    });
+    deptWithActivePositionsId = deptWithActivePositions.id;
+
+    const blockingPosition = await prisma.position.create({
+      data: {
+        tenantId: fixtureTenantId,
+        departmentId: deptWithActivePositionsId,
+        title: 'E2E Blocking Position',
+        status: 'ACTIVE',
+      },
+    });
+    blockingPositionId = blockingPosition.id;
+
+    const deptWithBoth = await prisma.department.create({
+      data: { tenantId: fixtureTenantId, name: 'E2E Dept With Both', code: DEPT_WITH_BOTH_CODE, status: 'ACTIVE' },
+    });
+    deptWithBothId = deptWithBoth.id;
+
+    const combinedPosition = await prisma.position.create({
+      data: {
+        tenantId: fixtureTenantId,
+        departmentId: deptWithBothId,
+        title: 'E2E Combined Position',
+        status: 'ACTIVE',
+      },
+    });
+    combinedPositionId = combinedPosition.id;
+
+    const combinedEmployee = await prisma.employee.create({
+      data: {
+        tenantId: fixtureTenantId,
+        departmentId: deptWithBothId,
+        firstName: 'Combined',
+        lastName: 'Employee',
+        employmentStatus: 'ACTIVE',
+        appointmentAuthority: 'ADMINISTRATIVE',
+      },
+      select: { id: true },
+    });
+    combinedEmployeeId = combinedEmployee.id;
+
     // Authenticate all fixture users
     const adminRes = await request(app.getHttpServer())
       .post('/api/v1/auth/login')
@@ -208,6 +261,18 @@ describe('Organization (e2e)', () => {
 
   afterAll(async () => {
     if (prisma) {
+      const tenantIds = [fixtureTenantId, crossTenantId].filter(Boolean);
+
+      // Employees must be deleted before positions (FK: employee.positionId → position.id)
+      if (tenantIds.length > 0) {
+        await prisma.employee.deleteMany({ where: { tenantId: { in: tenantIds } } }).catch(() => {});
+      }
+
+      // Positions must be deleted before departments (FK: position.departmentId → department.id)
+      if (tenantIds.length > 0) {
+        await prisma.position.deleteMany({ where: { tenantId: { in: tenantIds } } }).catch(() => {});
+      }
+
       // API-created departments
       for (const deptId of apiCreatedDeptIds) {
         await prisma.auditEvent.deleteMany({ where: { entityId: deptId } }).catch(() => {});
@@ -217,6 +282,7 @@ describe('Organization (e2e)', () => {
       // Pre-created departments (some modified by PATCH tests — delete regardless)
       for (const deptId of [
         existingDeptId, conflictDeptId, deactivatableDeptId, crossTenantDeptId, softDeletedDeptId,
+        deptWithActivePositionsId, deptWithBothId,
       ].filter(Boolean)) {
         await prisma.auditEvent.deleteMany({ where: { entityId: deptId } }).catch(() => {});
         await prisma.department.delete({ where: { id: deptId } }).catch(() => {});
@@ -613,6 +679,67 @@ describe('Organization (e2e)', () => {
         .set('Authorization', `Bearer ${adminToken}`);
 
       expect(res.status).toBe(404);
+    });
+  });
+
+  // --------------------------------------------------------------------------
+  // Group 8: Department deactivation position guard (GD-PRE-M13-003 D3 Phase B)
+  // --------------------------------------------------------------------------
+
+  describe('Department deactivation — position guard (DEP-008 Phase B / GD-PRE-M13-003 D3)', () => {
+    it('dept with ACTIVE position (no employees) → HTTP 422 + DEPARTMENT_HAS_ACTIVE_POSITIONS', async () => {
+      const res = await request(app.getHttpServer())
+        .patch(`/api/v1/departments/${deptWithActivePositionsId}`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ status: 'INACTIVE' });
+
+      expect(res.status).toBe(422);
+      expect(res.body).toMatchObject({
+        success: false,
+        error: { code: 'DEPARTMENT_HAS_ACTIVE_POSITIONS' },
+      });
+    });
+
+    it('dept with ACTIVE position AND ACTIVE employee → HTTP 422 + DEPARTMENT_HAS_ACTIVE_DEPENDENTS', async () => {
+      const res = await request(app.getHttpServer())
+        .patch(`/api/v1/departments/${deptWithBothId}`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ status: 'INACTIVE' });
+
+      expect(res.status).toBe(422);
+      expect(res.body).toMatchObject({
+        success: false,
+        error: { code: 'DEPARTMENT_HAS_ACTIVE_DEPENDENTS' },
+      });
+    });
+
+    it('dept with no active positions or employees → status=INACTIVE still succeeds (deactivatableDeptId)', async () => {
+      const res = await request(app.getHttpServer())
+        .patch(`/api/v1/departments/${deactivatableDeptId}`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ status: 'INACTIVE' });
+
+      // deactivatableDeptId was already set to INACTIVE in Group 4 test; second call returns success again
+      // (idempotent update) or INACTIVE → may already be INACTIVE from the Group 4 test
+      expect([200, 200]).toContain(res.status);
+    });
+
+    it('close blocking position then deactivate → succeeds (CLOSED position does not block)', async () => {
+      // Close the blocking position via API
+      const closeRes = await request(app.getHttpServer())
+        .post(`/api/v1/positions/${blockingPositionId}/close`)
+        .set('Authorization', `Bearer ${adminToken}`);
+
+      expect(closeRes.status).toBe(200);
+
+      // Now deactivation should succeed (no non-CLOSED positions remain)
+      const deactRes = await request(app.getHttpServer())
+        .patch(`/api/v1/departments/${deptWithActivePositionsId}`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ status: 'INACTIVE' });
+
+      expect(deactRes.status).toBe(200);
+      expect(deactRes.body.data.status).toBe('INACTIVE');
     });
   });
 });

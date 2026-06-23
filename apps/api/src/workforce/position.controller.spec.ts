@@ -20,7 +20,7 @@ import { JwtAuthGuard } from '../identity/jwt-auth.guard';
 import { RolesGuard } from '../identity/roles.guard';
 import { PositionController } from './position.controller';
 import { PositionService } from './position.service';
-import type { PositionRecord } from './position.service';
+import type { PositionRecord, PositionDetailRecord } from './position.service';
 import type { RequestUser } from '../identity/jwt.strategy';
 import type { CreatePositionDto } from './dto/create-position.dto';
 import type { UpdatePositionDto } from './dto/update-position.dto';
@@ -51,6 +51,25 @@ const positionRecord: PositionRecord = {
   salaryBand: null,
   status: 'DRAFT',
   createdAt: CREATED_AT,
+};
+
+const HIRE_DATE = new Date('2024-03-15T00:00:00.000Z');
+
+const positionDetailRecord: PositionDetailRecord = {
+  ...positionRecord,
+  occupant: null,
+};
+
+const positionDetailRecordWithOccupant: PositionDetailRecord = {
+  ...positionRecord,
+  occupant: {
+    id: 'emp-aaa',
+    firstName: 'Jane',
+    lastName: 'Doe',
+    employeeNumber: 'EMP-001',
+    employmentStatus: 'ACTIVE',
+    hireDate: HIRE_DATE,
+  },
 };
 
 const createDto: CreatePositionDto = { title: 'HR Specialist', departmentId: DEPT_ID };
@@ -186,7 +205,7 @@ describe('PositionController', () => {
 
   describe('getPositionById()', () => {
     it('SUCCESS: returns { success: true, data: position shape }', async () => {
-      mockService.getPositionById.mockResolvedValue({ outcome: 'SUCCESS', position: positionRecord });
+      mockService.getPositionById.mockResolvedValue({ outcome: 'SUCCESS', position: positionDetailRecord });
 
       const result = await controller.getPositionById(POSITION_ID, mockActor) as Record<string, Record<string, unknown>>;
 
@@ -207,11 +226,44 @@ describe('PositionController', () => {
     });
 
     it('actor.tenantId from JWT passed to service — not from route param (SEC-003)', async () => {
-      mockService.getPositionById.mockResolvedValue({ outcome: 'SUCCESS', position: positionRecord });
+      mockService.getPositionById.mockResolvedValue({ outcome: 'SUCCESS', position: positionDetailRecord });
 
       await controller.getPositionById(POSITION_ID, mockActor);
 
       expect(mockService.getPositionById).toHaveBeenCalledWith(POSITION_ID, TENANT_ID);
+    });
+
+    // GD-M15-1 D7 occupant response tests
+
+    it('GD-M15-1-D7: vacant position → response.data.occupant is null', async () => {
+      mockService.getPositionById.mockResolvedValue({ outcome: 'SUCCESS', position: positionDetailRecord });
+
+      const result = await controller.getPositionById(POSITION_ID, mockActor) as Record<string, Record<string, unknown>>;
+
+      expect(result['data']!['occupant']).toBeNull();
+    });
+
+    it('GD-M15-1-D7: occupied position → response.data.occupant contains occupant fields', async () => {
+      mockService.getPositionById.mockResolvedValue({ outcome: 'SUCCESS', position: positionDetailRecordWithOccupant });
+
+      const result = await controller.getPositionById(POSITION_ID, mockActor) as Record<string, Record<string, unknown>>;
+
+      expect(result['data']!['occupant']).toMatchObject({
+        id: 'emp-aaa',
+        firstName: 'Jane',
+        lastName: 'Doe',
+        employeeNumber: 'EMP-001',
+        employmentStatus: 'ACTIVE',
+      });
+    });
+
+    it('GD-M15-1-D7: occupant.hireDate serialized as YYYY-MM-DD string', async () => {
+      mockService.getPositionById.mockResolvedValue({ outcome: 'SUCCESS', position: positionDetailRecordWithOccupant });
+
+      const result = await controller.getPositionById(POSITION_ID, mockActor) as Record<string, Record<string, unknown>>;
+
+      const occupant = result['data']!['occupant'] as Record<string, unknown>;
+      expect(occupant!['hireDate']).toBe('2024-03-15');
     });
   });
 
@@ -280,6 +332,28 @@ describe('PositionController', () => {
       mockService.closePosition.mockResolvedValue({ outcome: 'HAS_ACTIVE_VACANCIES' });
 
       await expect(controller.closePosition(POSITION_ID, mockActor)).rejects.toThrow(ConflictException);
+    });
+
+    it('HAS_ACTIVE_INCUMBENT: throws ConflictException with code HAS_ACTIVE_INCUMBENT (GD-M15-1 D5)', async () => {
+      mockService.closePosition.mockResolvedValue({ outcome: 'HAS_ACTIVE_INCUMBENT' });
+
+      await expect(controller.closePosition(POSITION_ID, mockActor)).rejects.toThrow(ConflictException);
+    });
+
+    it('HAS_ACTIVE_INCUMBENT: error code in response body is HAS_ACTIVE_INCUMBENT', async () => {
+      mockService.closePosition.mockResolvedValue({ outcome: 'HAS_ACTIVE_INCUMBENT' });
+
+      let caught: ConflictException | null = null;
+      try {
+        await controller.closePosition(POSITION_ID, mockActor);
+      } catch (e) {
+        caught = e as ConflictException;
+      }
+
+      expect(caught).not.toBeNull();
+      const response = caught!.getResponse() as Record<string, unknown>;
+      const error = response['error'] as Record<string, unknown>;
+      expect(error!['code']).toBe('HAS_ACTIVE_INCUMBENT');
     });
 
     it('INTERNAL_ERROR: throws InternalServerErrorException', async () => {

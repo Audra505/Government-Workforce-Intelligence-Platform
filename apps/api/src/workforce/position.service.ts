@@ -13,9 +13,10 @@
 // Audit events are emitted after write operations, not inside transactions (AUD-400).
 //
 // POS-202: CLOSED positions are read-only. updatePosition returns POSITION_CLOSED.
-// POS-500 partial gate (M11 Step 8): "No Active Recruitment" enforced in closePosition().
-//   Predicate: status: { not: 'CLOSED' } — blocks DRAFT, OPEN, and IN_RECRUITMENT vacancies.
-//   "No Active Employees" check remains deferred — Employee domain not yet implemented.
+// POS-500 gate (now complete — M15 Step 4): closePosition enforces both:
+//   - "No Active Recruitment": vacancy status: { not: 'CLOSED' } (M11 Step 8)
+//   - "No Active Incumbents": employee employmentStatus IN non-SEPARATED set (GD-M15-1 D5)
+// GD-M15-1 D7: getPositionById includes occupant in detail response (list endpoint excluded).
 // POS-201: departmentId is immutable after creation — excluded from all update paths.
 
 import { Injectable, Logger } from '@nestjs/common';
@@ -40,6 +41,23 @@ export type PositionRecord = {
   createdAt: Date;
 };
 
+// Occupant sub-shape embedded in position detail response (GD-M15-1 D7).
+// Excludes: email, appointmentAuthority, tenantId, positionId, departmentId,
+//           terminationDate, createdAt/updatedAt/deletedAt.
+export type OccupantRecord = {
+  id: string;
+  firstName: string;
+  lastName: string;
+  employeeNumber: string | null;
+  employmentStatus: string;
+  hireDate: Date | null;
+};
+
+// Returned by getPositionById only — list endpoint does NOT include occupant (GD-M15-1 D7).
+export type PositionDetailRecord = PositionRecord & {
+  occupant: OccupantRecord | null;
+};
+
 export type CreatePositionResult =
   | { outcome: 'SUCCESS'; position: PositionRecord }
   | { outcome: 'DEPARTMENT_NOT_FOUND' }
@@ -56,7 +74,7 @@ export type ListPositionsResult =
   | { outcome: 'INTERNAL_ERROR' };
 
 export type GetPositionByIdResult =
-  | { outcome: 'SUCCESS'; position: PositionRecord }
+  | { outcome: 'SUCCESS'; position: PositionDetailRecord }
   | { outcome: 'NOT_FOUND' }
   | { outcome: 'INTERNAL_ERROR' };
 
@@ -71,6 +89,7 @@ export type ClosePositionResult =
   | { outcome: 'NOT_FOUND' }
   | { outcome: 'ALREADY_CLOSED' }
   | { outcome: 'HAS_ACTIVE_VACANCIES' }
+  | { outcome: 'HAS_ACTIVE_INCUMBENT' }
   | { outcome: 'INTERNAL_ERROR' };
 
 // Helper type — matches the Prisma row shape returned by POSITION_READ_SELECT.
@@ -82,6 +101,16 @@ type PositionRow = {
   salaryBand: string | null;
   status: string;
   createdAt: Date;
+};
+
+// Helper type — matches Prisma employee row for occupant select (GD-M15-1 D7).
+type OccupantRow = {
+  id: string;
+  firstName: string;
+  lastName: string;
+  employeeNumber: string | null;
+  employmentStatus: string;
+  hireDate: Date | null;
 };
 
 // Shared Prisma select for all read operations.
@@ -254,7 +283,51 @@ export class PositionService {
     }
 
     if (!row) return { outcome: 'NOT_FOUND' };
-    return { outcome: 'SUCCESS', position: toPositionRecord(row) };
+
+    // GD-M15-1 D7: Fetch occupant for detail response.
+    // Occupant: first non-SEPARATED, non-deleted employee assigned to this position
+    // in the same tenant (tenantId enforces SEC-003 cross-tenant isolation).
+    let occupantRow: OccupantRow | null;
+    try {
+      occupantRow = await this.prisma.employee.findFirst({
+        where: {
+          positionId: id,
+          tenantId,
+          deletedAt: null,
+          employmentStatus: { in: ['PENDING_ONBOARDING', 'ACTIVE', 'ON_LEAVE', 'SUSPENDED'] },
+        },
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          employeeNumber: true,
+          employmentStatus: true,
+          hireDate: true,
+        },
+      });
+    } catch (err) {
+      this.logger.error(
+        'getPositionById occupant lookup failed',
+        err instanceof Error ? err.stack : String(err),
+      );
+      return { outcome: 'INTERNAL_ERROR' };
+    }
+
+    const position: PositionDetailRecord = {
+      ...toPositionRecord(row),
+      occupant: occupantRow
+        ? {
+            id: occupantRow.id,
+            firstName: occupantRow.firstName,
+            lastName: occupantRow.lastName,
+            employeeNumber: occupantRow.employeeNumber,
+            employmentStatus: occupantRow.employmentStatus,
+            hireDate: occupantRow.hireDate,
+          }
+        : null,
+    };
+
+    return { outcome: 'SUCCESS', position };
   }
 
   async updatePosition(
@@ -327,9 +400,8 @@ export class PositionService {
       if (!existing) return { outcome: 'NOT_FOUND' };
       if (existing.status === 'CLOSED') return { outcome: 'ALREADY_CLOSED' };
 
-      // POS-500: No Active Recruitment guard (Governance Decision 8-6 — broad interpretation).
+      // POS-500 gate 1: No Active Recruitment (Governance Decision 8-6 — broad interpretation).
       // Blocks DRAFT, OPEN, and IN_RECRUITMENT vacancies; prevents POS-300 violations.
-      // Employee check remains deferred — Employee domain not yet implemented.
       const activeVacancy = await this.prisma.vacancy.findFirst({
         where: {
           positionId: id,
@@ -340,6 +412,19 @@ export class PositionService {
         select: { id: true },
       });
       if (activeVacancy) return { outcome: 'HAS_ACTIVE_VACANCIES' };
+
+      // POS-500 gate 2: No Active Incumbent (GD-M15-1 D5 — completes POS-500).
+      // Incumbent must be reassigned or separated before the position may be closed.
+      const activeIncumbent = await this.prisma.employee.findFirst({
+        where: {
+          positionId: id,
+          tenantId,
+          deletedAt: null,
+          employmentStatus: { in: ['PENDING_ONBOARDING', 'ACTIVE', 'ON_LEAVE', 'SUSPENDED'] },
+        },
+        select: { id: true },
+      });
+      if (activeIncumbent) return { outcome: 'HAS_ACTIVE_INCUMBENT' };
 
       const row = await this.prisma.position.update({
         where: { id },
