@@ -84,6 +84,7 @@ and is tracked in state/02_employee_lifecycle.md.
 | ID | Date | Subject | Impact |
 |---|---|---|---|
 | GD-PRE-PHASE3-001 | 2026-06-27 | Phase 3 Scope Boundary, Execution/04 Alignment, and D-005 Scheduling Confirmation | Confirms Phase 3 (Recruiting & Staffing) as next major phase; defines early Phase 3 scope (candidate/application/interview/offer/hire); excludes Notifications (Phase 5), Dashboards (Phase 5), AI resume parsing (Phase 4), AI skill matching (Phase 4), FR-152 (pending GD-PRE-PHASE3-004), and Position Skills/Certs (pending GD-M13-5-FOLLOWUP); amends execution/04 Deliverables 8 and 10 per GD-PHASE2-CLOSURE-001; confirms D-005 Scheduling at Phase 8 (project owner confirmed); M16 blocked until GD-PRE-PHASE3-002 and GD-PRE-PHASE3-003 approved |
+| GD-PRE-PHASE3-004 | 2026-06-27 | FR-152 Competency Framework — Phase Assignment and Early Phase 3 Exclusion | Assigns FR-152 to Phase 4 Intelligence; formally excludes FR-152 from all early Phase 3 milestones (M16–M20); records GD-M13-5-FOLLOWUP and Phase 4 AI architecture as implementation prerequisites; Phase 3 not blocked by FR-152; satisfies the required predecessor condition stated in GD-PRE-PHASE3-001 |
 
 ---
 
