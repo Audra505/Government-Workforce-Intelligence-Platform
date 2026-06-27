@@ -90,6 +90,14 @@ and is tracked in state/02_employee_lifecycle.md.
 
 ---
 
+## M16 — Candidate Management Foundation
+
+| ID | Date | Subject | Impact |
+|---|---|---|---|
+| GD-M16-1 | 2026-06-27 | M16 Candidate Management Foundation — Scope Decision | Authorizes M16 as first Phase 3 implementation milestone (backend-only, candidates only); defines exact candidate column set per GD-PRE-PHASE3-002; mandates partial unique index (tenant_id, email WHERE deleted_at IS NULL) via hand-edited migration SQL, NOT @@unique in schema.prisma; specifies 5 endpoints with RBAC per GD-PRE-PHASE3-003 D4; requires RECRUITING_CANDIDATE_UPDATED and RECRUITING_CANDIDATE_ARCHIVED audit enum additions; defines 3 DTOs, service discriminated-union return types, SEC-003 tenant isolation rules, HAS_ACTIVE_APPLICATIONS stub for M17; specifies DTO unit + service unit + controller unit + E2E test requirements; defines 12 new files + 3 modified files; mandates 10-step implementation sequence; excludes all frontend, applications, interviews, offers, resume, AI, hire, notifications, FR-152 |
+
+---
+
 ## Shared Column Confirmation (Implementation Confirmation — Not a Governance Decision)
 
 | Date | Subject | Outcome |
