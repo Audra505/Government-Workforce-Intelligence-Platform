@@ -9,16 +9,16 @@
 
 ---
 
-Last Updated: 2026-06-27 (Pre-Phase-3 Governance Package — CI CONFIRMED GREEN; commit a5c34f1; run 28280426818; GD-PRE-PHASE3-001/002/003/004 pushed and verified; M16 unblocked)
-Updated By: Claude Code (Pre-Phase-3 Governance Package CI confirmation: CI / Install, Lint, Build, Test — success on a5c34f1; run 28280426818; 5 governance commits pushed to origin/main)
+Last Updated: 2026-06-27 (M16 Candidate Management Foundation — LOCALLY COMPLETE; runtime verified; 5 commits local; CI pending push; 71 e2e + unit tests passing; candidate API live on Docker stack)
+Updated By: Claude Code (M16 Step 7: PROGRESS.md updated to reflect M16 implementation completion and runtime verification)
 
-Previous Update: 2026-06-23 (M15 — Position Linkage + Position Management UI — CI CONFIRMED GREEN; commit c4c903a; 804/804 unit tests; 46/46 position e2e; 39/39 org e2e; GD-M15-1; GD-PRE-M13-002; GD-PHASE2-CLOSURE-002)
+Previous Update: 2026-06-27 (Pre-Phase-3 Governance Package — CI CONFIRMED GREEN; commit a5c34f1; run 28280426818; GD-PRE-PHASE3-001/002/003/004 pushed and verified; M16 unblocked)
 
 ## Repository Status
 
-Current Phase: **Pre-Phase-3 Governance — COMPLETE (CI CONFIRMED)**
-Overall Classification: Phase 2 COMPLETE; Post-Phase-2 milestones M13/M14/M15 CI-confirmed; Pre-Phase-3 Governance Package CI-confirmed (a5c34f1; run 28280426818); Phase 3 implementation not yet started; M16 Candidate Management Foundation UNBLOCKED — requires M16 scope decision before implementation begins
-Active Sprint / Milestone: Pre-Phase-3 Governance Package — CI CONFIRMED GREEN (2026-06-27); commit a5c34f1; run 28280426818
+Current Phase: **Phase 3 — M16 Candidate Management Foundation (LOCALLY COMPLETE; runtime verified; CI pending push)**
+Overall Classification: Phase 2 COMPLETE; Post-Phase-2 milestones M13/M14/M15 CI-confirmed; Pre-Phase-3 Governance Package CI-confirmed (a5c34f1); Phase 3 started — M16 Candidate Management Foundation implemented and runtime-verified locally (5 commits ahead of origin/main); CI push pending
+Active Sprint / Milestone: M16 Candidate Management Foundation — LOCALLY COMPLETE (2026-06-27); 5 commits; runtime verified against Docker stack
 Implementation Started: Yes (2026-06-05)
 
 ## Phase Summary
@@ -33,12 +33,12 @@ Phase 1 is formally closed. D9 (Docker Environment) and D10 (CI/CD Foundation) w
 > Its purpose is crash/session recovery: the current step state is always readable without
 > scanning Zone 5 history. It is overwritten each step — not appended.
 
-Milestone: Pre-Phase-3 Governance Package — LOCALLY COMPLETE 2026-06-27
-Last Completed Milestone: M15 — Position Linkage + Position Management UI (COMPLETE, 2026-06-23; 804/804 unit tests; 46/46 position e2e; 39/39 org e2e; CI CONFIRMED GREEN; commit c4c903a; run 28056202899)
-Last Completed Step: Pre-Phase-3 Governance Package — all four GDs committed locally (c6f3cbb GD-PRE-PHASE3-001; 728e276 GD-PRE-PHASE3-004; 969fffd GD-PRE-PHASE3-002; 335e646 GD-PRE-PHASE3-003); 4 commits ahead of origin/main
+Milestone: M16 Candidate Management Foundation — LOCALLY COMPLETE (2026-06-27)
+Last Completed Milestone: M16 Candidate Management Foundation (COMPLETE, 2026-06-27; runtime verified; 5 commits local; CI pending push; commits cc1c939 → 0bd0495 → e7f402b → 7cc406d → 05f2c5e)
+Last Completed Step: M16 Step 6 — Runtime API verification: all 5 endpoints confirmed on Docker stack; audit events in DB; partial unique index verified; cleanup complete
 Last Completed Step Date: 2026-06-27
-Current Step: Pre-Phase-3 Governance Package — CI CONFIRMED GREEN (2026-06-27; commit a5c34f1; run 28280426818; 5 commits pushed and verified)
-Session Classification: PRE-PHASE-3 GOVERNANCE COMPLETE AND CI-VERIFIED — no implementation; governance package governs Phase 3 entry conditions; M16 UNBLOCKED
+Current Step: M16 Step 7 — PROGRESS.md update (this entry)
+Session Classification: PHASE 3 STARTED — M16 Candidate Management Foundation backend implementation complete, tested, and runtime-verified; 5 local commits ahead of origin/main; CI push pending
 
 ## Milestone 10 — Approved Plan
 
@@ -8108,8 +8108,8 @@ Establishes all governance authority required for Phase 3 — Recruiting & Staff
 | GD-PRE-PHASE3-004 FR-152 phase assignment | ✅ committed locally (728e276) |
 | GD-PRE-PHASE3-002 schema authority | ✅ committed locally (969fffd) |
 | GD-PRE-PHASE3-003 RBAC authority | ✅ committed locally (335e646) |
-| Phase 3 implementation started | ❌ Not started |
-| M16 may be planned | ✅ Unblocked — requires M16 scope decision before implementation |
+| Phase 3 implementation started | ✅ M16 locally complete (2026-06-27) |
+| M16 Candidate Management Foundation | ✅ Locally complete — runtime verified — CI pending push |
 
 ### Validation
 
@@ -8126,13 +8126,13 @@ CI impact: governance commits touch only `governance/` and `PROGRESS.md`. No sou
 | Directives | Partial | directives/03 covers VAC-401; directives/10 covers RBAC-700/701; conflicts now governed |
 | Execution Plan | Governed | execution/04 D8 (Notifications) and D10 (Skill Matching) superseded; effective Phase 3 exit criteria recorded in GD-PRE-PHASE3-001 |
 | State Model | Governed | Canonical status values defined in GD-PRE-PHASE3-002 D8; state files not yet created |
-| Test Scenarios | Not yet started | M16 scope decision will define test matrix |
-| System Loop | Not yet started | No Phase 3 code exists |
-| Failure Playbook | Not yet started | |
-| Environment Model | Not yet started | |
-| Data Lifecycle | Governed | SEC-003 tenant isolation, soft delete strategy defined in GD-PRE-PHASE3-002 |
-| Evolution Strategy | Not yet formalized | |
-| **Overall Maturity** | **Planned / Governance Complete** | Schema + RBAC + scope governed; no implementation |
+| Test Scenarios | Tested | 71 e2e tests (candidate.e2e-spec.ts); service + controller unit tests; all passing |
+| System Loop | Integrated | CandidateService + CandidateController + RecruitingModule registered in AppModule; live on Docker stack |
+| Failure Playbook | Partial | Duplicate email, not-found, cross-tenant, archive-then-404 all handled; M17 stub for CANDIDATE_HAS_ACTIVE_APPLICATIONS |
+| Environment Model | Shadow-safe only | Runtime verified on Docker dev stack; no production environment |
+| Data Lifecycle | Implemented | Soft delete (deleted_at), partial unique index for email reuse, ACTIVE-only list default |
+| Evolution Strategy | Not yet formalized | M17 will add applications; CANDIDATE_HAS_ACTIVE_APPLICATIONS stub reserved |
+| **Overall Maturity** | **Integrated / Tested (M16 scope only)** | Backend complete; runtime verified; CI pending; no frontend; no applications/interviews/offers |
 
 ### Deferred from Phase 3 (Governance-Confirmed)
 
@@ -8158,9 +8158,135 @@ CI impact: governance commits touch only `governance/` and `PROGRESS.md`. No sou
 
 ### Next Actions
 
-1. Push governance commits to origin/main; confirm CI green
-2. Update PROGRESS.md with CI commit hash and confirmation
-3. Write M16 Candidate Management Foundation scope decision before any implementation begins
-4. Begin M16 implementation once scope decision is approved
+1. Push M16 commits to origin/main (5 commits: cc1c939 → 0bd0495 → e7f402b → 7cc406d → 05f2c5e + this PROGRESS.md update)
+2. Confirm CI green for M16 implementation
+3. Update PROGRESS.md with CI confirmation commit hash and run ID
+4. Begin M17 (Application Management) or other Phase 3 milestone as next priority
 
-**Pre-Phase-3 Governance Package is COMPLETE AND CI-CONFIRMED GREEN (a5c34f1; run 28280426818). Phase 3 Recruiting & Staffing implementation is AUTHORIZED. M16 requires a scope decision before implementation begins.**
+**Pre-Phase-3 Governance Package is COMPLETE AND CI-CONFIRMED GREEN (a5c34f1; run 28280426818). Phase 3 Recruiting & Staffing implementation is AUTHORIZED. M16 Candidate Management Foundation is LOCALLY COMPLETE and runtime-verified — CI push pending.**
+
+---
+
+# Zone 5 — Chronological Implementation History
+
+---
+
+## M16 — Candidate Management Foundation
+
+**Phase:** Phase 3 — Recruiting & Staffing Domain (first milestone)
+**Date:** 2026-06-27
+**Repository Status Classification:** Integrated / Tested (backend-only scope)
+**Commits:** cc1c939 → 0bd0495 → e7f402b → 7cc406d → 05f2c5e (5 commits; local-only; CI pending)
+
+### Capability / Deliverable Alignment
+
+- **Capability:** Candidate Management Foundation (FR-300 — Candidate Intake)
+- **Deliverable relevance:** Required (Phase 3 first milestone)
+- **Deferred from this milestone (governance-confirmed):** Applications (M17), Interviews (M18), Hire-to-Employee (M19), AI resume parsing (Phase 4), AI matching (Phase 4), notifications, dashboards
+- **Current maturity:** Integrated / Tested (backend-only)
+
+| Production Blueprint Layer | Classification | Evidence |
+|---|---|---|
+| Requirements | Defined | FR-300 (Candidate Intake); GD-M16-1 governs 13 decisions |
+| Specs | Partial | spec/06 API contracts and spec/05 data model; pre-governance definitions; formal amendment deferred |
+| Directives | Governed | GD-M16-1 (13 decisions); GD-PRE-PHASE3-002/003 schema and RBAC authority |
+| Execution Plan | Implemented | 5 implementation steps (schema → DTOs → service → controller → e2e); all executed |
+| State Model | Implemented | CandidateStatus: ACTIVE → ARCHIVED; partial unique index for email reuse |
+| Test Scenarios | Tested | 71 e2e tests (candidate.e2e-spec.ts); service unit tests; controller unit tests (37 tests); all passing |
+| System Loop | Integrated | RecruitingModule registered in AppModule; CandidateService + CandidateController live in Docker stack |
+| Failure Playbook | Partial | CANDIDATE_NOT_FOUND, CANDIDATE_EMAIL_ALREADY_EXISTS, INTERNAL_ERROR handled; CANDIDATE_HAS_ACTIVE_APPLICATIONS stub (M17) |
+| Environment Model | Shadow-safe only | Runtime verified on Docker dev stack; not production-deployed |
+| Data Lifecycle | Implemented | Soft delete (deleted_at); partial unique index `(tenantId, email) WHERE deleted_at IS NULL`; ACTIVE-only list default |
+| Evolution Strategy | Not yet formalized | CANDIDATE_HAS_ACTIVE_APPLICATIONS stub reserves M17 integration point |
+| **Overall Maturity** | **Integrated / Tested** | Backend complete; runtime-verified; CI pending; no frontend |
+
+### What Changed
+
+**Files created:**
+
+| File | Description |
+|---|---|
+| `apps/api/prisma/migrations/20260624000000_m16_add_candidates_table/migration.sql` | Candidates table in `recruiting` schema; partial unique index; audit FK |
+| `apps/api/src/recruiting/dto/create-candidate.dto.ts` | CreateCandidateDto (firstName, lastName, email required; phone, source, notes optional) |
+| `apps/api/src/recruiting/dto/update-candidate.dto.ts` | UpdateCandidateDto (all fields optional; at-least-one validated) |
+| `apps/api/src/recruiting/dto/list-candidates-query.dto.ts` | ListCandidatesQueryDto (page, pageSize, status with defaults) |
+| `apps/api/src/recruiting/candidate.service.ts` | CandidateService: createCandidate, getCandidateById, listCandidates, updateCandidate, archiveCandidate |
+| `apps/api/src/recruiting/candidate.service.spec.ts` | CandidateService unit tests (mocked Prisma + Audit) |
+| `apps/api/src/recruiting/candidate.controller.ts` | CandidateController: 5 endpoints; toCandidateShape mapper excludes tenantId/deletedAt (SEC-003) |
+| `apps/api/src/recruiting/candidate.controller.spec.ts` | CandidateController unit tests (37 tests; overriding JwtAuthGuard + RolesGuard) |
+| `apps/api/src/recruiting/recruiting.module.ts` | RecruitingModule (imports IdentityModule; registers CandidateController + CandidateService) |
+| `apps/api/test/candidate.e2e-spec.ts` | 71 e2e tests covering all 5 endpoints × full RBAC × SEC-003 × audit × edge cases |
+
+**Files modified:**
+
+| File | Change |
+|---|---|
+| `apps/api/prisma/schema.prisma` | Added Candidate model; recruiting schema; enum `CandidateStatus` (ACTIVE, ARCHIVED) |
+| `apps/api/src/audit/audit.enums.ts` | Added RECRUITING_CANDIDATE_CREATED, RECRUITING_CANDIDATE_UPDATED, RECRUITING_CANDIDATE_ARCHIVED |
+| `apps/api/src/audit/audit.types.ts` | Added AuditCandidatePayload type |
+| `apps/api/src/app.module.ts` | Added RecruitingModule import after WorkforceModule |
+
+### Endpoints Implemented
+
+| Method | Path | RBAC (authorized roles) | Response |
+|---|---|---|---|
+| POST | `/api/v1/candidates` | SA, HR Director, Recruiter | 201 + `{success, data: CandidateShape}` |
+| GET | `/api/v1/candidates` | SA, HR Director, Recruiter, Compliance Officer | 200 + `{success, data: {candidates[], total, page, pageSize, totalPages}}` |
+| GET | `/api/v1/candidates/:id` | SA, HR Director, Recruiter, Compliance Officer | 200 + `{success, data: CandidateShape}` |
+| PUT | `/api/v1/candidates/:id` | SA, HR Director, Recruiter | 200 + `{success, data: CandidateShape}` |
+| POST | `/api/v1/candidates/:id/archive` | SA, HR Director, Recruiter | 204 (no body) |
+
+Hiring Manager, Workforce Planner, Executive User: 403 on all endpoints.
+Compliance Officer: read-only (GET list + GET detail only).
+
+### Security Properties Verified
+
+- **SEC-003 Tenant Isolation:** `tenantId` sourced from JWT actor only; never from request body or params; never returned in HTTP responses (verified in e2e + runtime)
+- **Enumeration prevention:** absent, archived, and cross-tenant candidates all return 404 `CANDIDATE_NOT_FOUND` (identical response)
+- **PII-safe audit:** `RECRUITING_CANDIDATE_UPDATED` metadata records field names only, not values (DB-verified at runtime)
+
+### Validation
+
+**Unit tests:**
+- `candidate.service.spec.ts` — CandidateService all methods, all outcome branches; mocked Prisma + AuditService
+- `candidate.controller.spec.ts` — 37 tests; all endpoints × outcome codes; SEC-003 assertions
+
+**E2E tests (71 tests — `apps/api/test/candidate.e2e-spec.ts`):**
+- Authentication: unauthenticated → 401
+- POST RBAC: SA/HR Director/Recruiter → 201; Compliance Officer/Hiring Manager/Workforce Planner/Exec → 403
+- Duplicate email: 409 `CANDIDATE_EMAIL_ALREADY_EXISTS`
+- GET list: pagination, ACTIVE-only default, per-role access
+- GET detail: per-role access, cross-tenant → 404, SEC-003 assertions
+- PUT: update fields, email conflict, cross-tenant → 404
+- Archive: 204, already-archived → 404, cross-tenant → 404
+- Tenant isolation: list/update/archive all respect tenantId boundary
+- Audit events: CREATED/UPDATED/ARCHIVED presence; PII-safe metadata assertion
+
+**Runtime verification (2026-06-27; Docker stack `http://localhost:3001`):**
+- POST /api/v1/candidates → ✅ 201, ACTIVE, no tenantId/deletedAt
+- GET /api/v1/candidates → ✅ 200, pagination envelope
+- GET /api/v1/candidates/:id → ✅ 200, correct data
+- PUT /api/v1/candidates/:id → ✅ 200, fields updated, updatedAt advanced
+- POST duplicate email → ✅ 409 CANDIDATE_EMAIL_ALREADY_EXISTS
+- Unauthenticated → ✅ 401
+- POST /api/v1/candidates/:id/archive → ✅ 204, empty body
+- GET archived candidate → ✅ 404 CANDIDATE_NOT_FOUND
+- GET list after archive → ✅ 200, total: 0 (ACTIVE-only)
+- Re-applicant same email → ✅ 201 (partial unique index confirmed)
+- Audit events (DB) → ✅ CREATED ×2, UPDATED ×1, ARCHIVED ×1; PII-safe metadata
+- DB state → ✅ archived record has deleted_at set; ACTIVE re-applicant visible
+
+### Risks / Limitations
+
+- **No frontend:** Candidate Management Foundation is backend-only per GD-M16-1 D13; no UI implemented or planned for M16
+- **No CI confirmation yet:** 5 commits are local-only; CI push pending
+- **M17 stub:** `CANDIDATE_HAS_ACTIVE_APPLICATIONS` outcome is defined in service/controller but is unreachable in M16 (no applications table); becomes functional in M17
+- **spec/05 and spec/06 not formally amended:** Pre-governance definitions still in place; formal amendments deferred to implementation PRs per Pre-Phase-3 Governance Package decision
+- **Forbidden-role runtime RBAC:** Not tested at runtime (no seeded Hiring Manager user in Docker dev stack); covered by 71 e2e tests against full fixture dataset
+
+### Next Actions
+
+1. Push 5 M16 commits + this PROGRESS.md update to origin/main
+2. Confirm CI green; record commit hash and run ID
+3. Update PROGRESS.md with CI confirmation
+4. Plan M17 Application Management Foundation as next Phase 3 milestone
