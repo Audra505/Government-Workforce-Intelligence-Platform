@@ -9,16 +9,16 @@
 
 ---
 
-Last Updated: 2026-06-23 (M15 — Position Linkage + Position Management UI — CI CONFIRMED GREEN; commit c4c903a; 804/804 unit tests; 46/46 position e2e; 39/39 org e2e; GD-M15-1; GD-PRE-M13-002; GD-PHASE2-CLOSURE-002)
-Updated By: Claude Code (M15 CI confirmation: CI / Install, Lint, Build, Test — success on c4c903a; run 28056202899; all 9 M15 commits pushed and verified)
+Last Updated: 2026-06-27 (Pre-Phase-3 Governance Package — LOCALLY COMPLETE; 4 governance commits ahead of origin/main; GD-PRE-PHASE3-001/002/003/004; Phase 3 entry conditions governed; M16 unblocked pending push and CI)
+Updated By: Claude Code (Pre-Phase-3 Governance Package: GD-PRE-PHASE3-001 scope boundary, GD-PRE-PHASE3-004 FR-152 Phase 4 assignment, GD-PRE-PHASE3-002 schema authority, GD-PRE-PHASE3-003 RBAC authority — all committed locally; no implementation)
 
-Previous Update: 2026-06-23 (M15 — Position Linkage + Position Management UI — LOCALLY COMPLETE; 8 commits; CI pending push; GD-M15-1; GD-PRE-M13-002; GD-PHASE2-CLOSURE-002)
+Previous Update: 2026-06-23 (M15 — Position Linkage + Position Management UI — CI CONFIRMED GREEN; commit c4c903a; 804/804 unit tests; 46/46 position e2e; 39/39 org e2e; GD-M15-1; GD-PRE-M13-002; GD-PHASE2-CLOSURE-002)
 
 ## Repository Status
 
-Current Phase: **Post-Phase 2 — Active (M15 COMPLETE)**
-Overall Classification: Phase 2 COMPLETE WITH DEFERRED ITEMS — Post-Phase 2 delivery: M14 Certification Expiration Tracking (FR-153) complete and CI-confirmed (941c7be); M15 Position Linkage + Position Management UI complete and CI-confirmed (c4c903a); 804/804 unit tests; 46/46 position e2e; 39/39 org e2e; CI / Install, Lint, Build, Test — GREEN
-Active Sprint / Milestone: M15 — Position Linkage + Position Management UI — COMPLETE (2026-06-23) — CI CONFIRMED GREEN; commit c4c903a
+Current Phase: **Pre-Phase-3 Governance — Active**
+Overall Classification: Phase 2 COMPLETE; Post-Phase-2 milestones M13/M14/M15 CI-confirmed; Pre-Phase-3 Governance Package locally complete (GD-PRE-PHASE3-001/002/003/004); Phase 3 implementation not yet started; M16 Candidate Management Foundation unblocked pending push/CI
+Active Sprint / Milestone: Pre-Phase-3 Governance Package — LOCALLY COMPLETE (2026-06-27); awaiting push and CI confirmation
 Implementation Started: Yes (2026-06-05)
 
 ## Phase Summary
@@ -33,12 +33,12 @@ Phase 1 is formally closed. D9 (Docker Environment) and D10 (CI/CD Foundation) w
 > Its purpose is crash/session recovery: the current step state is always readable without
 > scanning Zone 5 history. It is overwritten each step — not appended.
 
-Milestone: M15 — Position Linkage + Position Management UI — COMPLETE 2026-06-23
+Milestone: Pre-Phase-3 Governance Package — LOCALLY COMPLETE 2026-06-27
 Last Completed Milestone: M15 — Position Linkage + Position Management UI (COMPLETE, 2026-06-23; 804/804 unit tests; 46/46 position e2e; 39/39 org e2e; CI CONFIRMED GREEN; commit c4c903a; run 28056202899)
-Last Completed Step: M15 CI Verification — CI / Install, Lint, Build, Test CONFIRMED GREEN (2026-06-23; commit c4c903a; run 28056202899; 9 M15 commits pushed)
-Last Completed Step Date: 2026-06-23
-Current Step: M15 CLOSED — commit c4c903a pushed and CI-confirmed; branch at origin/main
-Session Classification: M15 COMPLETE AND CI-VERIFIED — GD-M15-1 + GD-PRE-M13-002 + GD-PHASE2-CLOSURE-002 governing; all validation layers passed (unit, e2e, tsc, ESLint, next build, Docker runtime, CI)
+Last Completed Step: Pre-Phase-3 Governance Package — all four GDs committed locally (c6f3cbb GD-PRE-PHASE3-001; 728e276 GD-PRE-PHASE3-004; 969fffd GD-PRE-PHASE3-002; 335e646 GD-PRE-PHASE3-003); 4 commits ahead of origin/main
+Last Completed Step Date: 2026-06-27
+Current Step: Pre-Phase-3 governance pushed to origin/main — CI PENDING CONFIRMATION
+Session Classification: PRE-PHASE-3 GOVERNANCE COMPLETE — no implementation; governance package governs Phase 3 entry conditions; M16 unblocked once CI confirms
 
 ## Milestone 10 — Approved Plan
 
@@ -7566,8 +7566,8 @@ All items formally governed and traceable to a specific decision.
 | IN_RECRUITMENT employee state trigger | GD-14-1 (M11) | Phase 3 Recruiting |
 | Lifecycle approval gates (second-approver) | GD-M12-1 D-010 | Phase 3 Approval Management |
 | FR-112 Scheduling Engine | GD-M12-5 (updated by GD-PHASE2-CLOSURE-003) | Phase 8 (follows D-005) |
-| D-005 Scheduling Domain (FR-200, FR-202, FR-204) | GD-PHASE2-CLOSURE-003 | Phase 8 — provisional pending project owner review |
-| FR-152 Competency Framework | No GD (requires governance milestone) | Future |
+| D-005 Scheduling Domain (FR-200, FR-202, FR-204) | GD-PHASE2-CLOSURE-003; GD-PRE-PHASE3-001 D3 | Phase 8 — **CONFIRMED** (project owner review complete 2026-06-27; no longer provisional) |
+| FR-152 Competency Framework | GD-PRE-PHASE3-004 | Phase 4 Intelligence — **ASSIGNED** (GD-PRE-PHASE3-004; excluded from all Phase 3 milestones) |
 | ~~FR-153 Expiration Tracking endpoint~~ | GD-M13-3 D4; GD-M14-1 | **DELIVERED — M14 (2026-06-22)** |
 | PENDING_VERIFICATION / SUSPENDED cert statuses | GD-M13-3 D6 | Future milestone |
 | Department Management UI | Not in spec/15 Phase 2 UI deliverables | Future |
@@ -7592,19 +7592,24 @@ All items formally governed and traceable to a specific decision.
 
 ---
 
-## Next Recommended Actions (Phase 3 Entry Candidates)
+## Next Recommended Actions
 
 In priority order:
 
-1. **Position Linkage Milestone Planning** — Plan the implementation of GD-PRE-M13-002
-   (1:1 FTE Slot Model; positionId nullable on employees; POSITION_HAS_ACTIVE_INCUMBENT guard).
-   This milestone is the prerequisite for: Position Management UI (GD-PHASE2-CLOSURE-002),
-   DEP-008 Phase B (GD-PRE-M13-003), appointmentAuthority (GD-PRE-M13-001), and
-   Position Skills/Certifications (GD-M13-5). Design document before implementation.
+1. **Confirm CI green for Pre-Phase-3 Governance Package** — Push the 4 governance commits
+   to origin/main and confirm CI / Install, Lint, Build, Test passes. No code changes were
+   made; CI should pass trivially (documentation only). Update PROGRESS.md with CI commit hash.
 
-2. **Phase 3 Recruiting** — Per spec/15: Candidates, Applications, Interviews, Resume Upload,
-   Resume Parsing, Hiring Workflow. Should not begin until Position Linkage Milestone is
-   sufficiently resolved for VAC-401 Path B to be properly supported.
+2. **M16 Candidate Management Foundation** — Write a scoped M16 build plan (milestone scope
+   decision) before any implementation begins. M16 is unblocked:
+   - GD-PRE-PHASE3-002 (schema authority) ✅ approved
+   - GD-PRE-PHASE3-003 (RBAC authority) ✅ approved
+   M16 scope: `recruiting.candidates` schema migration; `CandidateService` + `CandidateController`;
+   SA + HR Director + Recruiter write; Compliance Officer read; no application/interview/offer/hire.
+
+3. **GD-M13-5-FOLLOWUP** (non-blocking for M16) — Write the spec/05 and spec/06 amendment
+   authority for `position_skills` and `position_certifications`. Not blocking M16 but required
+   before position skills/certifications implementation milestone begins.
 
 ---
 
@@ -8011,3 +8016,151 @@ The following items remain deferred and are **not** part of M15:
 | CI Verification | ✅ CONFIRMED GREEN — CI / Install, Lint, Build, Test — success; commit c4c903a; run 28056202899 |
 
 **804/804 unit tests passing. 46/46 position e2e passing. 39/39 org e2e passing. CI CONFIRMED GREEN (c4c903a). M15 Position Linkage + Position Management UI is COMPLETE.**
+
+---
+
+## Pre-Phase-3 Governance Package — LOCALLY COMPLETE (2026-06-27)
+
+### Header
+
+- Phase/Milestone: Pre-Phase-3 Governance Package
+- Date: 2026-06-27
+- Repository Status: **LOCALLY COMPLETE** — 4 governance commits ahead of origin/main; CI pending
+- Governing Documents: GD-PRE-PHASE3-001, GD-PRE-PHASE3-002, GD-PRE-PHASE3-003, GD-PRE-PHASE3-004
+
+### Purpose
+
+Establishes all governance authority required for Phase 3 — Recruiting & Staffing — to begin implementation. No application code, schema, migration, API, UI, or test changes were made. This package is documentation and governance only.
+
+### Commits
+
+| Commit | Message | Document |
+|--------|---------|----------|
+| c6f3cbb | docs(governance): establish Phase 3 scope boundary | GD-PRE-PHASE3-001 |
+| 728e276 | docs(governance): assign FR-152 to Phase 4 | GD-PRE-PHASE3-004 |
+| 969fffd | docs(governance): define Phase 3 recruiting schema authority | GD-PRE-PHASE3-002 |
+| 335e646 | docs(governance): define Phase 3 recruiting RBAC authority | GD-PRE-PHASE3-003 |
+
+### Governance Decisions Issued
+
+#### GD-PRE-PHASE3-001 — Phase 3 Scope Boundary (2026-06-27)
+
+- Phase 3 — Recruiting & Staffing — confirmed as next major phase
+- Phase 3 implementation not authorized until full governance package approved
+- Early Phase 3 scope: candidate management, application management, interview workflow, offer workflow, hire-to-employee conversion (VAC-401 Path B), role activation for Recruiter and Hiring Manager
+- **Notifications** — excluded; Phase 5 per GD-PHASE2-CLOSURE-001 (execution/04 D8 superseded)
+- **Workforce Dashboards** — excluded; Phase 5 per GD-PHASE2-CLOSURE-001
+- **AI resume parsing** (FR-302) — excluded; Phase 4 Intelligence
+- **AI candidate/skill matching** (FR-303, execution/04 D10) — excluded; Phase 4 Intelligence
+- **D-005 Scheduling** — Phase 8 **CONFIRMED** by project owner (closes GD-PHASE2-CLOSURE-003 D6 pending review)
+- **FR-152 Competency Framework** — excluded from Phase 3; pending GD-PRE-PHASE3-004
+- **Position Skills / Position Certifications** — excluded from Phase 3; pending GD-M13-5-FOLLOWUP
+- Phase 2 carryover items (VAC-401 Path B, IN_RECRUITMENT trigger, POS-301 cascade, VAC-601, VAC-602, lifecycle approval gates) classified as Phase 3 inputs with indicative milestone targets
+- M16 Candidate Management Foundation identified as likely first implementation milestone
+
+#### GD-PRE-PHASE3-004 — FR-152 Competency Framework Phase Assignment (2026-06-27)
+
+- FR-152 assigned to **Phase 4 Intelligence**
+- Excluded from all early Phase 3 milestones (M16, M17, M18, M19, M20)
+- FR-152 is not a Phase 3 blocker; Phase 3 success criteria do not depend on competency models
+- Implementation prerequisites: GD-M13-5-FOLLOWUP (position skills/certs) → Phase 4 AI architecture → dedicated FR-152 governing decision
+
+#### GD-PRE-PHASE3-002 — Candidate Domain Data Model, Schema Authority, and Tenant Isolation (2026-06-27)
+
+- **Tenant isolation (SEC-003)** — `tenant_id` required on all `recruiting.*` tables; derived from JWT only; never accepted from request body; never exposed in API responses
+- **Soft delete** — `deleted_at TIMESTAMPTZ` required on all recruiting operational records; no hard delete in Phase 3
+- **recruiting.candidates** — canonical column set defined; email uniqueness per-tenant (excludes soft-deleted)
+- **recruiting.applications** — canonical column set with `tenant_id`; uniqueness: one active application per candidate per vacancy per tenant; FKs to candidates and workforce.vacancies
+- **recruiting.interviews** — `tenant_id` added (corrects spec/05 oversight); `interview_type` column added; `interviewer VARCHAR(255)` replaced by `interviewer_name` + `interviewer_user_id` dual fields
+- **recruiting.offers** — table created in governance (spec/05 had no offers table); 7-state lifecycle; one active offer per application uniqueness
+- **recruiting.resumes** — boundary only; resume file storage not authorized; AI parsing Phase 4
+- **Canonical application statuses**: **APPLIED** (initial; resolves execution/04 vs spec/01 conflict), SCREENING, INTERVIEW, EVALUATION, OFFER, HIRED, REJECTED, WITHDRAWN
+- **Canonical interview statuses**: SCHEDULED, COMPLETED, CANCELLED, NO_SHOW
+- **Canonical interview types**: PHONE_SCREEN, PANEL, TECHNICAL, FINAL
+- **Canonical offer statuses**: DRAFT, PENDING_APPROVAL, APPROVED, SENT, ACCEPTED, DECLINED, WITHDRAWN
+- **Hire-to-employee boundary** — open items for future GD: employee status at hire, employeeNumber, audit sequence, race condition handling, whether `hiring_events` table is needed
+- This GD is the authoritative schema definition; supersedes conflicting spec/05 references until spec/05 is formally amended
+
+#### GD-PRE-PHASE3-003 — Recruiting RBAC Authority (2026-06-27)
+
+- **HR Director** — full candidate/application/interview/offer/hire access (resolves spec/06 conflict: spec/06 showed HR Director as No on Candidates — superseded)
+- **Recruiter** — operational: candidate CRUD/archive; application creation/advancement; interview management; offer DRAFT/submit; **cannot approve offers; cannot perform hire-to-employee conversion**
+- **Hiring Manager** — scoped access only; no global candidate list access in M16; access to applications/interviews/offers via vacancy/department relationship beginning in M17
+- **Compliance Officer** — read-only across all recruiting endpoints; no write or lifecycle authority
+- **Workforce Planner** — no direct recruiting PII access in Phase 3
+- **Executive User** — no Phase 3 recruiting record access (Phase 5 dashboards only)
+- **Hire-to-employee conversion** — SA + HR Director only; Recruiter excluded
+- **Offer approval** — SA + HR Director only; Recruiter may submit but cannot approve
+- **COMPETITIVE_APPOINTMENT** — system-assigned through hire workflow only; no user may submit this value (GD-PRE-M13-001 confirmed)
+- Per-endpoint RBAC matrix defined for candidates (5 endpoints), applications (6 endpoints), interviews (6 endpoints), offers (9 endpoints), approval/carryover gates
+- Audit event categories authorized (SCREAMING_SNAKE_CASE, 20 event categories)
+- Supersedes spec/06 RBAC matrix on Candidates (HR Director conflict) and RBAC-700 (Hiring Manager scope conflict)
+
+### Phase 3 Entry Status
+
+| Condition | Status |
+|---|---|
+| Phase 2 formally closed | ✅ 2026-06-21 |
+| M13 Skills & Certifications | ✅ CI confirmed |
+| M14 Certification Expiration Tracking | ✅ CI confirmed (941c7be) |
+| M15 Position Linkage + Position Management UI | ✅ CI confirmed (c4c903a) |
+| GD-PRE-PHASE3-001 scope boundary | ✅ committed locally (c6f3cbb) |
+| GD-PRE-PHASE3-004 FR-152 phase assignment | ✅ committed locally (728e276) |
+| GD-PRE-PHASE3-002 schema authority | ✅ committed locally (969fffd) |
+| GD-PRE-PHASE3-003 RBAC authority | ✅ committed locally (335e646) |
+| Phase 3 implementation started | ❌ Not started |
+| M16 may be planned | ✅ Unblocked — requires M16 scope decision before implementation |
+
+### Validation
+
+No tests to run — governance documentation only.
+
+CI impact: governance commits touch only `governance/` directory. No source code, no schema, no migrations. CI / Install, Lint, Build, Test expected to pass trivially (documentation changes do not affect build or test suite).
+
+### Capability Maturity — Phase 3 Recruiting Domain
+
+| Layer | Classification | Evidence |
+|---|---|---|
+| Requirements | Defined | FR-300 (Candidate Intake), FR-302 (Resume Processing, deferred), FR-303 (Matching, deferred), FR-304 (Hiring Workflow) |
+| Specs | Partial | spec/05 has gaps (tenant_id missing, no offers table); spec/06 has stubs only; both to be amended |
+| Directives | Partial | directives/03 covers VAC-401; directives/10 covers RBAC-700/701; conflicts now governed |
+| Execution Plan | Governed | execution/04 D8 (Notifications) and D10 (Skill Matching) superseded; effective Phase 3 exit criteria recorded in GD-PRE-PHASE3-001 |
+| State Model | Governed | Canonical status values defined in GD-PRE-PHASE3-002 D8; state files not yet created |
+| Test Scenarios | Not yet started | M16 scope decision will define test matrix |
+| System Loop | Not yet started | No Phase 3 code exists |
+| Failure Playbook | Not yet started | |
+| Environment Model | Not yet started | |
+| Data Lifecycle | Governed | SEC-003 tenant isolation, soft delete strategy defined in GD-PRE-PHASE3-002 |
+| Evolution Strategy | Not yet formalized | |
+| **Overall Maturity** | **Planned / Governance Complete** | Schema + RBAC + scope governed; no implementation |
+
+### Deferred from Phase 3 (Governance-Confirmed)
+
+| Item | Authority | Target |
+|---|---|---|
+| Notification Integration | GD-PRE-PHASE3-001 D3; GD-PHASE2-CLOSURE-001 | Phase 5 |
+| Workforce / Recruiting Dashboards | GD-PRE-PHASE3-001 D3; GD-PHASE2-CLOSURE-001 | Phase 5 |
+| AI Resume Parsing (FR-302) | GD-PRE-PHASE3-001 D3 | Phase 4 Intelligence |
+| AI Candidate Matching (FR-303 / execution/04 D10) | GD-PRE-PHASE3-001 D3 | Phase 4 Intelligence |
+| FR-152 Competency Framework | GD-PRE-PHASE3-004 | Phase 4 Intelligence |
+| Resume File Storage Infrastructure | GD-PRE-PHASE3-002 D7; GD-PRE-PHASE3-001 D7 | Separate governing decision required |
+| Position Skills / Position Certifications | GD-M13-5; GD-PRE-PHASE3-001 D3 | GD-M13-5-FOLLOWUP pending |
+| D-005 Scheduling | GD-PHASE2-CLOSURE-003; GD-PRE-PHASE3-001 D3 | Phase 8 (confirmed) |
+| Hire-to-Employee Full Contract | GD-PRE-PHASE3-002 D10 | Dedicated future GD before M19 |
+| Hiring Manager Scoped Access (M17+) | GD-PRE-PHASE3-003 D2 | M17 Application and Vacancy Integration |
+
+### Risks / Limitations
+
+- No Phase 3 implementation has started; capability maturity is at Governed/Planned level only
+- spec/05 and spec/06 still contain the pre-governance recruiting definitions; formal amendments are deferred to implementation PRs for each milestone
+- GD-M13-5-FOLLOWUP (spec/05 and spec/06 amendment for position_skills/certifications) is not yet written; non-blocking for M16 but required before position skills/certifications milestone
+- Hire-to-employee full contract (M19) has open items recorded in GD-PRE-PHASE3-002 D10 — dedicated governing decision required before M19 implementation begins
+
+### Next Actions
+
+1. Push governance commits to origin/main; confirm CI green
+2. Update PROGRESS.md with CI commit hash and confirmation
+3. Write M16 Candidate Management Foundation scope decision before any implementation begins
+4. Begin M16 implementation once scope decision is approved
+
+**Pre-Phase-3 Governance Package is LOCALLY COMPLETE. Phase 3 Recruiting & Staffing implementation is AUTHORIZED once CI confirms. M16 requires a scope decision before implementation begins.**
