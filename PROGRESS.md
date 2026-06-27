@@ -9,16 +9,16 @@
 
 ---
 
-Last Updated: 2026-06-27 (M16 Candidate Management Foundation — LOCALLY COMPLETE; runtime verified; 5 commits local; CI pending push; 71 e2e + unit tests passing; candidate API live on Docker stack)
-Updated By: Claude Code (M16 Step 7: PROGRESS.md updated to reflect M16 implementation completion and runtime verification)
+Last Updated: 2026-06-27 (M16 Candidate Management Foundation — CI CONFIRMED GREEN; commit f962782; run 28292039908; candidate API complete, tested, and runtime-verified)
+Updated By: Claude Code (M16 CI confirmation: CI / Install, Lint, Build, Test — success on f962782; run 28292039908)
 
 Previous Update: 2026-06-27 (Pre-Phase-3 Governance Package — CI CONFIRMED GREEN; commit a5c34f1; run 28280426818; GD-PRE-PHASE3-001/002/003/004 pushed and verified; M16 unblocked)
 
 ## Repository Status
 
-Current Phase: **Phase 3 — M16 Candidate Management Foundation (LOCALLY COMPLETE; runtime verified; CI pending push)**
-Overall Classification: Phase 2 COMPLETE; Post-Phase-2 milestones M13/M14/M15 CI-confirmed; Pre-Phase-3 Governance Package CI-confirmed (a5c34f1); Phase 3 started — M16 Candidate Management Foundation implemented and runtime-verified locally (5 commits ahead of origin/main); CI push pending
-Active Sprint / Milestone: M16 Candidate Management Foundation — LOCALLY COMPLETE (2026-06-27); 5 commits; runtime verified against Docker stack
+Current Phase: **Phase 3 — M16 Candidate Management Foundation (CI CONFIRMED GREEN)**
+Overall Classification: Phase 2 COMPLETE; Post-Phase-2 milestones M13/M14/M15 CI-confirmed; Pre-Phase-3 Governance Package CI-confirmed (a5c34f1); Phase 3 started — M16 Candidate Management Foundation CI-confirmed (f962782; run 28292039908); M17 is next
+Active Sprint / Milestone: M16 Candidate Management Foundation — CI CONFIRMED GREEN (2026-06-27); commit f962782; run 28292039908
 Implementation Started: Yes (2026-06-05)
 
 ## Phase Summary
@@ -33,12 +33,12 @@ Phase 1 is formally closed. D9 (Docker Environment) and D10 (CI/CD Foundation) w
 > Its purpose is crash/session recovery: the current step state is always readable without
 > scanning Zone 5 history. It is overwritten each step — not appended.
 
-Milestone: M16 Candidate Management Foundation — LOCALLY COMPLETE (2026-06-27)
-Last Completed Milestone: M16 Candidate Management Foundation (COMPLETE, 2026-06-27; runtime verified; 5 commits local; CI pending push; commits cc1c939 → 0bd0495 → e7f402b → 7cc406d → 05f2c5e)
-Last Completed Step: M16 Step 6 — Runtime API verification: all 5 endpoints confirmed on Docker stack; audit events in DB; partial unique index verified; cleanup complete
+Milestone: M16 Candidate Management Foundation — CI CONFIRMED GREEN (2026-06-27)
+Last Completed Milestone: M16 Candidate Management Foundation (COMPLETE, 2026-06-27; CI CONFIRMED GREEN; commit f962782; run 28292039908; commits cc1c939 → 0bd0495 → e7f402b → 7cc406d → 05f2c5e → f962782)
+Last Completed Step: M16 Step 7 — PROGRESS.md updated and CI confirmed green (run 28292039908; success)
 Last Completed Step Date: 2026-06-27
-Current Step: M16 Step 7 — PROGRESS.md update (this entry)
-Session Classification: PHASE 3 STARTED — M16 Candidate Management Foundation backend implementation complete, tested, and runtime-verified; 5 local commits ahead of origin/main; CI push pending
+Current Step: M16 COMPLETE — awaiting M17 scope decision
+Session Classification: PHASE 3 M16 COMPLETE AND CI-CONFIRMED GREEN — candidate API backend live; M17 Application Management Foundation is next
 
 ## Milestone 10 — Approved Plan
 
@@ -8109,7 +8109,7 @@ Establishes all governance authority required for Phase 3 — Recruiting & Staff
 | GD-PRE-PHASE3-002 schema authority | ✅ committed locally (969fffd) |
 | GD-PRE-PHASE3-003 RBAC authority | ✅ committed locally (335e646) |
 | Phase 3 implementation started | ✅ M16 locally complete (2026-06-27) |
-| M16 Candidate Management Foundation | ✅ Locally complete — runtime verified — CI pending push |
+| M16 Candidate Management Foundation | ✅ CI CONFIRMED GREEN — commit f962782; run 28292039908 |
 
 ### Validation
 
@@ -8279,14 +8279,14 @@ Compliance Officer: read-only (GET list + GET detail only).
 ### Risks / Limitations
 
 - **No frontend:** Candidate Management Foundation is backend-only per GD-M16-1 D13; no UI implemented or planned for M16
-- **No CI confirmation yet:** 5 commits are local-only; CI push pending
+- **CI confirmed green:** commit f962782; run 28292039908; CI / Install, Lint, Build, Test — success (2026-06-27)
 - **M17 stub:** `CANDIDATE_HAS_ACTIVE_APPLICATIONS` outcome is defined in service/controller but is unreachable in M16 (no applications table); becomes functional in M17
 - **spec/05 and spec/06 not formally amended:** Pre-governance definitions still in place; formal amendments deferred to implementation PRs per Pre-Phase-3 Governance Package decision
 - **Forbidden-role runtime RBAC:** Not tested at runtime (no seeded Hiring Manager user in Docker dev stack); covered by 71 e2e tests against full fixture dataset
 
 ### Next Actions
 
-1. Push 5 M16 commits + this PROGRESS.md update to origin/main
-2. Confirm CI green; record commit hash and run ID
-3. Update PROGRESS.md with CI confirmation
+1. ✅ Pushed 6 M16 commits to origin/main (cc1c939 → f962782)
+2. ✅ CI confirmed green — run 28292039908; success
+3. ✅ PROGRESS.md updated with CI confirmation
 4. Plan M17 Application Management Foundation as next Phase 3 milestone
