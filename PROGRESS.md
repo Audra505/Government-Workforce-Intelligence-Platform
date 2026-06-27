@@ -9,16 +9,16 @@
 
 ---
 
-Last Updated: 2026-06-27 (Pre-Phase-3 Governance Package — LOCALLY COMPLETE; 4 governance commits ahead of origin/main; GD-PRE-PHASE3-001/002/003/004; Phase 3 entry conditions governed; M16 unblocked pending push and CI)
-Updated By: Claude Code (Pre-Phase-3 Governance Package: GD-PRE-PHASE3-001 scope boundary, GD-PRE-PHASE3-004 FR-152 Phase 4 assignment, GD-PRE-PHASE3-002 schema authority, GD-PRE-PHASE3-003 RBAC authority — all committed locally; no implementation)
+Last Updated: 2026-06-27 (Pre-Phase-3 Governance Package — CI CONFIRMED GREEN; commit a5c34f1; run 28280426818; GD-PRE-PHASE3-001/002/003/004 pushed and verified; M16 unblocked)
+Updated By: Claude Code (Pre-Phase-3 Governance Package CI confirmation: CI / Install, Lint, Build, Test — success on a5c34f1; run 28280426818; 5 governance commits pushed to origin/main)
 
 Previous Update: 2026-06-23 (M15 — Position Linkage + Position Management UI — CI CONFIRMED GREEN; commit c4c903a; 804/804 unit tests; 46/46 position e2e; 39/39 org e2e; GD-M15-1; GD-PRE-M13-002; GD-PHASE2-CLOSURE-002)
 
 ## Repository Status
 
-Current Phase: **Pre-Phase-3 Governance — Active**
-Overall Classification: Phase 2 COMPLETE; Post-Phase-2 milestones M13/M14/M15 CI-confirmed; Pre-Phase-3 Governance Package locally complete (GD-PRE-PHASE3-001/002/003/004); Phase 3 implementation not yet started; M16 Candidate Management Foundation unblocked pending push/CI
-Active Sprint / Milestone: Pre-Phase-3 Governance Package — LOCALLY COMPLETE (2026-06-27); awaiting push and CI confirmation
+Current Phase: **Pre-Phase-3 Governance — COMPLETE (CI CONFIRMED)**
+Overall Classification: Phase 2 COMPLETE; Post-Phase-2 milestones M13/M14/M15 CI-confirmed; Pre-Phase-3 Governance Package CI-confirmed (a5c34f1; run 28280426818); Phase 3 implementation not yet started; M16 Candidate Management Foundation UNBLOCKED — requires M16 scope decision before implementation begins
+Active Sprint / Milestone: Pre-Phase-3 Governance Package — CI CONFIRMED GREEN (2026-06-27); commit a5c34f1; run 28280426818
 Implementation Started: Yes (2026-06-05)
 
 ## Phase Summary
@@ -37,8 +37,8 @@ Milestone: Pre-Phase-3 Governance Package — LOCALLY COMPLETE 2026-06-27
 Last Completed Milestone: M15 — Position Linkage + Position Management UI (COMPLETE, 2026-06-23; 804/804 unit tests; 46/46 position e2e; 39/39 org e2e; CI CONFIRMED GREEN; commit c4c903a; run 28056202899)
 Last Completed Step: Pre-Phase-3 Governance Package — all four GDs committed locally (c6f3cbb GD-PRE-PHASE3-001; 728e276 GD-PRE-PHASE3-004; 969fffd GD-PRE-PHASE3-002; 335e646 GD-PRE-PHASE3-003); 4 commits ahead of origin/main
 Last Completed Step Date: 2026-06-27
-Current Step: Pre-Phase-3 governance pushed to origin/main — CI PENDING CONFIRMATION
-Session Classification: PRE-PHASE-3 GOVERNANCE COMPLETE — no implementation; governance package governs Phase 3 entry conditions; M16 unblocked once CI confirms
+Current Step: Pre-Phase-3 Governance Package — CI CONFIRMED GREEN (2026-06-27; commit a5c34f1; run 28280426818; 5 commits pushed and verified)
+Session Classification: PRE-PHASE-3 GOVERNANCE COMPLETE AND CI-VERIFIED — no implementation; governance package governs Phase 3 entry conditions; M16 UNBLOCKED
 
 ## Milestone 10 — Approved Plan
 
@@ -8115,7 +8115,7 @@ Establishes all governance authority required for Phase 3 — Recruiting & Staff
 
 No tests to run — governance documentation only.
 
-CI impact: governance commits touch only `governance/` directory. No source code, no schema, no migrations. CI / Install, Lint, Build, Test expected to pass trivially (documentation changes do not affect build or test suite).
+CI impact: governance commits touch only `governance/` and `PROGRESS.md`. No source code, no schema, no migrations. CI / Install, Lint, Build, Test — **CONFIRMED GREEN** (2026-06-27; commit a5c34f1; run 28280426818; success).
 
 ### Capability Maturity — Phase 3 Recruiting Domain
 
@@ -8163,4 +8163,4 @@ CI impact: governance commits touch only `governance/` directory. No source code
 3. Write M16 Candidate Management Foundation scope decision before any implementation begins
 4. Begin M16 implementation once scope decision is approved
 
-**Pre-Phase-3 Governance Package is LOCALLY COMPLETE. Phase 3 Recruiting & Staffing implementation is AUTHORIZED once CI confirms. M16 requires a scope decision before implementation begins.**
+**Pre-Phase-3 Governance Package is COMPLETE AND CI-CONFIRMED GREEN (a5c34f1; run 28280426818). Phase 3 Recruiting & Staffing implementation is AUTHORIZED. M16 requires a scope decision before implementation begins.**
