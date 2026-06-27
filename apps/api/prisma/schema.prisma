@@ -21,7 +21,7 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
-  schemas  = ["identity", "organization", "audit", "workforce"]
+  schemas  = ["identity", "organization", "audit", "workforce", "recruiting"]
 }
 
 // ---------------------------------------------------------------------------
@@ -397,6 +397,48 @@ model UserRole {
   @@id([userId, roleId])
   @@map("user_roles")
   @@schema("identity")
+}
+
+// ---------------------------------------------------------------------------
+// Schema: recruiting — Candidate
+// Governance authority: GD-PRE-PHASE3-002 Decision 3 (canonical schema authority)
+//                       GD-M16-1 Decision 4 (schema scope for M16)
+// Milestone 16: Candidate Management Foundation (FR-300 partial)
+// Approved decisions:
+//   - tenantId bare scalar — isolation enforced at query level (SEC-003; GD-PRE-PHASE3-002 D1)
+//   - tenantId derived from JWT only; never from request body; never in API responses
+//   - status VARCHAR(50) default ACTIVE; values: ACTIVE, ARCHIVED
+//     Only ACTIVE → ARCHIVED transition allowed; archive endpoint only
+//   - deleted_at per platform soft-delete convention (GD-PRE-PHASE3-002 D2)
+//   - EMAIL UNIQUENESS: enforced as partial unique index in migration SQL
+//     (WHERE deleted_at IS NULL) to allow re-applicant scenario (GD-M16-1 D5).
+//     DO NOT add @@unique([tenantId, email]) — Prisma would generate a full
+//     non-partial unique constraint, blocking re-applicants whose prior record
+//     is archived. Uniqueness is @@index here; partial UNIQUE enforced in SQL.
+// ---------------------------------------------------------------------------
+
+model Candidate {
+  id        String    @id @default(uuid()) @db.Uuid
+  tenantId  String    @map("tenant_id") @db.Uuid
+  firstName String    @map("first_name") @db.VarChar(100)
+  lastName  String    @map("last_name") @db.VarChar(100)
+  email     String    @db.VarChar(255)
+  phone     String?   @db.VarChar(50)
+  status    String    @default("ACTIVE") @db.VarChar(50)
+  source    String?   @db.VarChar(100)
+  notes     String?   @db.Text
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
+
+  @@index([tenantId], map: "idx_candidates_tenant")
+  @@index([tenantId, status], map: "idx_candidates_tenant_status")
+  // Partial UNIQUE index on (tenant_id, email) WHERE deleted_at IS NULL lives in
+  // migration SQL only — see 20260627000000_m16_recruiting_candidates/migration.sql.
+  // Do NOT change to @@unique (GD-M16-1 Decision 5).
+  @@index([tenantId, email], map: "idx_candidates_tenant_email")
+  @@map("candidates")
+  @@schema("recruiting")
 }
 
 // ---------------------------------------------------------------------------
