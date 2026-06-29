@@ -98,6 +98,14 @@ and is tracked in state/02_employee_lifecycle.md.
 
 ---
 
+## M17 — Application Management Foundation
+
+| ID | Date | Subject | Impact |
+|---|---|---|---|
+| GD-M17-1 | 2026-06-29 | M17 Application Management Foundation — Scope Decision | Authorizes M17 as second Phase 3 implementation milestone (backend-only, applications only); defines recruiting.applications table per GD-PRE-PHASE3-002 D4 with hand-edited partial unique index (tenant_id, candidate_id, vacancy_id WHERE deleted_at IS NULL AND status NOT IN REJECTED/WITHDRAWN); authorizes 7 endpoints (create/list/detail/update/advance/reject/withdraw); resolves advance endpoint semantics as Option B (explicit targetStatus); defines HIRED as unreachable in M17 (reserved M19); records APPLICATION_AWAITING_HIRE as advance-from-OFFER outcome; defers Hiring Manager scoped access (no governed manager-to-department model in identity schema; HM denied all application access in M17); formally defers POS-301 and VAC-601 (no governing spec; neither blocks M17); authorizes VAC-301 (first application → vacancy OPEN → IN_RECRUITMENT via direct Prisma updateMany; non-atomic; self-healing inconsistency risk documented); authorizes replacement of M16 CANDIDATE_HAS_ACTIVE_APPLICATIONS stub with real query (HIRED included in block list); adds 4 new AuditEventType values (SUBMITTED already exists); mandates PII-safe audit metadata; defines 21 decisions; excludes frontend, interviews, offers, resumes, AI, hire-to-employee, POST .../hire, POST .../offer, POS-301, VAC-601, FR-152, notifications, dashboards, scheduling |
+
+---
+
 ## Shared Column Confirmation (Implementation Confirmation — Not a Governance Decision)
 
 | Date | Subject | Outcome |
