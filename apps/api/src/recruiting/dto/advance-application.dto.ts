@@ -1,4 +1,4 @@
-// Reference: spec/06_api_contracts.md — PATCH /api/v1/applications/{id}/advance
+// Reference: spec/06_api_contracts.md — POST /api/v1/applications/{id}/advance
 // Reference: governance/GD-M17-1.md — Decision 10 (status transitions) and Decision 12 (AdvanceApplicationDto)
 //
 // targetStatus: required; drives sequential status machine (GD-M17-1 D10, Option B).
