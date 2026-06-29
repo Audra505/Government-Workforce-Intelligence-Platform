@@ -124,13 +124,13 @@ export type AdvanceApplicationResult =
   | { outcome: 'INTERNAL_ERROR' };
 
 export type RejectApplicationResult =
-  | { outcome: 'SUCCESS' }
+  | { outcome: 'SUCCESS'; application: ApplicationRecord }
   | { outcome: 'APPLICATION_NOT_FOUND' }
   | { outcome: 'APPLICATION_IN_TERMINAL_STATE' }
   | { outcome: 'INTERNAL_ERROR' };
 
 export type WithdrawApplicationResult =
-  | { outcome: 'SUCCESS' }
+  | { outcome: 'SUCCESS'; application: ApplicationRecord }
   | { outcome: 'APPLICATION_NOT_FOUND' }
   | { outcome: 'APPLICATION_IN_TERMINAL_STATE' }
   | { outcome: 'INTERNAL_ERROR' };
@@ -520,9 +520,10 @@ export class ApplicationService {
 
       const previousStatus = existing.status;
 
-      await this.prisma.application.update({
+      const row = await this.prisma.application.update({
         where: { id },
         data: { status: 'REJECTED' },
+        select: APPLICATION_READ_SELECT,
       });
 
       await this.auditService.logEvent({
@@ -535,7 +536,7 @@ export class ApplicationService {
         metadata: { previousStatus },
       });
 
-      return { outcome: 'SUCCESS' };
+      return { outcome: 'SUCCESS', application: toApplicationRecord(row) };
     } catch (err) {
       this.logger.error('rejectApplication failed', err instanceof Error ? err.stack : String(err));
       return { outcome: 'INTERNAL_ERROR' };
@@ -561,9 +562,10 @@ export class ApplicationService {
 
       const previousStatus = existing.status;
 
-      await this.prisma.application.update({
+      const row = await this.prisma.application.update({
         where: { id },
         data: { status: 'WITHDRAWN' },
+        select: APPLICATION_READ_SELECT,
       });
 
       await this.auditService.logEvent({
@@ -576,7 +578,7 @@ export class ApplicationService {
         metadata: { previousStatus },
       });
 
-      return { outcome: 'SUCCESS' };
+      return { outcome: 'SUCCESS', application: toApplicationRecord(row) };
     } catch (err) {
       this.logger.error('withdrawApplication failed', err instanceof Error ? err.stack : String(err));
       return { outcome: 'INTERNAL_ERROR' };

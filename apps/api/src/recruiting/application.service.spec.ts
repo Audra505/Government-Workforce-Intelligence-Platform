@@ -762,24 +762,31 @@ describe('ApplicationService', () => {
   // ---------------------------------------------------------------------------
 
   describe('rejectApplication()', () => {
-    it('active application (APPLIED) → outcome SUCCESS', async () => {
+    it('active application (APPLIED) → outcome SUCCESS with application record (status REJECTED)', async () => {
       mockPrisma.application.findFirst.mockResolvedValue({ id: APPLICATION_ID, status: 'APPLIED' });
-      mockPrisma.application.update.mockResolvedValue(undefined);
+      mockPrisma.application.update.mockResolvedValue(makeApplicationRow('REJECTED'));
       mockAuditService.logEvent.mockResolvedValue(undefined);
 
       const result = await service.rejectApplication(APPLICATION_ID, TENANT_ID, ACTOR_ID);
 
       expect(result.outcome).toBe('SUCCESS');
+      if (result.outcome === 'SUCCESS') {
+        expect(result.application.status).toBe('REJECTED');
+        expect(result.application.id).toBe(APPLICATION_ID);
+      }
     });
 
-    it('active application at any stage (OFFER) can be rejected', async () => {
+    it('active application at any stage (OFFER) can be rejected — returns updated record', async () => {
       mockPrisma.application.findFirst.mockResolvedValue({ id: APPLICATION_ID, status: 'OFFER' });
-      mockPrisma.application.update.mockResolvedValue(undefined);
+      mockPrisma.application.update.mockResolvedValue(makeApplicationRow('REJECTED'));
       mockAuditService.logEvent.mockResolvedValue(undefined);
 
       const result = await service.rejectApplication(APPLICATION_ID, TENANT_ID, ACTOR_ID);
 
       expect(result.outcome).toBe('SUCCESS');
+      if (result.outcome === 'SUCCESS') {
+        expect(result.application.status).toBe('REJECTED');
+      }
     });
 
     it.each(['REJECTED', 'WITHDRAWN'])(
@@ -804,7 +811,7 @@ describe('ApplicationService', () => {
 
     it('RECRUITING_APPLICATION_REJECTED audit emitted with previousStatus', async () => {
       mockPrisma.application.findFirst.mockResolvedValue({ id: APPLICATION_ID, status: 'SCREENING' });
-      mockPrisma.application.update.mockResolvedValue(undefined);
+      mockPrisma.application.update.mockResolvedValue(makeApplicationRow('REJECTED'));
       mockAuditService.logEvent.mockResolvedValue(undefined);
 
       await service.rejectApplication(APPLICATION_ID, TENANT_ID, ACTOR_ID);
@@ -833,24 +840,31 @@ describe('ApplicationService', () => {
   // ---------------------------------------------------------------------------
 
   describe('withdrawApplication()', () => {
-    it('active application (APPLIED) → outcome SUCCESS', async () => {
+    it('active application (APPLIED) → outcome SUCCESS with application record (status WITHDRAWN)', async () => {
       mockPrisma.application.findFirst.mockResolvedValue({ id: APPLICATION_ID, status: 'APPLIED' });
-      mockPrisma.application.update.mockResolvedValue(undefined);
+      mockPrisma.application.update.mockResolvedValue(makeApplicationRow('WITHDRAWN'));
       mockAuditService.logEvent.mockResolvedValue(undefined);
 
       const result = await service.withdrawApplication(APPLICATION_ID, TENANT_ID, ACTOR_ID);
 
       expect(result.outcome).toBe('SUCCESS');
+      if (result.outcome === 'SUCCESS') {
+        expect(result.application.status).toBe('WITHDRAWN');
+        expect(result.application.id).toBe(APPLICATION_ID);
+      }
     });
 
-    it('active application at any stage (EVALUATION) can be withdrawn', async () => {
+    it('active application at any stage (EVALUATION) can be withdrawn — returns updated record', async () => {
       mockPrisma.application.findFirst.mockResolvedValue({ id: APPLICATION_ID, status: 'EVALUATION' });
-      mockPrisma.application.update.mockResolvedValue(undefined);
+      mockPrisma.application.update.mockResolvedValue(makeApplicationRow('WITHDRAWN'));
       mockAuditService.logEvent.mockResolvedValue(undefined);
 
       const result = await service.withdrawApplication(APPLICATION_ID, TENANT_ID, ACTOR_ID);
 
       expect(result.outcome).toBe('SUCCESS');
+      if (result.outcome === 'SUCCESS') {
+        expect(result.application.status).toBe('WITHDRAWN');
+      }
     });
 
     it.each(['REJECTED', 'WITHDRAWN'])(
@@ -875,7 +889,7 @@ describe('ApplicationService', () => {
 
     it('RECRUITING_APPLICATION_WITHDRAWN audit emitted with previousStatus', async () => {
       mockPrisma.application.findFirst.mockResolvedValue({ id: APPLICATION_ID, status: 'EVALUATION' });
-      mockPrisma.application.update.mockResolvedValue(undefined);
+      mockPrisma.application.update.mockResolvedValue(makeApplicationRow('WITHDRAWN'));
       mockAuditService.logEvent.mockResolvedValue(undefined);
 
       await service.withdrawApplication(APPLICATION_ID, TENANT_ID, ACTOR_ID);
