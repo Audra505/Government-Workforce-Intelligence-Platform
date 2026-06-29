@@ -138,7 +138,8 @@ model Vacancy {
   updatedAt        DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
   deletedAt        DateTime? @map("deleted_at") @db.Timestamptz(6)
 
-  position Position @relation(fields: [positionId], references: [id], map: "fk_vacancy_position")
+  position     Position      @relation(fields: [positionId], references: [id], map: "fk_vacancy_position")
+  applications Application[]
 
   @@index([tenantId], map: "idx_vacancies_tenant")
   @@index([positionId], map: "idx_vacancies_position")
@@ -431,6 +432,8 @@ model Candidate {
   updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
   deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
 
+  applications Application[]
+
   @@index([tenantId], map: "idx_candidates_tenant")
   @@index([tenantId, status], map: "idx_candidates_tenant_status")
   // Partial UNIQUE index on (tenant_id, email) WHERE deleted_at IS NULL lives in
@@ -438,6 +441,57 @@ model Candidate {
   // Do NOT change to @@unique (GD-M16-1 Decision 5).
   @@index([tenantId, email], map: "idx_candidates_tenant_email")
   @@map("candidates")
+  @@schema("recruiting")
+}
+
+// ---------------------------------------------------------------------------
+// Schema: recruiting — Application
+// Governance authority: GD-M17-1 (2026-06-29)
+// Milestone 17: Application Management Foundation
+// Approved decisions:
+//   - tenantId bare scalar — isolation enforced at query level (SEC-003; GD-M17-1 D15)
+//   - tenantId derived from JWT only; never from request body; never in API responses
+//   - status VARCHAR(50) default APPLIED; canonical values: APPLIED/SCREENING/INTERVIEW/
+//     EVALUATION/OFFER/HIRED/REJECTED/WITHDRAWN (GD-PRE-PHASE3-002 D8; GD-M17-1 D5)
+//   - DUPLICATE PREVENTION: enforced as partial unique index in migration SQL
+//     (tenant_id, candidate_id, vacancy_id WHERE deleted_at IS NULL
+//     AND status NOT IN ('REJECTED', 'WITHDRAWN')) — allows re-application after
+//     terminal states (GD-M17-1 Decision 5, Decision 7).
+//     DO NOT add @@unique([tenantId, candidateId, vacancyId]) — would generate a
+//     full non-partial unique constraint blocking terminal re-application.
+//   - Relations to Candidate and Vacancy are one-directional by intent;
+//     back-relations on Candidate and Vacancy are added solely for Prisma schema
+//     validation — not exposed through service APIs.
+//   - deleted_at per platform soft-delete convention
+// ---------------------------------------------------------------------------
+
+model Application {
+  id           String    @id @default(uuid()) @db.Uuid
+  tenantId     String    @map("tenant_id") @db.Uuid
+  candidateId  String    @map("candidate_id") @db.Uuid
+  vacancyId    String    @map("vacancy_id") @db.Uuid
+  status       String    @default("APPLIED") @db.VarChar(50)
+  submittedAt  DateTime  @default(now()) @map("submitted_at") @db.Timestamptz(6)
+  currentStage String?   @map("current_stage") @db.VarChar(100)
+  notes        String?   @db.Text
+  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  deletedAt    DateTime? @map("deleted_at") @db.Timestamptz(6)
+
+  candidate Candidate @relation(fields: [candidateId], references: [id])
+  vacancy   Vacancy   @relation(fields: [vacancyId], references: [id], map: "fk_application_vacancy")
+
+  @@index([tenantId], map: "idx_applications_tenant")
+  @@index([tenantId, candidateId], map: "idx_applications_candidate")
+  @@index([tenantId, vacancyId], map: "idx_applications_vacancy")
+  @@index([tenantId, status], map: "idx_applications_status")
+  // Partial UNIQUE index on (tenant_id, candidate_id, vacancy_id)
+  // WHERE deleted_at IS NULL AND status NOT IN ('REJECTED', 'WITHDRAWN')
+  // lives in migration SQL only — prevents duplicate active applications while
+  // allowing re-application after terminal states (GD-M17-1 Decision 5, Decision 7).
+  // Do NOT change to @@unique (would block legitimate re-application).
+  // See migration 20260629000000_m17_applications/migration.sql.
+  @@map("applications")
   @@schema("recruiting")
 }
 
