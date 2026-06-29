@@ -17,8 +17,8 @@
 //   Pre-check provides deterministic error code; P2002 catch handles race condition.
 // status is always set to ACTIVE by createCandidate — never accepted from caller (GD-PRE-PHASE3-002 D2).
 // listCandidates defaults to ACTIVE-only when status filter is absent (GD-M16-1 D9).
-// CANDIDATE_HAS_ACTIVE_APPLICATIONS is defined in ArchiveCandidateResult for M17 compatibility
-//   but is unreachable in M16 — applications table does not exist until M17.
+// CANDIDATE_HAS_ACTIVE_APPLICATIONS: returned when candidate has non-terminal applications.
+//   Real implementation added in M17 (GD-M17-1 D9 — replaced M16 stub).
 
 import { Injectable, Logger } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
@@ -397,10 +397,18 @@ export class CandidateService {
 
       if (!existing) return { outcome: 'CANDIDATE_NOT_FOUND' };
 
-      // M17 application guard placeholder.
-      // CANDIDATE_HAS_ACTIVE_APPLICATIONS is in the return type for M17 compatibility.
-      // Applications table does not exist in M16 — this path is unreachable until M17.
-      // TODO(M17): query applications table here before writing the archive below.
+      // M17 active application guard (GD-M17-1 D9).
+      // Blocking statuses: any application that is not REJECTED, WITHDRAWN, or soft-deleted.
+      // HIRED is included in the blocking set for M19 forward-compatibility (GD-M17-1 D9).
+      const activeApplicationCount = await this.prisma.application.count({
+        where: {
+          tenantId,
+          candidateId: id,
+          deletedAt: null,
+          status: { notIn: ['REJECTED', 'WITHDRAWN'] },
+        },
+      });
+      if (activeApplicationCount > 0) return { outcome: 'CANDIDATE_HAS_ACTIVE_APPLICATIONS' };
 
       await this.prisma.candidate.update({
         where: { id },

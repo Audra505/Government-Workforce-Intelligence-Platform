@@ -10,7 +10,8 @@
 // PII safety: audit metadata must not contain firstName, lastName, email, phone, or notes values.
 // GD-M16-1 D9: absent status filter in listCandidates defaults to ACTIVE-only.
 // GD-M16-1 D5: email uniqueness checked against (tenantId, email, deletedAt=null); self-excluded on update.
-// M17 stub: CANDIDATE_HAS_ACTIVE_APPLICATIONS in return type but unreachable in M16.
+// M17: CANDIDATE_HAS_ACTIVE_APPLICATIONS returned by archiveCandidate when candidate has
+//   active (non-terminal, non-deleted) applications. Guard implemented in M17 (GD-M17-1 D9).
 
 import { Test, type TestingModule } from '@nestjs/testing';
 import { Prisma } from '@prisma/client';
@@ -67,6 +68,10 @@ describe('CandidateService', () => {
       count:     jest.fn(),
       findFirst: jest.fn(),
       update:    jest.fn(),
+    },
+    // M17: application.count used by archiveCandidate active-application guard (GD-M17-1 D9).
+    application: {
+      count: jest.fn(),
     },
   };
   const mockAuditService = { logEvent: jest.fn() };
@@ -583,8 +588,9 @@ describe('CandidateService', () => {
   // ---------------------------------------------------------------------------
 
   describe('archiveCandidate()', () => {
-    it('active candidate → outcome SUCCESS', async () => {
+    it('active candidate with no active applications → outcome SUCCESS', async () => {
       mockPrisma.candidate.findFirst.mockResolvedValue({ id: CANDIDATE_ID });
+      mockPrisma.application.count.mockResolvedValue(0);
       mockPrisma.candidate.update.mockResolvedValue(undefined);
       mockAuditService.logEvent.mockResolvedValue(undefined);
 
@@ -614,6 +620,7 @@ describe('CandidateService', () => {
 
     it('archive sets status to ARCHIVED in Prisma update data (GD-PRE-PHASE3-002 D2)', async () => {
       mockPrisma.candidate.findFirst.mockResolvedValue({ id: CANDIDATE_ID });
+      mockPrisma.application.count.mockResolvedValue(0);
       mockPrisma.candidate.update.mockResolvedValue(undefined);
       mockAuditService.logEvent.mockResolvedValue(undefined);
 
@@ -627,6 +634,7 @@ describe('CandidateService', () => {
 
     it('archive sets deletedAt to a Date in Prisma update data (soft-delete)', async () => {
       mockPrisma.candidate.findFirst.mockResolvedValue({ id: CANDIDATE_ID });
+      mockPrisma.application.count.mockResolvedValue(0);
       mockPrisma.candidate.update.mockResolvedValue(undefined);
       mockAuditService.logEvent.mockResolvedValue(undefined);
 
@@ -640,6 +648,7 @@ describe('CandidateService', () => {
 
     it('RECRUITING_CANDIDATE_ARCHIVED audit event emitted after successful archive', async () => {
       mockPrisma.candidate.findFirst.mockResolvedValue({ id: CANDIDATE_ID });
+      mockPrisma.application.count.mockResolvedValue(0);
       mockPrisma.candidate.update.mockResolvedValue(undefined);
       mockAuditService.logEvent.mockResolvedValue(undefined);
 
@@ -658,6 +667,7 @@ describe('CandidateService', () => {
 
     it('archive audit metadata does not contain PII values (PII safety)', async () => {
       mockPrisma.candidate.findFirst.mockResolvedValue({ id: CANDIDATE_ID });
+      mockPrisma.application.count.mockResolvedValue(0);
       mockPrisma.candidate.update.mockResolvedValue(undefined);
       mockAuditService.logEvent.mockResolvedValue(undefined);
 
@@ -679,13 +689,82 @@ describe('CandidateService', () => {
       expect(mockAuditService.logEvent).not.toHaveBeenCalled();
     });
 
-    it('Prisma throws → outcome INTERNAL_ERROR', async () => {
+    it('Prisma update throws → outcome INTERNAL_ERROR', async () => {
       mockPrisma.candidate.findFirst.mockResolvedValue({ id: CANDIDATE_ID });
+      mockPrisma.application.count.mockResolvedValue(0);
       mockPrisma.candidate.update.mockRejectedValue(new Error('DB error'));
 
       const result = await service.archiveCandidate(CANDIDATE_ID, TENANT_ID, ACTOR_ID);
 
       expect(result.outcome).toBe('INTERNAL_ERROR');
+    });
+
+    // -------------------------------------------------------------------------
+    // M17 active-application guard (GD-M17-1 D9)
+    // -------------------------------------------------------------------------
+
+    it.each(['APPLIED', 'SCREENING', 'INTERVIEW', 'EVALUATION', 'OFFER', 'HIRED'])(
+      'candidate with %s application → outcome CANDIDATE_HAS_ACTIVE_APPLICATIONS',
+      async (blockedStatus) => {
+        // application.count returns 1 — guard blocks archive regardless of which active status.
+        mockPrisma.candidate.findFirst.mockResolvedValue({ id: CANDIDATE_ID });
+        mockPrisma.application.count.mockResolvedValue(1);
+
+        const result = await service.archiveCandidate(CANDIDATE_ID, TENANT_ID, ACTOR_ID);
+
+        expect(result.outcome).toBe('CANDIDATE_HAS_ACTIVE_APPLICATIONS');
+        expect(mockPrisma.candidate.update).not.toHaveBeenCalled();
+        // Suppress unused-variable lint: blockedStatus documents the business intent.
+        void blockedStatus;
+      },
+    );
+
+    it('application.count query uses notIn REJECTED/WITHDRAWN — terminal apps do not block archive', async () => {
+      // count returns 0 → all existing applications are in REJECTED or WITHDRAWN
+      mockPrisma.candidate.findFirst.mockResolvedValue({ id: CANDIDATE_ID });
+      mockPrisma.application.count.mockResolvedValue(0);
+      mockPrisma.candidate.update.mockResolvedValue(undefined);
+      mockAuditService.logEvent.mockResolvedValue(undefined);
+
+      const result = await service.archiveCandidate(CANDIDATE_ID, TENANT_ID, ACTOR_ID);
+
+      expect(result.outcome).toBe('SUCCESS');
+      // Confirm the count was called with the correct exclusion filter.
+      expect(mockPrisma.application.count).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            status: { notIn: ['REJECTED', 'WITHDRAWN'] },
+          }),
+        }),
+      );
+    });
+
+    it('application.count query uses deletedAt: null — soft-deleted apps do not block archive', async () => {
+      // Soft-deleted applications excluded via deletedAt: null; count returns 0.
+      mockPrisma.candidate.findFirst.mockResolvedValue({ id: CANDIDATE_ID });
+      mockPrisma.application.count.mockResolvedValue(0);
+      mockPrisma.candidate.update.mockResolvedValue(undefined);
+      mockAuditService.logEvent.mockResolvedValue(undefined);
+
+      await service.archiveCandidate(CANDIDATE_ID, TENANT_ID, ACTOR_ID);
+
+      expect(mockPrisma.application.count).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({ deletedAt: null }),
+        }),
+      );
+    });
+
+    it('application.count query is the only additional Prisma call — no future tables queried', async () => {
+      mockPrisma.candidate.findFirst.mockResolvedValue({ id: CANDIDATE_ID });
+      mockPrisma.application.count.mockResolvedValue(1);
+
+      await service.archiveCandidate(CANDIDATE_ID, TENANT_ID, ACTOR_ID);
+
+      // Only candidate.findFirst and application.count were called; update was not reached.
+      expect(mockPrisma.candidate.findFirst).toHaveBeenCalledTimes(1);
+      expect(mockPrisma.application.count).toHaveBeenCalledTimes(1);
+      expect(mockPrisma.candidate.update).not.toHaveBeenCalled();
     });
   });
 });
