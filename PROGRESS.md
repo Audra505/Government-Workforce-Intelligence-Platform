@@ -9,16 +9,16 @@
 
 ---
 
-Last Updated: 2026-06-29 (M17 Application Management Foundation — runtime/API verification PASSED 14/14; ready for push and CI; branch 9 commits ahead of origin/main before closeout commit; API image 447b4e23f516 rebuilt and healthy)
-Updated By: Claude Code (M17 runtime/API verification complete: 14/14 checks pass; e2e 101/101; specs 107/107; build/lint pass; push and CI pending)
+Last Updated: 2026-06-30 (M18 Interview and Offer Management — runtime/API verification PASSED; branch 5 local checkpoint commits ahead of origin/main before final squash; ready for squash, push, and CI)
+Updated By: Claude Code (M18 runtime/API verification complete: interview workflow, offer workflow, no-hire boundary, re-offer, audit all pass; e2e 78/78 interview + 96/96 offer; unit regression 709/709; build/lint clean; squash, push, and CI pending)
 
-Previous Update: 2026-06-29 (M17 blocked runtime checkpoint — commit dd716d0; Docker Desktop cache exhaustion resolved after restart)
+Previous Update: 2026-06-29 (M17 Application Management Foundation — runtime/API verification PASSED 14/14; ready for push and CI; branch 9 commits ahead of origin/main before closeout commit; API image 447b4e23f516 rebuilt and healthy)
 
 ## Repository Status
 
-Current Phase: **Phase 3 — M17 Application Management Foundation (RUNTIME VERIFIED — READY FOR PUSH AND CI)**
-Overall Classification: Phase 2 COMPLETE; Post-Phase-2 milestones M13/M14/M15 CI-confirmed; Pre-Phase-3 Governance Package CI-confirmed (a5c34f1); Phase 3 started — M16 CI-confirmed (f962782); M17 implementation complete, e2e-tested, and runtime-verified — push and CI pending
-Active Sprint / Milestone: M17 Application Management Foundation — RUNTIME VERIFIED (2026-06-29); 9 commits ahead of origin/main before closeout commit; NOT yet pushed; NOT yet CI-confirmed
+Current Phase: **Phase 3 — M18 Interview and Offer Management (RUNTIME VERIFIED — READY FOR FINAL SQUASH, PUSH, AND CI)**
+Overall Classification: Phase 2 COMPLETE; Post-Phase-2 milestones M13/M14/M15 CI-confirmed; Pre-Phase-3 Governance Package CI-confirmed (a5c34f1); Phase 3 started — M16 CI-confirmed (f962782); M17 CI-confirmed (see M17 section); M18 implementation complete, e2e-tested, and runtime-verified — squash, push, and CI pending
+Active Sprint / Milestone: M18 Interview and Offer Management — RUNTIME VERIFIED (2026-06-30); 5 local checkpoint commits ahead of origin/main before final squash; NOT yet squashed; NOT yet pushed; NOT yet CI-confirmed
 Implementation Started: Yes (2026-06-05)
 
 ## Phase Summary
@@ -33,12 +33,12 @@ Phase 1 is formally closed. D9 (Docker Environment) and D10 (CI/CD Foundation) w
 > Its purpose is crash/session recovery: the current step state is always readable without
 > scanning Zone 5 history. It is overwritten each step — not appended.
 
-Milestone: M17 Application Management Foundation — RUNTIME VERIFIED; READY FOR PUSH AND CI (2026-06-29)
-Last Completed Milestone: M16 Candidate Management Foundation (COMPLETE, 2026-06-27; CI CONFIRMED GREEN; commit f962782; run 28292039908)
-Last Completed Step: M17 runtime/API verification PASSED 14/14 (2026-06-29; API image 447b4e23f516; all 7 routes registered; e2e 101/101; specs 107/107; build/lint pass)
-Last Completed Step Date: 2026-06-29
-Current Step: Push 10 commits (9 M17 + this PROGRESS.md closeout) to origin/main; confirm CI green
-Session Classification: PHASE 3 M17 IMPLEMENTATION COMPLETE, E2E-TESTED, AND RUNTIME-VERIFIED — NOT yet pushed; CI pending
+Milestone: M18 Interview and Offer Management — RUNTIME VERIFIED; READY FOR FINAL SQUASH, PUSH, AND CI (2026-06-30)
+Last Completed Milestone: M17 Application Management Foundation (COMPLETE; CI CONFIRMED GREEN; see M17 section)
+Last Completed Step: M18 runtime/API verification PASSED (2026-06-30; all 17 M18 routes registered; interview/offer workflows, no-hire boundary, re-offer, audit all pass; 5 local checkpoint commits before squash)
+Last Completed Step Date: 2026-06-30
+Current Step: Squash 5 local checkpoint commits; push to origin/main; confirm CI green
+Session Classification: PHASE 3 M18 IMPLEMENTATION COMPLETE, E2E-TESTED, AND RUNTIME-VERIFIED — NOT yet squashed; NOT yet pushed; CI pending
 
 ## Milestone 10 — Approved Plan
 
@@ -8495,3 +8495,294 @@ Confirmed audit event types in DB:
 - **APPLICATION_AWAITING_HIRE terminal guard:** advance from OFFER → HIRED path returns 422 `APPLICATION_AWAITING_HIRE`. Verified via e2e (101/101). The OFFER→HIRED advance was not exercised in runtime verification (full APPLIED→SCREENING→INTERVIEW→EVALUATION→OFFER chain was started then short-circuited via reject/withdraw to test terminal guards; the e2e suite covers the full chain).
 - **No frontend:** Application Management is backend-only per GD-M17-1 D13; no UI planned for M17.
 - **VAC-301 side effect in dev DB:** The dev vacancy used for runtime create testing is now permanently IN_RECRUITMENT. This is correct behavior; noted for dev DB awareness.
+
+---
+
+---
+
+# M18 — Interview and Offer Management
+
+## Phase Header
+
+- **Milestone:** M18 — Interview and Offer Management
+- **Governance:** GD-M18-1 (Interview and Offer Management scope definition)
+- **Date Completed:** 2026-06-30
+- **Repository Status:** RUNTIME VERIFIED — READY FOR FINAL SQUASH, PUSH, AND CI
+- **Branch:** `main` — 5 local checkpoint commits ahead of `origin/main` before final squash
+
+---
+
+## M18 Capability Summary
+
+M18 adds two new recruiting-domain sub-capabilities to Phase 3:
+
+- **M18A — Interview Management:** Full interview lifecycle (SCHEDULED → COMPLETED/CANCELLED/NO_SHOW) with feedback recording, RBAC, SEC-003 tenant isolation, and PII-safe audit events.
+- **M18B — Offer Management:** Full offer lifecycle (DRAFT → PENDING_APPROVAL → APPROVED → SENT → ACCEPTED/DECLINED/WITHDRAWN) with active-offer uniqueness guard, re-offer logic, no-hire boundary, RBAC, SEC-003 tenant isolation, and PII-safe audit events.
+
+Both sub-capabilities are implemented as NestJS controller/service pairs registered in `RecruitingModule`, following the transport-agnostic discriminated-union pattern established in M16/M17.
+
+---
+
+## M18 Deliverable Alignment
+
+| Capability | Requirements Reference | Status |
+|---|---|---|
+| Interview scheduling and lifecycle | GD-M18-1 D1–D18; spec/01 FR-300–314 | Implemented / Runtime Verified |
+| Offer creation and lifecycle | GD-M18-1 D1–D18; spec/01 FR-315–324 | Implemented / Runtime Verified |
+| RBAC per GD-M18-1 D16 | GD-M18-1 D16; spec/07 SEC-003 | Implemented / E2E Verified |
+| Tenant isolation (SEC-003) | spec/07 SEC-003 | Implemented / E2E + Runtime Verified |
+| PII-safe audit metadata | GD-M18-1 D17 | Implemented / E2E + Runtime Verified |
+| No-hire invariant (OFFER status preserved) | GD-M18-1 D3, D9 | Implemented / E2E + Runtime Verified |
+| Re-offer logic (DECLINED/WITHDRAWN unblock; ACCEPTED blocks) | GD-M18-1 D6, D10 | Implemented / E2E + Runtime Verified |
+| Hire-to-employee conversion | M19 scope | **Deferred — not implemented** |
+
+---
+
+## M18 Implementation Steps
+
+### Step 1 — M18A: Interview Schema Migration
+- `apps/api/prisma/migrations/..._add_interview_table/migration.sql`
+- Added `recruiting.interviews` table with all required fields, state-machine indexes, and `RECRUITING_INTERVIEW_*` audit event types in `audit-event-type.enum.ts`
+- Commit: part of M18A checkpoint
+
+### Step 2 — M18A: Interview Controller and Service
+- `apps/api/src/recruiting/interview.controller.ts` — 8 endpoints; RBAC per GD-M18-1 D16
+- `apps/api/src/recruiting/interview.service.ts` — 8 methods; transport-agnostic discriminated union returns
+- `apps/api/src/recruiting/dto/` — interview DTOs (create, update, list-query, record-feedback)
+- Registered in `RecruitingModule`
+- Unit tests: `interview.controller.spec.ts`, `interview.service.spec.ts`
+
+### Step 3 — M18B: Offer Schema Migration and Source
+- `apps/api/prisma/migrations/..._add_offer_table/migration.sql` — `recruiting.offers` table with partial unique index for active-offer uniqueness per GD-M18-1 D6
+- `apps/api/src/recruiting/offer.controller.ts` — 9 endpoints; RBAC per GD-M18-1 D16
+- `apps/api/src/recruiting/offer.service.ts` — 9 methods; no-hire invariant enforced (no `prisma.employee.create` or application status change to HIRED)
+- `apps/api/src/recruiting/dto/` — offer DTOs (create, update, list-query, record-offer-response)
+- Unit tests: `offer.controller.spec.ts`, `offer.service.spec.ts`
+
+### Step 4 — M18C: Interview and Offer E2E Test Suites
+- `apps/api/test/interview.e2e-spec.ts` — 78 tests across 9 describe groups; full RBAC matrix, tenant isolation, audit events, state machine
+- `apps/api/test/offer.e2e-spec.ts` — 96 tests across 13 describe groups; full RBAC matrix, tenant isolation, audit events, state machine, no-hire invariant, re-offer behavior
+- Local checkpoint commit: `7aa0351` — "Implement M18C interview and offer e2e coverage"
+
+---
+
+## M18 Validation Evidence
+
+### Unit Regression (all recruiting specs)
+- **709/709 tests passed**, 12 suites
+- Command: `npx jest --testPathPattern="src/recruiting" --no-coverage` from `apps/api`
+- Includes: candidate, application, interview, offer — all controller and service specs
+
+### Interview E2E Suite
+- **78/78 tests passed** — `apps/api/test/interview.e2e-spec.ts`
+- Command: `npx jest --config ./test/jest-e2e.json --testPathPattern="interview.e2e-spec"`
+- Coverage: create/list/detail/update/feedback/complete/cancel/no-show; RBAC all 7 roles; tenant isolation; audit events + PII-safe metadata
+
+### Offer E2E Suite
+- **96/96 tests passed** — `apps/api/test/offer.e2e-spec.ts`
+- Command: `npx jest --config ./test/jest-e2e.json --testPathPattern="offer.e2e-spec"`
+- Coverage: create/list/detail/update/submit/approve/send/record-response/withdraw; re-offer behavior; no-hire invariant; tenant isolation; audit events + PII-safe metadata
+
+### API Build
+- `npm run build` from `apps/api` → **EXIT 0** — `nest build` clean
+
+### Lint
+- `npx eslint test/offer.e2e-spec.ts test/interview.e2e-spec.ts` → **EXIT 0** — no warnings or errors
+
+---
+
+## M18 Runtime/API Verification — PASS (2026-06-30)
+
+**Status: COMPLETE — all runtime checks passed.**
+
+### Infrastructure State
+
+| Service | Container | Port | Status | Notes |
+|---|---|---|---|---|
+| `gov_workforce_api` | `gov_workforce_api` | 3001 | Healthy | Rebuilt with M18 source (API-only per SETUP.md decision tree) |
+| `gov_workforce_web` | `gov_workforce_web` | 3000 | Healthy | Not rebuilt — no M18 web changes |
+| `gov_workforce_postgres` | `gov_workforce_postgres` | 5453→5432 | Healthy | Unchanged |
+
+**SETUP.md guidance followed:** `apps/api/src/**` and `apps/api/prisma/**` changed → API-only rebuild. `--env-file .env` passed on all `docker compose` commands. Web not rebuilt.
+
+### API Rebuild
+
+```
+docker compose -f infrastructure/docker/docker-compose.yml --env-file .env build api  → EXIT 0
+docker stop gov_workforce_api && docker rm gov_workforce_api
+docker compose -f infrastructure/docker/docker-compose.yml --env-file .env up -d api  → healthy
+```
+
+**Blocker resolved during startup:** Prisma migration hit `P1002` advisory lock timeout — stale idle Prisma shadow-DB cleanup session (PID 7412) from the e2e test run held `pg_advisory_lock(72707369)`. Terminated via `pg_terminate_backend(7412)` inside the postgres container. API came up healthy immediately after. This is a known Prisma advisory lock contention pattern when an e2e test run's PrismaClient connection leaves an idle session holding the lock.
+
+### Prisma Migration Status
+
+- **13/13 migrations applied** — "Database schema is up to date!"
+- Confirmed via `docker exec gov_workforce_api npx prisma migrate status`
+
+### Route Availability — All 17 M18 Routes Confirmed
+
+**Interview routes (8):**
+- `POST /api/interviews` (version 1) ✓
+- `GET /api/interviews` (version 1) ✓
+- `GET /api/interviews/:id` (version 1) ✓
+- `PUT /api/interviews/:id` (version 1) ✓
+- `POST /api/interviews/:id/complete` (version 1) ✓
+- `POST /api/interviews/:id/feedback` (version 1) ✓
+- `POST /api/interviews/:id/cancel` (version 1) ✓
+- `POST /api/interviews/:id/no-show` (version 1) ✓
+
+**Offer routes (9):**
+- `POST /api/offers` (version 1) ✓
+- `GET /api/offers` (version 1) ✓
+- `GET /api/offers/:id` (version 1) ✓
+- `PUT /api/offers/:id` (version 1) ✓
+- `POST /api/offers/:id/submit` (version 1) ✓
+- `POST /api/offers/:id/approve` (version 1) ✓
+- `POST /api/offers/:id/send` (version 1) ✓
+- `POST /api/offers/:id/record-response` (version 1) ✓
+- `POST /api/offers/:id/withdraw` (version 1) ✓
+
+All 17 routes confirmed in API startup logs immediately after migration completion.
+
+### Interview Runtime Verification Results
+
+| # | Check | Result |
+|---|---|---|
+| 1 | POST /api/v1/interviews → 201, status=SCHEDULED | ✅ PASS |
+| 2 | Response excludes `tenantId` and `deletedAt` (SEC-003) | ✅ PASS |
+| 3 | GET /api/v1/interviews?applicationId=... → 200, count=1 | ✅ PASS |
+| 4 | GET /api/v1/interviews/:id → 200, correct shape | ✅ PASS |
+| 5 | PUT /api/v1/interviews/:id → 200, interviewerName updated | ✅ PASS |
+| 6 | POST .../feedback → 200, feedbackRecorded=True | ✅ PASS |
+| 7 | POST .../complete → 200, status=COMPLETED | ✅ PASS |
+
+**Note:** `interviewType` valid values confirmed at runtime: `PHONE_SCREEN`, `PANEL`, `TECHNICAL`, `FINAL` (not `VIDEO` — the DTO `IsIn` validator enforces this).
+
+### Offer Runtime Verification Results
+
+| # | Check | Result |
+|---|---|---|
+| 1 | POST /api/v1/offers → 201, status=DRAFT | ✅ PASS |
+| 2 | Response excludes `tenantId` and `deletedAt` (SEC-003) | ✅ PASS |
+| 3 | Duplicate active offer → 409 `ACTIVE_OFFER_EXISTS` | ✅ PASS |
+| 4 | PUT /api/v1/offers/:id → 200, notes updated | ✅ PASS |
+| 5 | GET /api/v1/offers?applicationId=... → 200, count=1 | ✅ PASS |
+| 6 | GET /api/v1/offers/:id → 200, correct shape | ✅ PASS |
+| 7 | POST .../submit → 200, status=PENDING_APPROVAL | ✅ PASS |
+| 8 | POST .../approve → 200, status=APPROVED | ✅ PASS |
+| 9 | POST .../send → 200, status=SENT | ✅ PASS |
+| 10 | POST .../record-response (ACCEPTED) → 200, status=ACCEPTED, acceptedAt set | ✅ PASS |
+
+### No-Hire Boundary
+
+| Check | Result |
+|---|---|
+| `application.status` after ACCEPTED offer = `OFFER` (not HIRED) | ✅ PASS |
+| Employee records for offer candidate after acceptance = 0 | ✅ PASS |
+
+### Re-Offer Behavior
+
+| Check | Result |
+|---|---|
+| Re-offer attempt while ACCEPTED offer active → 409 `ACTIVE_OFFER_EXISTS` | ✅ PASS |
+| First offer WITHDRAWN → status=WITHDRAWN | ✅ PASS |
+| Re-offer after WITHDRAWN → 201 status=DRAFT | ✅ PASS |
+
+### RBAC Runtime
+
+Full 7-role RBAC matrix (SA/HRD/Recruiter/CO/HM/WP/EU × all interview and offer endpoints) covered by e2e suites (78 interview + 96 offer = 174 tests). Runtime verification used System Administrator role for all write operations. Single seeded dev user available at runtime; e2e suite validates all role restrictions against real database.
+
+### Audit Events — Confirmed in Database
+
+**Interview audit events (4 records for runtime test interview):**
+
+| Event | Metadata |
+|---|---|
+| `RECRUITING_INTERVIEW_SCHEDULED` | `{applicationId, interviewType}` — no interviewer name |
+| `RECRUITING_INTERVIEW_UPDATED` | `{interviewId, fieldsChanged: ["interviewerName"]}` — field name only, no value |
+| `RECRUITING_INTERVIEW_FEEDBACK_RECORDED` | `{interviewId, applicationId}` — no feedback text |
+| `RECRUITING_INTERVIEW_COMPLETED` | `{interviewId, applicationId, previousStatus: "SCHEDULED"}` |
+
+**Offer audit events (6 records for runtime test offer):**
+
+| Event | Metadata |
+|---|---|
+| `RECRUITING_OFFER_CREATED` | `{offerId, applicationId}` — no notes text |
+| `RECRUITING_OFFER_UPDATED` | `{offerId, applicationId, fieldsChanged: ["notes"]}` — field name only, no value |
+| `RECRUITING_OFFER_SUBMITTED` | `{offerId, applicationId, previousStatus: "DRAFT"}` |
+| `RECRUITING_OFFER_APPROVED` | `{offerId, applicationId, previousStatus: "PENDING_APPROVAL"}` |
+| `RECRUITING_OFFER_SENT` | `{offerId, applicationId, previousStatus: "APPROVED"}` |
+| `RECRUITING_OFFER_ACCEPTED` | `{offerId, applicationId, previousStatus: "SENT"}` |
+
+**PII leak check:** 0 rows matched free-text search for feedback content or offer notes in any metadata column. ✅ Clean.
+
+### Runtime Cleanup
+
+All runtime test records deleted in FK-safe order:
+
+| Entity | Count Deleted |
+|---|---|
+| Offers | 3 |
+| Interviews | 1 |
+| Applications | 3 |
+| Candidates | 3 |
+| Audit events | 26 |
+
+---
+
+## M18 Local Checkpoint Commit History
+
+5 local checkpoint commits ahead of `origin/main` before final squash:
+
+| Commit | Message |
+|---|---|
+| `7aa0351` | Implement M18C interview and offer e2e coverage |
+| `e2218e3` | Implement M18B offer management unit layer |
+| `cd1a47b` | Implement M18A interview management unit layer |
+| `0a532c8` | Implement M18A interview schema migration |
+| `b24b054` | Implement M18A interview audit events |
+
+These will be squashed into a single commit before push. CI has NOT yet run against M18 code.
+
+---
+
+## M18 Production Blueprint Maturity
+
+| Layer | Status |
+|---|---|
+| Requirements | Defined (GD-M18-1; spec/01 FR-300–324; spec/06; spec/07 SEC-003) |
+| Specs | Present (GD-M18-1 complete — D1 through D18) |
+| Directives | Present (GD-M18-1, GD-PRE-PHASE3-002) |
+| Execution Plan | Implemented (M18A interview + M18B offer; 4 implementation steps committed) |
+| State Model | Implemented — Interview: SCHEDULED→COMPLETED/CANCELLED/NO_SHOW; Offer: DRAFT→PENDING_APPROVAL→APPROVED→SENT→ACCEPTED/DECLINED; WITHDRAWN reachable from any non-terminal state |
+| Test Scenarios | Tested (78 interview e2e + 96 offer e2e + 709 unit regression) |
+| System Loop | Integrated (NestJS + Prisma + postgres; InterviewController/Service + OfferController/Service registered in RecruitingModule) |
+| Failure Playbook | Partial (business-rule error codes mapped; partial unique index P2002 race-condition handled; no retry/recovery strategy) |
+| Environment Model | Partial (local dev stack runtime-verified 2026-06-30; API-only rebuild confirmed; no staging/prod) |
+| Data Lifecycle | Partial (soft-delete pattern; active-offer uniqueness via partial unique DB index; no retention policy) |
+| Evolution Strategy | Not yet formalized (hire-to-employee conversion deferred to M19) |
+| **Overall** | **Integrated / E2E Tested / Runtime Verified — Final Squash, Push, and CI Pending** |
+
+---
+
+## M18 Risks / Limitations
+
+- **Not yet pushed:** 5 local checkpoint commits are local-only. CI has NOT yet run against M18 code. Final squash and push required before M18 is CI-confirmed.
+- **Hire-to-employee conversion deferred:** OFFER→HIRED application advance and Employee record creation are M19 scope. The no-hire invariant is enforced in `offer.service.ts` with an explicit code comment. The `OFFER` status is the terminal application state in M18.
+- **No frontend:** Interview and Offer Management are backend-only per GD-M18-1; no web UI planned for M18.
+- **Advisory lock contention pattern:** The e2e test runner (Jest + PrismaClient) can leave an idle Prisma shadow-DB session holding `pg_advisory_lock(72707369)`. This blocks the API container's `prisma migrate deploy` on next startup. Resolution: `pg_terminate_backend(<pid>)` on the stale session. This is a dev-environment concern only; it does not affect the application or migration state.
+- **interviewType runtime-confirmed values:** `PHONE_SCREEN`, `PANEL`, `TECHNICAL`, `FINAL` — verified at runtime via DTO `IsIn` validator rejection of `VIDEO`. Noted for future API documentation.
+- **RBAC coverage gap at runtime:** Only the System Administrator role is available from the seeded dev user. Full 7-role RBAC matrix is covered by e2e tests against the test database, not by runtime smoke testing.
+
+---
+
+## Next Actions
+
+1. **Squash** 5 local checkpoint commits into a single clean M18 commit
+2. **Push** to `origin/main`
+3. **Confirm CI green** — GitHub Actions must pass
+4. **Update PROGRESS.md** with CI run ID and commit hash
+5. Only then: begin M19 planning (hire-to-employee conversion)
+
+---

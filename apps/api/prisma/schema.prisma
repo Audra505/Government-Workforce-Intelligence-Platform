@@ -462,6 +462,10 @@ model Candidate {
 //   - Relations to Candidate and Vacancy are one-directional by intent;
 //     back-relations on Candidate and Vacancy are added solely for Prisma schema
 //     validation — not exposed through service APIs.
+//   - interviews Interview[] back-relation added in M18A solely for Prisma schema
+//     validation — not consumed by ApplicationService (GD-M18-1 D4).
+//   - offers Offer[] back-relation added in M18B solely for Prisma schema
+//     validation — OfferService queries the offers table directly (GD-M18-1 D6).
 //   - deleted_at per platform soft-delete convention
 // ---------------------------------------------------------------------------
 
@@ -478,8 +482,10 @@ model Application {
   updatedAt    DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
   deletedAt    DateTime? @map("deleted_at") @db.Timestamptz(6)
 
-  candidate Candidate @relation(fields: [candidateId], references: [id])
-  vacancy   Vacancy   @relation(fields: [vacancyId], references: [id], map: "fk_application_vacancy")
+  candidate  Candidate   @relation(fields: [candidateId], references: [id])
+  vacancy    Vacancy     @relation(fields: [vacancyId], references: [id], map: "fk_application_vacancy")
+  interviews Interview[]
+  offers     Offer[]
 
   @@index([tenantId], map: "idx_applications_tenant")
   @@index([tenantId, candidateId], map: "idx_applications_candidate")
@@ -492,6 +498,91 @@ model Application {
   // Do NOT change to @@unique (would block legitimate re-application).
   // See migration 20260629000000_m17_applications/migration.sql.
   @@map("applications")
+  @@schema("recruiting")
+}
+
+// ---------------------------------------------------------------------------
+// Schema: recruiting — Interview
+// Governance authority: GD-M18-1 (2026-06-30)
+// Milestone 18A: Interview Management Foundation
+// Approved decisions:
+//   - tenantId bare scalar — isolation enforced at query level (SEC-003; GD-M18-1 D16)
+//   - tenantId derived from JWT only; never from request body; never in API responses
+//   - status VARCHAR(50) default SCHEDULED; canonical values: SCHEDULED, COMPLETED,
+//     CANCELLED, NO_SHOW (GD-PRE-PHASE3-002 D8; GD-M18-1 D5)
+//   - interviewerUserId: nullable; no DB-level FK constraint (GD-PRE-PHASE3-002 D5;
+//     GD-M18-1 D4). Service validates user existence and tenant membership at runtime.
+//   - Back-relation is on Application (interviews Interview[]) for Prisma schema
+//     validation only — not consumed by ApplicationService (GD-M18-1 D4).
+//   - deleted_at per platform soft-delete convention
+// ---------------------------------------------------------------------------
+
+model Interview {
+  id                String    @id @default(uuid()) @db.Uuid
+  tenantId          String    @map("tenant_id") @db.Uuid
+  applicationId     String    @map("application_id") @db.Uuid
+  interviewType     String    @map("interview_type") @db.VarChar(50)
+  scheduledAt       DateTime? @map("scheduled_at") @db.Timestamptz(6)
+  status            String    @default("SCHEDULED") @db.VarChar(50)
+  interviewerName   String?   @map("interviewer_name") @db.VarChar(255)
+  interviewerUserId String?   @map("interviewer_user_id") @db.Uuid
+  feedback          String?   @db.Text
+  createdAt         DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  deletedAt         DateTime? @map("deleted_at") @db.Timestamptz(6)
+
+  application Application @relation(fields: [applicationId], references: [id], map: "fk_interview_application")
+
+  @@index([tenantId], map: "idx_interviews_tenant")
+  @@index([tenantId, applicationId], map: "idx_interviews_application")
+  @@map("interviews")
+  @@schema("recruiting")
+}
+
+// ---------------------------------------------------------------------------
+// Schema: recruiting — Offer
+// Governance authority: GD-M18-1 (2026-06-30)
+// Milestone 18B: Offer Management Foundation
+// Approved decisions:
+//   - tenantId bare scalar — isolation enforced at query level (SEC-003; GD-M18-1 D16)
+//   - tenantId derived from JWT only; never from request body; never in API responses
+//   - status VARCHAR(50) default DRAFT; canonical values: DRAFT, PENDING_APPROVAL,
+//     APPROVED, SENT, ACCEPTED, DECLINED, WITHDRAWN (GD-PRE-PHASE3-002 D8; GD-M18-1 D7)
+//   - acceptedAt and declinedAt: set by OfferService at the moment of status transition;
+//     no withdrawn_at column per GD-M18-1 D7 (updated_at reflects withdrawal time)
+//   - Back-relation is on Application (offers Offer[]) for Prisma schema validation only
+//     — OfferService queries the offers table directly (GD-M18-1 D6).
+//   - Offer acceptance does NOT set application.status to HIRED and does NOT create
+//     an employee record — hire-to-employee is M19 scope (GD-M18-1 D3, D9)
+//   - Partial UNIQUE index idx_offers_application_active lives in migration SQL only
+//     (cannot be expressed as Prisma @@unique — would generate a non-partial constraint).
+//     Active = deleted_at IS NULL AND status NOT IN ('DECLINED', 'WITHDRAWN').
+//     Re-offer permitted only after DECLINED or WITHDRAWN (GD-M18-1 D6, D10).
+//   - deleted_at per platform soft-delete convention
+// ---------------------------------------------------------------------------
+
+model Offer {
+  id            String    @id @default(uuid()) @db.Uuid
+  tenantId      String    @map("tenant_id") @db.Uuid
+  applicationId String    @map("application_id") @db.Uuid
+  status        String    @default("DRAFT") @db.VarChar(50)
+  offerDate     DateTime? @map("offer_date") @db.Timestamptz(6)
+  acceptedAt    DateTime? @map("accepted_at") @db.Timestamptz(6)
+  declinedAt    DateTime? @map("declined_at") @db.Timestamptz(6)
+  notes         String?   @db.Text
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt     DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  deletedAt     DateTime? @map("deleted_at") @db.Timestamptz(6)
+
+  application Application @relation(fields: [applicationId], references: [id], map: "fk_offer_application")
+
+  @@index([tenantId], map: "idx_offers_tenant")
+  @@index([tenantId, applicationId], map: "idx_offers_application")
+  // Partial UNIQUE index on (application_id) WHERE deleted_at IS NULL AND status NOT IN ('DECLINED', 'WITHDRAWN')
+  // lives in migration SQL only — enforces one active offer per application; re-offer allowed after
+  // DECLINED or WITHDRAWN terminal states (GD-M18-1 D6, D10). Do NOT add @@unique here.
+  // See migration 20260630100000_m18b_offers/migration.sql.
+  @@map("offers")
   @@schema("recruiting")
 }
 
