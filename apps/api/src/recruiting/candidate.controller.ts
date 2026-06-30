@@ -34,6 +34,7 @@ import {
   Post,
   Put,
   Query,
+  UnprocessableEntityException,
   UseGuards,
 } from '@nestjs/common';
 import {
@@ -272,7 +273,7 @@ export class CandidateController {
   @ApiResponse({ status: 401, description: 'Not authenticated' })
   @ApiResponse({ status: 403, description: 'Insufficient role' })
   @ApiResponse({ status: 404, description: 'Candidate not found or already archived' })
-  @ApiResponse({ status: 409, description: 'CANDIDATE_HAS_ACTIVE_APPLICATIONS — M17 stub; unreachable until applications table exists' })
+  @ApiResponse({ status: 422, description: 'CANDIDATE_HAS_ACTIVE_APPLICATIONS — candidate has active (non-terminal) applications; archive blocked (GD-M17-1 D9)' })
   @ApiResponse({ status: 500, description: 'Internal server error' })
   async archiveCandidate(
     @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
@@ -291,7 +292,7 @@ export class CandidateController {
         });
 
       case 'CANDIDATE_HAS_ACTIVE_APPLICATIONS':
-        throw new ConflictException({
+        throw new UnprocessableEntityException({
           success: false,
           error: {
             code: 'CANDIDATE_HAS_ACTIVE_APPLICATIONS',

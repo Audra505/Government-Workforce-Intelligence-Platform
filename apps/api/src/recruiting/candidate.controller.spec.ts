@@ -14,6 +14,7 @@ import {
   ConflictException,
   InternalServerErrorException,
   NotFoundException,
+  UnprocessableEntityException,
 } from '@nestjs/common';
 
 import { JwtAuthGuard } from '../identity/jwt-auth.guard';
@@ -494,13 +495,13 @@ describe('CandidateController', () => {
       expect(body['success']).toBe(false);
     });
 
-    it('CANDIDATE_HAS_ACTIVE_APPLICATIONS: throws ConflictException (M17 stub — currently unreachable)', async () => {
+    it('CANDIDATE_HAS_ACTIVE_APPLICATIONS: throws UnprocessableEntityException (GD-M17-1 D9 — live guard)', async () => {
       mockService.archiveCandidate.mockResolvedValue({ outcome: 'CANDIDATE_HAS_ACTIVE_APPLICATIONS' });
 
       let thrown: unknown;
       try { await controller.archiveCandidate(CANDIDATE_ID, mockActor); } catch (e) { thrown = e; }
 
-      expect(thrown).toBeInstanceOf(ConflictException);
+      expect(thrown).toBeInstanceOf(UnprocessableEntityException);
     });
 
     it('CANDIDATE_HAS_ACTIVE_APPLICATIONS: error body code = CANDIDATE_HAS_ACTIVE_APPLICATIONS', async () => {
@@ -509,7 +510,7 @@ describe('CandidateController', () => {
       let thrown: unknown;
       try { await controller.archiveCandidate(CANDIDATE_ID, mockActor); } catch (e) { thrown = e; }
 
-      const body = (thrown as ConflictException).getResponse() as Record<string, Record<string, string>>;
+      const body = (thrown as UnprocessableEntityException).getResponse() as Record<string, Record<string, string>>;
       expect(body['error']['code']).toBe('CANDIDATE_HAS_ACTIVE_APPLICATIONS');
       expect(body['success']).toBe(false);
     });

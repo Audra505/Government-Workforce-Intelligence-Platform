@@ -290,6 +290,7 @@ export class ApplicationController {
   // --------------------------------------------------------------------------
 
   @Post('applications/:id/advance')
+  @HttpCode(200)
   @RequireRoles('System Administrator', 'HR Director', 'Recruiter')
   @ApiOperation({ summary: 'Advance application to the next status stage (GD-M17-1 D10 Option B — explicit targetStatus required)' })
   @ApiParam({ name: 'id', description: 'Application UUID v4', type: 'string' })
@@ -362,6 +363,7 @@ export class ApplicationController {
   // --------------------------------------------------------------------------
 
   @Post('applications/:id/reject')
+  @HttpCode(200)
   @RequireRoles('System Administrator', 'HR Director', 'Recruiter')
   @ApiOperation({ summary: 'Reject an application — sets status to REJECTED (terminal); cannot be undone (GD-M17-1 D11)' })
   @ApiParam({ name: 'id', description: 'Application UUID v4', type: 'string' })
@@ -409,6 +411,7 @@ export class ApplicationController {
   // --------------------------------------------------------------------------
 
   @Post('applications/:id/withdraw')
+  @HttpCode(200)
   @RequireRoles('System Administrator', 'HR Director', 'Recruiter')
   @ApiOperation({ summary: 'Withdraw an application — sets status to WITHDRAWN (terminal); cannot be undone (GD-M17-1 D12)' })
   @ApiParam({ name: 'id', description: 'Application UUID v4', type: 'string' })
