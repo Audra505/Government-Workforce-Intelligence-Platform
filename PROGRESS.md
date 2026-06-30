@@ -9,16 +9,16 @@
 
 ---
 
-Last Updated: 2026-06-27 (M16 Candidate Management Foundation — CI CONFIRMED GREEN; commit f962782; run 28292039908; candidate API complete, tested, and runtime-verified)
-Updated By: Claude Code (M16 CI confirmation: CI / Install, Lint, Build, Test — success on f962782; run 28292039908)
+Last Updated: 2026-06-29 (M17 Application Management Foundation — e2e complete, runtime verification BLOCKED; commit c82c94d; branch 8 commits ahead of origin/main; Docker Desktop build cache exhaustion prevents API image rebuild)
+Updated By: Claude Code (M17 Step 5 checkpoint: e2e 101/101, controller specs 107/107, build/lint pass; runtime verification blocked by Docker Desktop disk I/O exhaustion)
 
-Previous Update: 2026-06-27 (Pre-Phase-3 Governance Package — CI CONFIRMED GREEN; commit a5c34f1; run 28280426818; GD-PRE-PHASE3-001/002/003/004 pushed and verified; M16 unblocked)
+Previous Update: 2026-06-27 (M16 Candidate Management Foundation — CI CONFIRMED GREEN; commit f962782; run 28292039908; candidate API complete, tested, and runtime-verified)
 
 ## Repository Status
 
-Current Phase: **Phase 3 — M16 Candidate Management Foundation (CI CONFIRMED GREEN)**
-Overall Classification: Phase 2 COMPLETE; Post-Phase-2 milestones M13/M14/M15 CI-confirmed; Pre-Phase-3 Governance Package CI-confirmed (a5c34f1); Phase 3 started — M16 Candidate Management Foundation CI-confirmed (f962782; run 28292039908); M17 is next
-Active Sprint / Milestone: M16 Candidate Management Foundation — CI CONFIRMED GREEN (2026-06-27); commit f962782; run 28292039908
+Current Phase: **Phase 3 — M17 Application Management Foundation (E2E COMPLETE; RUNTIME VERIFICATION BLOCKED)**
+Overall Classification: Phase 2 COMPLETE; Post-Phase-2 milestones M13/M14/M15 CI-confirmed; Pre-Phase-3 Governance Package CI-confirmed (a5c34f1); Phase 3 started — M16 CI-confirmed (f962782); M17 implementation complete through e2e — runtime verification blocked pending Docker Desktop cache prune
+Active Sprint / Milestone: M17 Application Management Foundation — E2E COMPLETE (2026-06-29); latest commit c82c94d; 8 commits ahead of origin/main; NOT pushed; NOT CI-verified; runtime verification NOT complete
 Implementation Started: Yes (2026-06-05)
 
 ## Phase Summary
@@ -33,12 +33,12 @@ Phase 1 is formally closed. D9 (Docker Environment) and D10 (CI/CD Foundation) w
 > Its purpose is crash/session recovery: the current step state is always readable without
 > scanning Zone 5 history. It is overwritten each step — not appended.
 
-Milestone: M16 Candidate Management Foundation — CI CONFIRMED GREEN (2026-06-27)
-Last Completed Milestone: M16 Candidate Management Foundation (COMPLETE, 2026-06-27; CI CONFIRMED GREEN; commit f962782; run 28292039908; commits cc1c939 → 0bd0495 → e7f402b → 7cc406d → 05f2c5e → f962782)
-Last Completed Step: M16 Step 7 — PROGRESS.md updated and CI confirmed green (run 28292039908; success)
-Last Completed Step Date: 2026-06-27
-Current Step: M16 COMPLETE — awaiting M17 scope decision
-Session Classification: PHASE 3 M16 COMPLETE AND CI-CONFIRMED GREEN — candidate API backend live; M17 Application Management Foundation is next
+Milestone: M17 Application Management Foundation — E2E COMPLETE; RUNTIME VERIFICATION BLOCKED (2026-06-29)
+Last Completed Milestone: M16 Candidate Management Foundation (COMPLETE, 2026-06-27; CI CONFIRMED GREEN; commit f962782; run 28292039908)
+Last Completed Step: M17 Step 5 — e2e coverage + API contract fixes committed (c82c94d; 2026-06-29; e2e 101/101; specs 107/107; build/lint pass)
+Last Completed Step Date: 2026-06-29
+Current Step: M17 runtime/API verification BLOCKED — Docker Desktop build cache exhaustion; API container running stale M16 image
+Session Classification: PHASE 3 M17 IMPLEMENTATION COMPLETE THROUGH E2E — NOT pushed; NOT CI-verified; runtime verification NOT complete; Docker cache prune required before next session
 
 ## Milestone 10 — Approved Plan
 
@@ -8289,4 +8289,206 @@ Compliance Officer: read-only (GET list + GET detail only).
 1. ✅ Pushed 6 M16 commits to origin/main (cc1c939 → f962782)
 2. ✅ CI confirmed green — run 28292039908; success
 3. ✅ PROGRESS.md updated with CI confirmation
-4. Plan M17 Application Management Foundation as next Phase 3 milestone
+4. ✅ M17 Application Management Foundation implemented (Steps 1–5 committed; 8 commits ahead of origin/main)
+
+---
+
+## M17 Application Management Foundation — Step 5 Checkpoint (2026-06-29)
+
+### Checkpoint Classification
+
+**Status:** E2E COMPLETE — RUNTIME VERIFICATION BLOCKED
+**Commit:** c82c94d (Step 5 — e2e coverage + API contract fixes)
+**Branch:** main — 8 commits ahead of origin/main **before** this PROGRESS.md checkpoint commit
+**Pushed:** NO
+**CI Run:** NOT confirmed — no push performed
+**M17 Closed:** NO
+
+---
+
+### What This Checkpoint Records
+
+M17 Application Management Foundation implementation is complete through e2e validation. All 5 implementation steps are locally committed. Runtime/API verification was attempted but is blocked due to Docker Desktop infrastructure exhaustion. M17 is NOT closed out.
+
+---
+
+### Commits Included (8 commits ahead of origin/main)
+
+| Commit | Message |
+|---|---|
+| c82c94d | Implement M17 application e2e coverage and API contract fixes |
+| 9df3f61 | Implement M17 ApplicationController and terminal action responses |
+| 55fbc51 | docs(governance): clarify M17 terminal action responses |
+| 7e23f3a | Implement M17 ApplicationService with candidate archive guard |
+| 41dc4b0 | docs(governance): clarify M17 candidate archive guard |
+| (3 earlier M17 commits) | Steps 1–3: migration, ApplicationService foundation, ApplicationModule wiring |
+
+---
+
+### Capability Summary
+
+| Capability | Deliverable Status | Maturity |
+|---|---|---|
+| Application Management Foundation (FR-105) | Required | Integrated / E2E Tested — runtime verification blocked |
+
+### Endpoints Implemented
+
+| Method | Path | RBAC | Response |
+|---|---|---|---|
+| POST | `/api/v1/applications` | SA, HR Director, Recruiter | 201 + ApplicationShape |
+| GET | `/api/v1/applications` | SA, HR Director, Recruiter, Compliance Officer | 200 + pagination envelope |
+| GET | `/api/v1/applications/:id` | SA, HR Director, Recruiter, Compliance Officer | 200 + ApplicationShape |
+| PUT | `/api/v1/applications/:id` | SA, HR Director, Recruiter | 200 + ApplicationShape |
+| POST | `/api/v1/applications/:id/advance` | SA, HR Director, Recruiter | **200** (GD-M17-1 D9) |
+| POST | `/api/v1/applications/:id/reject` | SA, HR Director, Recruiter | **200** (GD-M17-1 D9) |
+| POST | `/api/v1/applications/:id/withdraw` | SA, HR Director, Recruiter | **200** (GD-M17-1 D9) |
+
+---
+
+### Validation Evidence
+
+#### E2E Tests — PASS (101/101)
+
+**Suite:** `apps/api/test/application.e2e-spec.ts` (1512 lines; 15 groups; 101 tests)
+
+| Group | Count | Result |
+|---|---|---|
+| Authentication | 3 | ✅ PASS |
+| POST create (shape, SEC-003, VAC-301) | 11 | ✅ PASS |
+| Validation DTOs | 6 | ✅ PASS |
+| Duplicate prevention → 409 | 4 | ✅ PASS |
+| GET list (pagination, filters) | 13 | ✅ PASS |
+| GET detail (shape, tenantId excluded) | 9 | ✅ PASS |
+| PUT update (notes, stage) | 9 | ✅ PASS |
+| Advance state machine (APPLIED→SCREENING→INTERVIEW→EVALUATION→OFFER; AWAITING_HIRE guard) | 9 | ✅ PASS |
+| Reject → 200 | 6 | ✅ PASS |
+| Withdraw → 200 | 6 | ✅ PASS |
+| Re-application after REJECTED or WITHDRAWN | 3 | ✅ PASS |
+| VAC-301 (OPEN→IN_RECRUITMENT on first application) | 3 | ✅ PASS |
+| Archive guard → 422 CANDIDATE_HAS_ACTIVE_APPLICATIONS | 5 | ✅ PASS |
+| Tenant isolation (cross-tenant → 404) | 6 | ✅ PASS |
+| Audit events (5 event types) | 8 | ✅ PASS |
+| **TOTAL** | **101** | **✅ 101/101 PASS** |
+
+#### Controller Unit Specs — PASS (107/107)
+
+- `application.controller.spec.ts` — all endpoints × all outcome codes
+- `candidate.controller.spec.ts` — including updated CANDIDATE_HAS_ACTIVE_APPLICATIONS → 422 UnprocessableEntityException
+
+#### API Build — PASS
+
+`npm run build --workspace=apps/api` → nest build EXIT 0; `dist/main.js` compiled 2026-06-29 19:33.
+
+Compiled `dist/main.js` startup logs confirm ApplicationController registered with all 7 routes.
+
+#### Lint — PASS
+
+`npm run lint --workspace=apps/api` → EXIT 0, no ESLint warnings or errors.
+
+#### Migration Status — PASS
+
+Docker postgres startup confirmed: `10 migrations found in prisma/migrations | No pending migrations to apply.` All M17 migrations applied at container boot.
+
+---
+
+### API Contract Fixes Applied in Step 5 (c82c94d)
+
+| File | Change | Reason |
+|---|---|---|
+| `apps/api/src/recruiting/application.controller.ts` | Added `@HttpCode(200)` to `advance`, `reject`, `withdraw` POST endpoints | GD-M17-1 D9 mandates 200; NestJS defaults POST to 201 |
+| `apps/api/src/recruiting/candidate.controller.ts` | `CANDIDATE_HAS_ACTIVE_APPLICATIONS` → `UnprocessableEntityException` (422); was `ConflictException` (409) | M16 stub was placeholder; M17 activates live guard; 422 is correct per GD-M17-1 business-rule pattern |
+| `apps/api/src/recruiting/candidate.controller.spec.ts` | Updated 2 tests to expect `UnprocessableEntityException` | Unit test consistency with production fix |
+| `apps/api/test/application.e2e-spec.ts` | Full 101-test e2e suite (new file) | Runtime validation layer |
+
+---
+
+### Runtime/API Verification — BLOCKED
+
+**Status: NOT COMPLETE — M17 is NOT closed out.**
+
+Runtime/API verification was attempted against the live Docker stack at `http://localhost:3001`. The verification could not be completed due to Docker Desktop infrastructure exhaustion.
+
+#### Root Cause
+
+Docker Desktop's build cache reached **23.3 GB** (18.86 GB reclaimable). This caused severe virtual disk I/O pressure:
+
+| Symptom | Observation |
+|---|---|
+| Docker BuildKit build | Failed: `failed to receive status: rpc error: code = Unavailable desc = error reading from server: EOF` on step #29 (#29 of 29 — final chown step) |
+| Legacy builder (`DOCKER_BUILDKIT=0`) | Timed out after 10+ minutes |
+| `docker system prune` | Timed out after 2 minutes |
+| `docker logs`, `docker ps` | Timed out — Docker Desktop fully saturated |
+| Background build | Zero output written after many minutes; killed |
+
+#### Stack State at Checkpoint
+
+| Service | Status | Image | Notes |
+|---|---|---|---|
+| `gov_workforce_postgres` | Running / Healthy | postgres:16-alpine | All M17 migrations applied |
+| `gov_workforce_api` | Running / Healthy | docker-api:latest (2026-06-27) | **STALE M16 IMAGE** — M17 ApplicationController NOT served; `POST /api/v1/applications` returns 404 |
+| `gov_workforce_web` | Running / Healthy | docker-web | Not affected by M17 |
+
+#### What Was Verified Before Block
+
+- Migration status: 10 migrations, 0 pending (from container startup log) ✅
+- ApplicationController routes registered (from local `dist/main.js` startup) ✅
+- Compiled `dist/main.js` contains all M17 changes (timestamp 2026-06-29 19:33, after all edits) ✅
+- e2e suite exercises the complete NestJS stack (NestFactory + real Prisma + real postgres) ✅
+
+#### What Was NOT Verified
+
+Live curl-based endpoint checks against the running Docker API were not completed because the running API container serves stale M16 code (no M17 routes). Checks 3–16 from the verification checklist were not executed.
+
+---
+
+### Required Actions Before M17 Can Be Closed
+
+1. **Prune Docker Desktop build cache** (user action required — cannot be automated in degraded state):
+   - Docker Desktop → Troubleshoot → Clean / Purge data
+   - OR: `docker builder prune -a --force` (run manually when Docker Desktop is responsive)
+
+2. **Rebuild and restart API only** per SETUP.md:
+   ```bash
+   docker compose -f infrastructure/docker/docker-compose.yml --env-file .env build api
+   docker stop gov_workforce_api && docker rm gov_workforce_api
+   docker compose -f infrastructure/docker/docker-compose.yml --env-file .env up -d api
+   ```
+
+3. **Rerun M17 runtime/API verification** (all 16 checks):
+   - Login, POST create, VAC-301, duplicate, GET list, GET detail, PUT update, advance state machine, reject/withdraw, terminal guard, re-application, archive guard, RBAC, audit events, cleanup
+
+4. **Push all 9 commits** (8 M17 + this PROGRESS.md checkpoint) to origin/main
+
+5. **Confirm CI green** and update PROGRESS.md with CI run ID
+
+6. Only then: **close M17 and begin M18 planning**
+
+---
+
+### M17 Production Blueprint Maturity
+
+| Layer | Status |
+|---|---|
+| Requirements | Defined (GD-M17-1; spec/07) |
+| Specs | Present (GD-M17-1 complete) |
+| Directives | Present (GD-M17-1, 7 steps, 9+ sections) |
+| Execution Plan | Implemented (5 steps committed) |
+| State Model | Implemented (APPLIED→SCREENING→INTERVIEW→EVALUATION→OFFER; terminal states HIRED/REJECTED/WITHDRAWN) |
+| Test Scenarios | Tested (101 e2e tests; 107 unit specs) |
+| System Loop | Integrated (NestJS + Prisma + postgres; ApplicationModule registered in AppModule) |
+| Failure Playbook | Partial (business-rule outcomes mapped; no retry/recovery strategy) |
+| Environment Model | Partial (local dev stack; Docker API blocked from rebuild) |
+| Data Lifecycle | Partial (soft-delete via partial unique index; re-application logic; no retention policy) |
+| Evolution Strategy | Not yet formalized |
+| **Overall** | **Integrated / E2E Tested — Runtime Verification Blocked** |
+
+---
+
+### Risks / Limitations
+
+- **Docker Desktop build cache exhaustion:** Must be pruned before any Docker rebuild. Until pruned, the running API serves M16 code.
+- **No push performed:** 8 M17 commits + this PROGRESS.md checkpoint are local-only. CI has NOT run against M17 code.
+- **M17 NOT CI-confirmed:** The CI gate (GitHub Actions) has not been triggered for any M17 commit.
+- **CANDIDATE_HAS_ACTIVE_APPLICATIONS live guard:** Activated in M17 (was M16 stub). Verified via e2e only; not runtime-verified against Docker API.
+- **APPLICATION_AWAITING_HIRE terminal guard:** Verified via e2e only; not runtime-verified.
+- **No frontend:** Application Management is backend-only per GD-M17-1 D13; no UI planned for M17.
