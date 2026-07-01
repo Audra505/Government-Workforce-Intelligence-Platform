@@ -9,6 +9,8 @@ import { InterviewController } from './interview.controller';
 import { InterviewService } from './interview.service';
 import { OfferController } from './offer.controller';
 import { OfferService } from './offer.service';
+import { HireController } from './hire.controller';
+import { HireService } from './hire.service';
 
 // PrismaService and AuditService are provided by PrismaModule (@Global) and AuditModule (@Global)
 // respectively — they do not need to be listed as providers here.
@@ -16,7 +18,7 @@ import { OfferService } from './offer.service';
 
 @Module({
   imports: [IdentityModule],
-  controllers: [CandidateController, ApplicationController, InterviewController, OfferController],
-  providers: [CandidateService, ApplicationService, InterviewService, OfferService],
+  controllers: [CandidateController, ApplicationController, InterviewController, OfferController, HireController],
+  providers: [CandidateService, ApplicationService, InterviewService, OfferService, HireService],
 })
 export class RecruitingModule {}

@@ -106,6 +106,22 @@ and is tracked in state/02_employee_lifecycle.md.
 
 ---
 
+## M18 — Interview and Offer Management
+
+| ID | Date | Subject | Impact |
+|---|---|---|---|
+| GD-M18-1 | 2026-06-30 | M18 Interview and Offer Management — Scope Decision | Authorizes M18 as third Phase 3 implementation milestone (backend-only); adds two new recruiting domain tables (recruiting.interviews, recruiting.offers); defines 8 interview endpoints (lifecycle: SCHEDULED→COMPLETED/CANCELLED/NO_SHOW, feedback recording) and 9 offer endpoints (lifecycle: DRAFT→PENDING_APPROVAL→APPROVED→SENT→ACCEPTED/DECLINED/WITHDRAWN); establishes no-hire invariant (application stays at OFFER; hire-to-employee deferred to M19); defines re-offer logic (DECLINED/WITHDRAWN unblock; ACCEPTED blocks new offer); enforces RBAC per GD-PRE-PHASE3-003 D16 (SA+HRD approve and send offers; Recruiter manages interview scheduling; Recruiter and HM submit offers); mandates PII-safe audit metadata; defers hire-to-employee conversion to M19; excludes all frontend, AI resume parsing, notifications, dashboards, FR-152 |
+
+---
+
+## M19 — Hire-to-Employee Conversion
+
+| ID | Date | Subject | Impact |
+|---|---|---|---|
+| GD-M19-1 | 2026-06-30 | M19 Hire-to-Employee Conversion — Scope Decision | Authorizes M19 as fourth Phase 3 implementation milestone (backend-only, single endpoint); delivers `POST /api/v1/applications/:id/hire` — no new tables, no migrations, no schema changes; employee creation uses existing `workforce.employees`; atomic transaction sets application→HIRED, vacancy→FILLED+filledAt, creates PENDING_ONBOARDING COMPETITIVE_APPOINTMENT employee, displaces active co-vacancy applications→REJECTED; offer left as ACCEPTED; 4 audit events emitted (RECRUITING_CANDIDATE_HIRED, WORKFORCE_EMPLOYEE_CREATED_FROM_HIRE, WORKFORCE_VACANCY_FILLED_FROM_HIRE, WORKFORCE_EMPLOYEE_POSITION_ASSIGNED_FROM_HIRE); PII-safe metadata (vacancyId+candidateId UUIDs only); RBAC: SA+HRD only; Recruiter/CO/HM/WP/EU denied; idempotency: 409 APPLICATION_ALREADY_HIRED; vacancy guard: 422 VACANCY_NOT_AVAILABLE; employee number: EMP-NNN sequential with collision guard; offer acceptance alone does not create an employee; excludes all frontend, hiring_events table, AI, notifications, dashboards, FR-152 |
+
+---
+
 ## Shared Column Confirmation (Implementation Confirmation — Not a Governance Decision)
 
 | Date | Subject | Outcome |

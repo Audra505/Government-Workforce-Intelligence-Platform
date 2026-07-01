@@ -87,6 +87,13 @@ export enum AuditEventType {
   WORKFORCE_EMPLOYEE_POSITION_CLEARED    = 'WORKFORCE_EMPLOYEE_POSITION_CLEARED',
 
   // -------------------------------------------------------------------------
+  // AUD-400: Workforce Events — M19 Hire-to-Employee (GD-M19-1 Decision 12)
+  // -------------------------------------------------------------------------
+  WORKFORCE_EMPLOYEE_CREATED_FROM_HIRE           = 'WORKFORCE_EMPLOYEE_CREATED_FROM_HIRE',
+  WORKFORCE_VACANCY_FILLED_FROM_HIRE             = 'WORKFORCE_VACANCY_FILLED_FROM_HIRE',
+  WORKFORCE_EMPLOYEE_POSITION_ASSIGNED_FROM_HIRE = 'WORKFORCE_EMPLOYEE_POSITION_ASSIGNED_FROM_HIRE',
+
+  // -------------------------------------------------------------------------
   // AUD-500: Recruiting Events
   // M16 adds RECRUITING_CANDIDATE_UPDATED and RECRUITING_CANDIDATE_ARCHIVED
   // (GD-M16-1 Decision 12; GD-PRE-PHASE3-003 D5)

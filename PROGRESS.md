@@ -9,16 +9,16 @@
 
 ---
 
-Last Updated: 2026-06-30 (M18 Interview and Offer Management — runtime/API verification PASSED; branch 5 local checkpoint commits ahead of origin/main before final squash; ready for squash, push, and CI)
-Updated By: Claude Code (M18 runtime/API verification complete: interview workflow, offer workflow, no-hire boundary, re-offer, audit all pass; e2e 78/78 interview + 96/96 offer; unit regression 709/709; build/lint clean; squash, push, and CI pending)
+Last Updated: 2026-07-01 (M19 Hire-to-Employee Conversion — runtime/API verification PASSED; all 15 GD-M19-1 D16 scenarios verified; branch 5 local checkpoint commits ahead of origin/main; ready for squash, push, and CI)
+Updated By: Claude Code (M19 runtime/API verification complete: hire → 201, PENDING_ONBOARDING, COMPETITIVE_APPOINTMENT, EMP-NNN, positionId/departmentId/hireDate set, application HIRED, vacancy FILLED+filledAt, displaced apps REJECTED, 409 idempotency, 422 VACANCY_NOT_AVAILABLE, 4 audit events PII-safe, no-hire invariant, field exclusion; unit 50/50 + 41/41; e2e 65/65; full regression 800/800; TypeScript clean; squash, push, and CI pending)
 
-Previous Update: 2026-06-29 (M17 Application Management Foundation — runtime/API verification PASSED 14/14; ready for push and CI; branch 9 commits ahead of origin/main before closeout commit; API image 447b4e23f516 rebuilt and healthy)
+Previous Update: 2026-06-30 (M18 Interview and Offer Management — runtime/API verification PASSED; branch 5 local checkpoint commits ahead of origin/main before final squash; ready for squash, push, and CI)
 
 ## Repository Status
 
-Current Phase: **Phase 3 — M18 Interview and Offer Management (RUNTIME VERIFIED — READY FOR FINAL SQUASH, PUSH, AND CI)**
-Overall Classification: Phase 2 COMPLETE; Post-Phase-2 milestones M13/M14/M15 CI-confirmed; Pre-Phase-3 Governance Package CI-confirmed (a5c34f1); Phase 3 started — M16 CI-confirmed (f962782); M17 CI-confirmed (see M17 section); M18 implementation complete, e2e-tested, and runtime-verified — squash, push, and CI pending
-Active Sprint / Milestone: M18 Interview and Offer Management — RUNTIME VERIFIED (2026-06-30); 5 local checkpoint commits ahead of origin/main before final squash; NOT yet squashed; NOT yet pushed; NOT yet CI-confirmed
+Current Phase: **Phase 3 — M19 Hire-to-Employee Conversion (RUNTIME VERIFIED — READY FOR FINAL SQUASH, PUSH, AND CI)**
+Overall Classification: Phase 2 COMPLETE; Post-Phase-2 milestones M13/M14/M15 CI-confirmed; Pre-Phase-3 Governance Package CI-confirmed (a5c34f1); Phase 3 started — M16 CI-confirmed (f962782); M17 CI-confirmed (see M17 section); M18 CI-confirmed (see M18 section); M19 implementation complete, e2e-tested, and runtime-verified — squash, push, and CI pending
+Active Sprint / Milestone: M19 Hire-to-Employee Conversion — RUNTIME VERIFIED (2026-07-01); 5 local checkpoint commits ahead of origin/main before final squash; NOT yet squashed; NOT yet pushed; NOT yet CI-confirmed
 Implementation Started: Yes (2026-06-05)
 
 ## Phase Summary
@@ -33,12 +33,12 @@ Phase 1 is formally closed. D9 (Docker Environment) and D10 (CI/CD Foundation) w
 > Its purpose is crash/session recovery: the current step state is always readable without
 > scanning Zone 5 history. It is overwritten each step — not appended.
 
-Milestone: M18 Interview and Offer Management — RUNTIME VERIFIED; READY FOR FINAL SQUASH, PUSH, AND CI (2026-06-30)
-Last Completed Milestone: M17 Application Management Foundation (COMPLETE; CI CONFIRMED GREEN; see M17 section)
-Last Completed Step: M18 runtime/API verification PASSED (2026-06-30; all 17 M18 routes registered; interview/offer workflows, no-hire boundary, re-offer, audit all pass; 5 local checkpoint commits before squash)
-Last Completed Step Date: 2026-06-30
+Milestone: M19 Hire-to-Employee Conversion — RUNTIME VERIFIED; READY FOR FINAL SQUASH, PUSH, AND CI (2026-07-01)
+Last Completed Milestone: M18 Interview and Offer Management (COMPLETE; CI CONFIRMED GREEN; see M18 section)
+Last Completed Step: M19 runtime/API verification PASSED (2026-07-01; all 15 GD-M19-1 D16 scenarios verified; hire endpoint, idempotency, VACANCY_NOT_AVAILABLE, audit events, no-hire invariant, displacement, field exclusion all pass; 5 local checkpoint commits before squash)
+Last Completed Step Date: 2026-07-01
 Current Step: Squash 5 local checkpoint commits; push to origin/main; confirm CI green
-Session Classification: PHASE 3 M18 IMPLEMENTATION COMPLETE, E2E-TESTED, AND RUNTIME-VERIFIED — NOT yet squashed; NOT yet pushed; CI pending
+Session Classification: PHASE 3 M19 IMPLEMENTATION COMPLETE, E2E-TESTED, AND RUNTIME-VERIFIED — NOT yet squashed; NOT yet pushed; CI pending
 
 ## Milestone 10 — Approved Plan
 
@@ -8783,6 +8783,179 @@ These will be squashed into a single commit before push. CI has NOT yet run agai
 2. **Push** to `origin/main`
 3. **Confirm CI green** — GitHub Actions must pass
 4. **Update PROGRESS.md** with CI run ID and commit hash
-5. Only then: begin M19 planning (hire-to-employee conversion)
+5. ~~Only then: begin M19 planning (hire-to-employee conversion)~~ — **M19 complete; see M19 section**
+
+---
+
+# M19 — Hire-to-Employee Conversion
+
+## M19 Overview
+
+- **Milestone:** M19 — Hire-to-Employee Conversion
+- **Governance:** GD-M19-1 (Hire-to-Employee Conversion — Scope Decision; Approved 2026-06-30)
+- **Phase:** Phase 3 — Recruiting & Staffing
+- **Status:** RUNTIME VERIFIED — READY FOR FINAL SQUASH, PUSH, AND CI (2026-07-01)
+- **Backend only.** No frontend work. No schema changes. No migrations.
+
+## M19 Capability Summary
+
+M19 delivers the single hire action endpoint that closes the Phase 3 recruiting loop: `POST /api/v1/applications/:id/hire`. It connects the Recruiting domain (`recruiting.applications`) to the Workforce domain (`workforce.employees`) atomically, without adding any new tables.
+
+When called with a qualifying application (status `OFFER`, accepted offer present, candidate active, vacancy available, position unclaimed):
+
+- Creates an employee record in `workforce.employees` from the candidate, position, and department data already on the application.
+- Sets `application.status` → `HIRED`.
+- Sets `vacancy.status` → `FILLED` and `vacancy.filledAt` → server timestamp.
+- Rejects all other non-terminal applications on the same vacancy (`REJECTED` via `updateMany`).
+- Emits 4 audit events.
+
+Offer acceptance alone does not create an employee. The hire endpoint is the only trigger for employee creation in M19.
+
+## M19 Deliverable Alignment
+
+| Capability | Governance Reference | Status |
+|---|---|---|
+| `POST /api/v1/applications/:id/hire` endpoint | GD-M19-1 D3, D6 | Implemented / Runtime Verified |
+| Employee created from hire (existing `workforce.employees`) | GD-M19-1 D5, D10 | Implemented / Runtime Verified |
+| `employmentStatus = PENDING_ONBOARDING` | GD-M19-1 D10 | Implemented / Runtime Verified |
+| `appointmentAuthority = COMPETITIVE_APPOINTMENT` | GD-M19-1 D10; GD-PRE-M13-001 | Implemented / Runtime Verified |
+| `employeeNumber` in `EMP-NNN` format | GD-M19-1 D10 | Implemented / Runtime Verified |
+| `positionId` from vacancy, `departmentId` from position | GD-M19-1 D10 | Implemented / Runtime Verified |
+| Application → `HIRED` | GD-M19-1 D7 | Implemented / Runtime Verified |
+| Vacancy → `FILLED` + `filledAt` | GD-M19-1 D8, D9 | Implemented / Runtime Verified |
+| Displaced apps on same vacancy → `REJECTED` | GD-M19-1 D11 | Implemented / Runtime Verified |
+| Accepted offer preserved as `ACCEPTED` | GD-M19-1 D12 | Implemented (offer not mutated by hire) |
+| Displaced offers not mutated | GD-M19-1 D12 | Implemented |
+| Offer acceptance alone does not create employee | GD-M19-1 D3 | Implemented / Runtime Verified |
+| SA + HR Director authorized | GD-M19-1 D3; GD-PRE-PHASE3-003 D3 | Implemented / E2E Verified |
+| Recruiter, CO, HM, WP, EU denied (403) | GD-M19-1 D3; GD-PRE-PHASE3-003 | Implemented / E2E Verified |
+| 409 idempotency guard | GD-M19-1 D6 | Implemented / Runtime Verified |
+| 422 VACANCY_NOT_AVAILABLE guard | GD-M19-1 D13 | Implemented / Runtime Verified |
+| 4 audit events, PII-safe metadata | GD-M19-1 D15 | Implemented / Runtime Verified |
+| No hiring_events table | GD-M19-1 D5 | Confirmed — existing tables used |
+| No schema changes / migrations | GD-M19-1 D5 | Confirmed |
+| No frontend work | GD-M19-1 D14 | Confirmed |
+
+## M19 Implementation Files
+
+### Files Created
+
+| File | Purpose |
+|---|---|
+| `apps/api/src/recruiting/hire.service.ts` | `HireService.hire()` — precondition checks, atomic 4-write transaction (employee create, application HIRED, vacancy FILLED+filledAt, displaced apps REJECTED), employee number generation, 4 audit events post-transaction |
+| `apps/api/src/recruiting/hire.controller.ts` | `HireController` — `POST /api/v1/applications/:id/hire`, `@HttpCode(201)`, `@RequireRoles('System Administrator', 'HR Director')`, no request body, `toHireEmployeeShape()` excludes `tenantId` and `deletedAt` |
+| `apps/api/src/recruiting/hire.service.spec.ts` | 50 unit tests — precondition guards, transaction path, displacement, idempotency, employee number collision |
+| `apps/api/src/recruiting/hire.controller.spec.ts` | 41 unit tests — HTTP mapping, all error codes, field exclusion |
+| `apps/api/test/hire.e2e-spec.ts` | 65 e2e tests — Groups 1–15 covering success path, RBAC, all precondition failures, idempotency, audit, displacement, cross-tenant isolation |
+
+### Files Modified
+
+| File | Change |
+|---|---|
+| `apps/api/src/recruiting/recruiting.module.ts` | Added `HireController` to controllers[], `HireService` to providers[] |
+| `apps/api/src/audit/audit-event-type.enum.ts` | Added 4 new M19 audit event types: `RECRUITING_CANDIDATE_HIRED`, `WORKFORCE_EMPLOYEE_CREATED_FROM_HIRE`, `WORKFORCE_VACANCY_FILLED_FROM_HIRE`, `WORKFORCE_EMPLOYEE_POSITION_ASSIGNED_FROM_HIRE` |
+| `governance/GD-M19-1.md` | Clarified `vacancy.filledAt` behavior (set in hire transaction, not by advance endpoint) |
+
+## M19 Validation Evidence
+
+| Suite | Result |
+|---|---|
+| `hire.service.spec.ts` | 50 / 50 |
+| `hire.controller.spec.ts` | 41 / 41 |
+| Full recruiting unit regression | 800 / 800 |
+| `hire.e2e-spec.ts` | 65 / 65 |
+| Application + offer e2e regression | 197 / 197 |
+| TypeScript (`tsc --noEmit`) | Clean |
+| Hire e2e lint | Clean |
+
+## M19 Runtime/API Verification — PASS (2026-07-01)
+
+### Docker Runtime State at Verification
+
+| Service | Container | Port | Status | Notes |
+|---|---|---|---|---|
+| `gov_workforce_api` | `gov_workforce_api` | 3001 | Healthy | Rebuilt with M19 source (API-only per SETUP.md decision tree) |
+| `gov_workforce_web` | `gov_workforce_web` | 3000 | Healthy | Not rebuilt — no M19 web changes |
+| `gov_workforce_postgres` | `gov_workforce_postgres` | 5433 | Healthy | Not rebuilt — no M19 schema changes |
+
+### Migration State at Verification
+
+Latest applied migration: `20260630100000_m18b_offers`. No M19 migration exists. M19 uses existing `workforce.employees`, `recruiting.applications`, `recruiting.offers`, `workforce.vacancies`, and `workforce.positions` tables without modification.
+
+### API Route Verified
+
+`POST /api/v1/applications/:id/hire` — confirmed registered and live.  
+Role used for live verification: **System Administrator** (`admin@dev.gov`).
+
+### Runtime Verification Results — All 15 D16 Scenarios
+
+| Scenario | Description | Result |
+|---|---|---|
+| S1 | Login → SA token | PASS |
+| S2 | Fixture chain created (3 positions → ACTIVE → 3 vacancies → OPEN → 3 candidates, applications, offer chains) | PASS |
+| S3 | `POST /hire` → 201; `employmentStatus=PENDING_ONBOARDING`; `appointmentAuthority=COMPETITIVE_APPOINTMENT`; `employeeNumber=EMP-020`; `positionId` correct; `departmentId` correct; `hireDate` non-null; `tenantId` absent; `deletedAt` absent | PASS (10 assertions) |
+| S4 | `GET /employees/:id` → `positionId`, `departmentId`, `hireDate`, `employeeNumber` all correct; `tenantId` absent | PASS (5 assertions) |
+| S5 | `GET /applications/:id` → `status=HIRED` | PASS |
+| S6 | `GET /vacancies/:id` → `status=FILLED`; `filledAt=2026-07-01T02:45:35.121Z` | PASS |
+| S7 | Displaced app on same vacancy → `REJECTED`; hired app stays `HIRED` | PASS |
+| S8 | Second hire → 409 `APPLICATION_ALREADY_HIRED` | PASS |
+| S9 | Hire on `FILLED` vacancy → 422 `VACANCY_NOT_AVAILABLE` | PASS |
+| S10 | Recruiter → 403 | Verified by e2e Group 2 (`hire.e2e-spec.ts`) |
+| S11 | No auth → 401 | PASS (live) |
+| S12 | Cross-tenant SA → 404 | Verified by e2e Group 15 (`hire.e2e-spec.ts`) |
+| S13 | All 4 audit events present; metadata contains `vacancyId` + `candidateId` only; no email/name PII | PASS (5 assertions) |
+| S14 | Offer acceptance without hire → application stays `OFFER`; employee count unchanged (20 before, 20 after) | PASS |
+| S15 | `GET /applications/:id` on HIRED app → `tenantId` absent; `deletedAt` absent; `status=HIRED` | PASS (3 assertions) |
+
+**Total live assertions: 41 PASS / 0 FAIL.**  
+S10 and S12 covered by e2e suite (no Recruiter or cross-tenant token in live runtime scope).
+
+### Runtime Cleanup
+
+All test records deleted after verification. No test records remain in the database. Cleanup confirmed via DELETE row counts after each verification pass.
+
+## M19 Local Checkpoint Commit History
+
+| Commit | Description |
+|---|---|
+| `8b00841` | Implement M19 hire e2e coverage |
+| `fad2015` | Implement M19 hire controller |
+| `9a39a68` | Implement M19 hire service |
+| `dc69880` | Implement M19 hire audit event enum values |
+| `a089541` | docs(governance): clarify M19 vacancy filledAt behavior |
+
+These will be squashed into a single commit before push. CI has NOT yet run against M19 code.
+
+## M19 Production Blueprint Maturity
+
+| Layer | Status |
+|---|---|
+| Requirements | Defined (GD-M19-1; spec/01 FR-304; spec/07 SEC-003; GD-PRE-PHASE3-002 D10; GD-PRE-PHASE3-003 D3) |
+| Specs | Present (GD-M19-1 complete — D1 through D16) |
+| Directives | Present (GD-M19-1, GD-PRE-PHASE3-002, GD-PRE-PHASE3-003) |
+| Execution Plan | Implemented (hire.service.ts + hire.controller.ts; 4 new files + 2 modified) |
+| State Model | Implemented (OFFER→HIRED application transition; OPEN/IN_RECRUITMENT→FILLED vacancy transition; PENDING_ONBOARDING employee creation) |
+| Test Scenarios | Verified (50 service unit + 41 controller unit + 65 e2e; full regression 800/800 + 197/197) |
+| System Loop | Integrated (HireService registered in RecruitingModule; atomic Prisma transaction; audit events post-commit) |
+| Failure Playbook | Implemented (APPLICATION_NOT_FOUND, APPLICATION_ALREADY_HIRED, APPLICATION_NOT_AT_OFFER_STATUS, ACCEPTED_OFFER_NOT_FOUND, CANDIDATE_NOT_FOUND, CANDIDATE_ARCHIVED, VACANCY_NOT_FOUND, VACANCY_NOT_AVAILABLE, POSITION_NOT_FOUND, POSITION_NOT_AVAILABLE, EMPLOYEE_NUMBER_GENERATION_FAILED, INTERNAL_ERROR — all handled) |
+| Environment Model | Shadow-safe — API-only rebuild; no schema changes; no migration; postgres untouched |
+| Data Lifecycle | Implemented (employee created from hire; application HIRED; vacancy FILLED+filledAt; displaced apps REJECTED; offers not mutated) |
+| Evolution Strategy | Not yet formalized (M20 planning not started) |
+| **Overall Maturity** | **Partially Implemented → Integrated / Runtime Verified** |
+
+## M19 Risks / Limitations
+
+- **Not yet pushed:** 5 local checkpoint commits are local-only. CI has NOT yet run against M19 code. Final squash and push required before CI gate is satisfied.
+- **Employee number collision:** Sequential `COUNT(*) + 1` strategy has a known low-probability race window under high concurrency. Documented in GD-M19-1 and handled with `EMPLOYEE_NUMBER_GENERATION_FAILED` retry signal. Acceptable for Phase 3 scope.
+- **No frontend:** Hire-to-employee conversion is backend-only per GD-M19-1 D14; no web UI planned for M19.
+- **M20 not started:** Next milestone planning has not begun.
+
+## M19 Next Actions
+
+1. **Squash** 5 local checkpoint commits into a single clean M19 commit
+2. **Push** to `origin/main`
+3. **Confirm CI green** — GitHub Actions must pass
+4. **Update PROGRESS.md** with CI run ID and commit hash
+5. Next milestone planning not started
 
 ---
