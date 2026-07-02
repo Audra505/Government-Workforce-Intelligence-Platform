@@ -9,8 +9,8 @@
 
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
-import { LogoutButton } from '@/features/auth/logout-button';
 import { serverFetch, ApiError } from '@/lib/api';
+import { WorkforceShell } from '@/features/workforce/components/workforce-shell';
 import { EditPositionForm } from '@/features/workforce/components/edit-position-form';
 import type { PositionDetailApiResponse } from '@/features/workforce/types';
 
@@ -36,33 +36,22 @@ export default async function EditPositionPage({ params }: Props) {
   }
 
   return (
-    <div className="flex min-h-screen flex-col">
-      <header className="border-b bg-background px-6 py-4">
-        <div className="flex items-center justify-between">
-          <h1 className="text-lg font-semibold">
-            Government Workforce Intelligence Platform
-          </h1>
-          <LogoutButton />
-        </div>
-      </header>
+    <WorkforceShell activeTab="positions" breadcrumb="Edit Position">
+      <div className="mb-6">
+        <Link
+          href={`/workforce/positions/${position.id}`}
+          className="text-sm text-muted-foreground underline-offset-4 hover:underline"
+        >
+          ← Back to Position
+        </Link>
+        <h2 className="mt-2 text-2xl font-bold tracking-tight">
+          Edit Position — {position.title}
+        </h2>
+      </div>
 
-      <main className="flex-1 p-6">
-        <div className="mb-6">
-          <Link
-            href={`/workforce/positions/${position.id}`}
-            className="text-sm text-muted-foreground underline-offset-4 hover:underline"
-          >
-            ← Back to Position
-          </Link>
-          <h2 className="mt-2 text-2xl font-bold tracking-tight">
-            Edit Position — {position.title}
-          </h2>
-        </div>
-
-        <div className="max-w-lg">
-          <EditPositionForm position={position} />
-        </div>
-      </main>
-    </div>
+      <div className="max-w-lg">
+        <EditPositionForm position={position} />
+      </div>
+    </WorkforceShell>
   );
 }

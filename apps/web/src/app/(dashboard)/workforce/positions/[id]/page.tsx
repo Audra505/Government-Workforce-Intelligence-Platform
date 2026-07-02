@@ -10,25 +10,15 @@
 import Link from 'next/link';
 import { cookies } from 'next/headers';
 import { notFound } from 'next/navigation';
-import { LogoutButton } from '@/features/auth/logout-button';
 import { serverFetch, ApiError } from '@/lib/api';
+import { getSessionRoles } from '@/lib/session';
+import { WorkforceShell } from '@/features/workforce/components/workforce-shell';
 import { PositionDetail } from '@/features/workforce/components/position-detail';
 import { PositionActions } from '@/features/workforce/components/position-actions';
 import { SESSION_COOKIE } from '@/lib/auth';
 import type { PositionDetailApiResponse } from '@/features/workforce/types';
 
 type Props = { params: { id: string } };
-
-function getSessionRoles(token: string): string[] {
-  try {
-    const payload = JSON.parse(
-      atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')),
-    ) as { roles?: unknown };
-    return Array.isArray(payload.roles) ? (payload.roles as string[]) : [];
-  } catch {
-    return [];
-  }
-}
 
 export default async function PositionDetailPage({ params }: Props) {
   let response: PositionDetailApiResponse;
@@ -49,38 +39,27 @@ export default async function PositionDetailPage({ params }: Props) {
   const canWrite = roles.includes('System Administrator') || roles.includes('HR Director');
 
   return (
-    <div className="flex min-h-screen flex-col">
-      <header className="border-b bg-background px-6 py-4">
-        <div className="flex items-center justify-between">
-          <h1 className="text-lg font-semibold">
-            Government Workforce Intelligence Platform
-          </h1>
-          <LogoutButton />
-        </div>
-      </header>
+    <WorkforceShell activeTab="positions" breadcrumb={position.title}>
+      <div className="mb-6">
+        <Link
+          href="/workforce/positions"
+          className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+        >
+          ← Back to Positions
+        </Link>
+      </div>
 
-      <main className="flex-1 p-6">
-        <div className="mb-6">
-          <Link
-            href="/workforce/positions"
-            className="text-sm text-muted-foreground transition-colors hover:text-foreground"
-          >
-            ← Back to Positions
-          </Link>
+      <div className="mb-6 flex items-start justify-between gap-4">
+        <div>
+          <h2 className="text-2xl font-bold tracking-tight">{position.title}</h2>
+          {position.classification && (
+            <p className="mt-1 text-sm text-muted-foreground">{position.classification}</p>
+          )}
         </div>
+        <PositionActions id={position.id} status={position.status} canWrite={canWrite} />
+      </div>
 
-        <div className="mb-6 flex items-start justify-between gap-4">
-          <div>
-            <h2 className="text-2xl font-bold tracking-tight">{position.title}</h2>
-            {position.classification && (
-              <p className="mt-1 text-sm text-muted-foreground">{position.classification}</p>
-            )}
-          </div>
-          <PositionActions id={position.id} status={position.status} canWrite={canWrite} />
-        </div>
-
-        <PositionDetail position={position} />
-      </main>
-    </div>
+      <PositionDetail position={position} />
+    </WorkforceShell>
   );
 }

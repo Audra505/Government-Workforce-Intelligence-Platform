@@ -7,8 +7,8 @@
 
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
-import { LogoutButton } from '@/features/auth/logout-button';
 import { serverFetch, ApiError } from '@/lib/api';
+import { WorkforceShell } from '@/features/workforce/components/workforce-shell';
 import { EditEmployeeForm } from '@/features/workforce/components/edit-employee-form';
 import type { EmployeeDetailApiResponse, DepartmentListApiResponse } from '@/features/workforce/types';
 
@@ -45,36 +45,25 @@ export default async function EditEmployeePage({ params }: Props) {
   const departments = deptResponse.data.departments;
 
   return (
-    <div className="flex min-h-screen flex-col">
-      <header className="border-b bg-background px-6 py-4">
-        <div className="flex items-center justify-between">
-          <h1 className="text-lg font-semibold">
-            Government Workforce Intelligence Platform
-          </h1>
-          <LogoutButton />
-        </div>
-      </header>
+    <WorkforceShell activeTab="employees" breadcrumb={`${employee.firstName} ${employee.lastName}`}>
+      <div className="mb-6">
+        <Link
+          href={`/workforce/employees/${employee.id}`}
+          className="text-sm text-muted-foreground underline-offset-4 hover:underline"
+        >
+          ← Back to Employee
+        </Link>
+        <h2 className="mt-2 text-2xl font-bold tracking-tight">
+          Edit Employee — {employee.firstName} {employee.lastName}
+        </h2>
+        <p className="mt-1 font-mono text-sm text-muted-foreground">
+          {employee.employeeNumber}
+        </p>
+      </div>
 
-      <main className="flex-1 p-6">
-        <div className="mb-6">
-          <Link
-            href={`/workforce/employees/${employee.id}`}
-            className="text-sm text-muted-foreground underline-offset-4 hover:underline"
-          >
-            ← Back to Employee
-          </Link>
-          <h2 className="mt-2 text-2xl font-bold tracking-tight">
-            Edit Employee — {employee.firstName} {employee.lastName}
-          </h2>
-          <p className="mt-1 font-mono text-sm text-muted-foreground">
-            {employee.employeeNumber}
-          </p>
-        </div>
-
-        <div className="max-w-lg">
-          <EditEmployeeForm employee={employee} departments={departments} />
-        </div>
-      </main>
-    </div>
+      <div className="max-w-lg">
+        <EditEmployeeForm employee={employee} departments={departments} />
+      </div>
+    </WorkforceShell>
   );
 }

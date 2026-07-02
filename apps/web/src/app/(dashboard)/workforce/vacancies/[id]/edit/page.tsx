@@ -7,8 +7,8 @@
 
 import Link from 'next/link';
 import { redirect, notFound } from 'next/navigation';
-import { LogoutButton } from '@/features/auth/logout-button';
 import { serverFetch, ApiError } from '@/lib/api';
+import { WorkforceShell } from '@/features/workforce/components/workforce-shell';
 import { EditVacancyForm } from '@/features/workforce/components/edit-vacancy-form';
 import type { VacancyDetailApiResponse } from '@/features/workforce/types';
 
@@ -36,36 +36,22 @@ export default async function EditVacancyPage({ params }: Props) {
   }
 
   return (
-    <div className="flex min-h-screen flex-col">
-      <header className="border-b bg-background px-6 py-4">
-        <div className="flex items-center justify-between">
-          <h1 className="text-lg font-semibold">
-            Government Workforce Intelligence Platform
-          </h1>
-          <LogoutButton />
-        </div>
-      </header>
+    <WorkforceShell activeTab="vacancies" breadcrumb="Edit Vacancy">
+      <div className="mb-6">
+        <Link
+          href={`/workforce/vacancies/${params.id}`}
+          className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+        >
+          ← Back to Vacancy
+        </Link>
+        <h2 className="mt-2 text-2xl font-bold tracking-tight">{vacancy.positionTitle}</h2>
+        <p className="mt-1 text-sm text-muted-foreground">{vacancy.departmentName}</p>
+      </div>
 
-      <main className="flex-1 p-6">
-        <div className="mb-6">
-          <Link
-            href={`/workforce/vacancies/${params.id}`}
-            className="text-sm text-muted-foreground transition-colors hover:text-foreground"
-          >
-            ← Back to Vacancy
-          </Link>
-        </div>
-
-        <div className="mb-6">
-          <h2 className="text-2xl font-bold tracking-tight">{vacancy.positionTitle}</h2>
-          <p className="mt-1 text-sm text-muted-foreground">{vacancy.departmentName}</p>
-        </div>
-
-        <div className="max-w-lg">
-          <h3 className="mb-4 text-base font-semibold">Edit Vacancy</h3>
-          <EditVacancyForm vacancy={vacancy} />
-        </div>
-      </main>
-    </div>
+      <div className="max-w-lg">
+        <h3 className="mb-4 text-base font-semibold">Edit Vacancy</h3>
+        <EditVacancyForm vacancy={vacancy} />
+      </div>
+    </WorkforceShell>
   );
 }

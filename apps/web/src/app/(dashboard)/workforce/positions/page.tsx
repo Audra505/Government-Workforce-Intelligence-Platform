@@ -10,8 +10,10 @@
 import { Suspense } from 'react';
 import Link from 'next/link';
 import { cookies } from 'next/headers';
-import { LogoutButton } from '@/features/auth/logout-button';
 import { serverFetch } from '@/lib/api';
+import { getSessionRoles } from '@/lib/session';
+import { WorkforceShell } from '@/features/workforce/components/workforce-shell';
+import { Pagination } from '@/components/shared/pagination';
 import { PositionFilters } from '@/features/workforce/components/position-filters';
 import { PositionTable } from '@/features/workforce/components/position-table';
 import { SESSION_COOKIE } from '@/lib/auth';
@@ -22,17 +24,6 @@ type Props = { searchParams: PageSearchParams };
 
 function getString(value: string | string[] | undefined): string | undefined {
   return typeof value === 'string' ? value : undefined;
-}
-
-function getSessionRoles(token: string): string[] {
-  try {
-    const payload = JSON.parse(
-      atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')),
-    ) as { roles?: unknown };
-    return Array.isArray(payload.roles) ? (payload.roles as string[]) : [];
-  } catch {
-    return [];
-  }
 }
 
 async function getPositions(searchParams: PageSearchParams): Promise<PositionFullListApiResponse> {
@@ -100,87 +91,45 @@ export default async function PositionsPage({ searchParams }: Props) {
   const rangeEnd   = Math.min(currentPage * pageSize, total);
 
   return (
-    <div className="flex min-h-screen flex-col">
-      <header className="border-b bg-background px-6 py-4">
-        <div className="flex items-center justify-between">
-          <h1 className="text-lg font-semibold">
-            Government Workforce Intelligence Platform
-          </h1>
-          <LogoutButton />
+    <WorkforceShell activeTab="positions" breadcrumb="Positions" counts={{ positions: total }}>
+      <div className="mb-6 flex items-start justify-between">
+        <div>
+          <h2 className="text-2xl font-bold tracking-tight">Positions</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {total === 1 ? '1 position' : `${total} positions`}
+          </p>
         </div>
-      </header>
+        {canWrite && (
+          <Link
+            href="/workforce/positions/new"
+            className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+          >
+            New Position
+          </Link>
+        )}
+      </div>
 
-      <main className="flex-1 p-6">
-        {/* Workforce nav */}
-        <nav className="mb-6 flex items-center gap-4 text-sm text-muted-foreground">
-          <Link href="/workforce/positions" className="font-medium text-foreground">Positions</Link>
-          <span aria-hidden="true">·</span>
-          <Link href="/workforce/vacancies" className="hover:text-foreground transition-colors">Vacancies</Link>
-          <span aria-hidden="true">·</span>
-          <Link href="/workforce/employees" className="hover:text-foreground transition-colors">Employees</Link>
-        </nav>
+      <div className="mb-4">
+        <Suspense fallback={<div className="h-10" />}>
+          <PositionFilters departments={departments} />
+        </Suspense>
+      </div>
 
-        <div className="mb-6 flex items-start justify-between">
-          <div>
-            <h2 className="text-2xl font-bold tracking-tight">Positions</h2>
-            <p className="mt-1 text-sm text-muted-foreground">
-              {total === 1 ? '1 position' : `${total} positions`}
-            </p>
-          </div>
-          {canWrite && (
-            <Link
-              href="/workforce/positions/new"
-              className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
-            >
-              New Position
-            </Link>
-          )}
-        </div>
+      <PositionTable positions={positions} hasFilters={hasFilters} />
 
-        <div className="mb-4">
-          <Suspense fallback={<div className="h-10" />}>
-            <PositionFilters departments={departments} />
-          </Suspense>
-        </div>
-
-        <PositionTable positions={positions} hasFilters={hasFilters} />
-
-        {total > 0 && (
-          <div className="mt-4 flex items-center justify-between text-sm text-muted-foreground">
+      {total > 0 && (
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          buildUrl={(page) => buildPageUrl(searchParams, page)}
+          summary={
             <span>
               Showing {rangeStart}–{rangeEnd} of {total}{' '}
               {total === 1 ? 'position' : 'positions'}
             </span>
-            <div className="flex items-center gap-2">
-              {currentPage > 1 ? (
-                <Link
-                  href={buildPageUrl(searchParams, currentPage - 1)}
-                  className="rounded-md border px-3 py-1.5 text-sm hover:bg-muted transition-colors"
-                >
-                  ← Previous
-                </Link>
-              ) : (
-                <span aria-disabled="true" className="rounded-md border px-3 py-1.5 text-sm opacity-40 cursor-not-allowed">
-                  ← Previous
-                </span>
-              )}
-              <span className="px-2">Page {currentPage} of {totalPages}</span>
-              {currentPage < totalPages ? (
-                <Link
-                  href={buildPageUrl(searchParams, currentPage + 1)}
-                  className="rounded-md border px-3 py-1.5 text-sm hover:bg-muted transition-colors"
-                >
-                  Next →
-                </Link>
-              ) : (
-                <span aria-disabled="true" className="rounded-md border px-3 py-1.5 text-sm opacity-40 cursor-not-allowed">
-                  Next →
-                </span>
-              )}
-            </div>
-          </div>
-        )}
-      </main>
-    </div>
+          }
+        />
+      )}
+    </WorkforceShell>
   );
 }

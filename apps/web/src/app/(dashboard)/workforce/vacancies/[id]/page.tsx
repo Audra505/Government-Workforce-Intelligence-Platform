@@ -10,8 +10,9 @@
 import Link from 'next/link';
 import { cookies } from 'next/headers';
 import { notFound } from 'next/navigation';
-import { LogoutButton } from '@/features/auth/logout-button';
 import { serverFetch, ApiError } from '@/lib/api';
+import { getSessionRoles } from '@/lib/session';
+import { WorkforceShell } from '@/features/workforce/components/workforce-shell';
 import { VacancyDetail } from '@/features/workforce/components/vacancy-detail';
 import { VacancyActions } from '@/features/workforce/components/vacancy-actions';
 import { SESSION_COOKIE } from '@/lib/auth';
@@ -20,20 +21,6 @@ import type { VacancyDetailApiResponse } from '@/features/workforce/types';
 type Props = {
   params: { id: string };
 };
-
-// Decode JWT payload without signature verification — server-side only.
-// Used for UX (show/hide write actions). NestJS is the authoritative RBAC enforcer.
-function getSessionRoles(token: string): string[] {
-  try {
-    // JWT payload is URL-safe base64 — convert to standard base64 before atob
-    const payload = JSON.parse(
-      atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')),
-    ) as { roles?: unknown };
-    return Array.isArray(payload.roles) ? (payload.roles as string[]) : [];
-  } catch {
-    return [];
-  }
-}
 
 export default async function VacancyDetailPage({ params }: Props) {
   let response: VacancyDetailApiResponse;
@@ -50,43 +37,31 @@ export default async function VacancyDetailPage({ params }: Props) {
 
   const vacancy = response.data;
 
-  // Decode session roles for action visibility (GD-12-4 modified approval)
   const token = cookies().get(SESSION_COOKIE)?.value;
   const roles = token ? getSessionRoles(token) : [];
   const canWrite =
     roles.includes('System Administrator') || roles.includes('HR Director');
 
   return (
-    <div className="flex min-h-screen flex-col">
-      <header className="border-b bg-background px-6 py-4">
-        <div className="flex items-center justify-between">
-          <h1 className="text-lg font-semibold">
-            Government Workforce Intelligence Platform
-          </h1>
-          <LogoutButton />
-        </div>
-      </header>
+    <WorkforceShell activeTab="vacancies" breadcrumb={vacancy.positionTitle}>
+      <div className="mb-6">
+        <Link
+          href="/workforce/vacancies"
+          className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+        >
+          ← Back to Vacancies
+        </Link>
+      </div>
 
-      <main className="flex-1 p-6">
-        <div className="mb-6">
-          <Link
-            href="/workforce/vacancies"
-            className="text-sm text-muted-foreground transition-colors hover:text-foreground"
-          >
-            ← Back to Vacancies
-          </Link>
+      <div className="mb-6 flex items-start justify-between gap-4">
+        <div>
+          <h2 className="text-2xl font-bold tracking-tight">{vacancy.positionTitle}</h2>
+          <p className="mt-1 text-sm text-muted-foreground">{vacancy.departmentName}</p>
         </div>
+        <VacancyActions id={vacancy.id} status={vacancy.status} canWrite={canWrite} />
+      </div>
 
-        <div className="mb-6 flex items-start justify-between gap-4">
-          <div>
-            <h2 className="text-2xl font-bold tracking-tight">{vacancy.positionTitle}</h2>
-            <p className="mt-1 text-sm text-muted-foreground">{vacancy.departmentName}</p>
-          </div>
-          <VacancyActions id={vacancy.id} status={vacancy.status} canWrite={canWrite} />
-        </div>
-
-        <VacancyDetail vacancy={vacancy} />
-      </main>
-    </div>
+      <VacancyDetail vacancy={vacancy} />
+    </WorkforceShell>
   );
 }

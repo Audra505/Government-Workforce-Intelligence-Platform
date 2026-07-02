@@ -12,9 +12,10 @@
 import Link from 'next/link';
 import { cookies } from 'next/headers';
 import { notFound } from 'next/navigation';
-import { LogoutButton } from '@/features/auth/logout-button';
-import { Button } from '@/components/ui/button';
 import { serverFetch, ApiError } from '@/lib/api';
+import { getSessionRoles } from '@/lib/session';
+import { WorkforceShell } from '@/features/workforce/components/workforce-shell';
+import { Button } from '@/components/ui/button';
 import { EmployeeDetail } from '@/features/workforce/components/employee-detail';
 import { EmployeeStatusActions } from '@/features/workforce/components/employee-status-actions';
 import { EmployeePositionActions } from '@/features/workforce/components/employee-position-actions';
@@ -29,17 +30,6 @@ import type {
 type Props = {
   params: { id: string };
 };
-
-function getSessionRoles(token: string): string[] {
-  try {
-    const payload = JSON.parse(
-      atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')),
-    ) as { roles?: unknown };
-    return Array.isArray(payload.roles) ? (payload.roles as string[]) : [];
-  } catch {
-    return [];
-  }
-}
 
 export default async function EmployeeDetailPage({ params }: Props) {
   let response: EmployeeDetailApiResponse;
@@ -78,62 +68,51 @@ export default async function EmployeeDetailPage({ params }: Props) {
     currentPositionRes?.data.title ?? null;
 
   return (
-    <div className="flex min-h-screen flex-col">
-      <header className="border-b bg-background px-6 py-4">
-        <div className="flex items-center justify-between">
-          <h1 className="text-lg font-semibold">
-            Government Workforce Intelligence Platform
-          </h1>
-          <LogoutButton />
-        </div>
-      </header>
+    <WorkforceShell activeTab="employees" breadcrumb={`${employee.firstName} ${employee.lastName}`}>
+      <div className="mb-6">
+        <Link
+          href="/workforce/employees"
+          className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+        >
+          ← Back to Employees
+        </Link>
+      </div>
 
-      <main className="flex-1 p-6">
-        <div className="mb-6">
-          <Link
-            href="/workforce/employees"
-            className="text-sm text-muted-foreground transition-colors hover:text-foreground"
-          >
-            ← Back to Employees
-          </Link>
+      <div className="mb-6 flex items-start justify-between gap-4">
+        <div>
+          <h2 className="text-2xl font-bold tracking-tight">
+            {employee.firstName} {employee.lastName}
+          </h2>
+          <p className="mt-1 font-mono text-sm text-muted-foreground">
+            {employee.employeeNumber}
+          </p>
         </div>
 
-        <div className="mb-6 flex items-start justify-between gap-4">
-          <div>
-            <h2 className="text-2xl font-bold tracking-tight">
-              {employee.firstName} {employee.lastName}
-            </h2>
-            <p className="mt-1 font-mono text-sm text-muted-foreground">
-              {employee.employeeNumber}
-            </p>
+        {/* Actions — EMP-302: hidden entirely for SEPARATED employees */}
+        {!isSeparated && canWrite && (
+          <div className="flex items-center gap-3">
+            <Button asChild variant="outline" size="sm">
+              <Link href={`/workforce/employees/${employee.id}/edit`}>Edit</Link>
+            </Button>
+            <span className="h-4 w-px bg-border" aria-hidden="true" />
+            <EmployeeStatusActions
+              id={employee.id}
+              currentStatus={employee.employmentStatus}
+              canWrite={canWrite}
+            />
+            <span className="h-4 w-px bg-border" aria-hidden="true" />
+            <EmployeePositionActions
+              employeeId={employee.id}
+              positionId={employee.positionId}
+              employmentStatus={employee.employmentStatus}
+              canWrite={canWrite}
+              activePositions={activePositions}
+            />
           </div>
+        )}
+      </div>
 
-          {/* Actions — EMP-302: hidden entirely for SEPARATED employees */}
-          {!isSeparated && canWrite && (
-            <div className="flex items-center gap-3">
-              <Button asChild variant="outline" size="sm">
-                <Link href={`/workforce/employees/${employee.id}/edit`}>Edit</Link>
-              </Button>
-              <span className="h-4 w-px bg-border" aria-hidden="true" />
-              <EmployeeStatusActions
-                id={employee.id}
-                currentStatus={employee.employmentStatus}
-                canWrite={canWrite}
-              />
-              <span className="h-4 w-px bg-border" aria-hidden="true" />
-              <EmployeePositionActions
-                employeeId={employee.id}
-                positionId={employee.positionId}
-                employmentStatus={employee.employmentStatus}
-                canWrite={canWrite}
-                activePositions={activePositions}
-              />
-            </div>
-          )}
-        </div>
-
-        <EmployeeDetail employee={employee} currentPositionTitle={currentPositionTitle} />
-      </main>
-    </div>
+      <EmployeeDetail employee={employee} currentPositionTitle={currentPositionTitle} />
+    </WorkforceShell>
   );
 }

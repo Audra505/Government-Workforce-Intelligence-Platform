@@ -6,8 +6,8 @@
 // Reference: M11 Step 10 Governance — GD-10-3 (pageSize=100; search deferred)
 
 import Link from 'next/link';
-import { LogoutButton } from '@/features/auth/logout-button';
 import { serverFetch } from '@/lib/api';
+import { WorkforceShell } from '@/features/workforce/components/workforce-shell';
 import { CreateVacancyForm } from '@/features/workforce/components/create-vacancy-form';
 import type { PositionListApiResponse } from '@/features/workforce/types';
 
@@ -22,34 +22,23 @@ export default async function NewVacancyPage() {
   const positions = response.data.positions;
 
   return (
-    <div className="flex min-h-screen flex-col">
-      <header className="border-b bg-background px-6 py-4">
-        <div className="flex items-center justify-between">
-          <h1 className="text-lg font-semibold">
-            Government Workforce Intelligence Platform
-          </h1>
-          <LogoutButton />
-        </div>
-      </header>
+    <WorkforceShell activeTab="vacancies" breadcrumb="New Vacancy">
+      <div className="mb-6">
+        <Link
+          href="/workforce/vacancies"
+          className="text-sm text-muted-foreground underline-offset-4 hover:underline"
+        >
+          ← Back to Vacancies
+        </Link>
+        <h2 className="mt-2 text-2xl font-bold tracking-tight">Create Vacancy</h2>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Create a new vacancy for an active position. Vacancies are created in Draft status.
+        </p>
+      </div>
 
-      <main className="flex-1 p-6">
-        <div className="mb-6">
-          <Link
-            href="/workforce/vacancies"
-            className="text-sm text-muted-foreground underline-offset-4 hover:underline"
-          >
-            ← Back to Vacancies
-          </Link>
-          <h2 className="mt-2 text-2xl font-bold tracking-tight">Create Vacancy</h2>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Create a new vacancy for an active position. Vacancies are created in Draft status.
-          </p>
-        </div>
-
-        <div className="max-w-lg">
-          <CreateVacancyForm positions={positions} />
-        </div>
-      </main>
-    </div>
+      <div className="max-w-lg">
+        <CreateVacancyForm positions={positions} />
+      </div>
+    </WorkforceShell>
   );
 }
