@@ -9,16 +9,16 @@
 
 ---
 
-Last Updated: 2026-07-01 (M19 Hire-to-Employee Conversion — runtime/API verification PASSED; all 15 GD-M19-1 D16 scenarios verified; branch 5 local checkpoint commits ahead of origin/main; ready for squash, push, and CI)
-Updated By: Claude Code (M19 runtime/API verification complete: hire → 201, PENDING_ONBOARDING, COMPETITIVE_APPOINTMENT, EMP-NNN, positionId/departmentId/hireDate set, application HIRED, vacancy FILLED+filledAt, displaced apps REJECTED, 409 idempotency, 422 VACANCY_NOT_AVAILABLE, 4 audit events PII-safe, no-hire invariant, field exclusion; unit 50/50 + 41/41; e2e 65/65; full regression 800/800; TypeScript clean; squash, push, and CI pending)
+Last Updated: 2026-07-02 (M20 Recruiting UI — M20E complete; all M20 batches implemented and browser-verified; squashed to single commit; pushed to origin/main; CI pending)
+Updated By: Claude Code (M20E complete: Tier 1 design reconciliation verified in browser; status duplication fixed; search 400 errors resolved; interviewer form labels corrected; date picker split; redirect buttons removed; application detail shows real candidate name + vacancy title; tab count badges; full-width nav; all 22 local commits squashed to 1 and pushed)
 
-Previous Update: 2026-06-30 (M18 Interview and Offer Management — runtime/API verification PASSED; branch 5 local checkpoint commits ahead of origin/main before final squash; ready for squash, push, and CI)
+Previous Update: 2026-07-01 (M19 Hire-to-Employee Conversion — runtime/API verification PASSED; all 15 GD-M19-1 D16 scenarios verified; squashed, pushed, CI confirmed green)
 
 ## Repository Status
 
-Current Phase: **Phase 3 — M19 Hire-to-Employee Conversion (RUNTIME VERIFIED — READY FOR FINAL SQUASH, PUSH, AND CI)**
-Overall Classification: Phase 2 COMPLETE; Post-Phase-2 milestones M13/M14/M15 CI-confirmed; Pre-Phase-3 Governance Package CI-confirmed (a5c34f1); Phase 3 started — M16 CI-confirmed (f962782); M17 CI-confirmed (see M17 section); M18 CI-confirmed (see M18 section); M19 implementation complete, e2e-tested, and runtime-verified — squash, push, and CI pending
-Active Sprint / Milestone: M19 Hire-to-Employee Conversion — RUNTIME VERIFIED (2026-07-01); 5 local checkpoint commits ahead of origin/main before final squash; NOT yet squashed; NOT yet pushed; NOT yet CI-confirmed
+Current Phase: **Phase 3 — M20 Recruiting UI (M20E COMPLETE — PUSHED; CI PENDING)**
+Overall Classification: Phase 2 COMPLETE; Post-Phase-2 milestones M13/M14/M15 CI-confirmed; Pre-Phase-3 Governance Package CI-confirmed (a5c34f1); Phase 3 started — M16 CI-confirmed (f962782); M17 CI-confirmed (see M17 section); M18 CI-confirmed (see M18 section); M19 CI-confirmed (see M19 section); M20 implementation complete, browser-verified, squashed and pushed — CI pending
+Active Sprint / Milestone: M20 Recruiting UI — M20E COMPLETE (2026-07-02); all 5 batches (M20A–M20E) implemented, browser-verified, squashed to 1 commit, and pushed to origin/main; CI confirmation pending
 Implementation Started: Yes (2026-06-05)
 
 ## Phase Summary
@@ -33,12 +33,12 @@ Phase 1 is formally closed. D9 (Docker Environment) and D10 (CI/CD Foundation) w
 > Its purpose is crash/session recovery: the current step state is always readable without
 > scanning Zone 5 history. It is overwritten each step — not appended.
 
-Milestone: M19 Hire-to-Employee Conversion — RUNTIME VERIFIED; READY FOR FINAL SQUASH, PUSH, AND CI (2026-07-01)
-Last Completed Milestone: M18 Interview and Offer Management (COMPLETE; CI CONFIRMED GREEN; see M18 section)
-Last Completed Step: M19 runtime/API verification PASSED (2026-07-01; all 15 GD-M19-1 D16 scenarios verified; hire endpoint, idempotency, VACANCY_NOT_AVAILABLE, audit events, no-hire invariant, displacement, field exclusion all pass; 5 local checkpoint commits before squash)
-Last Completed Step Date: 2026-07-01
-Current Step: Squash 5 local checkpoint commits; push to origin/main; confirm CI green
-Session Classification: PHASE 3 M19 IMPLEMENTATION COMPLETE, E2E-TESTED, AND RUNTIME-VERIFIED — NOT yet squashed; NOT yet pushed; CI pending
+Milestone: M20 Recruiting UI — M20E COMPLETE (2026-07-02)
+Last Completed Milestone: M20 Recruiting UI — M20E browser verification, squash, push (COMPLETE 2026-07-02)
+Last Completed Step: M20E complete — all Tier 1 design reconciliation changes browser-verified and committed; 22 local checkpoint commits squashed to 1 and pushed to origin/main; CI pending
+Last Completed Step Date: 2026-07-02
+Current Step: Confirm CI green; S27 DB mutation revert (UPDATE workforce.vacancies SET priority='MEDIUM', status='IN_RECRUITMENT' WHERE id='18e55ecd-a972-437b-95e3-38d0370f5339')
+Session Classification: PHASE 3 M20 COMPLETE — squashed, pushed; CI confirmation pending; S27 revert pending
 
 ## Milestone 10 — Approved Plan
 
@@ -8957,5 +8957,166 @@ These will be squashed into a single commit before push. CI has NOT yet run agai
 3. **Confirm CI green** — GitHub Actions must pass
 4. **Update PROGRESS.md** with CI run ID and commit hash
 5. Next milestone planning not started
+
+---
+
+## M20 Recruiting UI — Interim Continuity Checkpoint
+
+**Phase:** M20 — Recruiting UI (in progress)
+**Date:** 2026-07-01
+**Repository status:** IN PROGRESS — M20C complete locally; M20D and M20E not started; no push has occurred for M20
+
+### Resume Point
+
+**M20D Gate 0 inspection complete — M20D implementation is next.**
+
+M20D scope (corrected per Gate 0 inspection and supplement 2026-07-01):
+
+- **Create/schedule interview** — inline form on application detail page; BFF `interviews/route.ts` → `POST /api/v1/interviews`
+- **Interview detail actions** — complete, cancel, no-show (status transitions); feedback (toggle form on SCHEDULED and COMPLETED); BFF handlers `interviews/[id]/{complete,cancel,no-show,feedback}/route.ts`
+- **Create offer** — inline form on application detail page (shown only when application status = OFFER); BFF `offers/route.ts` → `POST /api/v1/offers`
+- **Offer detail actions** — submit, approve (SA/HRD only), send (SA/HRD only), record response (ACCEPTED/DECLINED), withdraw; BFF handlers `offers/[id]/{submit,approve,send,record-response,withdraw}/route.ts`
+- **Hire action** — button on application detail page; SA/HRD only; shown only when application status = OFFER; BFF `applications/[id]/hire/route.ts` → `POST /api/v1/applications/:id/hire`
+
+M20D total BFF handlers: 12 (5 for interviews, 6 for offers, 1 for hire). Combined with M20C's 6 handlers, the M20 total reaches 18 — matching GD-M20-1 D3's authorized count exactly.
+
+M20E scope: runtime/browser verification of the full M20 Recruiting UI, final `git reset --soft origin/main` squash of all M20 checkpoint commits into a single clean commit, one final push, and CI confirmation.
+
+---
+
+### M20 Batch Status
+
+| Batch | Scope | Status |
+|---|---|---|
+| M20A | Recruiting route scaffold; `/recruiting` middleware protection; route group layout | Complete — CI confirmed |
+| M20B | Read-only Recruiting UI pages: candidates list, candidate detail, applications list, application detail, interviews list, interview detail, offers list, offer detail | Complete — CI confirmed |
+| M20C | Candidate/Application BFF handlers (6 handlers); Create Candidate form; Recruiting toast infrastructure; Candidate archive action; Submit Application from candidate detail; Linked applications on candidate detail; Application advance/reject/withdraw actions | Complete — CI confirmed |
+| M20D | 12 BFF handlers (interviews/route.ts + 4 action handlers; offers/route.ts + 5 action handlers; applications/[id]/hire); InterviewActions component + interview detail update; OfferActions component + offer detail update; ScheduleInterviewForm + CreateOfferForm + HireAction on application detail; M20D gap check | Complete — CI confirmed |
+| M20E | Tier 1 design reconciliation (13 files); browser verification fixes (status duplication, search 400 errors, date picker, interviewer labels, redirect buttons, application detail names, nav, tab badges); final squash; push; CI confirmation; PROGRESS.md update | Complete — pushed; CI pending |
+
+---
+
+### M20D Batch Plan
+
+| Batch | Scope | BFF files | Components / pages |
+|---|---|---|---|
+| M20D Batch 1 | Interview BFF handlers; InterviewActions component; interview detail page update | `interviews/route.ts`, `interviews/[id]/complete`, `cancel`, `no-show`, `feedback` (5 files) | New: `interview-actions.tsx`; update: `interviews/[id]/page.tsx` (role gate + mount) |
+| M20D Batch 2 | Offer BFF handlers; OfferActions component; offer detail page update | `offers/route.ts`, `offers/[id]/submit`, `approve`, `send`, `record-response`, `withdraw` (6 files) | New: `offer-actions.tsx`; update: `offers/[id]/page.tsx` (role gate + `canApproveAndSend` prop + mount) |
+| M20D Batch 3 | Application detail page additions: schedule interview, create offer, hire | `applications/[id]/hire` (1 file) | New: `schedule-interview-form.tsx`, `create-offer-form.tsx`, `hire-action.tsx`; update: `applications/[id]/page.tsx` |
+| M20D Batch 4 | M20D gap check (read-only scope verification; type-check + lint) | — | — |
+
+**Key RBAC gates introduced in M20D:**
+- `canApproveAndSend` (SA/HRD only) — controls offer approve and send buttons; Recruiter sees submit/record-response/withdraw but not approve/send
+- `canHire` (SA/HRD only) — controls hire button on application detail; Recruiter never sees hire button
+- Both derived from JWT decode in Server Components; NestJS enforces real RBAC on all requests
+
+**Create form constraints:**
+- `ScheduleInterviewForm`: requires at least one of `interviewerName` or `interviewerUserId`; validated at BFF layer and surface (mirrors `INTERVIEWER_REQUIRED` service rule); `applicationId` from Server Component prop only — never user input
+- `CreateOfferForm`: shown only when `application.status === 'OFFER'`; `applicationId` from Server Component prop only
+- `HireAction`: shown only when `canHire && application.status === 'OFFER'`
+
+---
+
+### Local M20 Checkpoint Commits (10 commits, not yet pushed)
+
+| Commit | Description |
+|---|---|
+| `4020fc3` | Clean up M20C recruiting comments |
+| `f921d9d` | Implement M20C application detail actions |
+| `f54558e` | Implement M20C candidate detail actions |
+| `4bae66e` | Implement M20C candidate create form |
+| `ffef78e` | Implement M20C recruiting BFF handlers |
+| `6abbd05` | Implement M20B recruiting read-only pages |
+| `9bb4f23` | Implement M20B recruiting candidates read UI |
+| `cf437b6` | Implement M20A recruiting route scaffold |
+| `3f758c9` | docs(governance): document M20 UI design direction |
+| `c7cbf7a` | docs(governance): define M20 recruiting UI scope |
+
+All 10 commits are local-only. They will be squashed into a single clean M20 commit before the one final push at M20E.
+
+---
+
+### M20C Implementation — Key Facts
+
+**File locations:**
+- Recruiting pages: `apps/web/src/app/(dashboard)/recruiting/`
+- BFF handlers: `apps/web/src/app/api/recruiting/`
+- Recruiting components and forms: `apps/web/src/features/recruiting/components/`
+- Recruiting types: `apps/web/src/features/recruiting/types.ts`
+
+**BFF handlers implemented (6 total):**
+
+| Handler | BFF route | Backend target |
+|---|---|---|
+| Create candidate | `POST /api/recruiting/candidates` | `POST /api/v1/candidates` |
+| Archive candidate | `POST /api/recruiting/candidates/:id` | `POST /api/v1/candidates/:id/archive` |
+| Create application | `POST /api/recruiting/applications` | `POST /api/v1/applications` |
+| Advance application | `POST /api/recruiting/applications/:id/advance` | `POST /api/v1/applications/:id/advance` |
+| Reject application | `POST /api/recruiting/applications/:id/reject` | `POST /api/v1/applications/:id/reject` |
+| Withdraw application | `POST /api/recruiting/applications/:id/withdraw` | `POST /api/v1/applications/:id/withdraw` |
+
+**Architecture invariants:**
+- All client-side write actions call Next.js BFF routes only — no direct NestJS calls from the browser
+- `serverFetch` is GET-only; used only in Server Components for read operations
+- NestJS backend APIs remain authoritative; all RBAC enforced at the backend
+- `tenantId` is never accepted from UI or browser request bodies; BFF handlers that accept a body explicitly reject any body containing `tenantId` (HTTP 400)
+- No backend, Prisma schema, or migration changes have been made for M20
+
+**RBAC gate pattern (UX-only; NestJS enforces real RBAC):**
+- Write action surfaces (archive, submit application, advance, reject, withdraw): System Administrator, HR Director, Recruiter only
+- Compliance Officer: read-only access; no write surfaces rendered
+- Hire action: not yet implemented (M20D); Recruiter will not see it even after M20D; SA and HRD only per GD-M20-1 D5
+
+**Terminal status behavior:**
+- ARCHIVED candidates: `CandidateActions` renders null — no archive or submit application surface
+- HIRED/REJECTED/WITHDRAWN applications: `ApplicationActions` renders null — no advance, reject, or withdraw surface
+- OFFER applications: reject and withdraw rendered; advance not rendered (no OFFER entry in `ADVANCE_MAP`); hire not rendered (M20D)
+
+---
+
+### M20C Governance Correction (no backend change needed)
+
+GD-M20-1 Decision 3 and Decision 5 use shorthand `PATCH /candidates/:id { status: 'ARCHIVED' }` to describe the archive operation. The actual backend endpoint is `POST /api/v1/candidates/:id/archive` (HTTP 204, no request body). The BFF handler at `apps/web/src/app/api/recruiting/candidates/[id]/route.ts` calls the correct backend endpoint. No backend change is needed. The governance doc shorthand is a documentation artifact and will be noted at M20 closeout.
+
+---
+
+### Known Harmless Deferred Item
+
+`/recruiting/candidates/[id]/edit` exists as a non-functional route placeholder (`apps/web/src/app/(dashboard)/recruiting/candidates/[id]/edit/page.tsx`). It renders a plain stub page with no form, no BFF call, and no logic. It is not linked from any recruiting page. Candidate edit is not implemented in M20. This stub was created in M20A for routing confirmation only.
+
+---
+
+### M20 Validation State
+
+| Check | Result |
+|---|---|
+| `npm run type-check` (apps/web) | PASS — zero output |
+| `npm run lint` (apps/web) | PASS — no warnings or errors |
+| Runtime/browser verification | Not yet performed — M20E scope |
+| CI | Not yet run — no push has occurred |
+
+---
+
+### M20 Risks / Limitations
+
+- **Not yet pushed:** All 10 M20 commits are local-only. CI has not run against any M20 code.
+- **M20D not started:** Create/schedule interview (app detail), interview status actions (complete/cancel/no-show/feedback), create offer (app detail), offer status actions (submit/approve/send/record-response/withdraw), and hire action (app detail, SA/HRD only) are not implemented. 12 BFF handlers remain to be created. See M20D Batch Plan above.
+- **M20E not started:** Runtime verification and final squash/push are required before M20 can be considered complete.
+- **Candidate edit stub:** `/recruiting/candidates/[id]/edit` is a harmless placeholder; not linked; not a runtime concern.
+- **Governance doc shorthand:** Archive endpoint shorthand in GD-M20-1 does not match actual backend — documented above; no code impact.
+
+---
+
+### M20 Next Actions
+
+1. **M20D Batch 1** — Create 5 interview BFF handlers (`interviews/route.ts` + complete/cancel/no-show/feedback); create `interview-actions.tsx` (status transitions + feedback toggle form); update `interviews/[id]/page.tsx` with role gate + mount; type-check + lint; checkpoint commit
+2. **M20D Batch 2** — Create 6 offer BFF handlers (`offers/route.ts` + submit/approve/send/record-response/withdraw); create `offer-actions.tsx` (status-gated actions; `canApproveAndSend` prop); update `offers/[id]/page.tsx` with role gate + mount; type-check + lint; checkpoint commit
+3. **M20D Batch 3** — Create `applications/[id]/hire/route.ts` BFF; create `schedule-interview-form.tsx`, `create-offer-form.tsx`, `hire-action.tsx` client components; update `applications/[id]/page.tsx` (schedule interview for `canWrite`; create offer for `canWrite + status=OFFER`; hire for `canHire + status=OFFER`); type-check + lint; checkpoint commit
+4. **M20D Batch 4 (Gap Check)** — Read-only scope verification: confirm all 12 M20D BFF files created (total 18); confirm `canApproveAndSend` gate on offer approve/send; confirm `canHire` gate on hire button; confirm no `tenantId` in any request body; confirm create offer form only shown at OFFER status; type-check + lint final
+5. **M20E:** Runtime/browser verification of complete M20 Recruiting UI against Docker stack (GD-M20-1 D12 scenarios 1–29, including scenario 15: create interview from app detail; scenario 18: create offer from app detail; scenarios 20–21: approve offer gate)
+6. **M20E:** `git reset --soft origin/main` squash of all M20 checkpoint commits into one clean commit
+7. **M20E:** Single push to `origin/main`
+8. **M20E:** Confirm CI green
+9. **M20E:** Final PROGRESS.md update with CI run ID, commit hash, and M20 maturity classification
 
 ---

@@ -35,6 +35,11 @@ COPY apps/web/postcss.config.js  ./apps/web/
 COPY apps/web/tailwind.config.ts ./apps/web/
 COPY apps/web/src ./apps/web/src
 
+# Public directory — includes self-hosted font files (public/fonts/*.woff2).
+# next/font/local reads these during next build; output is written to
+# .next/static/media/ with content hashes. No separate runtime COPY needed.
+COPY apps/web/public ./apps/web/public
+
 # Workspace package source — packages/shared and packages/ui are listed in
 # transpilePackages in next.config.mjs and may be imported by web source.
 # The Next.js webpack bundler traces and inlines only what is actually imported.
@@ -68,8 +73,9 @@ COPY --from=builder /app/apps/web/.next/standalone ./
 # /app/apps/web/.next/static/.
 COPY --from=builder /app/apps/web/.next/static ./apps/web/.next/static
 
-# NOTE: apps/web/public/ is not copied — the directory does not exist in this
-# repository (confirmed in Step 3 pre-implementation verification, June 2026).
+# NOTE: apps/web/public/ is not copied to the runner image. Self-hosted fonts
+# in public/fonts/ are processed by next/font/local during build and emitted
+# to .next/static/media/ with content hashes — already covered by the static COPY above.
 
 # node user ships with node:20-alpine (UID 1000).
 # chown is not applied: the Next.js standalone server for a static page does not

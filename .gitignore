@@ -49,6 +49,9 @@ Thumbs.db
 # Docker volumes (local only)
 .docker/
 
+# Scratch space — design mockups, spike files, temporary outputs (never committed)
+tmp/
+
 # =============================================================================
 # Python (existing — preserved from original .gitignore)
 # =============================================================================

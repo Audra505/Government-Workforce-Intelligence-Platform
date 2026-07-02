@@ -259,7 +259,9 @@ export class CandidateService {
 
     const where = {
       tenantId,
-      deletedAt: null,
+      // ACTIVE candidates have deletedAt=null; ARCHIVED have deletedAt set — exclude the null
+      // guard when querying ARCHIVED so soft-deleted rows are visible to the caller.
+      ...(statusFilter === 'ACTIVE' ? { deletedAt: null } : {}),
       status: statusFilter,
     };
 
