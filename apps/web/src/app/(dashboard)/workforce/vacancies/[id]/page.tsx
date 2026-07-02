@@ -47,9 +47,10 @@ export default async function VacancyDetailPage({ params }: Props) {
       <div className="mb-6">
         <Link
           href="/workforce/vacancies"
-          className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+          className="text-sm hover:underline"
+          style={{ color: '#2563eb' }}
         >
-          ← Back to Vacancies
+          ← Vacancies
         </Link>
       </div>
 

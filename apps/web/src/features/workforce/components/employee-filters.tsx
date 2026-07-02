@@ -19,7 +19,9 @@ const STATUS_OPTIONS = [
 const SELECT_CLASS =
   'rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring';
 
-export function EmployeeFilters() {
+type Props = { total?: number };
+
+export function EmployeeFilters({ total }: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -38,27 +40,33 @@ export function EmployeeFilters() {
   }
 
   return (
-    <div className="flex flex-wrap items-center gap-3">
-      <select
-        value={currentStatus}
-        onChange={(e) => updateFilter('employmentStatus', e.target.value)}
-        className={SELECT_CLASS}
-        aria-label="Filter by employment status"
-      >
-        {STATUS_OPTIONS.map((opt) => (
-          <option key={opt.value} value={opt.value}>
-            {opt.label}
-          </option>
-        ))}
-      </select>
-
-      {hasFilters && (
-        <button
-          onClick={() => router.push('/workforce/employees')}
-          className="text-sm text-muted-foreground underline-offset-4 hover:underline"
+    <div className="flex flex-wrap items-center justify-between gap-3">
+      <div className="flex flex-wrap items-center gap-3">
+        <select
+          value={currentStatus}
+          onChange={(e) => updateFilter('employmentStatus', e.target.value)}
+          className={SELECT_CLASS}
+          aria-label="Filter by employment status"
         >
-          Clear filters
-        </button>
+          {STATUS_OPTIONS.map((opt) => (
+            <option key={opt.value} value={opt.value}>
+              {opt.label}
+            </option>
+          ))}
+        </select>
+
+        {hasFilters && (
+          <button
+            onClick={() => router.push('/workforce/employees')}
+            className="text-sm text-muted-foreground underline-offset-4 hover:underline"
+          >
+            Clear filters
+          </button>
+        )}
+      </div>
+
+      {total !== undefined && (
+        <span className="text-sm" style={{ color: '#94a3b8' }}>{total} results</span>
       )}
     </div>
   );

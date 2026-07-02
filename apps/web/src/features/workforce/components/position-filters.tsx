@@ -25,9 +25,9 @@ const SELECT_CLASS =
 const INPUT_CLASS =
   'rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring w-44';
 
-type Props = { departments: DepartmentOption[] };
+type Props = { departments: DepartmentOption[]; total?: number };
 
-export function PositionFilters({ departments }: Props) {
+export function PositionFilters({ departments, total }: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -54,7 +54,8 @@ export function PositionFilters({ departments }: Props) {
   }
 
   return (
-    <div className="flex flex-wrap items-center gap-3">
+    <div className="flex flex-wrap items-center justify-between gap-3">
+      <div className="flex flex-wrap items-center gap-3">
       <select
         value={currentStatus}
         onChange={(e) => updateFilter('status', e.target.value)}
@@ -109,6 +110,11 @@ export function PositionFilters({ departments }: Props) {
         >
           Clear filters
         </button>
+      )}
+      </div>
+
+      {total !== undefined && (
+        <span className="text-sm" style={{ color: '#94a3b8' }}>{total} results</span>
       )}
     </div>
   );

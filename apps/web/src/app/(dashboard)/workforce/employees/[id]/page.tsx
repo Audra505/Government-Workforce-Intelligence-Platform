@@ -72,9 +72,10 @@ export default async function EmployeeDetailPage({ params }: Props) {
       <div className="mb-6">
         <Link
           href="/workforce/employees"
-          className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+          className="text-sm hover:underline"
+          style={{ color: '#2563eb' }}
         >
-          ← Back to Employees
+          ← Employees
         </Link>
       </div>
 
@@ -83,7 +84,14 @@ export default async function EmployeeDetailPage({ params }: Props) {
           <h2 className="text-2xl font-bold tracking-tight">
             {employee.firstName} {employee.lastName}
           </h2>
-          <p className="mt-1 font-mono text-sm text-muted-foreground">
+          <p
+            className="mt-1 text-sm"
+            style={{
+              fontFamily: "var(--font-ibm-plex-mono, 'IBM Plex Mono', monospace)",
+              fontSize: 12,
+              color: '#94a3b8',
+            }}
+          >
             {employee.employeeNumber}
           </p>
         </div>

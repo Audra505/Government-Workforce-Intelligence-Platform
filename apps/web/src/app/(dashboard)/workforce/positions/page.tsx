@@ -105,14 +105,14 @@ export default async function PositionsPage({ searchParams }: Props) {
             className="rounded-md px-4 py-2 text-sm font-medium text-white transition-colors hover:opacity-90"
             style={{ backgroundColor: '#2563eb' }}
           >
-            + New Position
+            + Add Position
           </Link>
         )}
       </div>
 
       <div className="mb-4">
         <Suspense fallback={<div className="h-10" />}>
-          <PositionFilters departments={departments} />
+          <PositionFilters departments={departments} total={total} />
         </Suspense>
       </div>
 

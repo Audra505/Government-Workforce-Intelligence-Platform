@@ -43,9 +43,10 @@ export default async function PositionDetailPage({ params }: Props) {
       <div className="mb-6">
         <Link
           href="/workforce/positions"
-          className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+          className="text-sm hover:underline"
+          style={{ color: '#2563eb' }}
         >
-          ← Back to Positions
+          ← Positions
         </Link>
       </div>
 

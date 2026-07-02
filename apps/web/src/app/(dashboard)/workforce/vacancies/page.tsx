@@ -82,14 +82,14 @@ export default async function VacanciesPage({ searchParams }: Props) {
             className="rounded-md px-4 py-2 text-sm font-medium text-white transition-colors hover:opacity-90"
             style={{ backgroundColor: '#2563eb' }}
           >
-            + New Vacancy
+            + Add Vacancy
           </Link>
         )}
       </div>
 
       <div className="mb-4">
         <Suspense fallback={<div className="h-10" />}>
-          <VacancyFilters />
+          <VacancyFilters total={total} />
         </Suspense>
       </div>
 
