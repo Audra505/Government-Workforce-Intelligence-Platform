@@ -68,15 +68,16 @@ export default async function EmployeesPage({ searchParams }: Props) {
         <div>
           <h2 className="text-2xl font-bold tracking-tight">Employees</h2>
           <p className="mt-1 text-sm text-muted-foreground">
-            {total === 1 ? '1 employee' : `${total} employees`}
+            Active workforce headcount and employment lifecycle status
           </p>
         </div>
         {canWrite && (
           <Link
             href="/workforce/employees/new"
-            className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+            className="rounded-md px-4 py-2 text-sm font-medium text-white transition-colors hover:opacity-90"
+            style={{ backgroundColor: '#2563eb' }}
           >
-            New Employee
+            + New Employee
           </Link>
         )}
       </div>

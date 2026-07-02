@@ -71,6 +71,7 @@ export function EmployeeTable({ employees, hasFilters }: Props) {
                 <Link
                   href={`/workforce/employees/${e.id}`}
                   className="hover:underline after:absolute after:inset-0 after:content-['']"
+                  style={{ color: '#2563eb' }}
                 >
                   {e.firstName} {e.lastName}
                 </Link>

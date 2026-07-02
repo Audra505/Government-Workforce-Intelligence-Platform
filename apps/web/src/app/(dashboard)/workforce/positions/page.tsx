@@ -96,15 +96,16 @@ export default async function PositionsPage({ searchParams }: Props) {
         <div>
           <h2 className="text-2xl font-bold tracking-tight">Positions</h2>
           <p className="mt-1 text-sm text-muted-foreground">
-            {total === 1 ? '1 position' : `${total} positions`}
+            Authorized positions and occupancy status across your organization
           </p>
         </div>
         {canWrite && (
           <Link
             href="/workforce/positions/new"
-            className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+            className="rounded-md px-4 py-2 text-sm font-medium text-white transition-colors hover:opacity-90"
+            style={{ backgroundColor: '#2563eb' }}
           >
-            New Position
+            + New Position
           </Link>
         )}
       </div>

@@ -53,6 +53,7 @@ export function PositionTable({ positions, hasFilters }: Props) {
                 <Link
                   href={`/workforce/positions/${p.id}`}
                   className="hover:underline after:absolute after:inset-0 after:content-['']"
+                  style={{ color: '#2563eb' }}
                 >
                   {p.title}
                 </Link>
