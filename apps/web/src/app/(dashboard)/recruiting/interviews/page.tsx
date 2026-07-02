@@ -1,4 +1,5 @@
 import { Suspense } from 'react';
+import Link from 'next/link';
 import { serverFetch } from '@/lib/api';
 import { RecruitingShell } from '@/features/recruiting/components/recruiting-shell';
 import { InterviewTable } from '@/features/recruiting/components/interview-table';
