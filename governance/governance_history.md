@@ -122,6 +122,22 @@ and is tracked in state/02_employee_lifecycle.md.
 
 ---
 
+## M20 — Recruiting UI (Recruiter Workspace)
+
+| ID | Date | Subject | Impact |
+|---|---|---|---|
+| GD-M20-1 | 2026-07-01 | M20 Recruiting UI — Platform Design System and Recruiter Workspace Scope | Authorizes M20 as the first Phase 3 UI milestone; delivers four recruiting screens (Candidates, Applications, Interviews, Offers) as a single Recruiter Workspace under /recruiting; establishes platform-wide M20 design system: navy header #0c2340, GWIP wordmark, domain nav, inline tab bar with count badges, breadcrumb, canvas #f8fafc, palette BORDER #e2e8f0 / TEXT #0f172a / SUB #475569 / MUTED #94a3b8 / BLUE #2563eb / ERROR #dc2626, dot+label status indicators (pills prohibited on lifecycle status), 48px table rows with uppercase 11px headers, bottom-right toast system (success 4s / error 8s), IBM Plex Sans/Mono self-hosted fonts; SEC-003: tenantId never in browser; RBAC: canCreate (SA+HRD+Recruiter) gates schedule-interview and new-offer actions, canWrite gates all other write actions; shared sidebar explicitly deferred to future milestone; Schedule Interview form collapses dual interviewer fields into single input with UUID auto-routing; all 30 Phase 3 endpoints consumed (M16–M19 backend); CI green on commits 4f55ac8 + 28ea758 + 6e6777b; excludes Hiring Manager workspace, AI features, dashboards, notifications, export, file upload, Workforce UI reconciliation |
+
+---
+
+## M21 — Platform-Wide Design System Reconciliation
+
+| ID | Date | Subject | Impact |
+|---|---|---|---|
+| GD-M21-1 | 2026-07-02 | M21 Platform-Wide Design Reconciliation — Workforce UI Alignment to M20 Design Baseline | Pending approval; authorizes M21 to reconcile existing Workforce UI with M20 design baseline through three sequenced batches (M21A Foundation, M21B Shell Adoption, M21C Visual Reconciliation); introduces WorkforceShell shared layout component (navy header, GWIP wordmark, domain nav, tab bar, breadcrumb, IBM Plex Sans, #f8fafc canvas, max-w-[1200px]); extracts shared utilities: getSessionRoles→lib/session.ts, unified LogoutButton, StatusDot primitive→components/shared/status-dot.tsx, useToast+ToastContainer→components/shared/toast.tsx, shared Pagination and EmptyState components; converts Workforce entity lifecycle status indicators (Position/Employment/Vacancy) from pill badges to dot+label format; retains PriorityBadge and AgingCell as pills (severity data, not lifecycle); aligns table headers (uppercase 11px letterSpacing #94a3b8), table borders (#e2e8f0), row height (48px); adds toast feedback to Workforce write operations; preserves Workforce form stack (react-hook-form+Zod); preserves all RBAC gates without change; backend/Prisma/BFF/middleware frozen; Recruiting UI not modified; implementation blocked until mentor approval |
+
+---
+
 ## Shared Column Confirmation (Implementation Confirmation — Not a Governance Decision)
 
 | Date | Subject | Outcome |
