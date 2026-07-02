@@ -17,6 +17,17 @@ const config: Config = {
         sm: 'calc(var(--radius) - 4px)',
       },
       colors: {
+        // GWIP platform design tokens (GD-M21-1 D7 / GD-M20-1 D16)
+        gwip: {
+          navy:   '#0c2340',
+          canvas: '#f8fafc',
+          border: '#e2e8f0',
+          text:   '#0f172a',
+          sub:    '#475569',
+          muted:  '#94a3b8',
+          blue:   '#2563eb',
+          error:  '#dc2626',
+        },
         background: 'hsl(var(--background))',
         foreground: 'hsl(var(--foreground))',
         card: {

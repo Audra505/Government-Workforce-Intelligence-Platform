@@ -1,45 +1,16 @@
-// Status dot + label indicator.
-// GD-M20-1 Decision 16 — Mandatory format: 6px solid filled circle + space + label.
-// Pill badges are explicitly prohibited for M20 recruiting pages.
+// Recruiting status dot convenience wrappers.
+// The StatusDot primitive has moved to @/components/shared/status-dot (GD-M21-1 D14).
+// This file re-exports StatusDot and wraps it with Recruiting-specific status mappings.
+// All existing imports of CandidateStatusDot, ApplicationStatusDot, etc. from this path
+// continue to work without change.
+// Reference: governance/GD-M21-1.md — Decision 14
+// Reference: governance/GD-M20-1.md — Decision 16
 
 import type { CandidateStatus, ApplicationStatus, InterviewStatus, OfferStatus } from '@/features/recruiting/types';
+import { StatusDot } from '@/components/shared/status-dot';
 
-// Design system dot colors (GD-M20-1 D16)
-const DOT_HEX: Record<string, string> = {
-  green:  '#16a34a',
-  yellow: '#ca8a04',
-  blue:   '#2563eb',
-  orange: '#ea580c',
-  purple: '#7c3aed',
-  red:    '#dc2626',
-  gray:   '#64748b',
-};
-
-type StatusDotColor = keyof typeof DOT_HEX;
-
-type StatusDotProps = {
-  color: StatusDotColor;
-  label: string;
-};
-
-export function StatusDot({ color, label }: StatusDotProps) {
-  return (
-    <span className="inline-flex items-center gap-1.5 text-sm" style={{ color: '#0f172a', fontWeight: 500 }}>
-      <span
-        aria-hidden="true"
-        style={{
-          display: 'inline-block',
-          width: 6,
-          height: 6,
-          borderRadius: '50%',
-          backgroundColor: DOT_HEX[color],
-          flexShrink: 0,
-        }}
-      />
-      {label}
-    </span>
-  );
-}
+export type { StatusDotColor } from '@/components/shared/status-dot';
+export { StatusDot };
 
 // ---------------------------------------------------------------------------
 // Candidate status convenience component
