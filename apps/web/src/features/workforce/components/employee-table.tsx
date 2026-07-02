@@ -1,12 +1,13 @@
 // Employee list table — Server Component.
-// Renders employee rows; employee full name links to /workforce/employees/:id.
-// RBAC-952: Executive User is excluded from list endpoint at the API level — this component
-// never renders for Executive Users.
+// M21C: EmploymentStatusDot replaces EmploymentStatusBadge; IBM Plex Mono for employee #;
+//       aligned headers/rows; EmptyState.
+// RBAC-952: Executive User excluded from list endpoint at the API level.
 // Reference: directives/13_employee_management_rules.md — EMP-AUTH-002, RBAC-952
 
 import Link from 'next/link';
 import type { EmployeeRow } from '@/features/workforce/types';
-import { EmploymentStatusBadge } from '@/features/workforce/components/employee-status-badge';
+import { EmploymentStatusDot } from '@/features/workforce/components/employee-status-badge';
+import { EmptyState } from '@/components/shared/empty-state';
 
 function formatDate(iso: string): string {
   return new Intl.DateTimeFormat('en-US', {
@@ -16,6 +17,20 @@ function formatDate(iso: string): string {
   }).format(new Date(iso));
 }
 
+const TH_STYLE = {
+  fontSize: 11,
+  fontWeight: 600,
+  letterSpacing: '0.06em',
+  color: '#94a3b8',
+  backgroundColor: '#f8fafc',
+} as const;
+
+const MONO_STYLE = {
+  fontFamily: "var(--font-ibm-plex-mono, 'IBM Plex Mono', monospace)",
+  fontSize: 12,
+  color: '#475569',
+} as const;
+
 type Props = {
   employees: EmployeeRow[];
   hasFilters: boolean;
@@ -24,34 +39,33 @@ type Props = {
 export function EmployeeTable({ employees, hasFilters }: Props) {
   if (employees.length === 0) {
     return (
-      <div className="rounded-md border border-dashed p-12 text-center">
-        <p className="text-sm text-muted-foreground">
-          {hasFilters
-            ? 'No employees match the current filters.'
-            : 'No employees found in your organization.'}
-        </p>
-      </div>
+      <EmptyState
+        message={hasFilters
+          ? 'No employees match the current filters.'
+          : 'No employees found in your organization.'}
+      />
     );
   }
 
   return (
-    <div className="rounded-md border">
+    <div className="overflow-hidden rounded-md border" style={{ borderColor: '#e2e8f0' }}>
       <table className="w-full text-sm">
         <thead>
-          <tr className="border-b bg-muted/50">
-            <th className="px-4 py-3 text-left font-medium text-muted-foreground">Name</th>
-            <th className="px-4 py-3 text-left font-medium text-muted-foreground">Employee #</th>
-            <th className="px-4 py-3 text-left font-medium text-muted-foreground">Department</th>
-            <th className="px-4 py-3 text-left font-medium text-muted-foreground">Status</th>
-            <th className="px-4 py-3 text-left font-medium text-muted-foreground">Hire Date</th>
-            <th className="px-4 py-3 text-left font-medium text-muted-foreground">Email</th>
+          <tr style={{ borderBottom: '1px solid #e2e8f0' }}>
+            <th className="px-4 py-3 text-left uppercase" style={TH_STYLE}>Name</th>
+            <th className="px-4 py-3 text-left uppercase" style={TH_STYLE}>Employee #</th>
+            <th className="px-4 py-3 text-left uppercase" style={TH_STYLE}>Department</th>
+            <th className="px-4 py-3 text-left uppercase" style={TH_STYLE}>Status</th>
+            <th className="px-4 py-3 text-left uppercase" style={TH_STYLE}>Hire Date</th>
+            <th className="px-4 py-3 text-left uppercase" style={TH_STYLE}>Email</th>
           </tr>
         </thead>
         <tbody>
           {employees.map((e) => (
             <tr
               key={e.id}
-              className="border-b last:border-0 hover:bg-muted/30 transition-colors relative"
+              className="relative h-12 border-b last:border-0 transition-colors hover:bg-slate-50"
+              style={{ borderColor: '#e2e8f0' }}
             >
               <td className="px-4 py-3 font-medium">
                 <Link
@@ -61,17 +75,15 @@ export function EmployeeTable({ employees, hasFilters }: Props) {
                   {e.firstName} {e.lastName}
                 </Link>
               </td>
-              <td className="px-4 py-3 font-mono text-xs text-muted-foreground">
-                {e.employeeNumber}
-              </td>
-              <td className="px-4 py-3 text-muted-foreground">{e.departmentName}</td>
+              <td className="px-4 py-3" style={MONO_STYLE}>{e.employeeNumber}</td>
+              <td className="px-4 py-3" style={{ color: '#475569' }}>{e.departmentName}</td>
               <td className="px-4 py-3">
-                <EmploymentStatusBadge status={e.employmentStatus} />
+                <EmploymentStatusDot status={e.employmentStatus} />
               </td>
-              <td className="px-4 py-3 text-muted-foreground">
+              <td className="px-4 py-3" style={{ color: '#475569' }}>
                 {e.hireDate ? formatDate(e.hireDate) : '—'}
               </td>
-              <td className="px-4 py-3 text-muted-foreground">{e.email ?? '—'}</td>
+              <td className="px-4 py-3" style={{ color: '#475569' }}>{e.email ?? '—'}</td>
             </tr>
           ))}
         </tbody>

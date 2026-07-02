@@ -1,7 +1,6 @@
 // Server Component — no 'use client' directive.
-// Renders the vacancy list table including status badges, priority badges, aging indicators,
-// requiresReview flags, and an empty state.
-// positionTitle column links to /workforce/vacancies/[id] (Step 11 — GD-11-2).
+// M21C: VacancyStatusDot replaces StatusBadge; aligned headers/rows; EmptyState.
+// PriorityBadge, AgingCell, requiresReview badge: retained per GD-M21-1 D10.
 // Reference: directives/03_vacancy_management_rules.md
 //   VAC-200: priority values LOW/MEDIUM/HIGH/CRITICAL
 //   VAC-601: requiresReview = CRITICAL + OPEN vacancies
@@ -11,14 +10,11 @@
 import Link from 'next/link';
 import type { VacancyRow } from '@/features/workforce/types';
 import {
-  StatusBadge,
+  VacancyStatusDot,
   PriorityBadge,
   AgingCell,
 } from '@/features/workforce/components/vacancy-badges';
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
+import { EmptyState } from '@/components/shared/empty-state';
 
 function formatDate(iso: string): string {
   return new Intl.DateTimeFormat('en-US', {
@@ -28,9 +24,13 @@ function formatDate(iso: string): string {
   }).format(new Date(iso));
 }
 
-// ---------------------------------------------------------------------------
-// Main export
-// ---------------------------------------------------------------------------
+const TH_STYLE = {
+  fontSize: 11,
+  fontWeight: 600,
+  letterSpacing: '0.06em',
+  color: '#94a3b8',
+  backgroundColor: '#f8fafc',
+} as const;
 
 type Props = {
   vacancies: VacancyRow[];
@@ -40,33 +40,35 @@ type Props = {
 export function VacancyTable({ vacancies, hasFilters }: Props) {
   if (vacancies.length === 0) {
     return (
-      <div className="rounded-md border border-dashed p-12 text-center">
-        <p className="text-sm text-muted-foreground">
-          {hasFilters
-            ? 'No vacancies match the current filters.'
-            : 'No vacancies found in your tenant.'}
-        </p>
-      </div>
+      <EmptyState
+        message={hasFilters
+          ? 'No vacancies match the current filters.'
+          : 'No vacancies found in your tenant.'}
+      />
     );
   }
 
   return (
-    <div className="rounded-md border">
+    <div className="overflow-hidden rounded-md border" style={{ borderColor: '#e2e8f0' }}>
       <table className="w-full text-sm">
         <thead>
-          <tr className="border-b bg-muted/50">
-            <th className="px-4 py-3 text-left font-medium text-muted-foreground">Position</th>
-            <th className="px-4 py-3 text-left font-medium text-muted-foreground">Department</th>
-            <th className="px-4 py-3 text-left font-medium text-muted-foreground">Status</th>
-            <th className="px-4 py-3 text-left font-medium text-muted-foreground">Priority</th>
-            <th className="px-4 py-3 text-left font-medium text-muted-foreground">Age</th>
-            <th className="px-4 py-3 text-left font-medium text-muted-foreground">Expected Fill</th>
-            <th className="px-4 py-3 text-left font-medium text-muted-foreground">Created</th>
+          <tr style={{ borderBottom: '1px solid #e2e8f0' }}>
+            <th className="px-4 py-3 text-left uppercase" style={TH_STYLE}>Position</th>
+            <th className="px-4 py-3 text-left uppercase" style={TH_STYLE}>Department</th>
+            <th className="px-4 py-3 text-left uppercase" style={TH_STYLE}>Status</th>
+            <th className="px-4 py-3 text-left uppercase" style={TH_STYLE}>Priority</th>
+            <th className="px-4 py-3 text-left uppercase" style={TH_STYLE}>Age</th>
+            <th className="px-4 py-3 text-left uppercase" style={TH_STYLE}>Expected Fill</th>
+            <th className="px-4 py-3 text-left uppercase" style={TH_STYLE}>Created</th>
           </tr>
         </thead>
         <tbody>
           {vacancies.map((v) => (
-            <tr key={v.id} className="border-b last:border-0 hover:bg-muted/30 transition-colors relative">
+            <tr
+              key={v.id}
+              className="relative h-12 border-b last:border-0 transition-colors hover:bg-slate-50"
+              style={{ borderColor: '#e2e8f0' }}
+            >
               <td className="px-4 py-3 font-medium">
                 <Link
                   href={`/workforce/vacancies/${v.id}`}
@@ -83,24 +85,24 @@ export function VacancyTable({ vacancies, hasFilters }: Props) {
                   </span>
                 )}
               </td>
-              <td className="px-4 py-3 text-muted-foreground">{v.departmentName}</td>
+              <td className="px-4 py-3" style={{ color: '#475569' }}>{v.departmentName}</td>
               <td className="px-4 py-3">
-                <StatusBadge status={v.status} />
+                <VacancyStatusDot status={v.status} />
               </td>
               <td className="px-4 py-3">
                 {v.priority ? (
                   <PriorityBadge priority={v.priority} />
                 ) : (
-                  <span className="text-muted-foreground">—</span>
+                  <span style={{ color: '#94a3b8' }}>—</span>
                 )}
               </td>
               <td className="px-4 py-3">
                 <AgingCell ageInDays={v.ageInDays} agingStatus={v.agingStatus} />
               </td>
-              <td className="px-4 py-3 text-muted-foreground">
+              <td className="px-4 py-3" style={{ color: '#475569' }}>
                 {v.expectedFillDate ? formatDate(v.expectedFillDate) : '—'}
               </td>
-              <td className="px-4 py-3 text-muted-foreground">{formatDate(v.createdAt)}</td>
+              <td className="px-4 py-3" style={{ color: '#475569' }}>{formatDate(v.createdAt)}</td>
             </tr>
           ))}
         </tbody>

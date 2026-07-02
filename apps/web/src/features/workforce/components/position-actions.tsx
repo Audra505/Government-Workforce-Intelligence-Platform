@@ -1,6 +1,7 @@
 'use client';
 
 // Lifecycle action buttons for the Position Detail page.
+// M21C: toast feedback added for all successful lifecycle transitions.
 // Activate: DRAFT → ACTIVE via PUT /api/positions/:id { status: 'ACTIVE' }
 // Freeze: ACTIVE → FROZEN via PUT /api/positions/:id { status: 'FROZEN' }
 // Resume: FROZEN → ACTIVE via PUT /api/positions/:id { status: 'ACTIVE' } (GD-M15-1 UpdatePositionDto)
@@ -17,6 +18,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import type { PositionStatus } from '@/features/workforce/types';
+import { useToast, ToastContainer } from '@/components/shared/toast';
 
 type Props = {
   id: string;
@@ -70,6 +72,7 @@ const CLOSE_ERROR_MESSAGES: Record<string, string> = {
 
 export function PositionActions({ id, status, canWrite }: Props) {
   const router = useRouter();
+  const { toasts, addToast, dismissToast } = useToast();
 
   const [isActivateOpen, setIsActivateOpen] = useState(false);
   const [isActivateLoading, setIsActivateLoading] = useState(false);
@@ -110,6 +113,7 @@ export function PositionActions({ id, status, canWrite }: Props) {
       if (res.ok) {
         setIsActivateOpen(false);
         setIsActivateLoading(false);
+        addToast({ type: 'success', title: 'Position activated' });
         router.refresh();
         return;
       }
@@ -142,6 +146,7 @@ export function PositionActions({ id, status, canWrite }: Props) {
       if (res.ok) {
         setIsFreezeOpen(false);
         setIsFreezeLoading(false);
+        addToast({ type: 'success', title: 'Position frozen' });
         router.refresh();
         return;
       }
@@ -174,6 +179,7 @@ export function PositionActions({ id, status, canWrite }: Props) {
       if (res.ok) {
         setIsResumeOpen(false);
         setIsResumeLoading(false);
+        addToast({ type: 'success', title: 'Position resumed' });
         router.refresh();
         return;
       }
@@ -205,6 +211,7 @@ export function PositionActions({ id, status, canWrite }: Props) {
       if (res.ok) {
         setIsCloseOpen(false);
         setIsCloseLoading(false);
+        addToast({ type: 'success', title: 'Position closed' });
         router.refresh();
         return;
       }
@@ -423,6 +430,8 @@ export function PositionActions({ id, status, canWrite }: Props) {
           </div>
         </div>
       )}
+
+      <ToastContainer toasts={toasts} onDismiss={dismissToast} />
     </>
   );
 }

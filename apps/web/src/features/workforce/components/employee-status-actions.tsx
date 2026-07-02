@@ -1,6 +1,7 @@
 'use client';
 
 // Status change actions for the Employee Detail page.
+// M21C: toast feedback added for successful status change.
 // GD-M12-1: allowed transitions derived client-side from current status.
 // EMP-302: SEPARATED is terminal — no modal rendered; parent hides this component.
 // GD-M12-S4-1: canWrite = SA + HR Director only (same predicate as vacancy canWrite).
@@ -12,6 +13,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import type { EmploymentStatus } from '@/features/workforce/types';
+import { useToast, ToastContainer } from '@/components/shared/toast';
 
 // ---------------------------------------------------------------------------
 // GD-M12-1: allowed transitions map
@@ -73,6 +75,7 @@ type Props = {
 
 export function EmployeeStatusActions({ id, currentStatus, canWrite }: Props) {
   const router = useRouter();
+  const { toasts, addToast, dismissToast } = useToast();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -123,6 +126,11 @@ export function EmployeeStatusActions({ id, currentStatus, canWrite }: Props) {
       if (res.ok) {
         setIsModalOpen(false);
         setIsLoading(false);
+        addToast({
+          type: 'success',
+          title: 'Status updated',
+          message: `Employee status changed to ${STATUS_LABELS[selectedStatus as EmploymentStatus]}`,
+        });
         router.refresh();
         return;
       }
@@ -247,6 +255,8 @@ export function EmployeeStatusActions({ id, currentStatus, canWrite }: Props) {
           </div>
         </div>
       )}
+
+      <ToastContainer toasts={toasts} onDismiss={dismissToast} />
     </>
   );
 }

@@ -1,5 +1,5 @@
 // Employee detail display — Server Component.
-// Renders all API fields for a single employee record in labeled card sections.
+// M21C: EmploymentStatusDot replaces pill badge; IBM Plex Mono for employee # and IDs.
 // EMP-400/EMP-401: audit metadata not exposed in UI; PII-bearing fields shown only
 // to roles that passed NestJS RBAC (SA, HR, WP, HM, CO — RBAC-952 excludes Executive User).
 // currentPositionTitle: resolved by parent page via secondary serverFetch; null when unavailable.
@@ -8,7 +8,22 @@
 
 import type { ReactNode } from 'react';
 import type { EmployeeRow } from '@/features/workforce/types';
-import { EmploymentStatusBadge } from '@/features/workforce/components/employee-status-badge';
+import { EmploymentStatusDot } from '@/features/workforce/components/employee-status-badge';
+
+const MONO_STYLE = {
+  fontFamily: "var(--font-ibm-plex-mono, 'IBM Plex Mono', monospace)",
+} as const;
+
+const MONO_ID_STYLE = {
+  fontFamily: "var(--font-ibm-plex-mono, 'IBM Plex Mono', monospace)",
+  fontSize: 12,
+  color: '#94a3b8',
+} as const;
+
+const SANS_STYLE = {
+  fontFamily: "var(--font-ibm-plex-sans, 'IBM Plex Sans', system-ui, sans-serif)",
+  fontStyle: 'normal' as const,
+} as const;
 
 function formatDate(iso: string): string {
   return new Intl.DateTimeFormat('en-US', {
@@ -78,7 +93,7 @@ export function EmployeeDetail({ employee, currentPositionTitle }: Props) {
         </h3>
         <dl className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
           <Field label="Employee Number">
-            <span className="font-mono text-sm">{employee.employeeNumber}</span>
+            <span style={MONO_STYLE}>{employee.employeeNumber}</span>
           </Field>
           <Field label="Department">{employee.departmentName}</Field>
           <Field label="Current Position">
@@ -86,9 +101,9 @@ export function EmployeeDetail({ employee, currentPositionTitle }: Props) {
               currentPositionTitle ? (
                 <span>{currentPositionTitle}</span>
               ) : (
-                <span className="font-mono text-xs text-muted-foreground">
+                <span style={MONO_ID_STYLE}>
                   {employee.positionId}
-                  <span className="ml-1 font-sans text-xs not-italic"> — title unavailable</span>
+                  <span className="ml-1 text-xs" style={SANS_STYLE}> — title unavailable</span>
                 </span>
               )
             ) : (
@@ -98,7 +113,7 @@ export function EmployeeDetail({ employee, currentPositionTitle }: Props) {
             )}
           </Field>
           <Field label="Status">
-            <EmploymentStatusBadge status={employee.employmentStatus} />
+            <EmploymentStatusDot status={employee.employmentStatus} />
           </Field>
           <Field label="Hire Date">
             {employee.hireDate ? formatDate(employee.hireDate) : <span className="text-muted-foreground">—</span>}
@@ -128,7 +143,7 @@ export function EmployeeDetail({ employee, currentPositionTitle }: Props) {
         </h3>
         <dl className="grid grid-cols-1 gap-6 sm:grid-cols-2">
           <Field label="Employee ID">
-            <span className="font-mono text-xs text-muted-foreground">{employee.id}</span>
+            <span style={MONO_ID_STYLE}>{employee.id}</span>
           </Field>
         </dl>
       </div>

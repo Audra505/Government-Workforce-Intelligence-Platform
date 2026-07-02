@@ -1,27 +1,35 @@
 // Vacancy detail display component.
+// M21C: VacancyStatusDot replaces StatusBadge; IBM Plex Mono for IDs.
 // Server Component — renders all 15 API fields for a single vacancy record.
+// PriorityBadge and AgingCell retained as-is per GD-M21-1 D10.
 // Reference: apps/api/src/workforce/dto/vacancy-response.dto.ts — field definitions
 // Reference: directives/03_vacancy_management_rules.md — VAC-601 (requiresReview), VAC-701/702 (aging)
 
 import type { ReactNode } from 'react';
 import type { VacancyRow } from '@/features/workforce/types';
 import {
-  StatusBadge,
+  VacancyStatusDot,
   PriorityBadge,
   AgingCell,
 } from '@/features/workforce/components/vacancy-badges';
+
+const MONO_ID_STYLE = {
+  fontFamily: "var(--font-ibm-plex-mono, 'IBM Plex Mono', monospace)",
+  fontSize: 12,
+  color: '#94a3b8',
+} as const;
 
 // ---------------------------------------------------------------------------
 // Reason labels — authority: directives/03 Vacancy Reasons
 // ---------------------------------------------------------------------------
 
 const REASON_LABELS: Record<string, string> = {
-  NEW_POSITION: 'New Position',
-  RETIREMENT: 'Retirement',
-  RESIGNATION: 'Resignation',
-  TRANSFER: 'Transfer',
-  TERMINATION: 'Termination',
-  EXPANSION: 'Expansion',
+  NEW_POSITION:       'New Position',
+  RETIREMENT:         'Retirement',
+  RESIGNATION:        'Resignation',
+  TRANSFER:           'Transfer',
+  TERMINATION:        'Termination',
+  EXPANSION:          'Expansion',
   TEMPORARY_COVERAGE: 'Temporary Coverage',
 };
 
@@ -77,7 +85,7 @@ export function VacancyDetail({ vacancy }: Props) {
           </Field>
           <Field label="Department">{vacancy.departmentName}</Field>
           <Field label="Status">
-            <StatusBadge status={vacancy.status} />
+            <VacancyStatusDot status={vacancy.status} />
           </Field>
           <Field label="Priority">
             {vacancy.priority ? (
@@ -140,10 +148,10 @@ export function VacancyDetail({ vacancy }: Props) {
         </h3>
         <dl className="grid grid-cols-1 gap-6 sm:grid-cols-2">
           <Field label="Vacancy ID">
-            <span className="font-mono text-xs text-muted-foreground">{vacancy.id}</span>
+            <span style={MONO_ID_STYLE}>{vacancy.id}</span>
           </Field>
           <Field label="Position ID">
-            <span className="font-mono text-xs text-muted-foreground">{vacancy.positionId}</span>
+            <span style={MONO_ID_STYLE}>{vacancy.positionId}</span>
           </Field>
         </dl>
       </div>

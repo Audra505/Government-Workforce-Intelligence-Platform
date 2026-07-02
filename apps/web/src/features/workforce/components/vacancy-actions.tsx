@@ -1,6 +1,7 @@
 'use client';
 
 // Actions section for the Vacancy Detail page.
+// M21C: toast feedback added for Open Vacancy and Close Vacancy success transitions.
 // Renders Edit link, Open Vacancy modal, and Close Vacancy modal.
 // canWrite is derived server-side from JWT roles (GD-12-4).
 // NestJS remains the authoritative RBAC enforcer — canWrite is for UX only.
@@ -21,6 +22,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import type { VacancyStatus } from '@/features/workforce/types';
+import { useToast, ToastContainer } from '@/components/shared/toast';
 
 type Props = {
   id: string;
@@ -56,6 +58,7 @@ const CLOSE_ERROR_MESSAGES: Record<string, string> = {
 
 export function VacancyActions({ id, status, canWrite }: Props) {
   const router = useRouter();
+  const { toasts, addToast, dismissToast } = useToast();
 
   // Open Vacancy modal state (Step 12 — preserved unchanged)
   const [isOpenModalOpen, setIsOpenModalOpen] = useState(false);
@@ -97,6 +100,7 @@ export function VacancyActions({ id, status, canWrite }: Props) {
         // router.refresh() re-fetches the Server Component (status → OPEN, button hidden).
         setIsOpenModalOpen(false);
         setIsOpenLoading(false);
+        addToast({ type: 'success', title: 'Vacancy opened' });
         router.refresh();
         return;
       }
@@ -138,6 +142,10 @@ export function VacancyActions({ id, status, canWrite }: Props) {
         // buttons hidden, filledAt rendered in Timeline if FILLED).
         setIsCloseModalOpen(false);
         setIsCloseLoading(false);
+        addToast({
+          type: 'success',
+          title: selectedClosureType === 'FILLED' ? 'Vacancy filled' : 'Vacancy cancelled',
+        });
         router.refresh();
         return;
       }
@@ -336,6 +344,8 @@ export function VacancyActions({ id, status, canWrite }: Props) {
           </div>
         </div>
       )}
+
+      <ToastContainer toasts={toasts} onDismiss={dismissToast} />
     </>
   );
 }

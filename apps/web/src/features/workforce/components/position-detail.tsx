@@ -1,5 +1,5 @@
 // Position detail display — Server Component.
-// Renders all position fields and the Occupant section (GD-M15-1 D7).
+// M21C: PositionStatusDot/EmploymentStatusDot replace pill badges; IBM Plex Mono for IDs.
 // Occupant section shows name, employeeNumber, employmentStatus, hireDate with link to employee.
 // "Vacant" displayed when occupant is null.
 // Reference: governance/GD-M15-1.md — Decision 7 (occupant response contract)
@@ -8,8 +8,18 @@
 import type { ReactNode } from 'react';
 import Link from 'next/link';
 import type { PositionDetailRow } from '@/features/workforce/types';
-import { PositionStatusBadge } from '@/features/workforce/components/position-status-badge';
-import { EmploymentStatusBadge } from '@/features/workforce/components/employee-status-badge';
+import { PositionStatusDot } from '@/features/workforce/components/position-status-badge';
+import { EmploymentStatusDot } from '@/features/workforce/components/employee-status-badge';
+
+const MONO_STYLE = {
+  fontFamily: "var(--font-ibm-plex-mono, 'IBM Plex Mono', monospace)",
+} as const;
+
+const MONO_ID_STYLE = {
+  fontFamily: "var(--font-ibm-plex-mono, 'IBM Plex Mono', monospace)",
+  fontSize: 12,
+  color: '#94a3b8',
+} as const;
 
 function formatDate(iso: string): string {
   return new Intl.DateTimeFormat('en-US', {
@@ -55,7 +65,7 @@ export function PositionDetail({ position }: Props) {
             <span className="font-medium">{position.title}</span>
           </Field>
           <Field label="Status">
-            <PositionStatusBadge status={position.status} />
+            <PositionStatusDot status={position.status} />
           </Field>
           <Field label="Classification">
             {position.classification ?? <span className="text-muted-foreground">—</span>}
@@ -82,13 +92,13 @@ export function PositionDetail({ position }: Props) {
               </Link>
             </Field>
             <Field label="Employee Number">
-              <span className="font-mono text-sm">
+              <span style={MONO_STYLE}>
                 {position.occupant.employeeNumber ?? '—'}
               </span>
             </Field>
             <Field label="Status">
-              <EmploymentStatusBadge
-                status={position.occupant.employmentStatus as Parameters<typeof EmploymentStatusBadge>[0]['status']}
+              <EmploymentStatusDot
+                status={position.occupant.employmentStatus as Parameters<typeof EmploymentStatusDot>[0]['status']}
               />
             </Field>
             <Field label="Hire Date">
@@ -119,10 +129,10 @@ export function PositionDetail({ position }: Props) {
         </h3>
         <dl className="grid grid-cols-1 gap-6 sm:grid-cols-2">
           <Field label="Position ID">
-            <span className="font-mono text-xs text-muted-foreground">{position.id}</span>
+            <span style={MONO_ID_STYLE}>{position.id}</span>
           </Field>
           <Field label="Department ID">
-            <span className="font-mono text-xs text-muted-foreground">{position.departmentId}</span>
+            <span style={MONO_ID_STYLE}>{position.departmentId}</span>
           </Field>
         </dl>
       </div>
