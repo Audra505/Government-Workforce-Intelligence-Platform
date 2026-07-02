@@ -36,7 +36,7 @@ const RED_BDR   = '#fecaca';
 // ---------------------------------------------------------------------------
 
 const FORM_ERRORS: Record<string, string> = {
-  INTERVIEWER_REQUIRED:   'At least one of Interviewer Name or Interviewer User ID is required.',
+  INTERVIEWER_REQUIRED:   'Interviewer is required.',
   APPLICATION_NOT_FOUND:  'Application not found.',
   VALIDATION_ERROR:       'Invalid form data. Please check your entries and try again.',
   UNAUTHORIZED:           'Your session has expired. Please sign in again.',
@@ -104,15 +104,13 @@ export function ScheduleInterviewForm({ applicationId }: Props) {
   const [interviewType,     setInterviewType]     = useState('');
   const [scheduledDate,     setScheduledDate]     = useState('');
   const [scheduledTime,     setScheduledTime]     = useState('');
-  const [interviewerName,   setInterviewerName]   = useState('');
-  const [interviewerUserId, setInterviewerUserId] = useState('');
+  const [interviewer, setInterviewer] = useState('');
 
   function resetForm() {
     setInterviewType('');
     setScheduledDate('');
     setScheduledTime('');
-    setInterviewerName('');
-    setInterviewerUserId('');
+    setInterviewer('');
     setError(null);
     setIsOpen(false);
   }
@@ -126,9 +124,8 @@ export function ScheduleInterviewForm({ applicationId }: Props) {
       setError('Interview type is required.');
       return;
     }
-    const hasName   = interviewerName.trim().length > 0;
-    const hasUserId = interviewerUserId.trim().length > 0;
-    if (!hasName && !hasUserId) {
+    const interviewerValue = interviewer.trim();
+    if (!interviewerValue) {
       setError(FORM_ERRORS.INTERVIEWER_REQUIRED);
       return;
     }
@@ -142,8 +139,13 @@ export function ScheduleInterviewForm({ applicationId }: Props) {
       const combined = scheduledTime ? `${scheduledDate}T${scheduledTime}:00` : `${scheduledDate}T00:00:00`;
       body.scheduledAt = new Date(combined).toISOString();
     }
-    if (hasName)   body.interviewerName   = interviewerName.trim();
-    if (hasUserId) body.interviewerUserId = interviewerUserId.trim();
+    // Route to the correct API field: UUID pattern → interviewerUserId, otherwise → interviewerName
+    const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (UUID_RE.test(interviewerValue)) {
+      body.interviewerUserId = interviewerValue;
+    } else {
+      body.interviewerName = interviewerValue;
+    }
 
     setIsSubmitting(true);
     try {
@@ -288,35 +290,24 @@ export function ScheduleInterviewForm({ applicationId }: Props) {
           </div>
         </div>
 
-        {/* Interviewer — at least one required */}
+        {/* Interviewer */}
         <div>
-          <p style={{ ...labelStyle, marginBottom: 4 }}>
+          <label htmlFor="sif-interviewer" style={{ ...labelStyle, marginBottom: 4 }}>
             Interviewer <span style={{ color: '#dc2626', marginLeft: 2 }}>*</span>
+          </label>
+          <p style={{ ...hintStyle, marginBottom: 8 }}>
+            Provide a name or a user ID
           </p>
-          <p style={{ ...hintStyle, marginBottom: 10 }}>
-            Provide a name or a user ID — at least one is required.
-          </p>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            <input
-              id="sif-name"
-              type="text"
-              value={interviewerName}
-              onChange={(e) => setInterviewerName(e.target.value)}
-              disabled={isSubmitting}
-              maxLength={255}
-              placeholder="Interviewer name"
-              style={{ ...inputStyle, cursor: isSubmitting ? 'not-allowed' : 'default' }}
-            />
-            <input
-              id="sif-uid"
-              type="text"
-              value={interviewerUserId}
-              onChange={(e) => setInterviewerUserId(e.target.value)}
-              disabled={isSubmitting}
-              placeholder="Interviewer user ID (UUID)"
-              style={{ ...inputStyle, cursor: isSubmitting ? 'not-allowed' : 'default' }}
-            />
-          </div>
+          <input
+            id="sif-interviewer"
+            type="text"
+            value={interviewer}
+            onChange={(e) => setInterviewer(e.target.value)}
+            disabled={isSubmitting}
+            maxLength={255}
+            placeholder="Name or user ID (UUID)"
+            style={{ ...inputStyle, cursor: isSubmitting ? 'not-allowed' : 'default' }}
+          />
         </div>
 
         {/* Actions */}
