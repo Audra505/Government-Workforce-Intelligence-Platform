@@ -189,6 +189,7 @@ export function VacancyActions({ id, status, canWrite }: Props) {
         {isDraft && (
           <Button
             size="sm"
+            style={{ backgroundColor: '#2563eb' }}
             onClick={() => { setIsOpenModalOpen(true); setOpenError(null); }}
           >
             Open Vacancy
@@ -245,6 +246,7 @@ export function VacancyActions({ id, status, canWrite }: Props) {
               </Button>
               <Button
                 size="sm"
+                style={{ backgroundColor: '#2563eb' }}
                 disabled={isOpenLoading}
                 onClick={handleOpenVacancy}
               >

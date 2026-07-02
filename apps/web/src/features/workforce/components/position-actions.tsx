@@ -250,6 +250,7 @@ export function PositionActions({ id, status, canWrite }: Props) {
         {isDraft && (
           <Button
             size="sm"
+            style={{ backgroundColor: '#2563eb' }}
             onClick={() => { setIsActivateOpen(true); setActivateError(null); }}
           >
             Activate
@@ -315,7 +316,7 @@ export function PositionActions({ id, status, canWrite }: Props) {
               >
                 Cancel
               </Button>
-              <Button size="sm" disabled={isActivateLoading} onClick={handleActivate}>
+              <Button size="sm" style={{ backgroundColor: '#2563eb' }} disabled={isActivateLoading} onClick={handleActivate}>
                 {isActivateLoading ? 'Activating…' : 'Confirm — Activate'}
               </Button>
             </div>
@@ -349,7 +350,7 @@ export function PositionActions({ id, status, canWrite }: Props) {
               >
                 Cancel
               </Button>
-              <Button size="sm" disabled={isFreezeLoading} onClick={handleFreeze}>
+              <Button size="sm" style={{ backgroundColor: '#2563eb' }} disabled={isFreezeLoading} onClick={handleFreeze}>
                 {isFreezeLoading ? 'Freezing…' : 'Confirm — Freeze'}
               </Button>
             </div>
@@ -383,7 +384,7 @@ export function PositionActions({ id, status, canWrite }: Props) {
               >
                 Cancel
               </Button>
-              <Button size="sm" disabled={isResumeLoading} onClick={handleResume}>
+              <Button size="sm" style={{ backgroundColor: '#2563eb' }} disabled={isResumeLoading} onClick={handleResume}>
                 {isResumeLoading ? 'Resuming…' : 'Confirm — Resume'}
               </Button>
             </div>

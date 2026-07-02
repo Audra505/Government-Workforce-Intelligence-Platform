@@ -246,6 +246,7 @@ export function EmployeeStatusActions({ id, currentStatus, canWrite }: Props) {
               </Button>
               <Button
                 size="sm"
+                style={{ backgroundColor: '#2563eb' }}
                 disabled={isLoading || !selectedStatus || (targetIsSeparated && !separationReason)}
                 onClick={handleStatusChange}
               >
