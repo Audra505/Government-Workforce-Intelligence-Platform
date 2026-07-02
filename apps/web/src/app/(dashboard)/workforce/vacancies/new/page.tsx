@@ -26,9 +26,10 @@ export default async function NewVacancyPage() {
       <div className="mb-6">
         <Link
           href="/workforce/vacancies"
-          className="text-sm text-muted-foreground underline-offset-4 hover:underline"
+          className="text-sm hover:underline"
+          style={{ color: '#2563eb' }}
         >
-          ← Back to Vacancies
+          ← Vacancies
         </Link>
         <h2 className="mt-2 text-2xl font-bold tracking-tight">Create Vacancy</h2>
         <p className="mt-1 text-sm text-muted-foreground">

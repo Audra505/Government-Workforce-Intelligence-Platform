@@ -40,9 +40,10 @@ export default async function EditVacancyPage({ params }: Props) {
       <div className="mb-6">
         <Link
           href={`/workforce/vacancies/${params.id}`}
-          className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+          className="text-sm hover:underline"
+          style={{ color: '#2563eb' }}
         >
-          ← Back to Vacancy
+          ← Vacancy
         </Link>
         <h2 className="mt-2 text-2xl font-bold tracking-tight">{vacancy.positionTitle}</h2>
         <p className="mt-1 text-sm text-muted-foreground">{vacancy.departmentName}</p>

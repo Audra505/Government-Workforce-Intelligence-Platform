@@ -40,9 +40,10 @@ export default async function EditPositionPage({ params }: Props) {
       <div className="mb-6">
         <Link
           href={`/workforce/positions/${position.id}`}
-          className="text-sm text-muted-foreground underline-offset-4 hover:underline"
+          className="text-sm hover:underline"
+          style={{ color: '#2563eb' }}
         >
-          ← Back to Position
+          ← Position
         </Link>
         <h2 className="mt-2 text-2xl font-bold tracking-tight">
           Edit Position — {position.title}

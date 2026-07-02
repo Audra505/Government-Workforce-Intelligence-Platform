@@ -242,6 +242,7 @@ export function EmployeePositionActions({
               </Button>
               <Button
                 size="sm"
+                style={{ backgroundColor: '#2563eb' }}
                 disabled={isAssignLoading || !selectedPositionId || activePositions.length === 0}
                 onClick={handleAssign}
               >
