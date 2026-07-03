@@ -127,7 +127,7 @@ export function LoginForm() {
             {serverError}
           </p>
         )}
-        <Button type="submit" className="w-full" disabled={isLoading}>
+        <Button type="submit" className="w-full" style={{ backgroundColor: '#2563eb' }} disabled={isLoading}>
           {isLoading ? 'Signing in…' : 'Sign in'}
         </Button>
       </form>
