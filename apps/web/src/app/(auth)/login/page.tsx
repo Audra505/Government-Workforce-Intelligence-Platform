@@ -4,7 +4,6 @@ const NAVY  = '#0c2340';
 const BLUE  = '#2563eb';
 const TEXT  = '#0f172a';
 const SUB   = '#475569';
-const MUTED = '#94a3b8';
 
 export default function LoginPage() {
   return (
