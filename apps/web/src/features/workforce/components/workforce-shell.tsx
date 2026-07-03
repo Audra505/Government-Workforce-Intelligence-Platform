@@ -48,6 +48,12 @@ export function WorkforceShell({ activeTab, breadcrumb, children, counts }: Prop
             {/* Domain nav — Workforce active, Recruiting inactive */}
             <nav className="flex items-center gap-6" aria-label="Domain navigation">
               <Link
+                href="/dashboard"
+                className="text-sm text-white/60 transition-colors hover:text-white"
+              >
+                Dashboard
+              </Link>
+              <Link
                 href="/workforce/employees"
                 className="text-sm font-semibold text-white"
               >

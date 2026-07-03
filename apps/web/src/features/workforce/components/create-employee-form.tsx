@@ -310,7 +310,7 @@ export function CreateEmployeeForm({ departments }: Props) {
 
       {/* Actions */}
       <div className="flex items-center gap-3 pt-2">
-        <Button type="submit" disabled={isLoading || hasNoDepartments}>
+        <Button type="submit" style={{ backgroundColor: '#2563eb' }} disabled={isLoading || hasNoDepartments}>
           {isLoading ? 'Creating...' : 'Create Employee'}
         </Button>
         <Button asChild variant="outline">

@@ -164,7 +164,7 @@ export function EditPositionForm({ position }: Props) {
       </div>
 
       <div className="flex items-center gap-3 pt-2">
-        <Button type="submit" size="sm" disabled={isLoading}>
+        <Button type="submit" size="sm" style={{ backgroundColor: '#2563eb' }} disabled={isLoading}>
           {isLoading ? 'Saving…' : 'Save Changes'}
         </Button>
         <Button asChild variant="outline" size="sm">

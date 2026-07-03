@@ -21,6 +21,7 @@ import type { PositionFullListApiResponse, DepartmentListApiResponse, Department
 
 type PageSearchParams = { [key: string]: string | string[] | undefined };
 type Props = { searchParams: PageSearchParams };
+type CountResponse = { data: { total: number } };
 
 function getString(value: string | string[] | undefined): string | undefined {
   return typeof value === 'string' ? value : undefined;
@@ -42,6 +43,15 @@ async function getPositions(searchParams: PageSearchParams): Promise<PositionFul
   params.set('pageSize', '20');
 
   return serverFetch<PositionFullListApiResponse>(`/api/v1/positions?${params.toString()}`);
+}
+
+async function getTabCounts() {
+  const [p, v, e] = await Promise.all([
+    serverFetch<CountResponse>('/api/v1/positions?pageSize=1').catch(() => null),
+    serverFetch<CountResponse>('/api/v1/vacancies?pageSize=1').catch(() => null),
+    serverFetch<CountResponse>('/api/v1/employees?pageSize=1').catch(() => null),
+  ]);
+  return { positions: p?.data.total, vacancies: v?.data.total, employees: e?.data.total };
 }
 
 async function getDepartments(): Promise<DepartmentOption[]> {
@@ -70,9 +80,10 @@ function buildPageUrl(searchParams: PageSearchParams, targetPage: number): strin
 }
 
 export default async function PositionsPage({ searchParams }: Props) {
-  const [response, departments] = await Promise.all([
+  const [response, departments, counts] = await Promise.all([
     getPositions(searchParams),
     getDepartments(),
+    getTabCounts(),
   ]);
   const { positions, total, page: currentPage, pageSize, totalPages } = response.data;
 
@@ -91,7 +102,7 @@ export default async function PositionsPage({ searchParams }: Props) {
   const rangeEnd   = Math.min(currentPage * pageSize, total);
 
   return (
-    <WorkforceShell activeTab="positions" breadcrumb="Positions" counts={{ positions: total }}>
+    <WorkforceShell activeTab="positions" breadcrumb="Positions" counts={counts}>
       <div className="mb-6 flex items-start justify-between">
         <div>
           <h2 className="text-2xl font-bold tracking-tight">Positions</h2>

@@ -17,6 +17,17 @@ import { EmployeeTable } from '@/features/workforce/components/employee-table';
 import { SESSION_COOKIE } from '@/lib/auth';
 import type { EmployeeListApiResponse } from '@/features/workforce/types';
 
+type CountResponse = { data: { total: number } };
+
+async function getTabCounts() {
+  const [p, v, e] = await Promise.all([
+    serverFetch<CountResponse>('/api/v1/positions?pageSize=1').catch(() => null),
+    serverFetch<CountResponse>('/api/v1/vacancies?pageSize=1').catch(() => null),
+    serverFetch<CountResponse>('/api/v1/employees?pageSize=1').catch(() => null),
+  ]);
+  return { positions: p?.data.total, vacancies: v?.data.total, employees: e?.data.total };
+}
+
 type PageSearchParams = {
   [key: string]: string | string[] | undefined;
 };
@@ -42,7 +53,7 @@ async function getEmployees(searchParams: PageSearchParams): Promise<EmployeeLis
 }
 
 export default async function EmployeesPage({ searchParams }: Props) {
-  const response = await getEmployees(searchParams);
+  const [response, counts] = await Promise.all([getEmployees(searchParams), getTabCounts()]);
   const { employees, total, page: currentPage, pageSize, totalPages } = response.data;
 
   const hasFilters = Boolean(getString(searchParams.employmentStatus));
@@ -63,7 +74,7 @@ export default async function EmployeesPage({ searchParams }: Props) {
   const rangeEnd   = Math.min(currentPage * pageSize, total);
 
   return (
-    <WorkforceShell activeTab="employees" breadcrumb="Employees" counts={{ employees: total }}>
+    <WorkforceShell activeTab="employees" breadcrumb="Employees" counts={counts}>
       <div className="mb-6 flex items-start justify-between">
         <div>
           <h2 className="text-2xl font-bold tracking-tight">Employees</h2>

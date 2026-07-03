@@ -50,6 +50,12 @@ export function RecruitingShell({ activeTab, breadcrumb, children, counts }: Pro
             {/* Domain nav — exactly Workforce and Recruiting (GD-M20-1 D16) */}
             <nav className="flex items-center gap-6" aria-label="Domain navigation">
               <Link
+                href="/dashboard"
+                className="text-sm text-white/60 transition-colors hover:text-white"
+              >
+                Dashboard
+              </Link>
+              <Link
                 href="/workforce/employees"
                 className="text-sm text-white/60 transition-colors hover:text-white"
               >

@@ -18,6 +18,17 @@ import { VacancyTable } from '@/features/workforce/components/vacancy-table';
 import { SESSION_COOKIE } from '@/lib/auth';
 import type { VacancyListApiResponse } from '@/features/workforce/types';
 
+type CountResponse = { data: { total: number } };
+
+async function getTabCounts() {
+  const [p, v, e] = await Promise.all([
+    serverFetch<CountResponse>('/api/v1/positions?pageSize=1').catch(() => null),
+    serverFetch<CountResponse>('/api/v1/vacancies?pageSize=1').catch(() => null),
+    serverFetch<CountResponse>('/api/v1/employees?pageSize=1').catch(() => null),
+  ]);
+  return { positions: p?.data.total, vacancies: v?.data.total, employees: e?.data.total };
+}
+
 type PageSearchParams = {
   [key: string]: string | string[] | undefined;
 };
@@ -45,7 +56,7 @@ async function getVacancies(searchParams: PageSearchParams): Promise<VacancyList
 }
 
 export default async function VacanciesPage({ searchParams }: Props) {
-  const response = await getVacancies(searchParams);
+  const [response, counts] = await Promise.all([getVacancies(searchParams), getTabCounts()]);
   const { vacancies, total, page: currentPage, pageSize, totalPages } = response.data;
 
   const hasFilters = Boolean(getString(searchParams.status) || getString(searchParams.priority));
@@ -68,7 +79,7 @@ export default async function VacanciesPage({ searchParams }: Props) {
   const rangeEnd = Math.min(currentPage * pageSize, total);
 
   return (
-    <WorkforceShell activeTab="vacancies" breadcrumb="Vacancies" counts={{ vacancies: total }}>
+    <WorkforceShell activeTab="vacancies" breadcrumb="Vacancies" counts={counts}>
       <div className="mb-6 flex items-start justify-between">
         <div>
           <h2 className="text-2xl font-bold tracking-tight">Vacancies</h2>

@@ -270,7 +270,7 @@ export function CreateVacancyForm({ positions }: Props) {
 
       {/* Actions */}
       <div className="flex items-center gap-3 pt-2">
-        <Button type="submit" disabled={isLoading || hasNoPositions}>
+        <Button type="submit" style={{ backgroundColor: '#2563eb' }} disabled={isLoading || hasNoPositions}>
           {isLoading ? 'Creating...' : 'Create Vacancy'}
         </Button>
         <Button asChild variant="outline">

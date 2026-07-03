@@ -64,12 +64,6 @@ export default function LoginPage() {
       {/* ── Right panel — form ── */}
       <div className="flex flex-1 items-center justify-center bg-white px-10 py-12">
         <div className="w-full max-w-[344px]">
-          <p
-            className="mb-2.5 text-[10px] font-bold uppercase"
-            style={{ color: MUTED, letterSpacing: '0.12em' }}
-          >
-            Secure sign-in
-          </p>
           <h1 className="mb-1.5 text-[22px] font-bold" style={{ color: TEXT }}>
             Sign in to GWIP
           </h1>
