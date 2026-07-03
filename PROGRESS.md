@@ -9,16 +9,16 @@
 
 ---
 
-Last Updated: 2026-07-02 (M20 Recruiting UI — M20E complete; all M20 batches implemented and browser-verified; squashed to single commit; pushed to origin/main; CI pending)
-Updated By: Claude Code (M20E complete: Tier 1 design reconciliation verified in browser; status duplication fixed; search 400 errors resolved; interviewer form labels corrected; date picker split; redirect buttons removed; application detail shows real candidate name + vacancy title; tab count badges; full-width nav; all 22 local commits squashed to 1 and pushed)
+Last Updated: 2026-07-02 (M21 Platform-Wide Design System Reconciliation — all three batches M21A/B/C implemented and pushed (0fc376c); 6 additional visual polish commits through 1036c92; CI status for post-M21C commits unconfirmed; browser verification pending)
+Updated By: Claude Code (M21 closeout preparation: header, status, active execution state, and M21 milestone section updated; governance_history.md GD-M21-1 status corrected; no source files modified)
 
-Previous Update: 2026-07-01 (M19 Hire-to-Employee Conversion — runtime/API verification PASSED; all 15 GD-M19-1 D16 scenarios verified; squashed, pushed, CI confirmed green)
+Previous Update: 2026-07-02 (M20 Recruiting UI — M20E complete; all M20 batches implemented and browser-verified; squashed to single commit (6e6777b); pushed to origin/main; CI confirmed green run 28611838113)
 
 ## Repository Status
 
-Current Phase: **Phase 3 — M20 Recruiting UI (M20E COMPLETE — PUSHED; CI PENDING)**
-Overall Classification: Phase 2 COMPLETE; Post-Phase-2 milestones M13/M14/M15 CI-confirmed; Pre-Phase-3 Governance Package CI-confirmed (a5c34f1); Phase 3 started — M16 CI-confirmed (f962782); M17 CI-confirmed (see M17 section); M18 CI-confirmed (see M18 section); M19 CI-confirmed (see M19 section); M20 implementation complete, browser-verified, squashed and pushed — CI pending
-Active Sprint / Milestone: M20 Recruiting UI — M20E COMPLETE (2026-07-02); all 5 batches (M20A–M20E) implemented, browser-verified, squashed to 1 commit, and pushed to origin/main; CI confirmation pending
+Current Phase: **Phase 3 — M21 Platform-Wide Design System Reconciliation (IMPLEMENTED — PENDING BROWSER VERIFICATION AND CI CONFIRMATION)**
+Overall Classification: Phase 2 COMPLETE; Post-Phase-2 milestones M13/M14/M15 CI-confirmed; Pre-Phase-3 Governance Package CI-confirmed (a5c34f1); Phase 3 started — M16 CI-confirmed (f962782); M17 CI-confirmed; M18 CI-confirmed; M19 CI-confirmed; M20 CI-confirmed (6e6777b; run 28611838113); M21 implemented — HEAD 1036c92 on origin/main — CI unconfirmed for post-M21C commits; browser verification not yet documented
+Active Sprint / Milestone: M21 Platform-Wide Design System Reconciliation — M21A/B/C complete (0fc376c); 6 post-scope visual polish commits committed and pushed through 1036c92; pending human browser verification against GD-M21-1 final gate checklist and CI confirmation
 Implementation Started: Yes (2026-06-05)
 
 ## Phase Summary
@@ -27,18 +27,18 @@ Phase 1 is formally closed. D9 (Docker Environment) and D10 (CI/CD Foundation) w
 
 ---
 
-# Active Execution State — Milestone 10
+# Active Execution State — Milestone 21
 
 > This section is updated in place after each approved and validated implementation step.
 > Its purpose is crash/session recovery: the current step state is always readable without
 > scanning Zone 5 history. It is overwritten each step — not appended.
 
-Milestone: M20 Recruiting UI — M20E COMPLETE (2026-07-02)
-Last Completed Milestone: M20 Recruiting UI — M20E browser verification, squash, push (COMPLETE 2026-07-02)
-Last Completed Step: M20E complete — all Tier 1 design reconciliation changes browser-verified and committed; 22 local checkpoint commits squashed to 1 and pushed to origin/main; CI pending
+Milestone: M21 Platform-Wide Design System Reconciliation (IMPLEMENTED — AWAITING VERIFICATION)
+Last Completed Milestone: M21C Workforce Visual Reconciliation (0fc376c) + 6 post-M21C visual polish commits (HEAD 1036c92)
+Last Completed Step: All post-M21C visual polish committed and pushed to origin/main; Docker web container rebuilt and healthy; PROGRESS.md and governance_history.md documentation stabilized
 Last Completed Step Date: 2026-07-02
-Current Step: Confirm CI green; S27 DB mutation revert (UPDATE workforce.vacancies SET priority='MEDIUM', status='IN_RECRUITMENT' WHERE id='18e55ecd-a972-437b-95e3-38d0370f5339')
-Session Classification: PHASE 3 M20 COMPLETE — squashed, pushed; CI confirmation pending; S27 revert pending
+Current Step: Human browser verification of GD-M21-1 final gate checklist (see M21 Pending Verification Checklist in M21 section below); CI confirmation for commits 5f6a359 through 1036c92
+Session Classification: PHASE 3 M21 IMPLEMENTED — all commits pushed; CI unconfirmed for post-M21C commits; browser verification required before M21 closeout declaration
 
 ## Milestone 10 — Approved Plan
 
@@ -9120,3 +9120,249 @@ GD-M20-1 Decision 3 and Decision 5 use shorthand `PATCH /candidates/:id { status
 9. **M20E:** Final PROGRESS.md update with CI run ID, commit hash, and M20 maturity classification
 
 ---
+
+# M21 — Platform-Wide Design System Reconciliation
+
+> Entry added: 2026-07-02 (M21 closeout preparation)
+> Governance authority: governance/GD-M21-1.md (Approved 2026-07-02, Audra / Project Mentor)
+
+---
+
+## M21 Overview
+
+M21 reconciles the existing Workforce UI with the M20 design baseline established in GD-M20-1. All Workforce pages were previously built with a divergent visual approach (white header, system fonts, pill badge statuses, no shell). M21 delivers a single consistent visual system across both Workforce and Recruiting before future phases continue.
+
+**Governance:** GD-M21-1 — Approved 2026-07-02, Audra / Project Mentor
+**Implementation approach:** Three sequenced batches (M21A → M21B → M21C), each committed and CI-gated before the next begins
+**Backend freeze:** No NestJS changes, no Prisma schema changes, no migrations, no BFF modifications
+**Recruiting freeze (original scope):** Recruiting UI pages explicitly excluded from M21 modification per GD-M21-1
+
+---
+
+## M21 Implementation — Batch Summary
+
+### M21A — Shared Platform Foundation
+**Commit:** `d89f7f4` — 2026-07-02 14:39
+**Scope delivered:**
+- `getSessionRoles()` extracted to `lib/session.ts` (pure extraction from 4+ page files)
+- `LogoutButton` unified in `features/auth/logout-button.tsx` (inline style; shadcn Button dependency removed)
+- `StatusDot` primitive moved to `components/shared/status-dot.tsx`; Recruiting wrappers updated
+- `useToast` / `ToastContainer` moved to `components/shared/toast.tsx`; Recruiting imports updated
+- `components/shared/pagination.tsx` created
+- `components/shared/empty-state.tsx` created
+- All Recruiting import paths updated to new shared locations
+
+**Capability maturity:** Scaffolded → Integrated (shared foundation layer)
+**CI gate (apps/web type-check + lint):** Passed locally before M21B began
+
+---
+
+### M21B — Workforce Shell Adoption
+**Commit:** `33679fc` — 2026-07-02 15:03
+**Scope delivered:**
+- `WorkforceShell` created at `features/workforce/components/workforce-shell.tsx`
+  - Navy header `#0c2340`, GWIP wordmark, domain nav (Workforce active · Recruiting link)
+  - Breadcrumb row "Workforce › [page]", tab bar (Positions · Vacancies · Employees) with count badges
+  - Canvas `#f8fafc`, `max-w-[1200px]`, IBM Plex Sans via `fontFamily` inline style
+- WorkforceShell adopted across all Workforce pages: list, detail, new, edit, loading.tsx, error.tsx for all three sections (positions, vacancies, employees)
+- Inline per-page header and nav removed from all Workforce pages
+- Shared `Pagination` and `getSessionRoles` adopted
+- Cross-domain nav: Workforce → Recruiting link present in WorkforceShell
+- Error boundaries: navy mini-header inlined (cannot import WorkforceShell)
+
+**Capability maturity:** Partially Implemented → Integrated
+**CI gate:** Passed before M21C began
+
+---
+
+### M21C — Workforce Visual Reconciliation
+**Commit:** `0fc376c` — 2026-07-02 15:25
+**Scope delivered:**
+- `PositionStatusDot`, `EmploymentStatusDot`, `VacancyStatusDot` created as wrappers around shared StatusDot primitive
+- All three Workforce table and detail components updated: pill badges replaced with dot + label format
+- PriorityBadge and AgingCell retained as pills (severity data — GD-M21-1 Decision 10)
+- `requiresReview` badge in vacancy-table retained as alert modifier
+- Table header style aligned: uppercase, 11px, letterSpacing 0.06em, `#94a3b8`, `#f8fafc` background
+- Table border color aligned to `#e2e8f0` explicit
+- Table row height: 48px
+- Shared EmptyState adopted in Workforce table components
+- Toast feedback added to Workforce write operations (vacancy-actions, employee-status-actions, position-actions) via shared `useToast`
+- IBM Plex Mono via CSS variable on employee number and ID cells
+
+**Capability maturity:** Integrated (pending browser verification for Verified classification)
+
+---
+
+## M21 Post-Scope Visual Polish (After 0fc376c)
+
+Six additional commits were made after M21C was pushed. These were not covered by GD-M21-1 but were discovered and corrected during a post-M21C Docker rebuild session. They are recorded here as accepted post-scope polish. Mentor acknowledgement is pending.
+
+| Commit | Date | Category | Summary |
+|---|---|---|---|
+| `5f6a359` | 2026-07-02 16:09 | Workforce UI polish | Table row name/title links blue (#2563eb); CTA buttons blue with + prefix; subtitle copy descriptive |
+| `a4ea478` | 2026-07-02 16:20 | Workforce UI polish | Filter result counts added; back links on detail pages blue; IBM Plex Mono on employee # |
+| `fa6ad6b` | 2026-07-02 16:26 | Workforce UI polish | Activate/Freeze/Resume/modal confirm buttons blue; Close actions unchanged |
+| `abb34e7` | 2026-07-02 16:35 | Workforce UI polish | Workforce form back links blue (← X pattern); EmployeePositionActions confirm button blue |
+| `8781cc2` | 2026-07-02 19:23 | Auth + Dashboard UI | Login page: split-panel navy/white with brand panel and grid texture. Dashboard: nav shell, metric cards, module cards, phase notice. Both surfaces were deferred in GD-M21-1 (WF-D6, WF-D7). Accepted as placeholder polish. **Pending mentor acknowledgement.** |
+| `1036c92` | 2026-07-02 20:53 | Mixed | Login eyebrow removed; Dashboard nav link added to WorkforceShell and RecruitingShell; Workforce form submit buttons blue; getTabCounts() on all 3 list pages. RecruitingShell modification was outside GD-M21-1 scope. **Pending mentor acknowledgement.** |
+
+**Files affected by post-M21C commits:**
+- `apps/web/src/app/(auth)/login/page.tsx` — login redesign + eyebrow fix
+- `apps/web/src/app/(dashboard)/dashboard/page.tsx` — dashboard redesign
+- `apps/web/src/features/auth/login-form.tsx` — submit button color
+- `apps/web/src/features/workforce/components/workforce-shell.tsx` — Dashboard nav link
+- `apps/web/src/features/recruiting/components/recruiting-shell.tsx` — Dashboard nav link (outside M21 scope)
+- `apps/web/src/app/(dashboard)/workforce/positions/page.tsx` — getTabCounts
+- `apps/web/src/app/(dashboard)/workforce/employees/page.tsx` — getTabCounts
+- `apps/web/src/app/(dashboard)/workforce/vacancies/page.tsx` — getTabCounts
+- `apps/web/src/features/workforce/components/create-{position,employee,vacancy}-form.tsx` — submit button blue
+- `apps/web/src/features/workforce/components/edit-{position,employee,vacancy}-form.tsx` — submit button blue
+- `apps/web/src/features/workforce/components/employee-table.tsx`, `position-table.tsx`, `vacancy-table.tsx` — row link colors
+- `apps/web/src/features/workforce/components/employee-filters.tsx`, `position-filters.tsx`, `vacancy-filters.tsx` — result counts
+- `apps/web/src/features/workforce/components/employee-status-actions.tsx`, `position-actions.tsx`, `vacancy-actions.tsx` — button colors
+- `apps/web/src/features/workforce/components/employee-position-actions.tsx` — confirm button color
+- `apps/web/src/app/(dashboard)/workforce/{positions,employees,vacancies}/[id]/page.tsx` — back link colors
+- `apps/web/src/app/(dashboard)/workforce/{positions,employees,vacancies}/{new,[id]/edit}/page.tsx` — back link format
+
+**No backend, Prisma, BFF, middleware, or auth files were modified in any post-M21C commit.**
+
+---
+
+## M21 Pending Mentor Acknowledgement (Post-Scope Items)
+
+The following items were implemented and pushed but fall outside GD-M21-1 boundaries. No revert is proposed. Mentor should acknowledge acceptance before M21 is declared closed.
+
+| Item | GD-M21-1 Status | Commit(s) | Risk |
+|---|---|---|---|
+| Login page visual redesign (split-panel navy/white) | Deferred — WF-D7 | `8781cc2`, `1036c92` | Low — pre-auth surface; no functional change |
+| Dashboard page visual redesign (nav shell + placeholder cards) | Deferred — WF-D6 | `8781cc2` | Low — placeholder; no real content or data |
+| Dashboard nav link added to WorkforceShell | Not in original scope | `1036c92` | Low — purely additive nav link |
+| Dashboard nav link added to RecruitingShell | Out of scope — GD-M21-1 prohibits Recruiting modification | `1036c92` | Low — single link addition; no functional change |
+| Workforce action button colors (Activate/Freeze/Resume/modal confirms) | WF-D5 deferred to M22+ | `fa6ad6b`, `abb34e7` | Low — color-only; destructive actions unchanged |
+
+---
+
+## M21 Pending Verification Checklist
+
+**Status: NOT YET COMPLETED — human browser verification required**
+
+No formal browser verification has been documented in the repository for any M21 work. The post-rebuild fix commit (`1036c92`) is circumstantial evidence that visual inspection occurred, but no verification record was created. The following checklist must be completed by the human operator in a browser before M21 is declared Verified.
+
+### GD-M21-1 Final Gate Items
+
+**Workforce Positions:**
+- [ ] Navy header with GWIP wordmark visible
+- [ ] Domain nav: Workforce (active/bold) · Recruiting (dimmed link)
+- [ ] Dashboard link present in header
+- [ ] Breadcrumb: "Workforce › Positions"
+- [ ] Tab bar: Positions (active, underlined) · Vacancies · Employees with count badges
+- [ ] Position status shown as dot + label (not pill badge): DRAFT/ACTIVE/FROZEN/CLOSED
+- [ ] Table headers uppercase, 11px
+- [ ] IBM Plex Sans font applied
+
+**Workforce Vacancies:**
+- [ ] Navy shell pattern consistent with Positions
+- [ ] Vacancy status shown as dot + label: DRAFT/OPEN/IN_RECRUITMENT/CLOSED
+- [ ] Priority badge retained as pill (not converted to dot)
+- [ ] Aging cell retained as text
+
+**Workforce Employees:**
+- [ ] Navy shell pattern consistent
+- [ ] Employment status shown as dot + label: PENDING_ONBOARDING/ACTIVE/ON_LEAVE/SUSPENDED/SEPARATED
+- [ ] Employee number rendered in IBM Plex Mono
+
+**Cross-domain navigation:**
+- [ ] From /workforce/employees → click "Recruiting" in header → /recruiting/candidates (no error)
+- [ ] From /recruiting/candidates → click "Workforce" in header → /workforce/employees (no error)
+- [ ] From /workforce/employees → click "Dashboard" in header → /dashboard (no error)
+- [ ] From /recruiting/candidates → click "Dashboard" in header → /dashboard (no error)
+
+**Post-scope surfaces (added after M21C):**
+- [ ] Login page: split-panel layout renders correctly on desktop viewport
+- [ ] Dashboard page: nav shell, metric cards, module cards, phase notice all render
+- [ ] Dashboard page: "Workforce" and "Recruiting" module cards link to correct routes
+
+**Recruiting regression check:**
+- [ ] /recruiting/candidates renders without visual change
+- [ ] /recruiting/applications renders without visual change
+- [ ] /recruiting/interviews renders without visual change
+- [ ] /recruiting/offers renders without visual change
+- [ ] Status dots, table headers, toast behavior all as before M21
+
+**RBAC gates:**
+- [ ] SA/HRD user: "+ Add Position", "+ Add Vacancy", "+ Add Employee" buttons visible
+- [ ] SA/HRD user: Edit links and action buttons visible on detail pages
+- [ ] Non-SA/HRD user (Recruiter or lower): write-action buttons not visible
+
+---
+
+## M21 CI Status
+
+| Commit | Message | CI Status |
+|---|---|---|
+| `0fc376c` | Implement M21C Workforce visual reconciliation | Passed (run 28619455671 — confirmed by mentor) |
+| `5f6a359` | Standardize Workforce UI to match Recruiting visual language | **Unconfirmed** — gh CLI not installed; check GitHub Actions |
+| `a4ea478` | Align Workforce UI details to Recruiting visual standard | **Unconfirmed** |
+| `fa6ad6b` | Standardize detail page primary action buttons to blue | **Unconfirmed** |
+| `abb34e7` | Complete Workforce UI consistency pass | **Unconfirmed** |
+| `8781cc2` | Modernize login and dashboard UI | **Unconfirmed** |
+| `1036c92` | Fix post-rebuild UI consistency issues (HEAD) | **Unconfirmed** |
+
+**To confirm CI:** Visit GitHub Actions tab for this repository, filter by branch `main`, and verify runs for the 6 commits above. All are frontend-only changes (no backend, no dependencies, no Prisma) — CI risk is low, but status must be confirmed before M21 closeout.
+
+---
+
+## M21 Validation State
+
+| Check | Result |
+|---|---|
+| M21A `apps/web` type-check | Passed locally before M21B |
+| M21B `apps/web` type-check | Passed locally before M21C |
+| M21C `apps/web` type-check | Passed locally |
+| Post-M21C type-check / lint | Not documented |
+| Docker rebuild (web container) | Performed — web healthy ~1h as of audit |
+| CI for M21A–M21C (0fc376c) | Passed — run 28619455671 |
+| CI for post-M21C commits | **Unconfirmed** — gh CLI unavailable |
+| Browser verification | **Not documented** — pending human execution |
+
+---
+
+## M21 Risks / Limitations
+
+| # | Risk | Severity | Status |
+|---|---|---|---|
+| 1 | CI unconfirmed for 6 post-M21C commits | Medium | Open — check GitHub Actions |
+| 2 | Browser verification not documented | Medium | Open — human action required |
+| 3 | Login and Dashboard changes outside GD-M21-1 scope | Low | Open — pending mentor acknowledgement |
+| 4 | RecruitingShell modified (GD-M21-1 prohibits Recruiting changes) | Low | Open — pending mentor acknowledgement; change is additive only |
+| 5 | Action button colors (WF-D5) implemented ahead of M22 deferral | Low | Open — pending mentor acknowledgement; destructive actions unchanged |
+| 6 | governance_history.md GD-M21-1 row previously said "Pending approval" | Resolved | Fixed 2026-07-02 in this closeout pass |
+| 7 | PROGRESS.md not updated since M20E | Resolved | Updated 2026-07-02 in this closeout pass |
+
+---
+
+## M21 Overall Maturity
+
+| Layer | Status |
+|---|---|
+| Requirements | Defined — GD-M21-1 |
+| Governance / Spec | Approved |
+| Execution Plan | Implemented — M21A/B/C + 6 polish commits |
+| State Model | N/A (UI-only; no new entity state) |
+| Test Scenarios | Not formalized (UI reconciliation; no new business logic) |
+| System Loop | N/A (frontend shell; no new runtime loop) |
+| Failure Playbook | Error boundaries adopted from Recruiting pattern |
+| Environment Model | Docker rebuild confirmed healthy |
+| Data Lifecycle | N/A (no schema changes) |
+| Evolution Strategy | WorkforceShell + shared components established for M22+ |
+| **Overall** | **Partially Implemented / Integrated — pending browser verification and CI confirmation** |
+
+---
+
+## M21 Next Actions
+
+1. **Human:** Browser verification — execute GD-M21-1 final gate checklist above; record pass/fail per item
+2. **Human:** Confirm CI for commits `5f6a359` through `1036c92` on GitHub Actions
+3. **Mentor:** Acknowledge post-scope items (login, dashboard, RecruitingShell, action button colors)
+4. **Once verified:** Update this section — mark browser verification complete, record CI run IDs, advance overall maturity to Verified
+5. **Then:** Plan M22 scope — domain or feature to be determined
