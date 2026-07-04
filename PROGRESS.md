@@ -9,16 +9,16 @@
 
 ---
 
-Last Updated: 2026-07-04 (M22 Dashboard Metrics + Recruiting Completion — CLOSED; 16 files (8 modified, 8 new); type-check + lint clean; human browser-verified; single combined commit + push to origin/main)
-Updated By: Claude Code (M22 complete: dashboard live metrics via serverFetch, dashboard loading/error states, 5 recruiting error boundaries, interview/offer list discoverability, View Application repositioned to card header, candidate edit workflow with BFF PUT handler, tenantId explicit rejection, optional field clearing confirmed; candidate search remains deferred — backend search not supported)
+Last Updated: 2026-07-04 (M22 Dashboard Metrics + Recruiting Completion — CI CONFIRMED; ee8465b; human browser-verified + CI green)
+Updated By: Claude Code (M22 CI confirmed by human operator; ee8465b green; M22 fully closed)
 
-Previous Update: 2026-07-03 (M22 Scope Adjustment — dependency checks complete; candidate update is PUT not PATCH; candidate text search confirmed deferred; M22 scope corrected to 5 active items; implementation batches M22A + M22B defined; HEAD af513f0)
+Previous Update: 2026-07-04 (M22 Dashboard Metrics + Recruiting Completion — CLOSED; 16 files (8 modified, 8 new); type-check + lint clean; human browser-verified; single combined commit + push to origin/main)
 
 ## Repository Status
 
-Current Phase: **Phase 3 — M22 CLOSED (Dashboard Metrics + Recruiting Completion); awaiting CI confirmation**
-Overall Classification: Phase 2 COMPLETE; Post-Phase-2 milestones M13/M14/M15 CI-confirmed; Pre-Phase-3 Governance Package CI-confirmed (a5c34f1); Phase 3 started — M16 CI-confirmed; M17 CI-confirmed; M18 CI-confirmed; M19 CI-confirmed; M20 CI-confirmed (6e6777b; run 28611838113); M21 CI-confirmed (1036c92 + 3c8189d + 1e33420); browser-verified by human 2026-07-03; CLOSED; M21.5 CI-confirmed (782e35e + 1a4b64f; runs #66 + #67); M22 CLOSED — human browser-verified 2026-07-04; CI pending
-Active Sprint / Milestone: M22 CLOSED — pushed to origin/main 2026-07-04; CI pending
+Current Phase: **Phase 3 — M22 CI-CONFIRMED (Dashboard Metrics + Recruiting Completion)**
+Overall Classification: Phase 2 COMPLETE; Post-Phase-2 milestones M13/M14/M15 CI-confirmed; Pre-Phase-3 Governance Package CI-confirmed (a5c34f1); Phase 3 started — M16 CI-confirmed; M17 CI-confirmed; M18 CI-confirmed; M19 CI-confirmed; M20 CI-confirmed (6e6777b; run 28611838113); M21 CI-confirmed (1036c92 + 3c8189d + 1e33420); browser-verified by human 2026-07-03; CLOSED; M21.5 CI-confirmed (782e35e + 1a4b64f; runs #66 + #67); M22 CI-confirmed (ee8465b); browser-verified by human 2026-07-04; CLOSED
+Active Sprint / Milestone: M22 CLOSED and CI-confirmed (ee8465b; 2026-07-04)
 Implementation Started: Yes (2026-06-05)
 
 ## Phase Summary
@@ -33,12 +33,12 @@ Phase 1 is formally closed. D9 (Docker Environment) and D10 (CI/CD Foundation) w
 > Its purpose is crash/session recovery: the current step state is always readable without
 > scanning Zone 5 history. It is overwritten each step — not appended.
 
-Milestone: M22 Dashboard Metrics + Recruiting Completion — CLOSED
-Last Completed Milestone: M22 CLOSED — 16 files (8 modified, 8 new); type-check + lint clean; human browser-verified 2026-07-04; single combined commit pushed to origin/main; CI pending
-Last Completed Step: All M22 items implemented, corrected, and browser-verified: dashboard live metrics, loading/error states, 5 recruiting error boundaries, interview/offer discoverability, View Application card header placement, candidate edit workflow, BFF PUT handler, tenantId rejection, optional field clearing; PROGRESS.md updated; committed + pushed
+Milestone: M22 Dashboard Metrics + Recruiting Completion — CI-CONFIRMED
+Last Completed Milestone: M22 CI-CONFIRMED — ee8465b; human browser-verified 2026-07-04; CI green; FULLY CLOSED
+Last Completed Step: CI confirmed green by human operator
 Last Completed Step Date: 2026-07-04
-Current Step: Await CI confirmation of M22 commit
-Session Classification: PHASE 3 M22 CLOSED — web-only source changes (apps/web/**); no backend, no BFF beyond candidate PUT, no schema, no migration, no Workforce UI, no candidate search, no standalone application creation
+Current Step: M22 fully closed — no active step
+Session Classification: PHASE 3 M22 COMPLETE — web-only (apps/web/**); no backend, no BFF beyond candidate PUT, no schema, no migration, no Workforce UI, no candidate search, no standalone application creation
 
 ## Milestone 10 — Approved Plan
 
@@ -9715,7 +9715,7 @@ These must be resolved by reading source files before implementing the affected 
 | Environment Model | Unchanged — web-only rebuild; no Docker, no infra, no env changes |
 | Data Lifecycle | N/A — no schema or migration changes |
 | Evolution Strategy | Candidate search deferred pending backend support; standalone application creation deferred |
-| **Overall** | **Integrated — all M22 items complete; browser-verified; CI pending** |
+| **Overall** | **Integrated — all M22 items complete; browser-verified; CI confirmed (ee8465b)** |
 
 ---
 
@@ -9871,7 +9871,7 @@ These must be resolved by reading source files before implementing the affected 
 | Human browser verification | PASSED — all M22 capabilities confirmed in running Docker stack |
 | Docker rebuild required | Web-only rebuild (apps/web/** changes only) |
 | Commit structure | Single combined M22 commit — no squash, no separate docs commit |
-| Push | origin/main — CI pending |
+| Push | origin/main — CI confirmed green (ee8465b) |
 
 ---
 
