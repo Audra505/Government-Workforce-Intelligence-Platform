@@ -9,16 +9,16 @@
 
 ---
 
-Last Updated: 2026-07-03 (M21.5 Recruiting Stub Route Cleanup — CLOSED; two stub pages replaced with server-side redirects; type-check + lint clean; CI run #66 pending (28692611467); HEAD 782e35e)
-Updated By: Claude Code (M21.5: applications/new and candidates/[id]/edit stub pages replaced with next/navigation redirect() calls; no forms, no new workflows, no backend, no BFF, no schema, no Workforce UI changes)
+Last Updated: 2026-07-03 (M22 Planning — scope documentation added for mentor review; no source files modified; no implementation; HEAD 1a4b64f)
+Updated By: Claude Code (M22 planning: approved scope, non-goals, dependency checks, validation plan, risk notes, and governance assessment documented in PROGRESS.md only)
 
-Previous Update: 2026-07-03 (M21 closeout: verification checklist converted to completed; CI table updated; risks resolved; maturity advanced to Verified; post-scope items mentor-acknowledged; governance_history.md updated)
+Previous Update: 2026-07-03 (M21.5 Recruiting Stub Route Cleanup — CLOSED; two stub pages replaced with server-side redirects; type-check + lint clean; CI runs #66 + #67 green; HEAD 1a4b64f)
 
 ## Repository Status
 
-Current Phase: **Phase 3 — M21.5 Recruiting Stub Route Cleanup (CLOSED)**
-Overall Classification: Phase 2 COMPLETE; Post-Phase-2 milestones M13/M14/M15 CI-confirmed; Pre-Phase-3 Governance Package CI-confirmed (a5c34f1); Phase 3 started — M16 CI-confirmed; M17 CI-confirmed; M18 CI-confirmed; M19 CI-confirmed; M20 CI-confirmed (6e6777b; run 28611838113); M21 CI-confirmed (1036c92 + 3c8189d + 1e33420); browser-verified by human 2026-07-03; CLOSED; M21.5 CI-pending (782e35e; run 28692611467)
-Active Sprint / Milestone: M21.5 CLOSED (2026-07-03) — Recruiting stub pages (applications/new, candidates/[id]/edit) replaced with server-side redirects; awaiting M22 scope decision
+Current Phase: **Phase 3 — M22 Planning (Dashboard Metrics + Recruiting Completion)**
+Overall Classification: Phase 2 COMPLETE; Post-Phase-2 milestones M13/M14/M15 CI-confirmed; Pre-Phase-3 Governance Package CI-confirmed (a5c34f1); Phase 3 started — M16 CI-confirmed; M17 CI-confirmed; M18 CI-confirmed; M19 CI-confirmed; M20 CI-confirmed (6e6777b; run 28611838113); M21 CI-confirmed (1036c92 + 3c8189d + 1e33420); browser-verified by human 2026-07-03; CLOSED; M21.5 CI-confirmed (782e35e + 1a4b64f; runs #66 + #67); M22 PLANNING
+Active Sprint / Milestone: M22 PLANNING — scope documented (2026-07-03); awaiting mentor approval before build begins
 Implementation Started: Yes (2026-06-05)
 
 ## Phase Summary
@@ -33,12 +33,12 @@ Phase 1 is formally closed. D9 (Docker Environment) and D10 (CI/CD Foundation) w
 > Its purpose is crash/session recovery: the current step state is always readable without
 > scanning Zone 5 history. It is overwritten each step — not appended.
 
-Milestone: M21.5 Recruiting Stub Route Cleanup (CLOSED 2026-07-03)
-Last Completed Milestone: M21.5 CLOSED — applications/new and candidates/[id]/edit replaced with next/navigation redirect(); type-check + lint clean; committed 782e35e; pushed; CI run #66 in progress
-Last Completed Step: Replace two stub pages with server-side redirects; validate; commit; push
+Milestone: M22 Dashboard Metrics + Recruiting Completion (PLANNING)
+Last Completed Milestone: M21.5 CLOSED — applications/new and candidates/[id]/edit replaced with next/navigation redirect(); type-check + lint clean; committed 782e35e (1a4b64f PROGRESS.md update); CI runs #66 + #67 green
+Last Completed Step: M22 scope documentation added to PROGRESS.md — planning only; no source files changed
 Last Completed Step Date: 2026-07-03
-Current Step: Await CI confirmation for 782e35e (run #66 / 28692611467); then plan M22 scope
-Session Classification: PHASE 3 M21.5 CLOSED — source changes minimal; no backend/BFF/schema/Workforce modifications; CI pending; awaiting M22 scope decision
+Current Step: Await mentor approval of M22 scope before any implementation begins
+Session Classification: PHASE 3 M22 PLANNING — documentation only; no source, backend, BFF, schema, Workforce, Recruiting, or Dashboard source changes; no Docker; no commit yet
 
 ## Milestone 10 — Approved Plan
 
@@ -9470,4 +9470,241 @@ No new forms · No new workflows · No backend code · No BFF handlers · No Pri
 
 Candidate field editing (updating firstName, lastName, phone, source, notes via `PATCH /api/v1/candidates/:id`) has no frontend UI at all. The backend endpoint, BFF route, and NestJS service all exist. The gap is the edit form component and the `/recruiting/candidates/[id]/edit` standalone page. This was deferred in GD-M20-1 and remains deferred. The redirect implemented here is correct for the current state; when the edit form is eventually built, this redirect file will be replaced with the actual form.
 
-**Next milestone:** M22 — scope to be decided by mentor.
+**Next milestone:** M22 — Dashboard Metrics + Recruiting Completion. See M22 planning section below.
+
+---
+
+---
+
+# M22 Planning Record — Dashboard Metrics + Recruiting Completion
+
+> **Planning only — not started.**
+> This section documents the approved M22 scope for mentor review.
+> No source files have been modified. No implementation has begun.
+> Awaiting mentor approval before build starts.
+
+---
+
+## M22 Planning Status
+
+| Field | Value |
+|---|---|
+| Milestone | M22 |
+| Title | Dashboard Metrics + Recruiting Completion |
+| Status | **PLANNING — Scope documented; not started; awaiting mentor approval** |
+| Planned Date | TBD — awaiting approval |
+| Governance required | No — all items within previously governed scope (see Governance Assessment below) |
+| Source of scope | Pre-M22 UI Gap Inventory Audit (2026-07-03) + mentor direction |
+| Prior milestone | M21.5 CLOSED — CI runs #66 + #67 green; HEAD 1a4b64f |
+
+---
+
+## M22 Approved Scope
+
+M22 is a UI completion milestone. It contains no new product workflows, no new backend features, no schema changes, and no migrations. The six items below close existing gaps in already-built and already-governed surfaces.
+
+---
+
+### Item 1 — Dashboard Metric Cards: Live Data
+
+**Gap:** All four metric cards on `/dashboard` display the hardcoded string `'—'`. The static `METRICS` const in `apps/web/src/app/(dashboard)/dashboard/page.tsx` makes no `serverFetch` calls. Every authenticated user sees four dead tiles on login.
+
+**Fix:** Replace the static `METRICS` const with four `serverFetch()` calls to existing paginated list endpoints. The dashboard page is a Server Component — `serverFetch` runs at request time, no client JS needed.
+
+| Card | Endpoint | Count field |
+|---|---|---|
+| Positions | `GET /api/v1/positions?pageSize=1` | `total` from paginated response |
+| Employees | `GET /api/v1/employees?pageSize=1` | `total` from paginated response |
+| Open Vacancies | `GET /api/v1/vacancies?status=OPEN&pageSize=1` | `total` from paginated response |
+| Candidates | `GET /api/v1/candidates?pageSize=1` | `total` from paginated response |
+
+**Architecture:** Direct `serverFetch()` calls from the dashboard Server Component. No BFF handler needed. No new backend endpoints needed. Pattern established in Workforce and Recruiting list pages.
+
+**Dependency check D1 required** before build (see Dependency Checks section).
+
+---
+
+### Item 2 — Dashboard Loading and Error States
+
+**Gap:** `/dashboard` has no `loading.tsx` and no `error.tsx`. Once metric cards fetch live data, a network failure or slow upstream response produces no user feedback — the browser will wait or display a framework-level error.
+
+**Fix:**
+- Add `apps/web/src/app/(dashboard)/dashboard/loading.tsx` — skeleton of four metric card placeholders
+- Add `apps/web/src/app/(dashboard)/dashboard/error.tsx` — domain-appropriate error message ("Unable to load dashboard data")
+
+**Pattern:** Copy from Workforce `loading.tsx` / `error.tsx`. No new logic or design decisions.
+
+**Should ship in the same commit as Item 1.**
+
+---
+
+### Item 3 — Candidate Edit Form + BFF PATCH Handler
+
+**Gap:** `PATCH /api/v1/candidates/:id` exists on NestJS and is confirmed implemented. The existing BFF route file `apps/web/src/app/api/recruiting/candidates/[id]/route.ts` handles `POST` (archive) only — no `PATCH` export exists. No edit form component exists anywhere in `apps/web/src/features/recruiting/`. The `/recruiting/candidates/[id]/edit` page currently contains only a `redirect()` to the detail page — correct for M21.5 but incomplete as a UX destination.
+
+**Fix:**
+- Add a `PATCH` export to the existing BFF route file `apps/web/src/app/api/recruiting/candidates/[id]/route.ts`
+- Create a candidate edit form component in `apps/web/src/features/recruiting/components/` (React Hook Form + Zod, following the established form pattern from Workforce new/edit forms)
+- Replace the `redirect()` in `apps/web/src/app/(dashboard)/recruiting/candidates/[id]/edit/page.tsx` with a Server Component page that renders the form
+
+**Fields in scope:** `firstName`, `lastName`, `phone`, `source`, `notes` — confirmed fields on the candidate entity.
+
+**RBAC:** SA, HRD, Recruiter can edit. Workforce Planner is read-only. The edit page must check the user's role and redirect to detail if the role lacks write permission (same pattern as Workforce edit pages).
+
+**Dependency checks D2, D3, D5 required** before build (see Dependency Checks section).
+
+---
+
+### Item 4 — Missing Recruiting error.tsx Files
+
+**Gap:** Five Recruiting routes have no `error.tsx`. When `serverFetch` throws on a detail page, the error propagates to the nearest ancestor error boundary — the list-level `error.tsx` — and displays wrong-context copy ("error fetching candidates data" while viewing a single interview).
+
+Workforce has full `error.tsx` coverage at list, detail, new, and edit levels. Recruiting has list-level coverage only.
+
+**Fix:** Create the following five files following the existing Workforce `error.tsx` pattern:
+
+| File to create | Route it covers |
+|---|---|
+| `apps/web/src/app/(dashboard)/recruiting/candidates/[id]/error.tsx` | Candidate detail |
+| `apps/web/src/app/(dashboard)/recruiting/applications/[id]/error.tsx` | Application detail |
+| `apps/web/src/app/(dashboard)/recruiting/interviews/[id]/error.tsx` | Interview detail |
+| `apps/web/src/app/(dashboard)/recruiting/offers/[id]/error.tsx` | Offer detail |
+| `apps/web/src/app/(dashboard)/recruiting/candidates/new/error.tsx` | New candidate form |
+
+Each file is a small `'use client'` Error boundary component. No new logic.
+
+---
+
+### Item 5 — Back-to-Application Links on Interview and Offer Detail
+
+**Gap:** Interview detail pages (`/recruiting/interviews/[id]`) and offer detail pages (`/recruiting/offers/[id]`) carry `applicationId` in their API responses but render no link back to the source application. A recruiter reviewing an interview or offer must navigate back manually.
+
+**Fix:** Add a "← View Application" link to both detail pages using `applicationId` from the already-fetched record. No new API calls needed — the data is already present.
+
+**Files affected:**
+- `apps/web/src/app/(dashboard)/recruiting/interviews/[id]/page.tsx`
+- `apps/web/src/app/(dashboard)/recruiting/offers/[id]/page.tsx`
+(or the feature-level components they render, if `applicationId` is passed down to a component)
+
+---
+
+### Item 6 — Candidate Text Search (Conditional on Backend Confirmation)
+
+**Gap:** The candidates list filter bar supports status filtering only. No text search by name or email.
+
+**Condition:** This item is **only buildable if** the NestJS `GET /api/v1/candidates` endpoint accepts a `search` (or equivalent) query param. This must be confirmed by reading `CandidateController` and its list query DTO before any frontend work begins.
+
+- **If confirmed:** Add a text input to the candidate filter bar component that passes the `search` param to the BFF/serverFetch call.
+- **If not confirmed:** Drop this item from M22. Document as requiring a backend milestone. Do not add a frontend search input that sends a param the backend ignores.
+
+**Dependency check D4 required** before decision (see Dependency Checks section).
+
+---
+
+## M22 Non-Goals (Explicit Exclusions)
+
+The following must not be added during M22 implementation, even if they appear adjacent or related to in-scope items:
+
+| Item | Reason excluded |
+|---|---|
+| Skills & Certifications UI | Large enough for its own milestone; needs BFF scope governance doc; 9 endpoints |
+| User Management UI | Separate milestone; no current GD; medium complexity |
+| Audit log viewer | Backend read endpoint not built; own milestone |
+| Hiring Manager workspace | Blocked — GD-PRE-PHASE3-003 D2 (HM identity schema undefined) |
+| Compliance Officer workspace | Depends on audit log viewer; own milestone |
+| Export / CSV reporting | Phase 5 — GD-M20-1 explicit deferral |
+| Notifications | Phase 5 — GD-PHASE2-CLOSURE-001, GD-PRE-PHASE3-001 D3 |
+| Resume upload | Infrastructure decision open — GD-PRE-PHASE3-001 D7 |
+| AI features | Phase 4 — GD-PRE-PHASE3-001 D3 |
+| Aggregate analytics dashboards | Phase 5 — GD-PRE-PHASE3-001 D3 |
+| Full platform sort controls | Backend orderBy params unconfirmed; High complexity across 7 tables |
+| VAC-601 requiresReview enforcement | Separate GD required — GD-M17-1 D12 |
+| POS-301 headcount cap enforcement | Separate GD required — GD-M17-1 D13 |
+| Schema changes | None needed for M22 scope |
+| New NestJS backend endpoints | None needed; BFF PATCH handler only, targeting an existing NestJS endpoint |
+| Dashboard shell component / DashboardShell | Explicitly deferred — GD-M21-1 Q2 |
+| Detail-level loading.tsx (Workforce / Recruiting) | Low severity; not a M22 priority |
+| Agency / tenant settings page | Later milestone |
+| Workforce Planner planning view | Later milestone |
+| Executive user dashboard | Later milestone |
+
+---
+
+## M22 Governance Assessment
+
+**Conclusion: No new governance document is required for M22.**
+
+| Item | Assessment |
+|---|---|
+| Dashboard metric cards | No GD needed. Wiring `serverFetch` to existing endpoints is an implementation of an already-governed architecture pattern. No new design decisions. |
+| Dashboard loading/error | No GD needed. Extending existing file patterns. |
+| Candidate edit form + BFF PATCH | No GD needed. GD-M20-1 Decision 3 explicitly authorized BFF handlers for candidate mutations. The PATCH was deferred in M20, not ungoverned. The POST (archive) handler in the same route file establishes the BFF pattern for this file. |
+| Recruiting error.tsx files | No GD needed. Replicating established Workforce error boundary pattern. No new architectural decisions. |
+| Back-to-application links | No GD needed. Purely presentational; data already present in existing API responses. |
+| Candidate text search | No GD needed. Filter UI extension only, contingent on confirmed backend support. |
+
+**Boundary condition:** If during M22 implementation any item reveals a design decision not covered by prior governance (e.g., a new RBAC edge case, a new Prisma relation, an unexpected API contract), implementation must stop and a governance document must be written and approved before proceeding.
+
+---
+
+## M22 Dependency Checks (Required Before Build Begins)
+
+These must be resolved by reading source files before implementing the affected item. Do not implement any item until its dependency checks pass.
+
+| # | Check | Item blocked | How to confirm |
+|---|---|---|---|
+| D1 | All four paginated list endpoints (`/positions`, `/employees`, `/vacancies`, `/candidates`) return a `total` field at a known path in their response | Item 1 — dashboard metrics | Read list response DTOs in `apps/api/src` (positions, employees, vacancies, candidates service/controller) |
+| D2 | `CandidateController` PATCH endpoint accepts optional patch fields: `firstName`, `lastName`, `phone`, `source`, `notes` | Item 3 — candidate edit form | Read `apps/api/src/recruiting/candidate.controller.ts` and the update DTO class |
+| D3 | `CandidateController` PATCH returns the updated candidate entity in the response body (required for BFF to relay back to client) | Item 3 — candidate edit form | Read `apps/api/src/recruiting/candidate.service.ts` update method return type |
+| D4 | `GET /api/v1/candidates` accepts a `search` (or equivalent) query param for filtering by candidate name or email | Item 6 — candidate text search (conditional) | Read `CandidateController` list method and its query DTO / list params |
+| D5 | The existing `apps/web/src/app/api/recruiting/candidates/[id]/route.ts` file structure is safe to extend with a `PATCH` export without breaking the existing `POST` export | Item 3 — BFF PATCH handler | Read the file before modifying |
+
+---
+
+## M22 Validation Plan
+
+| Item | Validation method |
+|---|---|
+| Dashboard metric cards | Visual confirm in running app: all 4 cards show real integers, not `'—'`; numbers change if data is added/removed |
+| Dashboard loading state | Confirm `loading.tsx` renders by observing page transition or simulating delay |
+| Dashboard error state | Temporarily break a `serverFetch` endpoint path; confirm error boundary renders with correct copy |
+| Candidate edit form — happy path | Submit form as SA, HRD, Recruiter role; confirm PATCH fires; confirm candidate fields update; confirm success feedback |
+| Candidate edit form — RBAC | Confirm Workforce Planner cannot reach edit form (redirected or shown unauthorized) |
+| BFF PATCH handler | Manual curl: `PATCH /api/recruiting/candidates/:id` with valid body; confirm 200 + updated candidate returned |
+| Recruiting error.tsx | Force a throw in one detail page temporarily; confirm route-segment error boundary renders with domain-correct copy |
+| Back-to-application links | Navigate to interview and offer detail pages; confirm "View Application" link renders and navigates correctly |
+| Candidate text search (if built) | Enter partial name in search input; confirm list filters to matching candidates; confirm empty state on no match |
+| Type-check | `npm run type-check --workspace=apps/web` exits 0 |
+| Lint | `next lint` scoped to changed files exits 0 |
+| CI | All checks green after push |
+
+---
+
+## M22 Risk Notes
+
+| Risk | Severity | Mitigation |
+|---|---|---|
+| Paginated endpoints may not return `total` in the field path assumed by the dashboard implementation | Medium | Confirm via D1 before building. If field name or nesting differs, adjust `serverFetch` call to match actual response shape. |
+| NestJS PATCH DTO may have stricter validation than expected (e.g., requires at least one field present, rejects unknown fields) | Low | Confirm via D2. If DTO is strict, the BFF handler must forward only fields with values, not the full form body. |
+| Candidate text search may require a backend change to support a `search` query param on the list endpoint | Medium | Confirm via D4 before building any frontend search input. If backend search is not supported, drop Item 6 from M22 and document it as a backend-milestone prerequisite. |
+| RBAC gate on the edit form may not match the existing candidate creation gate exactly | Low | Read the `CandidateController PATCH` NestJS guard/decorator before wiring the frontend gate. Frontend must mirror what the backend enforces. |
+| `candidates/[id]/edit` redirect replacement is safe | Low | The M21.5 pre-change verification confirmed no UI links to this route. Replacing the `redirect()` with a form page will not break any existing navigation path. |
+
+---
+
+## M22 Maturity Classification (Planning Phase)
+
+| Layer | Status |
+|---|---|
+| Requirements | Defined — gap inventory audit + mentor-directed scope |
+| Specs | Defined — this planning record |
+| Directives | Not required — no new GD per governance assessment above |
+| Execution Plan | Defined — 6 items with dependency checks |
+| State Model | N/A — no new workflow states |
+| Test Scenarios | Defined — validation plan above |
+| System Loop | Not yet implemented |
+| Failure Playbook | Risk notes documented |
+| Environment Model | Unchanged from M21 — no Docker, no infra, no env changes |
+| Data Lifecycle | N/A — no schema or migration changes |
+| Evolution Strategy | Post-M22 path documented; exclusions explicit |
+| **Overall** | **Planned — not started; awaiting mentor approval** |
