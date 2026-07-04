@@ -1,20 +1,8 @@
-// /recruiting/applications/new — Create application form
-// M20A stub: routing confirmed. Create form implemented in M20C.
-// Reference: governance/GD-M20-1.md — Decision 2, Decision 3 (POST /applications)
+// /recruiting/applications/new — redirects to candidates list.
+// Applications are created from the candidate detail page (CandidateActions panel).
+// GD-M20-1 Decision 2: no standalone new-application route authorized in M20.
+import { redirect } from 'next/navigation';
 
 export default function NewApplicationPage() {
-  return (
-    <div className="flex min-h-screen flex-col">
-      <header className="border-b bg-background px-6 py-4">
-        <div className="flex items-center justify-between">
-          <h1 className="text-lg font-semibold">
-            Government Workforce Intelligence Platform
-          </h1>
-        </div>
-      </header>
-      <main className="flex-1 p-6">
-        <p className="text-sm text-muted-foreground">New Application</p>
-      </main>
-    </div>
-  );
+  redirect('/recruiting/candidates');
 }
