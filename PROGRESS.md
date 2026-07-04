@@ -9,16 +9,16 @@
 
 ---
 
-Last Updated: 2026-07-03 (M21 Platform-Wide Design System Reconciliation — CLOSED; all batches CI-confirmed; browser verification confirmed by human; post-scope items mentor-acknowledged; HEAD 1e33420)
-Updated By: Claude Code (M21 closeout: verification checklist converted to completed; CI table updated; risks resolved; maturity advanced to Verified; post-scope items marked mentor-acknowledged; governance_history.md updated; no source files modified)
+Last Updated: 2026-07-03 (M21.5 Recruiting Stub Route Cleanup — CLOSED; two stub pages replaced with server-side redirects; type-check + lint clean; CI run #66 pending (28692611467); HEAD 782e35e)
+Updated By: Claude Code (M21.5: applications/new and candidates/[id]/edit stub pages replaced with next/navigation redirect() calls; no forms, no new workflows, no backend, no BFF, no schema, no Workforce UI changes)
 
-Previous Update: 2026-07-02 (M21 stabilization: PROGRESS.md and governance_history.md brought current through 1036c92; GD-M21-1 approval status corrected; pending-verification state recorded)
+Previous Update: 2026-07-03 (M21 closeout: verification checklist converted to completed; CI table updated; risks resolved; maturity advanced to Verified; post-scope items mentor-acknowledged; governance_history.md updated)
 
 ## Repository Status
 
-Current Phase: **Phase 3 — M21 Platform-Wide Design System Reconciliation (COMPLETE — VERIFIED — CLOSED)**
-Overall Classification: Phase 2 COMPLETE; Post-Phase-2 milestones M13/M14/M15 CI-confirmed; Pre-Phase-3 Governance Package CI-confirmed (a5c34f1); Phase 3 started — M16 CI-confirmed; M17 CI-confirmed; M18 CI-confirmed; M19 CI-confirmed; M20 CI-confirmed (6e6777b; run 28611838113); M21 CI-confirmed (1036c92 + 3c8189d + 1e33420); browser-verified by human 2026-07-03; CLOSED
-Active Sprint / Milestone: M21 CLOSED (2026-07-03) — M21A (d89f7f4) + M21B (33679fc) + M21C (0fc376c) + 6 post-scope polish commits (1036c92) + stabilization docs (3c8189d) + CI lint fix (1e33420); awaiting M22 scope decision
+Current Phase: **Phase 3 — M21.5 Recruiting Stub Route Cleanup (CLOSED)**
+Overall Classification: Phase 2 COMPLETE; Post-Phase-2 milestones M13/M14/M15 CI-confirmed; Pre-Phase-3 Governance Package CI-confirmed (a5c34f1); Phase 3 started — M16 CI-confirmed; M17 CI-confirmed; M18 CI-confirmed; M19 CI-confirmed; M20 CI-confirmed (6e6777b; run 28611838113); M21 CI-confirmed (1036c92 + 3c8189d + 1e33420); browser-verified by human 2026-07-03; CLOSED; M21.5 CI-pending (782e35e; run 28692611467)
+Active Sprint / Milestone: M21.5 CLOSED (2026-07-03) — Recruiting stub pages (applications/new, candidates/[id]/edit) replaced with server-side redirects; awaiting M22 scope decision
 Implementation Started: Yes (2026-06-05)
 
 ## Phase Summary
@@ -33,12 +33,12 @@ Phase 1 is formally closed. D9 (Docker Environment) and D10 (CI/CD Foundation) w
 > Its purpose is crash/session recovery: the current step state is always readable without
 > scanning Zone 5 history. It is overwritten each step — not appended.
 
-Milestone: M21 Platform-Wide Design System Reconciliation (COMPLETE — VERIFIED — CLOSED 2026-07-03)
-Last Completed Milestone: M21 CLOSED — M21A/B/C + post-scope polish (1036c92) + CI lint fix (1e33420) all CI-confirmed; browser verification confirmed by human; post-scope items mentor-acknowledged
-Last Completed Step: M21 closeout — PROGRESS.md and governance_history.md finalized; M21 declared Verified and Closed
+Milestone: M21.5 Recruiting Stub Route Cleanup (CLOSED 2026-07-03)
+Last Completed Milestone: M21.5 CLOSED — applications/new and candidates/[id]/edit replaced with next/navigation redirect(); type-check + lint clean; committed 782e35e; pushed; CI run #66 in progress
+Last Completed Step: Replace two stub pages with server-side redirects; validate; commit; push
 Last Completed Step Date: 2026-07-03
-Current Step: Plan M22 scope — domain or feature to be decided by mentor
-Session Classification: PHASE 3 M21 CLOSED — all commits CI-confirmed; browser verification complete; ledger current; awaiting M22 scope decision
+Current Step: Await CI confirmation for 782e35e (run #66 / 28692611467); then plan M22 scope
+Session Classification: PHASE 3 M21.5 CLOSED — source changes minimal; no backend/BFF/schema/Workforce modifications; CI pending; awaiting M22 scope decision
 
 ## Milestone 10 — Approved Plan
 
@@ -9377,4 +9377,97 @@ All items below were verified by the human operator in a browser against the liv
 | Browser verification | Human-confirmed 2026-07-03; all GD-M21-1 gate items passed |
 | Post-scope acknowledgement | Mentor-acknowledged 2026-07-03 (login, dashboard, shells, action buttons) |
 | No backend changes | Confirmed — zero NestJS/Prisma/BFF/middleware modifications across all M21 commits |
-| Next milestone | M22 — scope to be decided
+| Next milestone | M22 — scope to be decided |
+
+---
+
+# M21.5 — Recruiting Stub Route Cleanup
+
+> Entry added: 2026-07-03
+> No governance document — cleanup task; no new features, no new workflows, no scope expansion
+
+---
+
+## M21.5 Overview
+
+Two M20A routing stubs in the Recruiting section were replaced with intentional server-side redirects. The stubs were placeholder pages created during M20 to prevent 404s at routes that GD-M20-1 explicitly deferred. After audit confirmed nothing in the UI links to these routes and the RepoPulse triage identified them as the only real scaffold files in the repo, they were replaced with `redirect()` calls rather than deleted, so that direct URL access produces intentional navigation rather than a 404.
+
+**Trigger:** RepoPulse architecture-health triage audit (2026-07-03) identified 2 genuine scaffold files of 33 flagged.
+**Governance:** No formal GD required — cleanup of pre-existing deferred stubs; no new capability introduced.
+**Scope:** Frontend only — two `page.tsx` files. No backend, BFF, schema, Prisma, Workforce UI, or auth changes.
+
+---
+
+## M21.5 Changes
+
+### Files Modified
+
+| File | Before | After |
+|---|---|---|
+| `apps/web/src/app/(dashboard)/recruiting/applications/new/page.tsx` | Placeholder JSX — bare "New Application" text with layout shell | `redirect('/recruiting/candidates')` via `next/navigation` |
+| `apps/web/src/app/(dashboard)/recruiting/candidates/[id]/edit/page.tsx` | Placeholder JSX — "Edit Candidate — {params.id}" text with layout shell | `redirect('/recruiting/candidates/${params.id}')` via `next/navigation` |
+
+### Redirect Behavior
+
+| URL navigated to | Result |
+|---|---|
+| `GET /recruiting/applications/new` | Server-side redirect → `/recruiting/candidates` (candidates list, where applications are created via CandidateActions panel) |
+| `GET /recruiting/candidates/:id/edit` | Server-side redirect → `/recruiting/candidates/:id` (candidate detail page, where candidate actions are available; id preserved in redirect) |
+
+### Why redirects over deletion
+
+Nothing in the current UI links to either route. However, both routes describe real concepts (`new application`, `edit candidate`) that the platform supports through other surfaces. Redirecting rather than deleting ensures that direct URL access (bookmarks, copy-pasted links, future documentation) produces intentional navigation rather than a 404.
+
+---
+
+## M21.5 Pre-Change Verification
+
+| Check | Result |
+|---|---|
+| UI links to `/recruiting/applications/new` | None found — grep across all `.tsx`/`.ts` files returned no results |
+| UI links to `/recruiting/candidates/[id]/edit` | None found — grep across all `.tsx`/`.ts` files returned no results |
+| Test references to either route | None found |
+| Governance docs (other than GD-M20-1) referencing either route | None found |
+| Create-application functionality covered elsewhere | Confirmed — `CandidateActions` panel on `/recruiting/candidates/[id]` → `POST /api/recruiting/applications` |
+| Candidate archive covered elsewhere | Confirmed — `CandidateActions` panel on `/recruiting/candidates/[id]` → `POST /api/recruiting/candidates/:id` (archive) |
+| Candidate field editing (PATCH) covered elsewhere | **Not yet wired to any UI** — the edit stub was a placeholder for future work, not a pointer to an existing panel. The redirect to the detail page is correct and honest. |
+
+---
+
+## M21.5 Validation
+
+| Check | Result |
+|---|---|
+| `tsc --noEmit` (`apps/web`) | Exit 0 — no TypeScript errors |
+| `next lint` scoped to changed directories | `✔ No ESLint warnings or errors` |
+| Files staged | Exactly 2 — only the two route files |
+| Commit | `782e35e` — `Remove Recruiting stub pages with supported redirects` |
+| Push | `aed1b88..782e35e main → main` ✓ |
+| CI run | #66 (run ID: 28692611467) — `in_progress` at time of push |
+
+---
+
+## M21.5 Constraints Confirmed
+
+No new forms · No new workflows · No backend code · No BFF handlers · No Prisma schema · No migrations · No Workforce UI · No other Recruiting behavior modified · No Docker · No squash · No unrelated work
+
+---
+
+## M21.5 Overall Maturity
+
+| Layer | Status |
+|---|---|
+| Requirements | N/A — cleanup task, no new capability |
+| Execution | Implemented — 2 files, 10 insertions / 34 deletions |
+| Test Scenarios | N/A — no new business logic; redirects are framework-level behavior |
+| State Model | N/A |
+| Failure Playbook | N/A — redirect is idempotent; no failure modes |
+| **Overall** | **Closed** — type-check clean; lint clean; CI pending run #66 |
+
+---
+
+## M21.5 Remaining Gap (Pre-existing)
+
+Candidate field editing (updating firstName, lastName, phone, source, notes via `PATCH /api/v1/candidates/:id`) has no frontend UI at all. The backend endpoint, BFF route, and NestJS service all exist. The gap is the edit form component and the `/recruiting/candidates/[id]/edit` standalone page. This was deferred in GD-M20-1 and remains deferred. The redirect implemented here is correct for the current state; when the edit form is eventually built, this redirect file will be replaced with the actual form.
+
+**Next milestone:** M22 — scope to be decided by mentor.
