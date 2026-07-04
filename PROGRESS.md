@@ -9,8 +9,8 @@
 
 ---
 
-Last Updated: 2026-07-03 (M22 Planning — scope documentation added for mentor review; no source files modified; no implementation; HEAD 1a4b64f)
-Updated By: Claude Code (M22 planning: approved scope, non-goals, dependency checks, validation plan, risk notes, and governance assessment documented in PROGRESS.md only)
+Last Updated: 2026-07-03 (M22 Scope Adjustment — dependency checks complete; candidate update is PUT not PATCH; candidate text search confirmed deferred; M22 scope corrected to 5 active items; implementation batches M22A + M22B defined; HEAD af513f0)
+Updated By: Claude Code (M22 scope adjustment: PATCH→PUT correction throughout planning section; Item 6 candidate search confirmed deferred — backend search param does not exist; M22 reduced to 5 implementation items; M22A/M22B batches added; PROGRESS.md only — no source files changed)
 
 Previous Update: 2026-07-03 (M21.5 Recruiting Stub Route Cleanup — CLOSED; two stub pages replaced with server-side redirects; type-check + lint clean; CI runs #66 + #67 green; HEAD 1a4b64f)
 
@@ -33,12 +33,12 @@ Phase 1 is formally closed. D9 (Docker Environment) and D10 (CI/CD Foundation) w
 > Its purpose is crash/session recovery: the current step state is always readable without
 > scanning Zone 5 history. It is overwritten each step — not appended.
 
-Milestone: M22 Dashboard Metrics + Recruiting Completion (PLANNING)
+Milestone: M22 Dashboard Metrics + Recruiting Completion (PLANNING — scope adjusted after dependency checks)
 Last Completed Milestone: M21.5 CLOSED — applications/new and candidates/[id]/edit replaced with next/navigation redirect(); type-check + lint clean; committed 782e35e (1a4b64f PROGRESS.md update); CI runs #66 + #67 green
-Last Completed Step: M22 scope documentation added to PROGRESS.md — planning only; no source files changed
+Last Completed Step: M22 dependency checks D1–D5 completed (read-only); scope adjusted — PATCH corrected to PUT; Item 6 candidate text search confirmed deferred; 5 active items remain; M22A + M22B batches defined
 Last Completed Step Date: 2026-07-03
-Current Step: Await mentor approval of M22 scope before any implementation begins
-Session Classification: PHASE 3 M22 PLANNING — documentation only; no source, backend, BFF, schema, Workforce, Recruiting, or Dashboard source changes; no Docker; no commit yet
+Current Step: Await mentor approval of corrected M22 scope before any implementation begins
+Session Classification: PHASE 3 M22 PLANNING — documentation corrections only; no source, backend, BFF, schema, Workforce, Recruiting, or Dashboard source changes; no Docker
 
 ## Milestone 10 — Approved Plan
 
@@ -9491,17 +9491,20 @@ Candidate field editing (updating firstName, lastName, phone, source, notes via 
 |---|---|
 | Milestone | M22 |
 | Title | Dashboard Metrics + Recruiting Completion |
-| Status | **PLANNING — Scope documented; not started; awaiting mentor approval** |
+| Status | **PLANNING — Scope adjusted after dependency checks; not started; awaiting mentor approval** |
 | Planned Date | TBD — awaiting approval |
 | Governance required | No — all items within previously governed scope (see Governance Assessment below) |
-| Source of scope | Pre-M22 UI Gap Inventory Audit (2026-07-03) + mentor direction |
-| Prior milestone | M21.5 CLOSED — CI runs #66 + #67 green; HEAD 1a4b64f |
+| Source of scope | Pre-M22 UI Gap Inventory Audit (2026-07-03) + mentor direction + D1–D5 dependency checks (2026-07-03) |
+| Prior milestone | M21.5 CLOSED — CI runs #66 + #67 green; HEAD af513f0 |
+| Dependency checks | D1 ✓ confirmed; D2 ✓ confirmed (PUT, not PATCH); D3 ✓ confirmed; D4 ✗ deferred — backend search not supported; D5 ✓ confirmed (PUT export safe) |
 
 ---
 
 ## M22 Approved Scope
 
-M22 is a UI completion milestone. It contains no new product workflows, no new backend features, no schema changes, and no migrations. The six items below close existing gaps in already-built and already-governed surfaces.
+M22 is a UI completion milestone. It contains no new product workflows, no new backend features, no schema changes, and no migrations. The five active items below close existing gaps in already-built and already-governed surfaces.
+
+> **Scope adjustment (2026-07-03 — dependency checks):** Item 6 (candidate text search) was confirmed deferred after D4. `ListCandidatesQueryDto` has no `search`, `name`, or `email` filter param — the comment in the DTO explicitly records this was deferred in M16 (GD-M16-1 Decision 3) and was never added in M20 or M21. Adding a frontend search input would send a param the backend silently ignores. Candidate text search requires a backend milestone before any frontend work can proceed. It is removed from M22 active scope. Also: the candidate update endpoint is `PUT /api/v1/candidates/:id` (`@Put` decorator in NestJS), not PATCH. All PATCH references in this planning section have been corrected to PUT.
 
 ---
 
@@ -9538,20 +9541,22 @@ M22 is a UI completion milestone. It contains no new product workflows, no new b
 
 ---
 
-### Item 3 — Candidate Edit Form + BFF PATCH Handler
+### Item 3 — Candidate Edit Form + BFF PUT Handler
 
-**Gap:** `PATCH /api/v1/candidates/:id` exists on NestJS and is confirmed implemented. The existing BFF route file `apps/web/src/app/api/recruiting/candidates/[id]/route.ts` handles `POST` (archive) only — no `PATCH` export exists. No edit form component exists anywhere in `apps/web/src/features/recruiting/`. The `/recruiting/candidates/[id]/edit` page currently contains only a `redirect()` to the detail page — correct for M21.5 but incomplete as a UX destination.
+**Gap:** `PUT /api/v1/candidates/:id` (`@Put` decorator, `CandidateController` line 206) is confirmed implemented. The existing BFF route file `apps/web/src/app/api/recruiting/candidates/[id]/route.ts` handles `POST` (archive) only — no `PUT` export exists. No edit form component exists anywhere in `apps/web/src/features/recruiting/`. The `/recruiting/candidates/[id]/edit` page currently contains only a `redirect()` to the detail page — correct for M21.5 but incomplete as a UX destination.
 
 **Fix:**
-- Add a `PATCH` export to the existing BFF route file `apps/web/src/app/api/recruiting/candidates/[id]/route.ts`
-- Create a candidate edit form component in `apps/web/src/features/recruiting/components/` (React Hook Form + Zod, following the established form pattern from Workforce new/edit forms)
-- Replace the `redirect()` in `apps/web/src/app/(dashboard)/recruiting/candidates/[id]/edit/page.tsx` with a Server Component page that renders the form
+- Add a `PUT` export to the existing BFF route file `apps/web/src/app/api/recruiting/candidates/[id]/route.ts` (the `fetch()` call inside must use `method: 'PUT'` forwarding to `${apiUrl}/api/v1/candidates/${id}`)
+- Create a candidate edit form component in `apps/web/src/features/recruiting/components/` (React Hook Form + Zod, following the established form pattern from `create-candidate-form.tsx`; pre-filled from `serverFetch` in the Server Component)
+- Replace the `redirect()` in `apps/web/src/app/(dashboard)/recruiting/candidates/[id]/edit/page.tsx` with a Server Component page that fetches the existing candidate and renders the form
 
-**Fields in scope:** `firstName`, `lastName`, `phone`, `source`, `notes` — confirmed fields on the candidate entity.
+**Fields in scope (all confirmed present in `UpdateCandidateDto` — D2):** `firstName`, `lastName`, `email`, `phone`, `source`, `notes`. All optional — `UpdateCandidateDto` uses sparse update semantics (only supplied fields are applied). `status` is intentionally absent — managed via the archive endpoint only.
 
-**RBAC:** SA, HRD, Recruiter can edit. Workforce Planner is read-only. The edit page must check the user's role and redirect to detail if the role lacks write permission (same pattern as Workforce edit pages).
+**RBAC (confirmed via `CandidateController` — D2):** SA, HRD, Recruiter can edit (`@RequireRoles('System Administrator', 'HR Director', 'Recruiter')`). Workforce Planner is read-only. The edit page Server Component must check the user's role and redirect to the candidate detail page if the role lacks write permission.
 
-**Dependency checks D2, D3, D5 required** before build (see Dependency Checks section).
+**Response shape (confirmed — D3):** On success, NestJS returns `{ success: true, data: { id, firstName, lastName, email, phone, status, source, notes, createdAt, updatedAt } }`. The BFF should forward `data` to the browser. The edit form can use this to confirm updated values without a separate refetch.
+
+**D2, D3, D5 all confirmed by dependency checks — cleared to build.**
 
 ---
 
@@ -9588,16 +9593,16 @@ Each file is a small `'use client'` Error boundary component. No new logic.
 
 ---
 
-### Item 6 — Candidate Text Search (Conditional on Backend Confirmation)
+### Item 6 — Candidate Text Search ~~(Conditional)~~ → **CONFIRMED DEFERRED — NOT M22**
 
-**Gap:** The candidates list filter bar supports status filtering only. No text search by name or email.
+**D4 result:** `ListCandidatesQueryDto` (`apps/api/src/recruiting/dto/list-candidates-query.dto.ts`) accepts only `page`, `pageSize`, and `status` (enum — `ACTIVE` or `ARCHIVED`). The DTO source comment on line 7 explicitly states: "No search/free-text filter in M16 — deferred to M20 (GD-M16-1 Decision 3)." The feature was never built in M20 or M21. `CandidateService.listCandidates()` receives only `{ page, pageSize, status }` — no search param is passed or handled anywhere in the service.
 
-**Condition:** This item is **only buildable if** the NestJS `GET /api/v1/candidates` endpoint accepts a `search` (or equivalent) query param. This must be confirmed by reading `CandidateController` and its list query DTO before any frontend work begins.
+**Decision:** Item 6 is **removed from M22 active scope.** Implementing a frontend search input without backend search support would silently not filter — the list would return all results regardless of input. Candidate text search requires a backend milestone first:
+1. Add `search?: string` to `ListCandidatesQueryDto`
+2. Implement `WHERE firstName ILIKE :search OR lastName ILIKE :search OR email ILIKE :search` (or equivalent) in `CandidateService.listCandidates()`
+3. Only then add the frontend filter input
 
-- **If confirmed:** Add a text input to the candidate filter bar component that passes the `search` param to the BFF/serverFetch call.
-- **If not confirmed:** Drop this item from M22. Document as requiring a backend milestone. Do not add a frontend search input that sends a param the backend ignores.
-
-**Dependency check D4 required** before decision (see Dependency Checks section).
+This is a future enhancement, not a M22 item. Document as: **"Candidate text search — requires backend search param (future milestone)"** in the Non-Goals table.
 
 ---
 
@@ -9621,7 +9626,8 @@ The following must not be added during M22 implementation, even if they appear a
 | VAC-601 requiresReview enforcement | Separate GD required — GD-M17-1 D12 |
 | POS-301 headcount cap enforcement | Separate GD required — GD-M17-1 D13 |
 | Schema changes | None needed for M22 scope |
-| New NestJS backend endpoints | None needed; BFF PATCH handler only, targeting an existing NestJS endpoint |
+| New NestJS backend endpoints | None needed; BFF PUT handler only, targeting an existing NestJS `PUT /api/v1/candidates/:id` endpoint |
+| Candidate text search | **Confirmed deferred (D4)** — `ListCandidatesQueryDto` has no search param; backend support is a prerequisite; frontend search field must not be built without it |
 | Dashboard shell component / DashboardShell | Explicitly deferred — GD-M21-1 Q2 |
 | Detail-level loading.tsx (Workforce / Recruiting) | Low severity; not a M22 priority |
 | Agency / tenant settings page | Later milestone |
@@ -9638,10 +9644,10 @@ The following must not be added during M22 implementation, even if they appear a
 |---|---|
 | Dashboard metric cards | No GD needed. Wiring `serverFetch` to existing endpoints is an implementation of an already-governed architecture pattern. No new design decisions. |
 | Dashboard loading/error | No GD needed. Extending existing file patterns. |
-| Candidate edit form + BFF PATCH | No GD needed. GD-M20-1 Decision 3 explicitly authorized BFF handlers for candidate mutations. The PATCH was deferred in M20, not ungoverned. The POST (archive) handler in the same route file establishes the BFF pattern for this file. |
+| Candidate edit form + BFF PUT handler | No GD needed. GD-M20-1 Decision 3 explicitly authorized BFF handlers for candidate mutations. The `PUT /api/v1/candidates/:id` endpoint was deferred in M20, not ungoverned. The existing POST (archive) handler in the same BFF route file establishes the pattern. Endpoint is `PUT` (confirmed D2/D3/D5). |
 | Recruiting error.tsx files | No GD needed. Replicating established Workforce error boundary pattern. No new architectural decisions. |
 | Back-to-application links | No GD needed. Purely presentational; data already present in existing API responses. |
-| Candidate text search | No GD needed. Filter UI extension only, contingent on confirmed backend support. |
+| Candidate text search | **Not applicable — confirmed deferred (D4).** Backend `ListCandidatesQueryDto` has no search param. This item is removed from M22. No GD assessment needed. |
 
 **Boundary condition:** If during M22 implementation any item reveals a design decision not covered by prior governance (e.g., a new RBAC edge case, a new Prisma relation, an unexpected API contract), implementation must stop and a governance document must be written and approved before proceeding.
 
@@ -9651,13 +9657,13 @@ The following must not be added during M22 implementation, even if they appear a
 
 These must be resolved by reading source files before implementing the affected item. Do not implement any item until its dependency checks pass.
 
-| # | Check | Item blocked | How to confirm |
+| # | Check | Item blocked | Result |
 |---|---|---|---|
-| D1 | All four paginated list endpoints (`/positions`, `/employees`, `/vacancies`, `/candidates`) return a `total` field at a known path in their response | Item 1 — dashboard metrics | Read list response DTOs in `apps/api/src` (positions, employees, vacancies, candidates service/controller) |
-| D2 | `CandidateController` PATCH endpoint accepts optional patch fields: `firstName`, `lastName`, `phone`, `source`, `notes` | Item 3 — candidate edit form | Read `apps/api/src/recruiting/candidate.controller.ts` and the update DTO class |
-| D3 | `CandidateController` PATCH returns the updated candidate entity in the response body (required for BFF to relay back to client) | Item 3 — candidate edit form | Read `apps/api/src/recruiting/candidate.service.ts` update method return type |
-| D4 | `GET /api/v1/candidates` accepts a `search` (or equivalent) query param for filtering by candidate name or email | Item 6 — candidate text search (conditional) | Read `CandidateController` list method and its query DTO / list params |
-| D5 | The existing `apps/web/src/app/api/recruiting/candidates/[id]/route.ts` file structure is safe to extend with a `PATCH` export without breaking the existing `POST` export | Item 3 — BFF PATCH handler | Read the file before modifying |
+| D1 | All four paginated list endpoints return a `total` field at `response.data.total` | Item 1 — dashboard metrics | ✅ **CONFIRMED** — all four controllers return `total: result.total` inside `data`. Path is `response.data.total` in all cases. |
+| D2 | `CandidateController` **PUT** endpoint (not PATCH — `@Put` decorator) accepts optional fields: `firstName`, `lastName`, `email`, `phone`, `source`, `notes` | Item 3 — candidate edit form | ✅ **CONFIRMED** — `UpdateCandidateDto` has all six fields, all `@IsOptional`. Endpoint is `PUT /api/v1/candidates/:id`. Email is supported and should be included in the edit form. |
+| D3 | `CandidateController` **PUT** returns the updated candidate entity in the response body | Item 3 — candidate edit form | ✅ **CONFIRMED** — controller returns `{ success: true, data: toCandidateShape(result.candidate) }` with full candidate shape: id, firstName, lastName, email, phone, status, source, notes, createdAt, updatedAt. |
+| D4 | `GET /api/v1/candidates` accepts a `search` / `name` / `email` query param | Item 6 — candidate text search | ❌ **DEFERRED** — `ListCandidatesQueryDto` has only `page`, `pageSize`, `status`. DTO comment line 7: "No search/free-text filter in M16 — deferred to M20 (GD-M16-1 Decision 3)." Never built. Item 6 removed from M22. |
+| D5 | `apps/web/src/app/api/recruiting/candidates/[id]/route.ts` is safe to extend with a **`PUT`** export (not PATCH) without breaking the existing `POST` export | Item 3 — BFF PUT handler | ✅ **CONFIRMED** — file exports only a single `POST` function. Adding a named `PUT` export is safe; Next.js App Router routes each method to its named export independently. BFF handler must forward as `PUT` to NestJS. |
 
 ---
 
@@ -9668,12 +9674,13 @@ These must be resolved by reading source files before implementing the affected 
 | Dashboard metric cards | Visual confirm in running app: all 4 cards show real integers, not `'—'`; numbers change if data is added/removed |
 | Dashboard loading state | Confirm `loading.tsx` renders by observing page transition or simulating delay |
 | Dashboard error state | Temporarily break a `serverFetch` endpoint path; confirm error boundary renders with correct copy |
-| Candidate edit form — happy path | Submit form as SA, HRD, Recruiter role; confirm PATCH fires; confirm candidate fields update; confirm success feedback |
+| Candidate edit form — happy path | Submit form as SA, HRD, Recruiter role; confirm PUT fires to BFF; confirm candidate fields update in response; confirm success feedback |
+| Candidate edit form — email conflict | Update email to one already used by another candidate in the tenant; confirm `CANDIDATE_EMAIL_ALREADY_EXISTS` error surfaces in the form |
 | Candidate edit form — RBAC | Confirm Workforce Planner cannot reach edit form (redirected or shown unauthorized) |
-| BFF PATCH handler | Manual curl: `PATCH /api/recruiting/candidates/:id` with valid body; confirm 200 + updated candidate returned |
-| Recruiting error.tsx | Force a throw in one detail page temporarily; confirm route-segment error boundary renders with domain-correct copy |
-| Back-to-application links | Navigate to interview and offer detail pages; confirm "View Application" link renders and navigates correctly |
-| Candidate text search (if built) | Enter partial name in search input; confirm list filters to matching candidates; confirm empty state on no match |
+| BFF PUT handler | Manual curl: `PUT /api/recruiting/candidates/:id` with valid body; confirm 200 + updated candidate data returned |
+| Recruiting error.tsx | Force a throw in one detail page temporarily; confirm route-segment error boundary renders with domain-correct copy (not list-level copy) |
+| Back-to-application links | Navigate to interview and offer detail pages; confirm "View Application" link renders and navigates correctly to the source application |
+| Candidate text search | **Not applicable — deferred from M22 (D4 confirmed)** |
 | Type-check | `npm run type-check --workspace=apps/web` exits 0 |
 | Lint | `next lint` scoped to changed files exits 0 |
 | CI | All checks green after push |
@@ -9682,13 +9689,14 @@ These must be resolved by reading source files before implementing the affected 
 
 ## M22 Risk Notes
 
-| Risk | Severity | Mitigation |
+| Risk | Severity | Status |
 |---|---|---|
-| Paginated endpoints may not return `total` in the field path assumed by the dashboard implementation | Medium | Confirm via D1 before building. If field name or nesting differs, adjust `serverFetch` call to match actual response shape. |
-| NestJS PATCH DTO may have stricter validation than expected (e.g., requires at least one field present, rejects unknown fields) | Low | Confirm via D2. If DTO is strict, the BFF handler must forward only fields with values, not the full form body. |
-| Candidate text search may require a backend change to support a `search` query param on the list endpoint | Medium | Confirm via D4 before building any frontend search input. If backend search is not supported, drop Item 6 from M22 and document it as a backend-milestone prerequisite. |
-| RBAC gate on the edit form may not match the existing candidate creation gate exactly | Low | Read the `CandidateController PATCH` NestJS guard/decorator before wiring the frontend gate. Frontend must mirror what the backend enforces. |
-| `candidates/[id]/edit` redirect replacement is safe | Low | The M21.5 pre-change verification confirmed no UI links to this route. Replacing the `redirect()` with a form page will not break any existing navigation path. |
+| Paginated endpoints may not return `total` in the expected field path | Medium | **Resolved (D1)** — all four controllers confirmed returning `data.total`. No risk. |
+| NestJS PUT DTO validation may be stricter than expected | Low | **Resolved (D2)** — `UpdateCandidateDto` has all fields `@IsOptional`; sparse update semantics confirmed. BFF should send only non-empty fields to match `create-candidate-form.tsx` pattern. |
+| Candidate text search requires a backend change | Medium | **Resolved (D4) — deferred from M22.** `ListCandidatesQueryDto` has no search param. Item 6 dropped from M22 active scope. |
+| RBAC gate on edit form may differ from candidate creation gate | Low | **Resolved (D2)** — `CandidateController` `@Put` uses `@RequireRoles('System Administrator', 'HR Director', 'Recruiter')`. Frontend gate must match exactly: WP and CO cannot edit. |
+| `candidates/[id]/edit` redirect replacement is safe | Low | **Confirmed** — M21.5 pre-change verification confirmed no UI links to this route. Replacing `redirect()` with form page breaks nothing. |
+| Edit form must handle `CANDIDATE_EMAIL_ALREADY_EXISTS` (409) | Low | **Known (D2)** — if the updated email matches another candidate's email within the tenant, NestJS returns 409. The edit form must include this error code in its error message map. `create-candidate-form.tsx` already handles it — copy the pattern. |
 
 ---
 
@@ -9699,7 +9707,7 @@ These must be resolved by reading source files before implementing the affected 
 | Requirements | Defined — gap inventory audit + mentor-directed scope |
 | Specs | Defined — this planning record |
 | Directives | Not required — no new GD per governance assessment above |
-| Execution Plan | Defined — 6 items with dependency checks |
+| Execution Plan | Defined — 5 active items (Item 6 confirmed deferred); dependency checks D1–D5 all resolved |
 | State Model | N/A — no new workflow states |
 | Test Scenarios | Defined — validation plan above |
 | System Loop | Not yet implemented |
@@ -9707,4 +9715,50 @@ These must be resolved by reading source files before implementing the affected 
 | Environment Model | Unchanged from M21 — no Docker, no infra, no env changes |
 | Data Lifecycle | N/A — no schema or migration changes |
 | Evolution Strategy | Post-M22 path documented; exclusions explicit |
-| **Overall** | **Planned — not started; awaiting mentor approval** |
+| **Overall** | **Planned — scope adjusted after dependency checks; 5 active items; not started; awaiting mentor approval** |
+
+---
+
+## M22 Implementation Batches
+
+> Scope corrected after D1–D5 dependency checks. Item 6 (candidate text search) dropped — backend search not supported. Candidate update endpoint confirmed as `PUT`, not `PATCH`. Five items remain, grouped into two batches.
+
+### M22A — Dashboard + Recruiting Reliability Polish
+
+**Items:** Dashboard live metric cards (Item 1), Dashboard loading and error states (Item 2), Missing Recruiting error.tsx files (Item 4), Back-to-application links (Item 5)
+
+**Rationale:** These four items are independent of each other and of the candidate edit workflow. They share no files and have no inter-dependencies. Items 1+2 touch only `apps/web/src/app/(dashboard)/dashboard/`. Items 4+5 touch only route-level files in `apps/web/src/app/(dashboard)/recruiting/`. All are low-to-medium complexity. Completing M22A first gives a clean, CI-green baseline before touching the more complex edit workflow in M22B.
+
+| Item | Files created or modified | Complexity |
+|---|---|---|
+| Dashboard metric cards (live `serverFetch`) | `apps/web/src/app/(dashboard)/dashboard/page.tsx` | Low |
+| Dashboard `loading.tsx` | `apps/web/src/app/(dashboard)/dashboard/loading.tsx` (new) | Low |
+| Dashboard `error.tsx` | `apps/web/src/app/(dashboard)/dashboard/error.tsx` (new) | Low |
+| 5 Recruiting `error.tsx` files | 5 new files under `apps/web/src/app/(dashboard)/recruiting/` | Low |
+| Back-to-application links | `apps/web/src/app/(dashboard)/recruiting/interviews/[id]/page.tsx`, `offers/[id]/page.tsx` | Low |
+
+**Validation gate for M22A:** type-check clean + lint clean + visual confirm in running app (metric cards show real numbers; error boundaries render with correct copy; application links visible on interview and offer detail pages).
+
+---
+
+### M22B — Candidate Edit Workflow
+
+**Items:** Candidate edit workflow using backend PUT support (Item 3)
+
+**Rationale:** This is the most complex item in M22. It touches three separate files and requires a new BFF handler, a new form component, and replacing the existing `redirect()` in the edit page. Running it as a separate batch after M22A means it can be reviewed and CI-validated independently. If M22B encounters an unexpected issue, M22A changes are already green and unaffected.
+
+| Step | File | Change |
+|---|---|---|
+| 1. BFF PUT handler | `apps/web/src/app/api/recruiting/candidates/[id]/route.ts` | Add `export async function PUT(...)` — reads body, rejects `tenantId`, forwards as `PUT` to `${apiUrl}/api/v1/candidates/${id}`, returns `{ success: true, data: candidate }` or error shape. Follow `Response.json()` style (matches existing `POST` in same file). |
+| 2. Edit form component | `apps/web/src/features/recruiting/components/edit-candidate-form.tsx` (new) | `'use client'` — React Hook Form + Zod; mirrors `create-candidate-form.tsx`; accepts `defaultValues` prop with existing candidate fields; submits `PUT` to BFF; handles `CANDIDATE_EMAIL_ALREADY_EXISTS` (409); on success toasts + navigates to `/recruiting/candidates/:id`. |
+| 3. Edit page | `apps/web/src/app/(dashboard)/recruiting/candidates/[id]/edit/page.tsx` | Replace `redirect()` with Server Component: `serverFetch` existing candidate by `params.id`; RBAC gate — redirect to detail if role is not SA / HRD / Recruiter; render `RecruitingShell` + `EditCandidateForm` with pre-filled `defaultValues`. |
+
+**Key implementation constraints for M22B:**
+- BFF fetch method must be `method: 'PUT'` (not PATCH) — NestJS uses `@Put` decorator
+- BFF handler follows `Response.json()` style (not `NextResponse`) — matches existing POST in the same file
+- Form Zod schema field constraints must exactly match `UpdateCandidateDto`: `firstName`/`lastName` max 100, `email` max 255 valid format, `phone` max 50, `source` max 100, `notes` no max
+- Only send non-empty optional fields in the body (sparse update) — same pattern as `create-candidate-form.tsx`
+- `email` field is included in scope (confirmed D2; `UpdateCandidateDto` supports it)
+- `status` field is NOT included — managed via the archive endpoint only
+
+**Validation gate for M22B:** type-check clean + lint clean + PUT confirmed firing to BFF (can verify via browser Network tab or curl) + candidate fields update in detail page after save + RBAC gate confirmed for WP + email conflict 409 handled gracefully.
