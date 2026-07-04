@@ -98,6 +98,13 @@ export default async function InterviewDetailPage({ params }: Props) {
               <InterviewStatusDot status={iv.status} />
             </div>
           </div>
+          <Link
+            href={`/recruiting/applications/${iv.applicationId}`}
+            className="text-sm hover:underline"
+            style={{ color: BLUE }}
+          >
+            View Application
+          </Link>
         </div>
 
         <dl className="px-6">

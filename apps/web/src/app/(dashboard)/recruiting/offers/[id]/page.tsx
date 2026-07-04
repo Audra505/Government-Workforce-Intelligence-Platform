@@ -90,6 +90,13 @@ export default async function OfferDetailPage({ params }: Props) {
               <OfferStatusDot status={o.status} />
             </div>
           </div>
+          <Link
+            href={`/recruiting/applications/${o.applicationId}`}
+            className="text-sm hover:underline"
+            style={{ color: BLUE }}
+          >
+            View Application
+          </Link>
         </div>
 
         <dl className="px-6">

@@ -9,16 +9,16 @@
 
 ---
 
-Last Updated: 2026-07-03 (M22 Scope Adjustment — dependency checks complete; candidate update is PUT not PATCH; candidate text search confirmed deferred; M22 scope corrected to 5 active items; implementation batches M22A + M22B defined; HEAD af513f0)
-Updated By: Claude Code (M22 scope adjustment: PATCH→PUT correction throughout planning section; Item 6 candidate search confirmed deferred — backend search param does not exist; M22 reduced to 5 implementation items; M22A/M22B batches added; PROGRESS.md only — no source files changed)
+Last Updated: 2026-07-04 (M22 Dashboard Metrics + Recruiting Completion — CLOSED; 16 files (8 modified, 8 new); type-check + lint clean; human browser-verified; single combined commit + push to origin/main)
+Updated By: Claude Code (M22 complete: dashboard live metrics via serverFetch, dashboard loading/error states, 5 recruiting error boundaries, interview/offer list discoverability, View Application repositioned to card header, candidate edit workflow with BFF PUT handler, tenantId explicit rejection, optional field clearing confirmed; candidate search remains deferred — backend search not supported)
 
-Previous Update: 2026-07-03 (M21.5 Recruiting Stub Route Cleanup — CLOSED; two stub pages replaced with server-side redirects; type-check + lint clean; CI runs #66 + #67 green; HEAD 1a4b64f)
+Previous Update: 2026-07-03 (M22 Scope Adjustment — dependency checks complete; candidate update is PUT not PATCH; candidate text search confirmed deferred; M22 scope corrected to 5 active items; implementation batches M22A + M22B defined; HEAD af513f0)
 
 ## Repository Status
 
-Current Phase: **Phase 3 — M22 Planning (Dashboard Metrics + Recruiting Completion)**
-Overall Classification: Phase 2 COMPLETE; Post-Phase-2 milestones M13/M14/M15 CI-confirmed; Pre-Phase-3 Governance Package CI-confirmed (a5c34f1); Phase 3 started — M16 CI-confirmed; M17 CI-confirmed; M18 CI-confirmed; M19 CI-confirmed; M20 CI-confirmed (6e6777b; run 28611838113); M21 CI-confirmed (1036c92 + 3c8189d + 1e33420); browser-verified by human 2026-07-03; CLOSED; M21.5 CI-confirmed (782e35e + 1a4b64f; runs #66 + #67); M22 PLANNING
-Active Sprint / Milestone: M22 PLANNING — scope documented (2026-07-03); awaiting mentor approval before build begins
+Current Phase: **Phase 3 — M22 CLOSED (Dashboard Metrics + Recruiting Completion); awaiting CI confirmation**
+Overall Classification: Phase 2 COMPLETE; Post-Phase-2 milestones M13/M14/M15 CI-confirmed; Pre-Phase-3 Governance Package CI-confirmed (a5c34f1); Phase 3 started — M16 CI-confirmed; M17 CI-confirmed; M18 CI-confirmed; M19 CI-confirmed; M20 CI-confirmed (6e6777b; run 28611838113); M21 CI-confirmed (1036c92 + 3c8189d + 1e33420); browser-verified by human 2026-07-03; CLOSED; M21.5 CI-confirmed (782e35e + 1a4b64f; runs #66 + #67); M22 CLOSED — human browser-verified 2026-07-04; CI pending
+Active Sprint / Milestone: M22 CLOSED — pushed to origin/main 2026-07-04; CI pending
 Implementation Started: Yes (2026-06-05)
 
 ## Phase Summary
@@ -27,18 +27,18 @@ Phase 1 is formally closed. D9 (Docker Environment) and D10 (CI/CD Foundation) w
 
 ---
 
-# Active Execution State — Milestone 21
+# Active Execution State — Milestone 22
 
 > This section is updated in place after each approved and validated implementation step.
 > Its purpose is crash/session recovery: the current step state is always readable without
 > scanning Zone 5 history. It is overwritten each step — not appended.
 
-Milestone: M22 Dashboard Metrics + Recruiting Completion (PLANNING — scope adjusted after dependency checks)
-Last Completed Milestone: M21.5 CLOSED — applications/new and candidates/[id]/edit replaced with next/navigation redirect(); type-check + lint clean; committed 782e35e (1a4b64f PROGRESS.md update); CI runs #66 + #67 green
-Last Completed Step: M22 dependency checks D1–D5 completed (read-only); scope adjusted — PATCH corrected to PUT; Item 6 candidate text search confirmed deferred; 5 active items remain; M22A + M22B batches defined
-Last Completed Step Date: 2026-07-03
-Current Step: Await mentor approval of corrected M22 scope before any implementation begins
-Session Classification: PHASE 3 M22 PLANNING — documentation corrections only; no source, backend, BFF, schema, Workforce, Recruiting, or Dashboard source changes; no Docker
+Milestone: M22 Dashboard Metrics + Recruiting Completion — CLOSED
+Last Completed Milestone: M22 CLOSED — 16 files (8 modified, 8 new); type-check + lint clean; human browser-verified 2026-07-04; single combined commit pushed to origin/main; CI pending
+Last Completed Step: All M22 items implemented, corrected, and browser-verified: dashboard live metrics, loading/error states, 5 recruiting error boundaries, interview/offer discoverability, View Application card header placement, candidate edit workflow, BFF PUT handler, tenantId rejection, optional field clearing; PROGRESS.md updated; committed + pushed
+Last Completed Step Date: 2026-07-04
+Current Step: Await CI confirmation of M22 commit
+Session Classification: PHASE 3 M22 CLOSED — web-only source changes (apps/web/**); no backend, no BFF beyond candidate PUT, no schema, no migration, no Workforce UI, no candidate search, no standalone application creation
 
 ## Milestone 10 — Approved Plan
 
@@ -9700,22 +9700,22 @@ These must be resolved by reading source files before implementing the affected 
 
 ---
 
-## M22 Maturity Classification (Planning Phase)
+## M22 Maturity Classification — CLOSED
 
 | Layer | Status |
 |---|---|
-| Requirements | Defined — gap inventory audit + mentor-directed scope |
-| Specs | Defined — this planning record |
-| Directives | Not required — no new GD per governance assessment above |
-| Execution Plan | Defined — 5 active items (Item 6 confirmed deferred); dependency checks D1–D5 all resolved |
+| Requirements | Defined and satisfied — all 5 active items implemented |
+| Specs | Defined — planning record + implementation history below |
+| Directives | Not required — no new GD needed (web-only UI polish + edit workflow) |
+| Execution Plan | Complete — all M22A + M22B items implemented and browser-verified |
 | State Model | N/A — no new workflow states |
-| Test Scenarios | Defined — validation plan above |
-| System Loop | Not yet implemented |
-| Failure Playbook | Risk notes documented |
-| Environment Model | Unchanged from M21 — no Docker, no infra, no env changes |
+| Test Scenarios | Validated — type-check clean + lint clean + human browser verification passed |
+| System Loop | Integrated — dashboard metrics live via serverFetch; candidate edit round-trips through BFF PUT to NestJS |
+| Failure Playbook | Error boundaries added to all Recruiting detail routes and dashboard; BFF returns typed error codes |
+| Environment Model | Unchanged — web-only rebuild; no Docker, no infra, no env changes |
 | Data Lifecycle | N/A — no schema or migration changes |
-| Evolution Strategy | Post-M22 path documented; exclusions explicit |
-| **Overall** | **Planned — scope adjusted after dependency checks; 5 active items; not started; awaiting mentor approval** |
+| Evolution Strategy | Candidate search deferred pending backend support; standalone application creation deferred |
+| **Overall** | **Integrated — all M22 items complete; browser-verified; CI pending** |
 
 ---
 
@@ -9762,3 +9762,137 @@ These must be resolved by reading source files before implementing the affected 
 - `status` field is NOT included — managed via the archive endpoint only
 
 **Validation gate for M22B:** type-check clean + lint clean + PUT confirmed firing to BFF (can verify via browser Network tab or curl) + candidate fields update in detail page after save + RBAC gate confirmed for WP + email conflict 409 handled gracefully.
+
+---
+
+## M22 Completion History — 2026-07-04
+
+### Phase: M22 Dashboard Metrics + Recruiting Completion — CLOSED
+
+**Date:** 2026-07-04
+**Status:** CLOSED — implemented, corrected, browser-verified, committed, pushed to origin/main
+**Repository classification:** Integrated (CI pending)
+
+---
+
+### Capability: Dashboard Live Metric Cards
+
+- **Deliverable status:** Required
+- **Implementation:** `apps/web/src/app/(dashboard)/dashboard/page.tsx` converted from static `METRICS` const to async Server Component using four parallel `serverFetch` calls (`/api/v1/positions`, `/api/v1/employees`, `/api/v1/vacancies?status=OPEN`, `/api/v1/candidates`) with `.catch(() => null)` graceful degradation; metric values read from `response?.data?.total ?? '—'`
+- **Validation:** Browser-verified by human operator — cards show live numeric counts
+- **Overall maturity:** Integrated
+
+---
+
+### Capability: Dashboard Loading and Error States
+
+- **Deliverable status:** Required
+- **Implementation:**
+  - `apps/web/src/app/(dashboard)/dashboard/loading.tsx` (new) — Server Component; inline navy header matching DashboardPage; 4 animate-pulse skeleton cards
+  - `apps/web/src/app/(dashboard)/dashboard/error.tsx` (new) — `'use client'`; inline minimal navy header (cannot import WorkforceShell/RecruitingShell); "Unable to load dashboard data" copy; Try again button calling `reset()`
+- **Validation:** Browser-verified by human operator
+- **Overall maturity:** Integrated
+
+---
+
+### Capability: Recruiting Error Boundaries (5 routes)
+
+- **Deliverable status:** Required
+- **Implementation:** Five new `'use client'` error.tsx files added:
+  - `apps/web/src/app/(dashboard)/recruiting/candidates/[id]/error.tsx`
+  - `apps/web/src/app/(dashboard)/recruiting/applications/[id]/error.tsx`
+  - `apps/web/src/app/(dashboard)/recruiting/interviews/[id]/error.tsx`
+  - `apps/web/src/app/(dashboard)/recruiting/offers/[id]/error.tsx`
+  - `apps/web/src/app/(dashboard)/recruiting/candidates/new/error.tsx`
+  - Each uses inline RecruitingShell-compatible styling; no Server Component shell imports (client boundary constraint)
+- **Validation:** Type-check clean; browser-verified
+- **Overall maturity:** Integrated
+
+---
+
+### Capability: Interview and Offer List Discoverability
+
+- **Deliverable status:** Required (runtime-discovered gap)
+- **Implementation:**
+  - `apps/web/src/features/recruiting/components/interview-table.tsx` — Type column now wraps `TYPE_LABEL` in a `Link` to `/recruiting/interviews/:id` (BLUE); Application column link color changed from BLUE to MUTED (#94a3b8) so only the Type column reads as the primary navigation entry point
+  - `apps/web/src/features/recruiting/components/offer-table.tsx` — New Offer column added as first column with short UUID as `Link` to `/recruiting/offers/:id` (BLUE); Application column link color changed from BLUE to MUTED for same reason
+- **Validation:** Browser-verified by human operator — Type/Offer columns are blue links; Application columns are visually secondary
+- **Overall maturity:** Integrated
+
+---
+
+### Capability: View Application Link Placement (Interview and Offer Detail)
+
+- **Deliverable status:** Required (UI polish — human feedback)
+- **Implementation:**
+  - `apps/web/src/app/(dashboard)/recruiting/interviews/[id]/page.tsx` — Removed `← View Application` from top nav flex row; restored to single `← Interviews` back link; added `View Application` to top-right of card header (`flex items-start justify-between`) matching the Edit link pattern on candidate detail
+  - `apps/web/src/app/(dashboard)/recruiting/offers/[id]/page.tsx` — Same change; single `← Offers` back link; `View Application` in card header top-right
+- **Validation:** Browser-verified by human operator
+- **Overall maturity:** Integrated
+
+---
+
+### Capability: Candidate Edit Workflow (M22B)
+
+- **Deliverable status:** Required
+- **Implementation:**
+  - `apps/web/src/app/api/recruiting/candidates/[id]/route.ts` — Added `export async function PUT(...)`: reads body, explicitly rejects `tenantId` with 400 FORBIDDEN_FIELD (SEC-003), extracts only allowed fields via `EDIT_FIELDS` allow-list, forwards as `PUT /api/v1/candidates/:id` to NestJS, returns NestJS JSON on success or typed error on failure
+  - `apps/web/src/features/recruiting/components/edit-candidate-form.tsx` (new) — `'use client'`; React Hook Form + Zod; mirrors create-candidate-form field set; optional fields (phone, source, notes) always included in body even as empty string to allow clearing (`UpdateCandidateDto` permits empty string — no `@IsNotEmpty()`); `CANDIDATE_EMAIL_ALREADY_EXISTS` handled with user-readable message; success toast + navigate to candidate detail
+  - `apps/web/src/app/(dashboard)/recruiting/candidates/[id]/edit/page.tsx` — Replaced `redirect()` stub with async Server Component: RBAC gate (non-writer roles redirect to detail); `serverFetch` candidate by id; renders `RecruitingShell` + `EditCandidateForm` with pre-filled `defaultValues`
+  - `apps/web/src/app/(dashboard)/recruiting/candidates/[id]/page.tsx` — Edit link added to card header top-right (canWrite gate); links to `/recruiting/candidates/:id/edit`
+- **Key corrections applied before browser verification:**
+  - tenantId must be explicitly rejected with 400, not silently dropped — confirmed per SEC-003
+  - Optional fields must always be sent in body (even empty string) to allow clearing — not gated by truthy check
+- **Validation:** Browser-verified by human operator — edit form pre-fills; save updates candidate; RBAC gate confirmed; tenantId rejection confirmed
+- **Overall maturity:** Integrated
+
+---
+
+### What Was Explicitly Excluded from M22
+
+- No backend (NestJS) changes
+- No Prisma schema changes
+- No database migrations
+- No Workforce UI changes
+- No candidate text search (deferred — backend `/api/v1/candidates` does not support a search query parameter)
+- No standalone application creation
+- No BFF changes beyond the candidate PUT handler
+- No Docker infrastructure changes
+- No environment variable changes
+
+---
+
+### Validation Summary
+
+| Check | Result |
+|---|---|
+| `npm run type-check` (apps/web) | EXIT 0 — 0 TypeScript errors |
+| `npm run lint` (apps/web) | EXIT 0 — 0 ESLint warnings or errors |
+| Human browser verification | PASSED — all M22 capabilities confirmed in running Docker stack |
+| Docker rebuild required | Web-only rebuild (apps/web/** changes only) |
+| Commit structure | Single combined M22 commit — no squash, no separate docs commit |
+| Push | origin/main — CI pending |
+
+---
+
+### Files Changed in M22
+
+**Modified (8):**
+- `apps/web/src/app/(dashboard)/dashboard/page.tsx`
+- `apps/web/src/app/(dashboard)/recruiting/candidates/[id]/edit/page.tsx`
+- `apps/web/src/app/(dashboard)/recruiting/candidates/[id]/page.tsx`
+- `apps/web/src/app/(dashboard)/recruiting/interviews/[id]/page.tsx`
+- `apps/web/src/app/(dashboard)/recruiting/offers/[id]/page.tsx`
+- `apps/web/src/app/api/recruiting/candidates/[id]/route.ts`
+- `apps/web/src/features/recruiting/components/interview-table.tsx`
+- `apps/web/src/features/recruiting/components/offer-table.tsx`
+
+**New (8):**
+- `apps/web/src/app/(dashboard)/dashboard/error.tsx`
+- `apps/web/src/app/(dashboard)/dashboard/loading.tsx`
+- `apps/web/src/app/(dashboard)/recruiting/applications/[id]/error.tsx`
+- `apps/web/src/app/(dashboard)/recruiting/candidates/[id]/error.tsx`
+- `apps/web/src/app/(dashboard)/recruiting/candidates/new/error.tsx`
+- `apps/web/src/app/(dashboard)/recruiting/interviews/[id]/error.tsx`
+- `apps/web/src/app/(dashboard)/recruiting/offers/[id]/error.tsx`
+- `apps/web/src/features/recruiting/components/edit-candidate-form.tsx`

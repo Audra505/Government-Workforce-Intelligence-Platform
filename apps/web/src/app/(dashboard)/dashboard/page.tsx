@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { serverFetch } from '@/lib/api';
 import { LogoutButton } from '@/features/auth/logout-button';
 
 const NAVY   = '#0c2340';
@@ -9,17 +10,25 @@ const SUB    = '#475569';
 const MUTED  = '#94a3b8';
 const BLUE   = '#2563eb';
 
-const METRICS = [
-  { label: 'Positions',      value: '—', detail: 'Authorized agency positions'    },
-  { label: 'Employees',      value: '—', detail: 'Active workforce headcount'     },
-  { label: 'Open Vacancies', value: '—', detail: 'Unfilled authorized positions'  },
-  { label: 'Candidates',     value: '—', detail: 'Active recruiting pipeline'     },
-];
+type CountResponse = { success: boolean; data: { total: number } };
 
 const WORKFORCE_LINKS = ['Positions', 'Employees', 'Vacancies'];
 const RECRUITING_LINKS = ['Candidates', 'Applications', 'Interviews', 'Offers'];
 
-export default function DashboardPage() {
+export default async function DashboardPage() {
+  const [positions, employees, vacancies, candidates] = await Promise.all([
+    serverFetch<CountResponse>('/api/v1/positions?pageSize=1').catch(() => null),
+    serverFetch<CountResponse>('/api/v1/employees?pageSize=1').catch(() => null),
+    serverFetch<CountResponse>('/api/v1/vacancies?status=OPEN&pageSize=1').catch(() => null),
+    serverFetch<CountResponse>('/api/v1/candidates?pageSize=1').catch(() => null),
+  ]);
+
+  const metrics = [
+    { label: 'Positions',      value: positions?.data?.total  ?? '—', detail: 'Authorized agency positions'   },
+    { label: 'Employees',      value: employees?.data?.total  ?? '—', detail: 'Active workforce headcount'    },
+    { label: 'Open Vacancies', value: vacancies?.data?.total  ?? '—', detail: 'Unfilled authorized positions' },
+    { label: 'Candidates',     value: candidates?.data?.total ?? '—', detail: 'Active recruiting pipeline'    },
+  ];
   return (
     <div className="flex min-h-screen flex-col" style={{ backgroundColor: CANVAS }}>
       {/* ── Header — matches WorkforceShell / RecruitingShell pattern ── */}
@@ -74,7 +83,7 @@ export default function DashboardPage() {
             Overview
           </p>
           <div className="mb-8 grid grid-cols-2 gap-2.5 sm:grid-cols-4">
-            {METRICS.map(({ label, value, detail }) => (
+            {metrics.map(({ label, value, detail }) => (
               <div
                 key={label}
                 className="bg-white"

@@ -82,15 +82,21 @@ export function InterviewTable({ interviews, hasFilters }: Props) {
               className="border-t transition-colors hover:bg-slate-50"
               style={{ borderColor: BORDER, height: 48 }}
             >
-              <td className="px-4 py-3.5" style={{ color: SUB }}>
-                {TYPE_LABEL[iv.interviewType] ?? iv.interviewType}
+              <td className="px-4 py-3.5">
+                <Link
+                  href={`/recruiting/interviews/${iv.id}`}
+                  className="hover:underline"
+                  style={{ color: BLUE }}
+                >
+                  {TYPE_LABEL[iv.interviewType] ?? iv.interviewType}
+                </Link>
               </td>
 
               <td className="px-4 py-3.5">
                 <Link
                   href={`/recruiting/applications/${iv.applicationId}`}
                   className="hover:underline"
-                  style={{ ...MONO, color: BLUE }}
+                  style={{ ...MONO, color: MUTED }}
                 >
                   {shortId(iv.applicationId)}
                 </Link>

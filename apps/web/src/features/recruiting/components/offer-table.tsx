@@ -59,6 +59,7 @@ export function OfferTable({ offers, hasFilters }: Props) {
       <table className="w-full border-collapse text-sm">
         <thead>
           <tr style={TH}>
+            <th className="px-4 py-3 text-left font-medium">Offer</th>
             <th className="px-4 py-3 text-left font-medium">Application</th>
             <th className="px-4 py-3 text-left font-medium">Status</th>
             <th className="px-4 py-3 text-left font-medium">Offer Date</th>
@@ -74,9 +75,19 @@ export function OfferTable({ offers, hasFilters }: Props) {
             >
               <td className="px-4 py-3.5">
                 <Link
-                  href={`/recruiting/applications/${o.applicationId}`}
+                  href={`/recruiting/offers/${o.id}`}
                   className="hover:underline"
                   style={{ ...MONO, color: BLUE }}
+                >
+                  {shortId(o.id)}
+                </Link>
+              </td>
+
+              <td className="px-4 py-3.5">
+                <Link
+                  href={`/recruiting/applications/${o.applicationId}`}
+                  className="hover:underline"
+                  style={{ ...MONO, color: MUTED }}
                 >
                   {shortId(o.applicationId)}
                 </Link>

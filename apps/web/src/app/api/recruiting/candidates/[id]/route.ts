@@ -22,6 +22,12 @@ type BffResponse =
   | { success: true }
   | { success: false; error: { code: string; message: string } };
 
+type BffErrorResponse = { success: false; error: { code: string; message: string } };
+
+// Fields allowed in candidate update body — tenantId and status are never forwarded (SEC-003)
+const EDIT_FIELDS = ['firstName', 'lastName', 'email', 'phone', 'source', 'notes'] as const;
+type EditField = (typeof EDIT_FIELDS)[number];
+
 export async function POST(
   req: NextRequest,
   { params }: { params: { id: string } },
@@ -74,6 +80,102 @@ export async function POST(
         message: nestError.error?.message ?? 'An unexpected error occurred',
       },
     } satisfies BffResponse,
+    { status: nestRes.status },
+  );
+}
+
+// ─── PUT /api/recruiting/candidates/:id — update candidate fields ─────────────
+// Browser endpoint: PUT /api/recruiting/candidates/:id
+// Backend target:   PUT /api/v1/candidates/:id  (200 + updated CandidateShape)
+//
+// SEC-003: only firstName, lastName, email, phone, source, notes are forwarded.
+// tenantId and status are never accepted from or forwarded by this handler.
+//
+// Reference: governance/GD-M20-1.md — Decision 3, 6
+// Reference: apps/api/src/recruiting/candidate.controller.ts — PUT /candidates/:id (line 206)
+
+export async function PUT(
+  req: NextRequest,
+  { params }: { params: { id: string } },
+): Promise<Response> {
+  const { id } = params;
+
+  const token = req.cookies.get(SESSION_COOKIE)?.value;
+  if (!token) {
+    return Response.json(
+      { success: false, error: { code: 'UNAUTHORIZED', message: 'Not authenticated' } } satisfies BffErrorResponse,
+      { status: 401 },
+    );
+  }
+
+  let body: Record<string, unknown>;
+  try {
+    body = (await req.json()) as Record<string, unknown>;
+  } catch {
+    return Response.json(
+      { success: false, error: { code: 'VALIDATION_ERROR', message: 'Invalid request body' } } satisfies BffErrorResponse,
+      { status: 400 },
+    );
+  }
+
+  // SEC-003: explicitly reject any request body that contains tenantId
+  if ('tenantId' in body) {
+    return Response.json(
+      { success: false, error: { code: 'FORBIDDEN_FIELD', message: 'tenantId is not permitted in this request' } } satisfies BffErrorResponse,
+      { status: 400 },
+    );
+  }
+
+  // Extract only allowed fields — status is never forwarded
+  const allowed: Partial<Record<EditField, string>> = {};
+  for (const field of EDIT_FIELDS) {
+    const value = body[field];
+    if (typeof value === 'string') {
+      allowed[field] = value;
+    }
+  }
+
+  const apiUrl = process.env.API_URL ?? 'http://localhost:3001';
+
+  let nestRes: Response;
+  try {
+    nestRes = await fetch(`${apiUrl}/api/v1/candidates/${id}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(allowed),
+      cache: 'no-store',
+    });
+  } catch {
+    return Response.json(
+      { success: false, error: { code: 'INTERNAL_ERROR', message: 'Service unavailable' } } satisfies BffErrorResponse,
+      { status: 503 },
+    );
+  }
+
+  if (nestRes.ok) {
+    // NestJS returns 200 + { success: true, data: CandidateShape } — forward as-is
+    const nestData: unknown = await nestRes.json();
+    return Response.json(nestData);
+  }
+
+  let nestError: { error?: { code?: string; message?: string } } = {};
+  try {
+    nestError = (await nestRes.json()) as typeof nestError;
+  } catch {
+    // body parse failed — fall through to generic error
+  }
+
+  return Response.json(
+    {
+      success: false,
+      error: {
+        code: nestError.error?.code ?? 'INTERNAL_ERROR',
+        message: nestError.error?.message ?? 'An unexpected error occurred',
+      },
+    } satisfies BffErrorResponse,
     { status: nestRes.status },
   );
 }

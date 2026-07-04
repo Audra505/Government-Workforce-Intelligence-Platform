@@ -163,6 +163,15 @@ export default async function CandidateDetailPage({ params }: Props) {
               <CandidateStatusDot status={c.status} />
             </div>
           </div>
+          {canWrite && (
+            <Link
+              href={`/recruiting/candidates/${c.id}/edit`}
+              className="text-sm hover:underline"
+              style={{ color: BLUE }}
+            >
+              Edit
+            </Link>
+          )}
         </div>
 
         <dl className="px-6">
