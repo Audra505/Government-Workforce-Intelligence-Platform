@@ -1,21 +1,23 @@
 // Shared badge and cell components for vacancy status, priority, and aging display.
-// VacancyStatusDot replaces StatusBadge (M21C, GD-M21-1 D10).
-// PriorityBadge and AgingCell retain pill/text format — explicit exception per GD-M21-1 D10.
+// VacancyStatusDot: pill variant per M23 visual refinement; name retained for backward compat.
+// PriorityBadge: outlined badge (4px radius, border-only) to stay visually distinct from
+//   filled status pills — filled = lifecycle state, outlined = urgency attribute.
+// AgingCell: unchanged.
 // Reference: directives/03_vacancy_management_rules.md
 //   VAC-200: priority values LOW/MEDIUM/HIGH/CRITICAL
 //   VAC-601: requiresReview = CRITICAL + OPEN vacancies
 //   VAC-701: WARNING agingStatus threshold (≥30 days)
 //   VAC-702: HIGH_RISK agingStatus threshold (≥90 days)
 
-import { StatusDot } from '@/components/shared/status-dot';
-import type { StatusDotColor } from '@/components/shared/status-dot';
+import { StatusPill } from '@/components/shared/status-pill';
+import type { StatusPillColor } from '@/components/shared/status-pill';
 import type { AgingStatus, VacancyPriority, VacancyStatus } from '@/features/workforce/types';
 
 // ---------------------------------------------------------------------------
-// VacancyStatusDot
+// VacancyStatusDot (name retained; renders as filled pill)
 // ---------------------------------------------------------------------------
 
-const VACANCY_STATUS_DOT: Record<VacancyStatus, { color: StatusDotColor; label: string }> = {
+const VACANCY_STATUS_PILL: Record<VacancyStatus, { color: StatusPillColor; label: string }> = {
   DRAFT:          { color: 'gray',   label: 'Draft' },
   OPEN:           { color: 'blue',   label: 'Open' },
   IN_RECRUITMENT: { color: 'yellow', label: 'In Recruitment' },
@@ -23,19 +25,20 @@ const VACANCY_STATUS_DOT: Record<VacancyStatus, { color: StatusDotColor; label: 
 };
 
 export function VacancyStatusDot({ status }: { status: VacancyStatus }) {
-  const { color, label } = VACANCY_STATUS_DOT[status];
-  return <StatusDot color={color} label={label} />;
+  const { color, label } = VACANCY_STATUS_PILL[status];
+  return <StatusPill color={color} label={label} />;
 }
 
 // ---------------------------------------------------------------------------
-// PriorityBadge — retained as pill (GD-M21-1 D10)
+// PriorityBadge — plain colored text, no border, no background.
+// Seamlessly distinct from filled status pills without adding visual weight.
 // ---------------------------------------------------------------------------
 
-const PRIORITY_CLASSES: Record<VacancyPriority, string> = {
-  LOW:      'bg-gray-100 text-gray-600',
-  MEDIUM:   'bg-blue-100 text-blue-700',
-  HIGH:     'bg-amber-100 text-amber-700',
-  CRITICAL: 'bg-red-100 text-red-700',
+const PRIORITY_COLOR: Record<VacancyPriority, string> = {
+  LOW:      '#94a3b8',
+  MEDIUM:   '#2563eb',
+  HIGH:     '#d97706',
+  CRITICAL: '#dc2626',
 };
 
 const PRIORITY_LABELS: Record<VacancyPriority, string> = {
@@ -47,16 +50,14 @@ const PRIORITY_LABELS: Record<VacancyPriority, string> = {
 
 export function PriorityBadge({ priority }: { priority: VacancyPriority }) {
   return (
-    <span
-      className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${PRIORITY_CLASSES[priority]}`}
-    >
+    <span style={{ fontSize: 12, fontWeight: 500, color: PRIORITY_COLOR[priority], whiteSpace: 'nowrap' }}>
       {PRIORITY_LABELS[priority]}
     </span>
   );
 }
 
 // ---------------------------------------------------------------------------
-// AgingCell — retained as text with severity (GD-M21-1 D10)
+// AgingCell — unchanged (GD-M21-1 D10)
 // ---------------------------------------------------------------------------
 
 const AGING_TEXT_CLASSES: Record<AgingStatus, string> = {

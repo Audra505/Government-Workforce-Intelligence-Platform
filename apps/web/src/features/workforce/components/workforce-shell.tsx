@@ -46,22 +46,23 @@ export function WorkforceShell({ activeTab, breadcrumb, children, counts }: Prop
             </span>
 
             {/* Domain nav — Workforce active, Recruiting inactive */}
-            <nav className="flex items-center gap-6" aria-label="Domain navigation">
+            <nav className="flex items-center gap-0.5" aria-label="Domain navigation">
               <Link
                 href="/dashboard"
-                className="text-sm text-white/60 transition-colors hover:text-white"
+                className="rounded-[5px] px-[13px] py-[6px] text-[13px] font-medium text-white/50 transition-all hover:bg-white/[0.08] hover:text-white/[0.85]"
               >
                 Dashboard
               </Link>
               <Link
                 href="/workforce/employees"
-                className="text-sm font-semibold text-white"
+                className="rounded-[5px] px-[13px] py-[6px] text-[13px] font-medium text-white transition-all"
+                style={{ backgroundColor: 'rgba(255,255,255,0.12)' }}
               >
                 Workforce
               </Link>
               <Link
                 href="/recruiting/candidates"
-                className="text-sm text-white/60 transition-colors hover:text-white"
+                className="rounded-[5px] px-[13px] py-[6px] text-[13px] font-medium text-white/50 transition-all hover:bg-white/[0.08] hover:text-white/[0.85]"
               >
                 Recruiting
               </Link>

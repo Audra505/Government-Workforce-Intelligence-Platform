@@ -9,16 +9,16 @@
 
 ---
 
-Last Updated: 2026-07-04 (M22 Dashboard Metrics + Recruiting Completion — CI CONFIRMED; ee8465b; human browser-verified + CI green)
-Updated By: Claude Code (M22 CI confirmed by human operator; ee8465b green; M22 fully closed)
+Last Updated: 2026-07-06 (M23 Platform UI and Dashboard Refinement — CI PENDING; human browser-verified)
+Updated By: Claude Code (M23 implementation complete; type-check + lint clean; human browser-verified; CI pending push)
 
-Previous Update: 2026-07-04 (M22 Dashboard Metrics + Recruiting Completion — CLOSED; 16 files (8 modified, 8 new); type-check + lint clean; human browser-verified; single combined commit + push to origin/main)
+Previous Update: 2026-07-04 (M22 Dashboard Metrics + Recruiting Completion — CI CONFIRMED; ee8465b; human browser-verified + CI green)
 
 ## Repository Status
 
-Current Phase: **Phase 3 — M22 CI-CONFIRMED (Dashboard Metrics + Recruiting Completion)**
-Overall Classification: Phase 2 COMPLETE; Post-Phase-2 milestones M13/M14/M15 CI-confirmed; Pre-Phase-3 Governance Package CI-confirmed (a5c34f1); Phase 3 started — M16 CI-confirmed; M17 CI-confirmed; M18 CI-confirmed; M19 CI-confirmed; M20 CI-confirmed (6e6777b; run 28611838113); M21 CI-confirmed (1036c92 + 3c8189d + 1e33420); browser-verified by human 2026-07-03; CLOSED; M21.5 CI-confirmed (782e35e + 1a4b64f; runs #66 + #67); M22 CI-confirmed (ee8465b); browser-verified by human 2026-07-04; CLOSED
-Active Sprint / Milestone: M22 CLOSED and CI-confirmed (ee8465b; 2026-07-04)
+Current Phase: **Phase 3 — M23 Platform UI and Dashboard Refinement (Pending CI)**
+Overall Classification: Phase 2 COMPLETE; Post-Phase-2 milestones M13/M14/M15 CI-confirmed; Pre-Phase-3 Governance Package CI-confirmed (a5c34f1); Phase 3 started — M16 CI-confirmed; M17 CI-confirmed; M18 CI-confirmed; M19 CI-confirmed; M20 CI-confirmed (6e6777b; run 28611838113); M21 CI-confirmed (1036c92 + 3c8189d + 1e33420); browser-verified by human 2026-07-03; CLOSED; M21.5 CI-confirmed (782e35e + 1a4b64f; runs #66 + #67); M22 CI-confirmed (ee8465b); browser-verified by human 2026-07-04; CLOSED; M23 human browser-verified 2026-07-06; CI pending
+Active Sprint / Milestone: M23 Platform UI and Dashboard Refinement — implemented; type-check + lint clean; human browser-verified; pending commit + CI
 Implementation Started: Yes (2026-06-05)
 
 ## Phase Summary
@@ -33,12 +33,12 @@ Phase 1 is formally closed. D9 (Docker Environment) and D10 (CI/CD Foundation) w
 > Its purpose is crash/session recovery: the current step state is always readable without
 > scanning Zone 5 history. It is overwritten each step — not appended.
 
-Milestone: M22 Dashboard Metrics + Recruiting Completion — CI-CONFIRMED
+Milestone: M23 Platform UI and Dashboard Refinement — IMPLEMENTED; CI PENDING
 Last Completed Milestone: M22 CI-CONFIRMED — ee8465b; human browser-verified 2026-07-04; CI green; FULLY CLOSED
-Last Completed Step: CI confirmed green by human operator
-Last Completed Step Date: 2026-07-04
-Current Step: M22 fully closed — no active step
-Session Classification: PHASE 3 M22 COMPLETE — web-only (apps/web/**); no backend, no BFF beyond candidate PUT, no schema, no migration, no Workforce UI, no candidate search, no standalone application creation
+Last Completed Step: M23 human browser verification — all panels confirmed; navigation consistent across Dashboard/WF/Recruiting; status pills rendering; font consistent
+Last Completed Step Date: 2026-07-06
+Current Step: M23 — commit + push + CI check (finalize task)
+Session Classification: PHASE 3 M23 — web-only (apps/web/**); no backend, no BFF, no schema, no migration; status indicator doctrine supersession; dashboard full real-data implementation; navigation + font consistency
 
 ## Milestone 10 — Approved Plan
 
@@ -9896,3 +9896,168 @@ These must be resolved by reading source files before implementing the affected 
 - `apps/web/src/app/(dashboard)/recruiting/interviews/[id]/error.tsx`
 - `apps/web/src/app/(dashboard)/recruiting/offers/[id]/error.tsx`
 - `apps/web/src/features/recruiting/components/edit-candidate-form.tsx`
+
+
+---
+
+# M23 — Platform UI and Dashboard Refinement
+
+> Entry added: 2026-07-06 (M23 implementation complete — human browser-verified)
+> Governance authority: governance/GD-M23-1.md (Approved 2026-07-06, Adaora / Project Mentor)
+
+---
+
+## M23 Overview
+
+M23 delivers three interlocking improvements to the platform UI:
+
+1. **Dashboard full real-data implementation** — closes WF-D6 (GD-M21-1 deferred item "Dashboard page redesign — Placeholder only"). The dashboard now fetches 22 parallel data points via `Promise.allSettled` and renders KPI cards, a Workforce Status panel, a Recruiting Pipeline panel, an Open Vacancies panel, and an Expiring Certifications panel (RBAC-gated). No fake or placeholder data is shown anywhere.
+
+2. **Status indicator doctrine supersession** — GD-M21-1 D10 mandated dot+label format for entity lifecycle statuses across Workforce. M23 supersedes this by introducing filled status pills across all Workforce and Recruiting table views. Vacancy PriorityBadge remains as a severity-grade pill and is not affected.
+
+3. **Platform-wide navigation and font consistency** — the Dashboard page now uses the same rounded-pill active nav treatment, gap-0.5 item spacing, and explicit IBM Plex Sans fontFamily as WorkforceShell and RecruitingShell. Visual discontinuity when navigating between domains is eliminated.
+
+**Governance:** GD-M23-1 — Approved 2026-07-06, Adaora / Project Mentor
+**Backend freeze:** No NestJS changes, no Prisma schema changes, no migrations, no new BFF handlers
+**Scope:** apps/web/** only
+
+---
+
+## M23 Capability: Dashboard Full Real-Data Implementation
+
+- **Deliverable status:** Required — closes WF-D6 (GD-M21-1 deferred item)
+- **Requirements:** GD-M23-1 Decision 2 (Dashboard Data Fidelity Policy), Decision 6 (WF-D6 Closure)
+- **Implementation:**
+  - `apps/web/src/app/(dashboard)/dashboard/page.tsx` — complete rewrite
+  - 22 parallel `serverFetch` calls via `Promise.allSettled` (r0–r21)
+  - r0–r4: employee status counts (ACTIVE, PENDING_ONBOARDING, ON_LEAVE, SUSPENDED, SEPARATED)
+  - r5: active positions count (`/api/v1/positions?status=ACTIVE&pageSize=1`)
+  - r6–r8: vacancy counts (OPEN, IN_RECRUITMENT, CRITICAL)
+  - r9–r13: application pipeline counts (SCREENING, EVALUATION, INTERVIEW, OFFER, HIRED)
+  - r14: total applications
+  - r15: scheduled interview count
+  - r16–r18: offer counts (SENT, ACCEPTED, DECLINED)
+  - r19: open vacancy list top-3 (`/api/v1/vacancies?status=OPEN&pageSize=3`)
+  - r20: expiring certifications (`/api/v1/employee-certifications/expiring?withinDays=30&pageSize=3`)
+  - r21: total positions count (for "N of M total positions" note on KPI card)
+  - KPI cards: Workforce (ACTIVE count), Vacancies (OPEN count), Active Positions (with note), Candidates
+  - Workforce Status panel: stacked proportional bar using `wfCurrent` (excludes Separated) as denominator; rate label "active current workforce"
+  - Recruiting Pipeline panel: SCREENING → EVALUATION → INTERVIEW → OFFER → HIRED bars; subtitle "Application counts by current status"; footer stat row (Interviews scheduled, Offers sent/accepted/declined)
+  - Open Vacancies panel: top-3 entries with status pills and priority; overflow row showing additional count as plain text (no duplicate View all link)
+  - Expiring Certifications panel: RBAC-gated; silently omitted on 403 (Recruiter, Executive User); renders for SA, HR Director, Workforce Planner, Compliance Officer
+  - IBM Plex Sans `fontFamily` explicitly set on outer div (Decision 4 — font consistency)
+- **Validation:** Human browser-verified 2026-07-06 against live Docker stack
+- **Overall maturity:** Integrated
+
+---
+
+## M23 Capability: Status Indicator Doctrine Supersession
+
+- **Deliverable status:** Required — supersedes GD-M21-1 D10
+- **Requirements:** GD-M23-1 Decision 1, Decision 5 (Shared StatusPill Component)
+- **Implementation:**
+  - `apps/web/src/components/shared/status-pill.tsx` (new) — `StatusPill({ color, bgColor, label })` primitive; inline-flex rounded-full; replaces dot+label pattern for lifecycle statuses
+  - `apps/web/src/features/workforce/components/employee-status-badge.tsx` — updated to use StatusPill
+  - `apps/web/src/features/workforce/components/position-status-badge.tsx` — updated to use StatusPill
+  - `apps/web/src/features/workforce/components/vacancy-badges.tsx` — VacancyStatusBadge updated to use StatusPill; PriorityBadge and AgingCell retained unchanged
+  - Workforce table components updated to import updated badges
+  - Recruiting table components updated to align with filled pill visual treatment
+- **Key constraint:** VacancyPriority (CRITICAL/HIGH/MEDIUM/LOW) is explicitly excluded. PriorityBadge remains as a severity-grade pill.
+- **Validation:** Human browser-verified 2026-07-06 — filled pills visible in Workforce tables; PriorityBadge unchanged
+- **Overall maturity:** Integrated
+
+---
+
+## M23 Capability: Platform Navigation and Font Consistency
+
+- **Deliverable status:** Required — eliminates visual discontinuity between Dashboard and WF/Recruiting pages
+- **Requirements:** GD-M23-1 Decision 3 (Navigation Consistency), Decision 4 (Font Application Rule)
+- **Implementation:**
+  - `apps/web/src/app/(dashboard)/dashboard/page.tsx` — active nav: `<span>` with `backgroundColor: rgba(255,255,255,0.12)`; inactive: `text-white/50`, hover `bg-white/[0.08] text-white/[0.85]`; `gap-0.5` spacing; `fontFamily` on outer div
+  - `apps/web/src/features/workforce/components/workforce-shell.tsx` — nav treatment aligned
+  - `apps/web/src/features/recruiting/components/recruiting-shell.tsx` — nav treatment aligned
+  - Navigation is token-for-token identical across Dashboard, Workforce, and Recruiting headers
+- **Validation:** Human browser-verified 2026-07-06 — identical header treatment across all three domains; IBM Plex Sans consistent
+- **Overall maturity:** Integrated
+
+---
+
+## M23 What Was Explicitly Excluded
+
+- No NestJS backend changes
+- No Prisma schema changes
+- No database migrations
+- No new BFF handlers
+- No new API routes
+- No aggregate analytics or placeholder dashboard sections
+- No "coming soon" banners for unimplemented features
+- No candidate text search (backend support not yet implemented)
+- No Skills & Certifications UI
+- No User Management UI
+- No Hiring Manager workspace
+
+---
+
+## M23 Files Changed
+
+**Modified (20):**
+- `apps/web/src/app/(dashboard)/dashboard/page.tsx`
+- `apps/web/src/app/(dashboard)/recruiting/applications/page.tsx`
+- `apps/web/src/app/(dashboard)/recruiting/candidates/page.tsx`
+- `apps/web/src/app/(dashboard)/recruiting/interviews/page.tsx`
+- `apps/web/src/app/(dashboard)/recruiting/offers/page.tsx`
+- `apps/web/src/components/shared/pagination.tsx`
+- `apps/web/src/features/auth/logout-button.tsx`
+- `apps/web/src/features/recruiting/components/application-table.tsx`
+- `apps/web/src/features/recruiting/components/candidate-table.tsx`
+- `apps/web/src/features/recruiting/components/interview-table.tsx`
+- `apps/web/src/features/recruiting/components/offer-table.tsx`
+- `apps/web/src/features/recruiting/components/recruiting-shell.tsx`
+- `apps/web/src/features/recruiting/components/status-dot.tsx`
+- `apps/web/src/features/workforce/components/employee-status-badge.tsx`
+- `apps/web/src/features/workforce/components/employee-table.tsx`
+- `apps/web/src/features/workforce/components/position-status-badge.tsx`
+- `apps/web/src/features/workforce/components/position-table.tsx`
+- `apps/web/src/features/workforce/components/vacancy-badges.tsx`
+- `apps/web/src/features/workforce/components/vacancy-table.tsx`
+- `apps/web/src/features/workforce/components/workforce-shell.tsx`
+
+**New (1):**
+- `apps/web/src/components/shared/status-pill.tsx`
+
+**Docs (2):**
+- `PROGRESS.md`
+- `governance/GD-M23-1.md`
+
+---
+
+## M23 Validation Summary
+
+| Check | Result |
+|---|---|
+| `npm run type-check` (apps/web) | EXIT 0 — 0 TypeScript errors |
+| `npm run lint` (apps/web) | EXIT 0 — 0 ESLint warnings or errors |
+| Human browser verification | PASSED — confirmed 2026-07-06 |
+| Docker rebuild required | Web-only rebuild (apps/web/** changes only) |
+| Commit structure | Single combined M23 commit |
+| Push | Pending |
+| CI | Pending |
+
+---
+
+## M23 Overall Maturity
+
+| Layer | Status |
+|---|---|
+| Requirements | Defined and satisfied — GD-M23-1 D1–D6 |
+| Specs | Defined — GD-M23-1 + this PROGRESS.md entry |
+| Directives | GD-M23-1 approved — supersedes GD-M21-1 D10 |
+| Execution Plan | Complete — all three M23 capabilities implemented |
+| State Model | N/A — no new workflow states |
+| Test Scenarios | Validated — type-check + lint + human browser verification |
+| System Loop | Integrated — dashboard metrics live via 22 Promise.allSettled fetches |
+| Failure Playbook | Graceful degradation via Promise.allSettled; RBAC-gated widgets silently omitted on 403 |
+| Environment Model | Unchanged — web-only rebuild; no Docker/infra/env changes |
+| Data Lifecycle | N/A — no schema or migration changes |
+| Evolution Strategy | StatusPill shared component established; WF-D6 closed; status indicator doctrine stable |
+| **Overall** | **Integrated — human browser-verified 2026-07-06; CI pending** |

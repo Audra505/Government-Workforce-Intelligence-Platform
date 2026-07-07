@@ -138,6 +138,14 @@ and is tracked in state/02_employee_lifecycle.md.
 
 ---
 
+## M23 — Platform UI and Dashboard Refinement
+
+| ID | Date | Subject | Impact |
+|---|---|---|---|
+| GD-M23-1 | 2026-07-06 | M23 Platform UI and Dashboard Refinement — Status Indicator Doctrine Supersession and Dashboard Data Policy | Approved 2026-07-06 (Adaora / Project Mentor); supersedes GD-M21-1 Decision 10 — lifecycle status indicators (Position/Employment/Vacancy/Application/Interview/Offer) change from dot+label to filled status pills via new shared ``StatusPill`` component; VacancyPriority PriorityBadge explicitly excluded (severity-grade pill retained); closes WF-D6 (GD-M21-1 deferred dashboard placeholder) — dashboard rewritten with 22 ``Promise.allSettled`` fetches, KPI cards, Workforce Status panel, Recruiting Pipeline panel, Open Vacancies panel, and RBAC-gated Expiring Certifications panel; establishes Dashboard Data Fidelity Policy (no fake/static/placeholder data; unsupported sections omitted entirely); establishes Font Application Rule (IBM Plex Sans ``fontFamily`` required on outer div of all shell/page components); establishes Navigation Consistency Standard (rounded-pill active nav treatment token-for-token identical across Dashboard/WorkforceShell/RecruitingShell); web-only milestone — no backend, Prisma, BFF, migrations; human browser-verified 2026-07-06; CI pending |
+
+---
+
 ## Shared Column Confirmation (Implementation Confirmation — Not a Governance Decision)
 
 | Date | Subject | Outcome |

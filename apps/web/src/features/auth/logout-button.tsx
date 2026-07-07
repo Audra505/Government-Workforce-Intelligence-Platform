@@ -24,10 +24,7 @@ export function LogoutButton() {
     <button
       onClick={handleLogout}
       disabled={isLoading}
-      className="text-sm transition-colors disabled:opacity-50"
-      style={{ color: 'rgba(255,255,255,0.7)' }}
-      onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = '#ffffff'; }}
-      onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = 'rgba(255,255,255,0.7)'; }}
+      className="rounded-[5px] px-[13px] py-[6px] text-[13px] font-medium text-white/50 transition-all hover:bg-white/[0.08] hover:text-white/[0.85] disabled:opacity-50"
     >
       {isLoading ? 'Signing out…' : 'Sign out'}
     </button>

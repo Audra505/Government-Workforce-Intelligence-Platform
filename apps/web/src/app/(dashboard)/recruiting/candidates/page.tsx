@@ -1,6 +1,7 @@
 import { Suspense } from 'react';
 import Link from 'next/link';
 import { cookies } from 'next/headers';
+import { Pagination } from '@/components/shared/pagination';
 import { serverFetch } from '@/lib/api';
 import { SESSION_COOKIE } from '@/lib/auth';
 import { RecruitingShell } from '@/features/recruiting/components/recruiting-shell';
@@ -62,9 +63,7 @@ function buildPageUrl(searchParams: PageSearchParams, targetPage: number): strin
   return `/recruiting/candidates?${params.toString()}`;
 }
 
-const BORDER = '#e2e8f0';
 const SUB    = '#475569';
-const MUTED  = '#94a3b8';
 const BLUE   = '#2563eb';
 
 export default async function CandidatesPage({ searchParams }: Props) {
@@ -135,52 +134,12 @@ export default async function CandidatesPage({ searchParams }: Props) {
       <CandidateTable candidates={candidates} hasFilters={hasFilters} />
 
       {total > 0 && (
-        <div
-          className="mt-4 flex items-center justify-between text-sm"
-          style={{ color: SUB }}
-        >
-          <span>Showing {rangeStart}–{rangeEnd} of {total}</span>
-
-          <div className="flex items-center gap-2">
-            {currentPage > 1 ? (
-              <Link
-                href={buildPageUrl(searchParams, currentPage - 1)}
-                className="rounded-md border px-3 py-1.5 text-sm transition-colors hover:bg-slate-50"
-                style={{ borderColor: BORDER }}
-              >
-                ← Previous
-              </Link>
-            ) : (
-              <span
-                aria-disabled="true"
-                className="rounded-md border px-3 py-1.5 text-sm opacity-40 cursor-not-allowed"
-                style={{ borderColor: BORDER }}
-              >
-                ← Previous
-              </span>
-            )}
-
-            <span className="px-2" style={{ color: MUTED }}>Page {currentPage} of {totalPages}</span>
-
-            {currentPage < totalPages ? (
-              <Link
-                href={buildPageUrl(searchParams, currentPage + 1)}
-                className="rounded-md border px-3 py-1.5 text-sm transition-colors hover:bg-slate-50"
-                style={{ borderColor: BORDER }}
-              >
-                Next →
-              </Link>
-            ) : (
-              <span
-                aria-disabled="true"
-                className="rounded-md border px-3 py-1.5 text-sm opacity-40 cursor-not-allowed"
-                style={{ borderColor: BORDER }}
-              >
-                Next →
-              </span>
-            )}
-          </div>
-        </div>
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          buildUrl={(page) => buildPageUrl(searchParams, page)}
+          summary={`Showing ${rangeStart}–${rangeEnd} of ${total}`}
+        />
       )}
     </RecruitingShell>
   );

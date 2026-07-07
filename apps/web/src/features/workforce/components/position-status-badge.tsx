@@ -1,12 +1,12 @@
-// Position lifecycle status indicator — 6px dot + label (M21C, GD-M21-1 D10).
-// Replaces pill badge; used in position-table.tsx and position-detail.tsx.
+// Position lifecycle status indicator — pill variant for list tables (M23 visual refinement).
+// Export name PositionStatusDot retained for backward compatibility.
 // Authority: directives/02_position_management_rules.md — POS-001 canonical states
 
-import { StatusDot } from '@/components/shared/status-dot';
-import type { StatusDotColor } from '@/components/shared/status-dot';
+import { StatusPill } from '@/components/shared/status-pill';
+import type { StatusPillColor } from '@/components/shared/status-pill';
 import type { PositionStatus } from '@/features/workforce/types';
 
-const STATUS_DOT: Record<PositionStatus, { color: StatusDotColor; label: string }> = {
+const STATUS_PILL: Record<PositionStatus, { color: StatusPillColor; label: string }> = {
   DRAFT:  { color: 'gray',  label: 'Draft' },
   ACTIVE: { color: 'green', label: 'Active' },
   FROZEN: { color: 'blue',  label: 'Frozen' },
@@ -14,6 +14,6 @@ const STATUS_DOT: Record<PositionStatus, { color: StatusDotColor; label: string 
 };
 
 export function PositionStatusDot({ status }: { status: PositionStatus }) {
-  const { color, label } = STATUS_DOT[status];
-  return <StatusDot color={color} label={label} />;
+  const { color, label } = STATUS_PILL[status];
+  return <StatusPill color={color} label={label} />;
 }

@@ -1,3 +1,7 @@
+// Offer list table — Server Component.
+// M23: Pill status, table shadow/radius per mockup.
+// No after:absolute row-click pattern — both Offer and Application columns are navigable links.
+
 import Link from 'next/link';
 import type { OfferRow } from '@/features/recruiting/types';
 import { OfferStatusDot } from './status-dot';
@@ -7,21 +11,22 @@ const CANVAS = '#f8fafc';
 const SUB    = '#475569';
 const MUTED  = '#94a3b8';
 const BLUE   = '#2563eb';
+const MONO   = "'IBM Plex Mono','Cascadia Code',Consolas,monospace";
 
-const MONO: React.CSSProperties = {
-  fontFamily: "var(--font-ibm-plex-mono, 'IBM Plex Mono', monospace)",
+const TH_STYLE: React.CSSProperties = {
+  fontSize: 10,
+  fontWeight: 700,
+  textTransform: 'uppercase',
+  letterSpacing: '0.09em',
+  color: MUTED,
+  backgroundColor: CANVAS,
+  whiteSpace: 'nowrap',
+};
+
+const MONO_STYLE: React.CSSProperties = {
+  fontFamily: MONO,
   fontSize: 12,
 };
-
-const TH: React.CSSProperties = {
-  backgroundColor: CANVAS,
-  color: MUTED,
-  fontSize: 11,
-  fontWeight: 500,
-  textTransform: 'uppercase',
-  letterSpacing: '0.06em',
-};
-
 
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString('en-US', {
@@ -44,7 +49,7 @@ export function OfferTable({ offers, hasFilters }: Props) {
   if (offers.length === 0) {
     return (
       <div
-        className="rounded-md border py-16 text-center text-sm"
+        className="rounded-lg border py-16 text-center text-sm"
         style={{ borderColor: BORDER, color: MUTED }}
       >
         {hasFilters
@@ -55,59 +60,64 @@ export function OfferTable({ offers, hasFilters }: Props) {
   }
 
   return (
-    <div className="overflow-hidden rounded-md border" style={{ borderColor: BORDER }}>
-      <table className="w-full border-collapse text-sm">
-        <thead>
-          <tr style={TH}>
-            <th className="px-4 py-3 text-left font-medium">Offer</th>
-            <th className="px-4 py-3 text-left font-medium">Application</th>
-            <th className="px-4 py-3 text-left font-medium">Status</th>
-            <th className="px-4 py-3 text-left font-medium">Offer Date</th>
-            <th className="px-4 py-3 text-left font-medium">Created</th>
-          </tr>
-        </thead>
-        <tbody>
-          {offers.map((o) => (
-            <tr
-              key={o.id}
-              className="border-t transition-colors hover:bg-slate-50"
-              style={{ borderColor: BORDER, height: 48 }}
-            >
-              <td className="px-4 py-3.5">
-                <Link
-                  href={`/recruiting/offers/${o.id}`}
-                  className="hover:underline"
-                  style={{ ...MONO, color: BLUE }}
-                >
-                  {shortId(o.id)}
-                </Link>
-              </td>
-
-              <td className="px-4 py-3.5">
-                <Link
-                  href={`/recruiting/applications/${o.applicationId}`}
-                  className="hover:underline"
-                  style={{ ...MONO, color: MUTED }}
-                >
-                  {shortId(o.applicationId)}
-                </Link>
-              </td>
-
-              <td className="px-4 py-3.5">
-                <OfferStatusDot status={o.status} />
-              </td>
-
-              <td className="px-4 py-3.5" style={{ ...MONO, color: o.offerDate ? SUB : MUTED }}>
-                {o.offerDate ? formatDate(o.offerDate) : '—'}
-              </td>
-
-              <td className="px-4 py-3.5" style={{ ...MONO, color: MUTED }}>
-                {formatDate(o.createdAt)}
-              </td>
+    <div
+      className="overflow-hidden rounded-lg border"
+      style={{ borderColor: BORDER, boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}
+    >
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead>
+            <tr style={{ borderBottom: `1px solid ${BORDER}` }}>
+              <th className="px-4 py-2.5 text-left" style={TH_STYLE}>Offer</th>
+              <th className="px-4 py-2.5 text-left" style={TH_STYLE}>Application</th>
+              <th className="px-4 py-2.5 text-left" style={TH_STYLE}>Status</th>
+              <th className="px-4 py-2.5 text-left" style={TH_STYLE}>Offer Date</th>
+              <th className="px-4 py-2.5 text-left" style={TH_STYLE}>Created</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {offers.map((o) => (
+              <tr
+                key={o.id}
+                className="h-12 border-b transition-colors hover:bg-slate-50 last:border-0"
+                style={{ borderColor: BORDER }}
+              >
+                <td className="px-4 py-3">
+                  <Link
+                    href={`/recruiting/offers/${o.id}`}
+                    className="hover:underline"
+                    style={{ ...MONO_STYLE, color: BLUE }}
+                  >
+                    {shortId(o.id)}
+                  </Link>
+                </td>
+
+                <td className="px-4 py-3">
+                  <Link
+                    href={`/recruiting/applications/${o.applicationId}`}
+                    className="hover:underline"
+                    style={{ ...MONO_STYLE, color: MUTED }}
+                  >
+                    {shortId(o.applicationId)}
+                  </Link>
+                </td>
+
+                <td className="px-4 py-3">
+                  <OfferStatusDot status={o.status} />
+                </td>
+
+                <td className="px-4 py-3" style={{ ...MONO_STYLE, color: o.offerDate ? SUB : MUTED }}>
+                  {o.offerDate ? formatDate(o.offerDate) : '—'}
+                </td>
+
+                <td className="px-4 py-3" style={{ ...MONO_STYLE, color: MUTED }}>
+                  {formatDate(o.createdAt)}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }
