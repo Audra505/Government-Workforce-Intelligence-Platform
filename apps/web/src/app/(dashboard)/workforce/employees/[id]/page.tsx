@@ -4,10 +4,13 @@
 // canWrite from JWT roles — gates Edit, EmployeeStatusActions, EmployeePositionActions (GD-M12-S4-1).
 // EMP-302: SEPARATED employees → no edit or status or position actions shown.
 // Active positions fetched for the assignment selector (parallel with employee fetch; errors caught).
+// M24C: Skills + certifications assignments and catalogs fetched non-fatally.
+//   If any fetch fails (e.g. 403, network error), EmployeeDetail degrades gracefully per section.
 // Current position title resolved via secondary fetch when positionId is set; title may be null
 //   if the position was deleted or if the caller's role cannot read it — EmployeeDetail degrades gracefully.
 // Reference: directives/13_employee_management_rules.md — EMP-AUTH-003, EMP-302, RBAC-952
 // Reference: governance/GD-M15-1.md — Decision 5, 6, 10
+// Reference: governance/GD-M24-1.md — Decisions 3, 6, 7
 
 import Link from 'next/link';
 import { cookies } from 'next/headers';
@@ -25,6 +28,14 @@ import type {
   PositionFullListApiResponse,
   PositionDetailApiResponse,
   PositionOption,
+  EmployeeSkillListApiResponse,
+  EmployeeCertificationListApiResponse,
+  SkillListApiResponse,
+  CertificationListApiResponse,
+  SkillRow,
+  CertificationRow,
+  EmployeeSkillAssignment,
+  EmployeeCertificationAssignment,
 } from '@/features/workforce/types';
 
 type Props = {
@@ -51,21 +62,46 @@ export default async function EmployeeDetailPage({ params }: Props) {
   const canWrite =
     roles.includes('System Administrator') || roles.includes('HR Director');
 
-  // Fetch active positions for the assignment selector and resolve current position title.
-  // Both fetches are non-fatal: network failures or RBAC blocks degrade gracefully.
-  const [activePositionsRes, currentPositionRes] = await Promise.all([
+  // All secondary fetches are non-fatal — network failures or RBAC blocks degrade gracefully.
+  // M24C: employee skills/certs and catalog lists added in parallel (6 total non-fatal fetches).
+  const [
+    activePositionsRes,
+    currentPositionRes,
+    employeeSkillsRes,
+    employeeCertsRes,
+    skillsCatalogRes,
+    certsCatalogRes,
+  ] = await Promise.all([
     serverFetch<PositionFullListApiResponse>('/api/v1/positions?status=ACTIVE&pageSize=100')
       .catch(() => null),
     employee.positionId
       ? serverFetch<PositionDetailApiResponse>(`/api/v1/positions/${employee.positionId}`)
           .catch(() => null)
       : Promise.resolve(null),
+    serverFetch<EmployeeSkillListApiResponse>(`/api/v1/employees/${params.id}/skills`)
+      .catch(() => null),
+    serverFetch<EmployeeCertificationListApiResponse>(`/api/v1/employees/${params.id}/certifications`)
+      .catch(() => null),
+    serverFetch<SkillListApiResponse>('/api/v1/skills?pageSize=100')
+      .catch(() => null),
+    serverFetch<CertificationListApiResponse>('/api/v1/certifications?pageSize=100')
+      .catch(() => null),
   ]);
 
   const activePositions: PositionOption[] =
     activePositionsRes?.data.positions ?? [];
   const currentPositionTitle: string | null =
     currentPositionRes?.data.title ?? null;
+
+  // null = fetch failed (section degrades gracefully); [] = success with no data
+  const employeeSkills: EmployeeSkillAssignment[] | null =
+    employeeSkillsRes ? (employeeSkillsRes.data.skills ?? []) : null;
+  const employeeCertifications: EmployeeCertificationAssignment[] | null =
+    employeeCertsRes ? (employeeCertsRes.data.certifications ?? []) : null;
+  const skillsCatalog: SkillRow[] | null =
+    skillsCatalogRes ? (skillsCatalogRes.data.skills ?? []) : null;
+  const certificationsCatalog: CertificationRow[] | null =
+    certsCatalogRes ? (certsCatalogRes.data.certifications ?? []) : null;
 
   return (
     <WorkforceShell activeTab="employees" breadcrumb={`${employee.firstName} ${employee.lastName}`}>
@@ -120,7 +156,15 @@ export default async function EmployeeDetailPage({ params }: Props) {
         )}
       </div>
 
-      <EmployeeDetail employee={employee} currentPositionTitle={currentPositionTitle} />
+      <EmployeeDetail
+        employee={employee}
+        currentPositionTitle={currentPositionTitle}
+        employeeSkills={employeeSkills}
+        employeeCertifications={employeeCertifications}
+        skillsCatalog={skillsCatalog}
+        certificationsCatalog={certificationsCatalog}
+        canWrite={canWrite}
+      />
     </WorkforceShell>
   );
 }

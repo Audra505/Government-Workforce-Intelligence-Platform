@@ -472,7 +472,7 @@ export default async function DashboardPage() {
             {/* Certifications — only if endpoint was accessible for this role */}
             {certsFetchable && (
               <div style={CARD}>
-                <CardHead title="Certifications Expiring Soon" href="/workforce/employees" />
+                <CardHead title="Certifications Expiring Soon" href="/workforce/certifications/expiring" />
                 {certs.length > 0 ? (
                   <>
                     {certs.map((cert, i) => {
@@ -506,7 +506,7 @@ export default async function DashboardPage() {
                         <span style={{ fontSize: 12, color: MUTED }}>
                           {certsTotal} total certification{certsTotal !== 1 ? 's' : ''} expiring within 30 days
                         </span>
-                        <Link href="/workforce/employees" style={{ fontSize: 11, color: BLUE }}>View all →</Link>
+                        <Link href="/workforce/certifications/expiring" style={{ fontSize: 11, color: BLUE }}>View all →</Link>
                       </div>
                     )}
                   </>

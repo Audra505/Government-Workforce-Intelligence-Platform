@@ -7,7 +7,9 @@
 import Link from 'next/link';
 import { LogoutButton } from '@/features/auth/logout-button';
 
-type ActiveTab = 'positions' | 'vacancies' | 'employees';
+// GD-M24-1 D4: ActiveTab extended with 'skills' and 'certifications'.
+// Canonical tab order: Positions · Vacancies · Employees · Skills · Certifications.
+type ActiveTab = 'positions' | 'vacancies' | 'employees' | 'skills' | 'certifications';
 type TabCounts = Partial<Record<ActiveTab, number>>;
 
 type Props = {
@@ -18,9 +20,11 @@ type Props = {
 };
 
 const TABS: { id: ActiveTab; label: string; href: string }[] = [
-  { id: 'positions', label: 'Positions', href: '/workforce/positions' },
-  { id: 'vacancies', label: 'Vacancies', href: '/workforce/vacancies' },
-  { id: 'employees', label: 'Employees', href: '/workforce/employees' },
+  { id: 'positions',      label: 'Positions',      href: '/workforce/positions' },
+  { id: 'vacancies',      label: 'Vacancies',      href: '/workforce/vacancies' },
+  { id: 'employees',      label: 'Employees',      href: '/workforce/employees' },
+  { id: 'skills',         label: 'Skills',         href: '/workforce/skills' },
+  { id: 'certifications', label: 'Certifications', href: '/workforce/certifications' },
 ];
 
 // GD-M21-1 D16 color palette (matches GD-M20-1 D16)

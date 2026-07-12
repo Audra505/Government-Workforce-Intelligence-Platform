@@ -248,3 +248,164 @@ export type UpdatePositionBffResponse =
 export type ClosePositionBffResponse =
   | { success: true; data: PositionRow }
   | { success: false; error: { code: string; message: string } };
+
+// ===========================================================================
+// M24 — Skills & Certifications Catalog Types
+// Reference: governance/GD-M24-1.md — Decisions 1, 3
+// Reference: apps/api/src/workforce/skill.controller.ts — toSkillShape()
+// Reference: apps/api/src/workforce/certification.controller.ts — toCertificationShape()
+// tenantId intentionally absent — excluded per SEC-003.
+// ===========================================================================
+
+export type SkillRow = {
+  id: string;
+  name: string;
+  category: string | null;
+  description: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type SkillListApiResponse = {
+  success: true;
+  data: {
+    skills: SkillRow[];
+    total: number;
+    page: number;
+    pageSize: number;
+    totalPages: number;
+  };
+};
+
+export type SkillDetailApiResponse = {
+  success: true;
+  data: SkillRow;
+};
+
+export type CreateSkillBffResponse =
+  | { success: true; data: SkillRow }
+  | { success: false; error: { code: string; message: string } };
+
+export type UpdateSkillBffResponse =
+  | { success: true; data: SkillRow }
+  | { success: false; error: { code: string; message: string } };
+
+export type CertificationRow = {
+  id: string;
+  name: string;
+  issuer: string | null;
+  expirationRequired: boolean;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type CertificationListApiResponse = {
+  success: true;
+  data: {
+    certifications: CertificationRow[];
+    total: number;
+    page: number;
+    pageSize: number;
+    totalPages: number;
+  };
+};
+
+export type CertificationDetailApiResponse = {
+  success: true;
+  data: CertificationRow;
+};
+
+export type CreateCertificationBffResponse =
+  | { success: true; data: CertificationRow }
+  | { success: false; error: { code: string; message: string } };
+
+export type UpdateCertificationBffResponse =
+  | { success: true; data: CertificationRow }
+  | { success: false; error: { code: string; message: string } };
+
+// ===========================================================================
+// M24C — Employee-Level Skill and Certification Assignment Types
+// Reference: governance/GD-M24-1.md — Decisions 6, 7, 8
+// Reference: apps/api/src/workforce/employee.controller.ts — skills/certifications sections
+// These shapes mirror the NestJS GET /api/v1/employees/:id/skills|certifications responses.
+// tenantId intentionally absent — excluded per SEC-003.
+// ===========================================================================
+
+export type ProficiencyLevel = 'BEGINNER' | 'DEVELOPING' | 'PROFICIENT' | 'ADVANCED' | 'EXPERT';
+
+export type EmployeeSkillAssignment = {
+  skillId: string;
+  skillName: string;
+  skillCategory: string | null;
+  proficiencyLevel: ProficiencyLevel | null;
+  verifiedAt: string | null;
+};
+
+export type EmployeeSkillListApiResponse = {
+  success: true;
+  data: {
+    skills: EmployeeSkillAssignment[];
+  };
+};
+
+export type AssignSkillBffResponse =
+  | { success: true; data: EmployeeSkillAssignment }
+  | { success: false; error: { code: string; message: string } };
+
+export type CertificationAssignmentStatus = 'ACTIVE' | 'EXPIRED' | 'REVOKED';
+
+export type EmployeeCertificationAssignment = {
+  certificationId: string;
+  certificationName: string;
+  issuer: string | null;
+  status: CertificationAssignmentStatus;
+  issueDate: string | null;
+  expirationDate: string | null;
+};
+
+export type EmployeeCertificationListApiResponse = {
+  success: true;
+  data: {
+    certifications: EmployeeCertificationAssignment[];
+  };
+};
+
+export type AssignCertificationBffResponse =
+  | { success: true; data: { assignment: EmployeeCertificationAssignment } }
+  | { success: false; error: { code: string; message: string } };
+
+// ===========================================================================
+// M24D — Expiring Certifications Report Types
+// Reference: governance/GD-M24-1.md — Decision 10
+// Reference: apps/api/src/workforce/employee-certification.controller.ts
+//            GET /api/v1/employee-certifications/expiring
+// tenantId intentionally absent — excluded per SEC-003.
+// employeeNumber: may be null for legacy records.
+// issuer: may be null for catalog certs without an issuer.
+// issueDate: may be null (not always captured at assignment).
+// status: expected ACTIVE from this endpoint; handle any CertificationAssignmentStatus gracefully.
+// ===========================================================================
+
+export type ExpiringCertItem = {
+  employeeId: string;
+  firstName: string;
+  lastName: string;
+  employeeNumber: string | null;
+  certificationId: string;
+  certificationName: string;
+  issuer: string | null;
+  status: CertificationAssignmentStatus;
+  issueDate: string | null;
+  expirationDate: string;
+};
+
+export type ExpiringCertListApiResponse = {
+  success: true;
+  data: {
+    expiringCertifications: ExpiringCertItem[];
+    total: number;
+    page: number;
+    pageSize: number;
+    totalPages: number;
+  };
+};
