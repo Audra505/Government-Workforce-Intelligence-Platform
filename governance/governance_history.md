@@ -146,6 +146,14 @@ and is tracked in state/02_employee_lifecycle.md.
 
 ---
 
+## M24 — Skills & Certifications Workspace
+
+| ID | Date | Subject | Impact |
+|---|---|---|---|
+| GD-M24-1 | 2026-07-11 | Skills & Certifications Workspace — Frontend Implementation and BFF Contract Authority | Draft 2026-07-11 (pending approval); introduces M24 as the Skills & Certifications Workspace milestone — frontend-only layer over the complete M13/M14 backend domain; 6 new BFF routes (skills, certifications, employee sub-routes), 7 new frontend routes (/workforce/skills, /workforce/certifications, /workforce/certifications/expiring and create/edit sub-routes), WorkforceShell nav extended with Skills and Certifications tabs (canonical order: Positions · Vacancies · Employees · Skills · Certifications); employee detail page gains Skills and Certifications section cards with assign forms; /workforce/certifications/expiring cross-employee management view; dashboard cert widget gains link to expiring certs page (after route exists); 12 governance decisions; explicitly prohibits removal endpoints (no DELETE exists at backend), position skills/certs (GD-M13-5), FR-152 Competency Framework (GD-PRE-PHASE3-004), bulk import, AI skill-matching, fake/placeholder analytics; RBAC write: SA+HRD; read: SA+HRD+WP+CO; Recruiter and Executive User handled gracefully on 403; REVOKED certification assignments render read-only; SEPARATED employee guard applied to all assign affordances; GD-M23-1 D2 Data Fidelity Policy extended to all M24 pages; web-only — no backend, Prisma, migrations, middleware |
+
+---
+
 ## Shared Column Confirmation (Implementation Confirmation — Not a Governance Decision)
 
 | Date | Subject | Outcome |
