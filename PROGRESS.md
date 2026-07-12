@@ -9,16 +9,16 @@
 
 ---
 
-Last Updated: 2026-07-06 (M23 Platform UI and Dashboard Refinement — CI CONFIRMED; 5fedb81; human browser-verified + CI green)
-Updated By: Claude Code (M23 CI confirmed by human operator; 5fedb81 green; M23 fully closed)
+Last Updated: 2026-07-11 (M24 Skills & Certifications Workspace — CI CONFIRMED; 5f5bfa6; human browser-verified + CI green)
+Updated By: Claude Code (M24 CI confirmed; 5f5bfa6 green; M24 fully closed)
 
-Previous Update: 2026-07-04 (M22 Dashboard Metrics + Recruiting Completion — CI CONFIRMED; ee8465b; human browser-verified + CI green)
+Previous Update: 2026-07-06 (M23 Platform UI and Dashboard Refinement — CI CONFIRMED; 5fedb81; human browser-verified + CI green)
 
 ## Repository Status
 
-Current Phase: **Phase 3 — M23 CI-CONFIRMED (Platform UI and Dashboard Refinement)**
-Overall Classification: Phase 2 COMPLETE; Post-Phase-2 milestones M13/M14/M15 CI-confirmed; Pre-Phase-3 Governance Package CI-confirmed (a5c34f1); Phase 3 started — M16 CI-confirmed; M17 CI-confirmed; M18 CI-confirmed; M19 CI-confirmed; M20 CI-confirmed (6e6777b; run 28611838113); M21 CI-confirmed (1036c92 + 3c8189d + 1e33420); browser-verified by human 2026-07-03; CLOSED; M21.5 CI-confirmed (782e35e + 1a4b64f; runs #66 + #67); M22 CI-confirmed (ee8465b); browser-verified by human 2026-07-04; CLOSED; M23 CI-confirmed (5fedb81); browser-verified by human 2026-07-06; CLOSED
-Active Sprint / Milestone: M23 CLOSED and CI-confirmed (5fedb81; 2026-07-06)
+Current Phase: **Phase 3 — M24 CI-CONFIRMED (Skills & Certifications Workspace)**
+Overall Classification: Phase 2 COMPLETE; Post-Phase-2 milestones M13/M14/M15 CI-confirmed; Pre-Phase-3 Governance Package CI-confirmed (a5c34f1); Phase 3 started — M16 CI-confirmed; M17 CI-confirmed; M18 CI-confirmed; M19 CI-confirmed; M20 CI-confirmed (6e6777b; run 28611838113); M21 CI-confirmed (1036c92 + 3c8189d + 1e33420); browser-verified by human 2026-07-03; CLOSED; M21.5 CI-confirmed (782e35e + 1a4b64f; runs #66 + #67); M22 CI-confirmed (ee8465b); browser-verified by human 2026-07-04; CLOSED; M23 CI-confirmed (5fedb81); browser-verified by human 2026-07-06; CLOSED; M24 CI-confirmed (5f5bfa6); browser-verified by human 2026-07-11; CLOSED
+Active Sprint / Milestone: M24 CLOSED and CI-confirmed (5f5bfa6; 2026-07-11)
 Implementation Started: Yes (2026-06-05)
 
 ## Phase Summary
@@ -33,12 +33,12 @@ Phase 1 is formally closed. D9 (Docker Environment) and D10 (CI/CD Foundation) w
 > Its purpose is crash/session recovery: the current step state is always readable without
 > scanning Zone 5 history. It is overwritten each step — not appended.
 
-Milestone: M23 Platform UI and Dashboard Refinement — CI-CONFIRMED
-Last Completed Milestone: M23 CI-CONFIRMED — 5fedb81; human browser-verified 2026-07-06; CI green; FULLY CLOSED
-Last Completed Step: CI confirmed green by human operator
-Last Completed Step Date: 2026-07-06
-Current Step: M23 fully closed — no active step
-Session Classification: PHASE 3 M23 COMPLETE — web-only (apps/web/**); no backend, no BFF, no schema, no migration; status indicator doctrine supersession; dashboard full real-data implementation; navigation + font consistency
+Milestone: M24 Skills & Certifications Workspace — CI-CONFIRMED
+Last Completed Milestone: M24 CI-CONFIRMED — 5f5bfa6; human browser-verified 2026-07-11; CI green; FULLY CLOSED
+Last Completed Step: CI confirmed green
+Last Completed Step Date: 2026-07-11
+Current Step: M24 fully closed — no active step
+Session Classification: PHASE 3 M24 COMPLETE — web-only (apps/web/**); no backend, no schema, no migration; Skills & Certifications catalog + employee assignments + expiring report + dashboard link
 
 ## Milestone 10 — Approved Plan
 
@@ -10061,3 +10061,126 @@ M23 delivers three interlocking improvements to the platform UI:
 | Data Lifecycle | N/A — no schema or migration changes |
 | Evolution Strategy | StatusPill shared component established; WF-D6 closed; status indicator doctrine stable |
 | **Overall** | **Verified — human browser-verified 2026-07-06; CI confirmed (5fedb81; run 28836246465)** |
+
+---
+
+# Milestone 24 — Skills & Certifications Workspace
+
+**Date:** 2026-07-11
+**Phase:** Phase 3
+**Status:** CI-CONFIRMED — human browser-verified; CI green
+**Governance baseline commit:** 7dd03a0 (governance/GD-M24-1.md)
+**Implementation commit:** 5f5bfa6 — "Implement M24 Skills and Certifications Workspace"
+**CI result:** CONFIRMED GREEN — Install, Lint, Build, Test — conclusion: success
+**Browser verification:** PASSED — human operator verified M24A–D 2026-07-11
+
+## M24 Sub-Milestones
+
+| Sub | Capability | Status |
+|-----|-----------|--------|
+| M24A | WorkforceShell nav extension (Skills + Certifications tabs) + BFF route foundation | Verified |
+| M24B | Skills and Certifications catalog pages, tables, create/edit forms | Verified |
+| M24C | Employee detail Skills and Certifications sections + assign/update forms | Verified |
+| M24D | Expiring Certifications report page + Dashboard cert widget link fix | Verified |
+
+## What Changed
+
+**Modified (5 files):**
+- `apps/web/src/app/(dashboard)/dashboard/page.tsx` — cert widget CardHead + footer link updated from `/workforce/employees` to `/workforce/certifications/expiring` (M24D)
+- `apps/web/src/app/(dashboard)/workforce/employees/[id]/page.tsx` — 4 additional non-fatal parallel fetches for employee skills/certs + catalog lists; props extended to EmployeeDetail (M24C)
+- `apps/web/src/features/workforce/components/employee-detail.tsx` — Skills and Certifications cards with RBAC-gated assign forms; PROFICIENCY_LABELS; CERT_STATUS_STYLE/LABELS; non-fatal null/empty-state handling (M24C)
+- `apps/web/src/features/workforce/components/workforce-shell.tsx` — ActiveTab union + TABS array extended with 'skills' and 'certifications' (M24A)
+- `apps/web/src/features/workforce/types.ts` — M24B/C/D type additions (SkillRow, CertificationRow, assignment types, ExpiringCertItem, all API response types)
+
+**New pages — Skills catalog (5 files):**
+- `apps/web/src/app/(dashboard)/workforce/skills/page.tsx`
+- `apps/web/src/app/(dashboard)/workforce/skills/new/page.tsx`
+- `apps/web/src/app/(dashboard)/workforce/skills/[id]/edit/page.tsx`
+- `apps/web/src/app/(dashboard)/workforce/skills/loading.tsx`
+- `apps/web/src/app/(dashboard)/workforce/skills/error.tsx`
+
+**New pages — Certifications catalog (8 files):**
+- `apps/web/src/app/(dashboard)/workforce/certifications/page.tsx`
+- `apps/web/src/app/(dashboard)/workforce/certifications/new/page.tsx`
+- `apps/web/src/app/(dashboard)/workforce/certifications/[id]/edit/page.tsx`
+- `apps/web/src/app/(dashboard)/workforce/certifications/loading.tsx`
+- `apps/web/src/app/(dashboard)/workforce/certifications/error.tsx`
+- `apps/web/src/app/(dashboard)/workforce/certifications/expiring/page.tsx`
+- `apps/web/src/app/(dashboard)/workforce/certifications/expiring/loading.tsx`
+- `apps/web/src/app/(dashboard)/workforce/certifications/expiring/error.tsx`
+
+**New BFF routes (6 files):**
+- `apps/web/src/app/api/skills/route.ts` — GET list + POST create (SEC-003 tenantId rejection)
+- `apps/web/src/app/api/skills/[id]/route.ts` — GET detail + PATCH update
+- `apps/web/src/app/api/certifications/route.ts` — GET list + POST create
+- `apps/web/src/app/api/certifications/[id]/route.ts` — GET detail + PATCH update
+- `apps/web/src/app/api/employees/[id]/skills/route.ts` — GET list + POST upsert (201/200 forwarded)
+- `apps/web/src/app/api/employees/[id]/certifications/route.ts` — GET list + POST upsert
+
+**New components (9 files):**
+- `apps/web/src/features/workforce/components/skill-table.tsx`
+- `apps/web/src/features/workforce/components/create-skill-form.tsx`
+- `apps/web/src/features/workforce/components/edit-skill-form.tsx`
+- `apps/web/src/features/workforce/components/certification-table.tsx`
+- `apps/web/src/features/workforce/components/create-certification-form.tsx`
+- `apps/web/src/features/workforce/components/edit-certification-form.tsx`
+- `apps/web/src/features/workforce/components/assign-skill-form.tsx`
+- `apps/web/src/features/workforce/components/assign-certification-form.tsx`
+- `apps/web/src/features/workforce/components/expiring-certification-table.tsx`
+
+## Key Design Decisions (per GD-M24-1)
+
+- **SEC-003**: tenantId never forwarded from BFF; 400 returned if present in request body
+- **Non-fatal fetches**: all employee detail secondary fetches use `.catch(() => null)`; null renders degraded state, [] renders EmptyState, non-empty renders table
+- **RBAC gating**: canWrite = SA + HR Director; assign forms hidden for Workforce Planner + Compliance Officer + others; read-only view rendered
+- **SEPARATED guard**: assign forms hidden when `employmentStatus === 'SEPARATED'`
+- **REVOKED cert guard (CRT-301)**: REVOKED is terminal; form detects via existingAssignment?.status, shows red banner, disables submit
+- **Upsert forwarding**: BFF forwards `apiRes.status` (201 INSERT / 200 UPDATE); toast message differs accordingly
+- **Static route priority**: `/certifications/expiring` (static) takes priority over `/certifications/[id]` (dynamic) in App Router
+- **withinDays type safety**: `30 | 60 | 90 | 365` literal union; invalid falls back to 30 via `VALID_WITHIN_DAYS.includes(n)` guard
+- **403 graceful handling**: expiring certifications page catches ApiError(403) inside the page component; renders access-denied card inside WorkforceShell; does not throw to error boundary
+
+## Validation
+
+| Check | Result |
+|---|---|
+| `npm run type-check` (apps/web) | EXIT 0 — 0 TypeScript errors |
+| `npm run lint` (apps/web) | EXIT 0 — 0 ESLint warnings or errors |
+| Human browser verification | PASSED — M24A–D verified 2026-07-11 |
+| Docker web rebuild | Completed; all M24 routes confirmed in build manifest |
+| Commit | 5f5bfa6 — 33 files changed, 3657 insertions(+), 12 deletions(-) |
+| Push | origin/main — 7dd03a0..5f5bfa6 |
+| CI | CONFIRMED GREEN — Install, Lint, Build, Test — success |
+
+## Explicit Exclusions
+
+The following were explicitly excluded from M24 scope and are NOT present in the implementation commit:
+
+- No removal/delete actions for skills or certifications
+- No position skill/certification requirements feature
+- No competency framework
+- No AI matching or skill gap analysis
+- No fake dashboard metrics or unsupported dashboard widgets
+- No backend (NestJS) code changes
+- No Prisma schema changes
+- No database migrations
+- No governance file changes (GD-M24-1.md committed separately in 7dd03a0)
+- No Recruiting module changes
+- No candidate search or pipeline integration
+
+## M24 Overall Maturity
+
+| Layer | Status |
+|---|---|
+| Requirements | Defined — GD-M24-1.md (7dd03a0) |
+| Specs | Defined — GD-M24-1 + this PROGRESS.md entry |
+| Directives | GD-M24-1 approved and committed |
+| Execution Plan | Complete — M24A/B/C/D all implemented |
+| State Model | CertificationAssignmentStatus (ACTIVE/EXPIRED/REVOKED); ProficiencyLevel (5 levels) |
+| Test Scenarios | Validated — type-check + lint + human browser verification |
+| System Loop | Integrated — Skills/Certifications catalog + employee assignments + expiring report + dashboard link |
+| Failure Playbook | Non-fatal fetch degradation; REVOKED terminal guard; 403 graceful handling in expiring page |
+| Environment Model | Web-only rebuild; no Docker/infra/env changes required |
+| Data Lifecycle | N/A — no schema or migration changes; data managed by existing NestJS endpoints |
+| Evolution Strategy | BFF route pattern established; assign form upsert pattern (201/200 forwarding) documented |
+| **Overall** | **Verified — human browser-verified 2026-07-11; CI confirmed (5f5bfa6)** |
