@@ -154,6 +154,14 @@ and is tracked in state/02_employee_lifecycle.md.
 
 ---
 
+## M25 — Admin Workspace
+
+| ID | Date | Subject | Impact |
+|---|---|---|---|
+| GD-M25-1 | 2026-07-13 | Admin Workspace — Department Management and Read-Only User Management Scope, RBAC, and BFF Contract | Draft 2026-07-13 (pending approval); introduces M25 as the Admin Workspace milestone — frontend-only layer over the existing user and department backend domains; delivers Department Management (full CRUD: list, create, view, edit, deactivate with inline guard error banners) and read-only User Management (list, view detail — no write operations); AdminShell introduced mirroring WorkforceShell pattern with navy header, Users · Departments tabs, and IBM Plex Sans; Admin top-nav link added to WorkforceShell and RecruitingShell (visible to SA + HRD only); 2 new BFF routes (POST /api/departments, PATCH /api/departments/:id); user reads use serverFetch directly (no BFF needed); SEC-003 enforced — tenantId rejected at BFF; BFF rejects status: 'ACTIVE' payload (DEP-004 reactivation guard); 3 deactivation 422 guard errors (DEPARTMENT_HAS_ACTIVE_EMPLOYEES, DEPARTMENT_HAS_ACTIVE_POSITIONS, DEPARTMENT_HAS_ACTIVE_DEPENDENTS) rendered as persistent inline banners not toast; status pills: dept ACTIVE=green/INACTIVE=gray; user ACTIVE=green/INVITED=blue/SUSPENDED=amber/DEACTIVATED=gray; 13 governance decisions (D12 adds UI Consistency Policy requiring all Admin Workspace surfaces to match existing M20/M21/M23/M24 platform treatment; D13 is Validation Gate); Create User explicitly deferred — POST /api/v1/users requires roleIds: UUID[] and no GET /api/v1/roles endpoint exists; hardcoding role UUIDs is forbidden; user edit/deactivate/delete/password reset/role reassignment deferred (no backend endpoints); department reactivation, department delete, agency management, audit log, AI config, bulk ops explicitly excluded; GD-M23-1 D2 Data Fidelity Policy extended to all M25 pages; no placeholder panels, disabled stubs, or "coming soon" elements; web-only — no backend, Prisma, migrations, middleware |
+
+---
+
 ## Shared Column Confirmation (Implementation Confirmation — Not a Governance Decision)
 
 | Date | Subject | Outcome |
