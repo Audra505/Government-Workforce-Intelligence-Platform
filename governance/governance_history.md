@@ -170,6 +170,14 @@ and is tracked in state/02_employee_lifecycle.md.
 
 ---
 
+## M27 — User Lifecycle Management
+
+| ID | Date | Subject | Impact |
+|---|---|---|---|
+| GD-M27-1 | 2026-07-14 | User Lifecycle Management — User Edit, Status Management, and Role Reassignment | Draft 2026-07-14 (pending approval); resolves all GD-M26-1 Exclusions deferred to M27 (PATCH /api/v1/users/:id, user status changes, existing-user role reassignment); delivers single PATCH endpoint with updatable fields (firstName, lastName, email, status, roleIds — all optional, at least one required); status transition matrix: ACTIVE↔SUSPENDED, ACTIVE→DEACTIVATED, SUSPENDED→DEACTIVATED, DEACTIVATED→ACTIVE — INVITED transitions and DEACTIVATED→SUSPENDED explicitly blocked (INVALID_STATUS_TRANSITION 422); Last-SA safety guard enforced within $transaction — any operation that would leave 0 active System Administrators returns LAST_SYSTEM_ADMINISTRATOR 422; HRD authority boundary: HRD may not edit, suspend, deactivate, or change roles for any SA user (FORBIDDEN_USER_MANAGEMENT 403); role reassignment: roleIds replaces complete role set atomically (deleteMany + createMany in same $transaction); FORBIDDEN_ROLE_ASSIGNMENT guard extended from M26 to updateUser; 5 new AuditEventType values (IDENTITY_USER_UPDATED, IDENTITY_USER_SUSPENDED, IDENTITY_USER_DEACTIVATED, IDENTITY_USER_REACTIVATED, AUTHZ_ROLE_REMOVED); new BFF route PATCH /api/users/[id] with SEC-003 tenantId rejection; new /admin/users/[id]/edit page (server component fetches user + roles, maps role names→IDs for pre-population, EditUserForm with firstName/lastName/email/roles fields, no status or password); status action buttons component on detail page (Suspend/Deactivate/Reactivate rendered by current status and actor role); Edit button visible on detail page for SA (all users) and HRD (non-SA users only); UI follows GD-M25-1 D12 Consistency Policy; 14 governance decisions; backend tests: updateUser() unit tests, controller PATCH unit tests, E2E PATCH suite; validation gate requires all tests pass, type-check exit 0, lint exit 0, browser verification (SA + HRD paths, guard scenarios), CI green; explicit exclusions: password change/reset, user invite/activation, DELETE endpoint, audit log viewer, dashboard aggregate, Prisma schema changes, database migrations |
+
+---
+
 ## Shared Column Confirmation (Implementation Confirmation — Not a Governance Decision)
 
 | Date | Subject | Outcome |
