@@ -43,7 +43,10 @@ export type CreateUserResult =
   | { outcome: 'SUCCESS'; user: UserRecord }
   | { outcome: 'EMAIL_CONFLICT' }
   | { outcome: 'ROLE_NOT_FOUND'; missingIds: string[] }
+  | { outcome: 'FORBIDDEN_ROLE_ASSIGNMENT'; forbiddenRoleId: string }
   | { outcome: 'INTERNAL_ERROR' };
+
+export type GetRolesResult = { id: string; name: string }[];
 
 export type ListUsersResult =
   | { outcome: 'SUCCESS'; users: UserRecord[]; total: number; page: number; pageSize: number }
@@ -107,6 +110,7 @@ export class UsersService {
     dto: CreateUserDto,
     tenantId: string,
     actorUserId: string,
+    actorRoles: string[],
   ): Promise<CreateUserResult> {
     // Normalize email — DTO validates format; service enforces canonical form
     const email = dto.email.toLowerCase().trim();
@@ -124,6 +128,24 @@ export class UsersService {
       const foundIds = new Set(foundRoles.map(r => r.id));
       const missingIds = uniqueRoleIds.filter(id => !foundIds.has(id));
       return { outcome: 'ROLE_NOT_FOUND', missingIds };
+    }
+
+    // GD-M26-1 Decision 3: HR Director may not assign System Administrator.
+    // Defense-in-depth: RolesController already filters SA from HRD's selector,
+    // but service enforces the same restriction for direct API calls.
+    if (!actorRoles.includes('System Administrator')) {
+      const sysAdminRole = foundRoles.find(r => r.name === 'System Administrator');
+      if (sysAdminRole) {
+        await this.auditService.logEvent({
+          tenantId,
+          userId: actorUserId,
+          action: AuditEventType.AUTHZ_ACCESS_DENIED,
+          result: 'FAILURE',
+          entityType: 'ROLE',
+          entityId: sysAdminRole.id,
+        });
+        return { outcome: 'FORBIDDEN_ROLE_ASSIGNMENT', forbiddenRoleId: sysAdminRole.id };
+      }
     }
 
     // Hash password outside the transaction — bcrypt is CPU-bound; holding a DB
@@ -290,5 +312,19 @@ export class UsersService {
     }
 
     return { outcome: 'SUCCESS', user: toUserRecord(user) };
+  }
+
+  // GD-M26-1 Decision 2: returns roles the actor may assign.
+  // SA receives all 7; HRD receives 6 (System Administrator excluded).
+  async getRoles(actorRoles: string[]): Promise<GetRolesResult> {
+    const where = actorRoles.includes('System Administrator')
+      ? {}
+      : { name: { not: 'System Administrator' as const } };
+
+    return this.prisma.role.findMany({
+      where,
+      select: { id: true, name: true },
+      orderBy: { name: 'asc' },
+    });
   }
 }

@@ -70,3 +70,20 @@ export type AdminUserDetailApiResponse = {
   success: true;
   data: UserRow;
 };
+
+// ── Create User types — M26 (GD-M26-1 D4, D5) ────────────────────────────────
+// RoleOption: id and name returned by GET /api/v1/roles.
+// GetRolesApiResponse: shape from NestJS on success (serverFetch in Server Components).
+// CreateUserBffResponse: union returned by POST /api/users BFF.
+// tenantId intentionally absent — excluded per SEC-003.
+
+export type RoleOption = { id: string; name: string };
+
+export type GetRolesApiResponse = {
+  success: true;
+  data: { roles: RoleOption[] };
+};
+
+export type CreateUserBffResponse =
+  | { success: true; data: UserRow }
+  | { success: false; error: { code: string; message: string } };

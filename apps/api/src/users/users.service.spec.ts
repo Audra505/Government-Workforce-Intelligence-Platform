@@ -130,7 +130,7 @@ describe('UsersService', () => {
     it('SUCCESS: returns { outcome: "SUCCESS", user: UserRecord }', async () => {
       mockPrisma.role.findMany.mockResolvedValue([foundRole1]);
 
-      const result = await service.createUser(createDto, TENANT_ID, ACTOR_ID);
+      const result = await service.createUser(createDto, TENANT_ID, ACTOR_ID, ['System Administrator']);
 
       expect(result.outcome).toBe('SUCCESS');
       expect((result as { outcome: 'SUCCESS'; user: UserRecord }).user).toBeDefined();
@@ -139,7 +139,7 @@ describe('UsersService', () => {
     it('SUCCESS: UserRecord.status is "ACTIVE" (Decision 2, Option B)', async () => {
       mockPrisma.role.findMany.mockResolvedValue([foundRole1]);
 
-      const result = await service.createUser(createDto, TENANT_ID, ACTOR_ID);
+      const result = await service.createUser(createDto, TENANT_ID, ACTOR_ID, ['System Administrator']);
 
       expect((result as { outcome: 'SUCCESS'; user: UserRecord }).user.status).toBe('ACTIVE');
     });
@@ -147,7 +147,7 @@ describe('UsersService', () => {
     it('SUCCESS: UserRecord.roles contains assigned role names', async () => {
       mockPrisma.role.findMany.mockResolvedValue([foundRole1]);
 
-      const result = await service.createUser(createDto, TENANT_ID, ACTOR_ID);
+      const result = await service.createUser(createDto, TENANT_ID, ACTOR_ID, ['System Administrator']);
 
       expect((result as { outcome: 'SUCCESS'; user: UserRecord }).user.roles).toEqual(['System Administrator']);
     });
@@ -155,7 +155,7 @@ describe('UsersService', () => {
     it('SUCCESS: UserRecord.lastLoginAt is null for a newly created user', async () => {
       mockPrisma.role.findMany.mockResolvedValue([foundRole1]);
 
-      const result = await service.createUser(createDto, TENANT_ID, ACTOR_ID);
+      const result = await service.createUser(createDto, TENANT_ID, ACTOR_ID, ['System Administrator']);
 
       expect((result as { outcome: 'SUCCESS'; user: UserRecord }).user.lastLoginAt).toBeNull();
     });
@@ -163,7 +163,7 @@ describe('UsersService', () => {
     it('SUCCESS: UserRecord.createdAt is a Date', async () => {
       mockPrisma.role.findMany.mockResolvedValue([foundRole1]);
 
-      const result = await service.createUser(createDto, TENANT_ID, ACTOR_ID);
+      const result = await service.createUser(createDto, TENANT_ID, ACTOR_ID, ['System Administrator']);
 
       expect((result as { outcome: 'SUCCESS'; user: UserRecord }).user.createdAt).toBeInstanceOf(Date);
     });
@@ -171,7 +171,7 @@ describe('UsersService', () => {
     it('SUCCESS: email is normalized to lowercase and trimmed before DB operations', async () => {
       mockPrisma.role.findMany.mockResolvedValue([foundRole1]);
 
-      await service.createUser({ ...createDto, email: '  Jane.Smith@AGENCY.GOV  ' }, TENANT_ID, ACTOR_ID);
+      await service.createUser({ ...createDto, email: '  Jane.Smith@AGENCY.GOV  ' }, TENANT_ID, ACTOR_ID, ['System Administrator']);
 
       const createCall = mockTx.user.create.mock.calls[0]![0] as { data: { email: string } };
       expect(createCall.data.email).toBe('jane.smith@agency.gov');
@@ -180,7 +180,7 @@ describe('UsersService', () => {
     it('SUCCESS: bcrypt.hash is called with BCRYPT_ROUNDS (12)', async () => {
       mockPrisma.role.findMany.mockResolvedValue([foundRole1]);
 
-      await service.createUser(createDto, TENANT_ID, ACTOR_ID);
+      await service.createUser(createDto, TENANT_ID, ACTOR_ID, ['System Administrator']);
 
       expect(mockedBcryptHash).toHaveBeenCalledWith(createDto.password, BCRYPT_ROUNDS);
     });
@@ -188,7 +188,7 @@ describe('UsersService', () => {
     it('SUCCESS: role validation runs before bcrypt.hash (bcrypt not called when roles are missing)', async () => {
       mockPrisma.role.findMany.mockResolvedValue([]); // all roles missing
 
-      await service.createUser(createDto, TENANT_ID, ACTOR_ID);
+      await service.createUser(createDto, TENANT_ID, ACTOR_ID, ['System Administrator']);
 
       expect(mockedBcryptHash).not.toHaveBeenCalled();
     });
@@ -196,7 +196,7 @@ describe('UsersService', () => {
     it('SUCCESS: IDENTITY_USER_CREATED audit event emitted after transaction', async () => {
       mockPrisma.role.findMany.mockResolvedValue([foundRole1]);
 
-      await service.createUser(createDto, TENANT_ID, ACTOR_ID);
+      await service.createUser(createDto, TENANT_ID, ACTOR_ID, ['System Administrator']);
 
       expect(mockAuditService.logEvent).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -213,7 +213,7 @@ describe('UsersService', () => {
       mockPrisma.role.findMany.mockResolvedValue([foundRole1, foundRole2]);
       mockTx.userRole.createMany.mockResolvedValue({ count: 2 });
 
-      await service.createUser({ ...createDto, roleIds: [ROLE_ID_1, ROLE_ID_2] }, TENANT_ID, ACTOR_ID);
+      await service.createUser({ ...createDto, roleIds: [ROLE_ID_1, ROLE_ID_2] }, TENANT_ID, ACTOR_ID, ['System Administrator']);
 
       const roleAssignedCalls = mockAuditService.logEvent.mock.calls.filter(
         (call: unknown[]) => (call[0] as { action: string }).action === AuditEventType.AUTHZ_ROLE_ASSIGNED,
@@ -229,7 +229,7 @@ describe('UsersService', () => {
       });
       mockPrisma.$transaction.mockRejectedValue(p2002);
 
-      const result = await service.createUser(createDto, TENANT_ID, ACTOR_ID);
+      const result = await service.createUser(createDto, TENANT_ID, ACTOR_ID, ['System Administrator']);
 
       expect(result.outcome).toBe('EMAIL_CONFLICT');
     });
@@ -242,7 +242,7 @@ describe('UsersService', () => {
       });
       mockPrisma.$transaction.mockRejectedValue(p2002);
 
-      await service.createUser(createDto, TENANT_ID, ACTOR_ID);
+      await service.createUser(createDto, TENANT_ID, ACTOR_ID, ['System Administrator']);
 
       expect(mockAuditService.logEvent).not.toHaveBeenCalled();
     });
@@ -250,7 +250,7 @@ describe('UsersService', () => {
     it('ROLE_NOT_FOUND: absent role UUID returns { outcome: "ROLE_NOT_FOUND", missingIds: [id] }', async () => {
       mockPrisma.role.findMany.mockResolvedValue([]); // none found
 
-      const result = await service.createUser(createDto, TENANT_ID, ACTOR_ID);
+      const result = await service.createUser(createDto, TENANT_ID, ACTOR_ID, ['System Administrator']);
 
       expect(result.outcome).toBe('ROLE_NOT_FOUND');
       expect((result as { outcome: 'ROLE_NOT_FOUND'; missingIds: string[] }).missingIds).toContain(ROLE_ID_1);
@@ -259,7 +259,7 @@ describe('UsersService', () => {
     it('ROLE_NOT_FOUND: no audit events emitted', async () => {
       mockPrisma.role.findMany.mockResolvedValue([]);
 
-      await service.createUser(createDto, TENANT_ID, ACTOR_ID);
+      await service.createUser(createDto, TENANT_ID, ACTOR_ID, ['System Administrator']);
 
       expect(mockAuditService.logEvent).not.toHaveBeenCalled();
     });
@@ -268,9 +268,66 @@ describe('UsersService', () => {
       mockPrisma.role.findMany.mockResolvedValue([foundRole1]);
       mockPrisma.$transaction.mockRejectedValue(new Error('connection lost'));
 
-      const result = await service.createUser(createDto, TENANT_ID, ACTOR_ID);
+      const result = await service.createUser(createDto, TENANT_ID, ACTOR_ID, ['System Administrator']);
 
       expect(result.outcome).toBe('INTERNAL_ERROR');
+    });
+
+    // GD-M26-1 Decision 3 — Assignable role enforcement
+    it('FORBIDDEN_ROLE_ASSIGNMENT: HRD actor + System Administrator roleId returns { outcome: "FORBIDDEN_ROLE_ASSIGNMENT" }', async () => {
+      // foundRole1 has name 'System Administrator'
+      mockPrisma.role.findMany.mockResolvedValue([foundRole1]);
+
+      const result = await service.createUser(createDto, TENANT_ID, ACTOR_ID, ['HR Director']);
+
+      expect(result.outcome).toBe('FORBIDDEN_ROLE_ASSIGNMENT');
+      expect((result as { outcome: 'FORBIDDEN_ROLE_ASSIGNMENT'; forbiddenRoleId: string }).forbiddenRoleId)
+        .toBe(ROLE_ID_1);
+    });
+
+    it('FORBIDDEN_ROLE_ASSIGNMENT: HRD actor — AUTHZ_ACCESS_DENIED audit event emitted', async () => {
+      mockPrisma.role.findMany.mockResolvedValue([foundRole1]);
+
+      await service.createUser(createDto, TENANT_ID, ACTOR_ID, ['HR Director']);
+
+      expect(mockAuditService.logEvent).toHaveBeenCalledWith(
+        expect.objectContaining({
+          action: AuditEventType.AUTHZ_ACCESS_DENIED,
+          result: 'FAILURE',
+          entityType: 'ROLE',
+          entityId: ROLE_ID_1,
+        }),
+      );
+    });
+
+    it('FORBIDDEN_ROLE_ASSIGNMENT: no transaction runs when assignment is forbidden', async () => {
+      mockPrisma.role.findMany.mockResolvedValue([foundRole1]);
+
+      await service.createUser(createDto, TENANT_ID, ACTOR_ID, ['HR Director']);
+
+      expect(mockPrisma.$transaction).not.toHaveBeenCalled();
+    });
+
+    it('SA actor + System Administrator roleId → SUCCESS (SA may assign any role)', async () => {
+      mockPrisma.role.findMany.mockResolvedValue([foundRole1]);
+
+      const result = await service.createUser(createDto, TENANT_ID, ACTOR_ID, ['System Administrator']);
+
+      expect(result.outcome).toBe('SUCCESS');
+    });
+
+    it('HRD actor + non-SA roleId → SUCCESS (allowed roles pass through)', async () => {
+      const hrDirectorRole = { id: ROLE_ID_2, name: 'HR Director' };
+      mockPrisma.role.findMany.mockResolvedValue([hrDirectorRole]);
+
+      const result = await service.createUser(
+        { ...createDto, roleIds: [ROLE_ID_2] },
+        TENANT_ID,
+        ACTOR_ID,
+        ['HR Director'],
+      );
+
+      expect(result.outcome).toBe('SUCCESS');
     });
   });
 
@@ -398,6 +455,79 @@ describe('UsersService', () => {
       const result = await service.getUserById(USER_ID, TENANT_ID);
 
       expect(result.outcome).toBe('INTERNAL_ERROR');
+    });
+  });
+
+  // --------------------------------------------------------------------------
+  // getRoles()
+  // GD-M26-1 Decision 2 — Roles endpoint, filtered by actor authorization level
+  // --------------------------------------------------------------------------
+
+  describe('getRoles()', () => {
+    const mockAllRoles = [
+      { id: '11111111-1111-4111-8111-111111111111', name: 'Compliance Officer' },
+      { id: '22222222-2222-4222-8222-222222222222', name: 'Executive User' },
+      { id: '33333333-3333-4333-8333-333333333333', name: 'Hiring Manager' },
+      { id: '44444444-4444-4444-8444-444444444444', name: 'HR Director' },
+      { id: '55555555-5555-4555-8555-555555555555', name: 'Recruiter' },
+      { id: '66666666-6666-4666-8666-666666666666', name: 'System Administrator' },
+      { id: '77777777-7777-4777-8777-777777777777', name: 'Workforce Planner' },
+    ];
+
+    const mockSixRoles = mockAllRoles.filter(r => r.name !== 'System Administrator');
+
+    it('SA actor — calls prisma.role.findMany with no name filter', async () => {
+      mockPrisma.role.findMany.mockResolvedValue(mockAllRoles);
+
+      await service.getRoles(['System Administrator']);
+
+      const callArgs = mockPrisma.role.findMany.mock.calls[0]![0] as { where: Record<string, unknown> };
+      expect(callArgs.where).toEqual({});
+    });
+
+    it('SA actor — returns all 7 roles as returned by prisma', async () => {
+      mockPrisma.role.findMany.mockResolvedValue(mockAllRoles);
+
+      const result = await service.getRoles(['System Administrator']);
+
+      expect(result).toEqual(mockAllRoles);
+      expect(result).toHaveLength(7);
+    });
+
+    it('HRD actor — calls prisma.role.findMany with name NOT System Administrator filter', async () => {
+      mockPrisma.role.findMany.mockResolvedValue(mockSixRoles);
+
+      await service.getRoles(['HR Director']);
+
+      const callArgs = mockPrisma.role.findMany.mock.calls[0]![0] as { where: Record<string, unknown> };
+      expect(callArgs.where).toEqual({ name: { not: 'System Administrator' } });
+    });
+
+    it('HRD actor — returns 6 roles without System Administrator', async () => {
+      mockPrisma.role.findMany.mockResolvedValue(mockSixRoles);
+
+      const result = await service.getRoles(['HR Director']);
+
+      expect(result).toHaveLength(6);
+      expect(result.find(r => r.name === 'System Administrator')).toBeUndefined();
+    });
+
+    it('orderBy: { name: "asc" } is passed in all cases', async () => {
+      mockPrisma.role.findMany.mockResolvedValue(mockAllRoles);
+
+      await service.getRoles(['System Administrator']);
+
+      const callArgs = mockPrisma.role.findMany.mock.calls[0]![0] as { orderBy: Record<string, unknown> };
+      expect(callArgs.orderBy).toEqual({ name: 'asc' });
+    });
+
+    it('select: { id: true, name: true } is passed in all cases', async () => {
+      mockPrisma.role.findMany.mockResolvedValue(mockAllRoles);
+
+      await service.getRoles(['System Administrator']);
+
+      const callArgs = mockPrisma.role.findMany.mock.calls[0]![0] as { select: Record<string, unknown> };
+      expect(callArgs.select).toEqual({ id: true, name: true });
     });
   });
 });

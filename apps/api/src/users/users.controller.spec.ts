@@ -10,6 +10,7 @@
 import {
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
@@ -72,6 +73,7 @@ describe('UsersController', () => {
     createUser: jest.Mock;
     listUsers: jest.Mock;
     getUserById: jest.Mock;
+    getRoles: jest.Mock;
   };
 
   beforeEach(async () => {
@@ -79,6 +81,7 @@ describe('UsersController', () => {
       createUser: jest.fn(),
       listUsers: jest.fn(),
       getUserById: jest.fn(),
+      getRoles: jest.fn(),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -161,6 +164,43 @@ describe('UsersController', () => {
       mockUsersService.createUser.mockResolvedValue({ outcome: 'INTERNAL_ERROR' });
 
       await expect(controller.createUser(createDto, mockActor)).rejects.toThrow(InternalServerErrorException);
+    });
+
+    it('FORBIDDEN_ROLE_ASSIGNMENT: throws ForbiddenException', async () => {
+      mockUsersService.createUser.mockResolvedValue({
+        outcome: 'FORBIDDEN_ROLE_ASSIGNMENT',
+        forbiddenRoleId: ROLE_ID,
+      });
+
+      await expect(controller.createUser(createDto, mockActor)).rejects.toThrow(ForbiddenException);
+    });
+
+    it('FORBIDDEN_ROLE_ASSIGNMENT: exception response contains { success: false, error: { code: "FORBIDDEN_ROLE_ASSIGNMENT" } }', async () => {
+      mockUsersService.createUser.mockResolvedValue({
+        outcome: 'FORBIDDEN_ROLE_ASSIGNMENT',
+        forbiddenRoleId: ROLE_ID,
+      });
+
+      try {
+        await controller.createUser(createDto, mockActor);
+        fail('expected ForbiddenException to be thrown');
+      } catch (err) {
+        const response = (err as ForbiddenException).getResponse() as Record<string, unknown>;
+        expect(response).toMatchObject({ success: false, error: { code: 'FORBIDDEN_ROLE_ASSIGNMENT' } });
+      }
+    });
+
+    it('passes actor.roles to usersService.createUser', async () => {
+      mockUsersService.createUser.mockResolvedValue({ outcome: 'SUCCESS', user: userRecord });
+
+      await controller.createUser(createDto, mockActor);
+
+      expect(mockUsersService.createUser).toHaveBeenCalledWith(
+        createDto,
+        TENANT_ID,
+        ACTOR_ID,
+        mockActor.roles,
+      );
     });
   });
 

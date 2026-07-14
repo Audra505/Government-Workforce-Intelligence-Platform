@@ -17,6 +17,7 @@ import {
   Body,
   ConflictException,
   Controller,
+  ForbiddenException,
   Get,
   HttpCode,
   InternalServerErrorException,
@@ -59,14 +60,14 @@ export class UsersController {
   @ApiResponse({ status: 201, type: UserResponseDto, description: 'User created successfully' })
   @ApiResponse({ status: 400, description: 'Validation error — invalid fields or role not found' })
   @ApiResponse({ status: 401, description: 'Not authenticated' })
-  @ApiResponse({ status: 403, description: 'Insufficient role' })
+  @ApiResponse({ status: 403, description: 'Insufficient role or forbidden role assignment' })
   @ApiResponse({ status: 409, description: 'Email already exists within this tenant' })
   @ApiResponse({ status: 500, description: 'Internal server error' })
   async createUser(
     @Body() dto: CreateUserDto,
     @CurrentUser() actor: RequestUser,
   ): Promise<object> {
-    const result = await this.usersService.createUser(dto, actor.tenantId, actor.userId);
+    const result = await this.usersService.createUser(dto, actor.tenantId, actor.userId, actor.roles);
 
     switch (result.outcome) {
       case 'SUCCESS':
@@ -85,6 +86,15 @@ export class UsersController {
         throw new ConflictException({
           success: false,
           error: { code: 'CONFLICT', message: 'email already exists within this tenant' },
+        });
+
+      case 'FORBIDDEN_ROLE_ASSIGNMENT':
+        throw new ForbiddenException({
+          success: false,
+          error: {
+            code: 'FORBIDDEN_ROLE_ASSIGNMENT',
+            message: 'HR Director may not assign System Administrator',
+          },
         });
 
       case 'INTERNAL_ERROR':

@@ -6,6 +6,7 @@
 // Reference: governance/GD-M25-1.md — Decisions 3, 5, 10, 12
 
 import { Suspense } from 'react';
+import Link from 'next/link';
 import { cookies } from 'next/headers';
 import { serverFetch } from '@/lib/api';
 import { getSessionRoles } from '@/lib/session';
@@ -36,7 +37,8 @@ function buildPageUrl(searchParams: PageSearchParams, targetPage: number): strin
 export default async function AdminUsersPage({ searchParams }: Props) {
   const token = cookies().get(SESSION_COOKIE)?.value;
   const roles = token ? getSessionRoles(token) : [];
-  const canRead = roles.includes('System Administrator') || roles.includes('HR Director');
+  const canRead  = roles.includes('System Administrator') || roles.includes('HR Director');
+  const canWrite = canRead;
 
   if (!canRead) {
     return (
@@ -80,6 +82,15 @@ export default async function AdminUsersPage({ searchParams }: Props) {
             Platform user accounts and their current status
           </p>
         </div>
+        {canWrite && (
+          <Link
+            href="/admin/users/new"
+            className="rounded-md px-4 py-2 text-sm font-medium text-white transition-opacity hover:opacity-90"
+            style={{ backgroundColor: '#2563eb' }}
+          >
+            + New User
+          </Link>
+        )}
       </div>
 
       <div className="mb-4">

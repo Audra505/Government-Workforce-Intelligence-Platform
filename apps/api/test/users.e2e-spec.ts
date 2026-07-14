@@ -414,6 +414,26 @@ describe('Users (e2e)', () => {
 
       if (res.body.data?.id) apiCreatedUserIds.push(res.body.data.id as string);
     });
+
+    // GD-M26-1 Decision 3 — HRD cannot assign System Administrator
+    it('HR Director JWT + System Administrator roleId → HTTP 403 (FORBIDDEN_ROLE_ASSIGNMENT)', async () => {
+      const res = await request(app.getHttpServer())
+        .post('/api/v1/users')
+        .set('Authorization', `Bearer ${hrToken}`)
+        .send({
+          firstName: 'Forbidden',
+          lastName: 'Assign',
+          email: `forbidden-assign-${SUFFIX}@test.gov`,
+          roleIds: [sysAdminRoleId],
+          password: 'TempPass1234!',
+        });
+
+      expect(res.status).toBe(403);
+      expect(res.body).toMatchObject({
+        success: false,
+        error: { code: 'FORBIDDEN_ROLE_ASSIGNMENT' },
+      });
+    });
   });
 
   // --------------------------------------------------------------------------
@@ -543,6 +563,106 @@ describe('Users (e2e)', () => {
         .set('Authorization', `Bearer ${restrictedToken}`);
 
       expect(res.status).toBe(403);
+    });
+  });
+
+  // --------------------------------------------------------------------------
+  // Group 5: GET /api/v1/roles
+  // GD-M26-1 Decision 2 — Roles endpoint, filtered by actor authorization level
+  // --------------------------------------------------------------------------
+
+  describe('GET /api/v1/roles', () => {
+    it('SA JWT → HTTP 200 + { success: true, data: { roles: [...] } }', async () => {
+      const res = await request(app.getHttpServer())
+        .get('/api/v1/roles')
+        .set('Authorization', `Bearer ${adminToken}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data).toBeDefined();
+      expect(Array.isArray(res.body.data.roles)).toBe(true);
+    });
+
+    it('SA JWT → all 7 platform roles returned', async () => {
+      const res = await request(app.getHttpServer())
+        .get('/api/v1/roles')
+        .set('Authorization', `Bearer ${adminToken}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.data.roles).toHaveLength(7);
+      const names = (res.body.data.roles as Array<{ name: string }>).map(r => r.name);
+      expect(names).toContain('System Administrator');
+      expect(names).toContain('HR Director');
+      expect(names).toContain('Workforce Planner');
+      expect(names).toContain('Recruiter');
+      expect(names).toContain('Hiring Manager');
+      expect(names).toContain('Compliance Officer');
+      expect(names).toContain('Executive User');
+    });
+
+    it('SA JWT → roles returned in alphabetical order by name', async () => {
+      const res = await request(app.getHttpServer())
+        .get('/api/v1/roles')
+        .set('Authorization', `Bearer ${adminToken}`);
+
+      expect(res.status).toBe(200);
+      const names = (res.body.data.roles as Array<{ name: string }>).map(r => r.name);
+      const sorted = [...names].sort();
+      expect(names).toEqual(sorted);
+    });
+
+    it('SA JWT → each role has id (UUID v4) and name (string)', async () => {
+      const res = await request(app.getHttpServer())
+        .get('/api/v1/roles')
+        .set('Authorization', `Bearer ${adminToken}`);
+
+      expect(res.status).toBe(200);
+      for (const role of res.body.data.roles as Array<{ id: string; name: string }>) {
+        expect(role.id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i);
+        expect(typeof role.name).toBe('string');
+        expect(role.name.length).toBeGreaterThan(0);
+      }
+    });
+
+    it('HRD JWT → HTTP 200 + 6 roles with System Administrator excluded', async () => {
+      const res = await request(app.getHttpServer())
+        .get('/api/v1/roles')
+        .set('Authorization', `Bearer ${hrToken}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data.roles).toHaveLength(6);
+      const names = (res.body.data.roles as Array<{ name: string }>).map(r => r.name);
+      expect(names).not.toContain('System Administrator');
+    });
+
+    it('HRD JWT → returned roles are a subset of SA roles (no extra roles injected)', async () => {
+      const saRes = await request(app.getHttpServer())
+        .get('/api/v1/roles')
+        .set('Authorization', `Bearer ${adminToken}`);
+      const hrdRes = await request(app.getHttpServer())
+        .get('/api/v1/roles')
+        .set('Authorization', `Bearer ${hrToken}`);
+
+      const saNames = new Set((saRes.body.data.roles as Array<{ name: string }>).map(r => r.name));
+      const hrdNames = (hrdRes.body.data.roles as Array<{ name: string }>).map(r => r.name);
+      for (const name of hrdNames) {
+        expect(saNames.has(name)).toBe(true);
+      }
+    });
+
+    it('Recruiter JWT → HTTP 403 (RolesGuard denies non-qualifying role)', async () => {
+      const res = await request(app.getHttpServer())
+        .get('/api/v1/roles')
+        .set('Authorization', `Bearer ${restrictedToken}`);
+
+      expect(res.status).toBe(403);
+    });
+
+    it('no Authorization header → HTTP 401', async () => {
+      const res = await request(app.getHttpServer()).get('/api/v1/roles');
+
+      expect(res.status).toBe(401);
     });
   });
 
