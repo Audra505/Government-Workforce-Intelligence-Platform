@@ -9,16 +9,16 @@
 
 ---
 
-Last Updated: 2026-07-11 (M24 Skills & Certifications Workspace — CI CONFIRMED; 5f5bfa6; human browser-verified + CI green)
-Updated By: Claude Code (M24 CI confirmed; 5f5bfa6 green; M24 fully closed)
+Last Updated: 2026-07-13 (M25 Admin Workspace — CI CONFIRMED; 23d46ef; human browser-verified + CI green)
+Updated By: Claude Code (M25 CI confirmed; 23d46ef green; M25 fully closed)
 
-Previous Update: 2026-07-06 (M23 Platform UI and Dashboard Refinement — CI CONFIRMED; 5fedb81; human browser-verified + CI green)
+Previous Update: 2026-07-11 (M24 Skills & Certifications Workspace — CI CONFIRMED; 5f5bfa6; human browser-verified + CI green)
 
 ## Repository Status
 
-Current Phase: **Phase 3 — M24 CI-CONFIRMED (Skills & Certifications Workspace)**
-Overall Classification: Phase 2 COMPLETE; Post-Phase-2 milestones M13/M14/M15 CI-confirmed; Pre-Phase-3 Governance Package CI-confirmed (a5c34f1); Phase 3 started — M16 CI-confirmed; M17 CI-confirmed; M18 CI-confirmed; M19 CI-confirmed; M20 CI-confirmed (6e6777b; run 28611838113); M21 CI-confirmed (1036c92 + 3c8189d + 1e33420); browser-verified by human 2026-07-03; CLOSED; M21.5 CI-confirmed (782e35e + 1a4b64f; runs #66 + #67); M22 CI-confirmed (ee8465b); browser-verified by human 2026-07-04; CLOSED; M23 CI-confirmed (5fedb81); browser-verified by human 2026-07-06; CLOSED; M24 CI-confirmed (5f5bfa6); browser-verified by human 2026-07-11; CLOSED
-Active Sprint / Milestone: M24 CLOSED and CI-confirmed (5f5bfa6; 2026-07-11)
+Current Phase: **Phase 3 — M25 CI-CONFIRMED (Admin Workspace)**
+Overall Classification: Phase 2 COMPLETE; Post-Phase-2 milestones M13/M14/M15 CI-confirmed; Pre-Phase-3 Governance Package CI-confirmed (a5c34f1); Phase 3 started — M16 CI-confirmed; M17 CI-confirmed; M18 CI-confirmed; M19 CI-confirmed; M20 CI-confirmed (6e6777b; run 28611838113); M21 CI-confirmed (1036c92 + 3c8189d + 1e33420); browser-verified by human 2026-07-03; CLOSED; M21.5 CI-confirmed (782e35e + 1a4b64f; runs #66 + #67); M22 CI-confirmed (ee8465b); browser-verified by human 2026-07-04; CLOSED; M23 CI-confirmed (5fedb81); browser-verified by human 2026-07-06; CLOSED; M24 CI-confirmed (5f5bfa6); browser-verified by human 2026-07-11; CLOSED; M25 CI-confirmed (23d46ef); browser-verified by human 2026-07-13; CLOSED
+Active Sprint / Milestone: M25 CLOSED and CI-confirmed (23d46ef; 2026-07-13)
 Implementation Started: Yes (2026-06-05)
 
 ## Phase Summary
@@ -33,12 +33,12 @@ Phase 1 is formally closed. D9 (Docker Environment) and D10 (CI/CD Foundation) w
 > Its purpose is crash/session recovery: the current step state is always readable without
 > scanning Zone 5 history. It is overwritten each step — not appended.
 
-Milestone: M24 Skills & Certifications Workspace — CI-CONFIRMED
-Last Completed Milestone: M24 CI-CONFIRMED — 5f5bfa6; human browser-verified 2026-07-11; CI green; FULLY CLOSED
+Milestone: M25 Admin Workspace — CI-CONFIRMED
+Last Completed Milestone: M25 CI-CONFIRMED — 23d46ef; human browser-verified 2026-07-13; CI green; FULLY CLOSED
 Last Completed Step: CI confirmed green
-Last Completed Step Date: 2026-07-11
-Current Step: M24 fully closed — no active step
-Session Classification: PHASE 3 M24 COMPLETE — web-only (apps/web/**); no backend, no schema, no migration; Skills & Certifications catalog + employee assignments + expiring report + dashboard link
+Last Completed Step Date: 2026-07-13
+Current Step: M25 fully closed — no active step
+Session Classification: PHASE 3 M25 COMPLETE — web-only (apps/web/**); no backend, no schema, no migration; Admin Workspace with Department Management CRUD, deactivation guard, read-only User Management, role-aware Admin nav
 
 ## Milestone 10 — Approved Plan
 
@@ -10184,3 +10184,145 @@ The following were explicitly excluded from M24 scope and are NOT present in the
 | Data Lifecycle | N/A — no schema or migration changes; data managed by existing NestJS endpoints |
 | Evolution Strategy | BFF route pattern established; assign form upsert pattern (201/200 forwarding) documented |
 | **Overall** | **Verified — human browser-verified 2026-07-11; CI confirmed (5f5bfa6)** |
+
+---
+
+# Milestone 25 — Admin Workspace
+
+**Date:** 2026-07-13
+**Status:** CI-CONFIRMED — CLOSED
+**Governance commit:** 4226d6d
+**Implementation commit:** 23d46ef (29 files changed, 2181 insertions)
+**CI run:** 29296384243 — success
+**Browser verification:** PASSED — human browser-verified 2026-07-13
+
+## Scope Completed
+
+### AdminShell
+- Synchronous Server Component; reads `cookies()` internally for tab gating
+- `canAdminRead = SA || HRD` — controls Users tab visibility
+- `canDeptRead = SA || HRD || WP` — controls Departments tab visibility
+- GWIP wordmark; NAVY header; CANVAS background; max-w-[1200px]; breadcrumb "Admin › {breadcrumb}"
+- Domain nav shows all 4 links (Dashboard, Workforce, Recruiting, Admin); Admin always active within admin routes
+
+### Role-Aware Admin Navigation
+- Dashboard, Workforce Shell, and Recruiting Shell each augmented with a conditional Admin nav link
+- Admin link visible only to `SA || HRD` (canSeeAdmin); hidden for Workforce Planner, Compliance Officer, Recruiter
+- Pattern: reads `SESSION_COOKIE` via `cookies()`, decodes JWT via `getSessionRoles()`, renders link conditionally
+
+### Department Management (list / create / detail / edit / deactivate)
+- `/admin/departments` — paginated list with search + status filter; "Add Department" gated by canWrite (SA || HRD)
+- `/admin/departments/new` — CreateDepartmentForm (RHF + Zod; name max:255, code max:100, description optional max:500); POST `/api/departments` BFF; CONFLICT banner on 409
+- `/admin/departments/[id]` — detail view with StatusPill; Edit and Deactivate buttons gated by canWrite && ACTIVE
+- `/admin/departments/[id]/edit` — EditDepartmentForm pre-filled from fetched department; PATCH `/api/departments/:id` BFF
+- Deactivation confirm state machine (`confirming` → `submitting` → `guardError`); PATCH `{ status: 'INACTIVE' }` only
+
+### Department Deactivation Guard Handling
+- PATCH 422 (guard error) forwarded unchanged from NestJS; error.message includes employee/position counts
+- Client renders guardError banner with NestJS message; banner cleared on next "Deactivate Department" click
+- DEP-004: BFF rejects `status: 'ACTIVE'` (reactivation) with 400 — not supported in Phase 1
+
+### Department BFF Mutation Routes
+- `POST /api/departments` — SEC-003 tenantId rejection; 401 if no session cookie; forwards to NestJS; returns 201 on success; forwards NestJS error status + body on failure
+- `PATCH /api/departments/[id]` — SEC-003 tenantId rejection; DEP-004 reactivation rejection; 422 guard errors forwarded unchanged
+
+### Read-Only User Management (list / detail)
+- `/admin/users` — paginated list with search + status filter (ACTIVE/INVITED/SUSPENDED/DEACTIVATED); SA + HRD only; graceful restriction message for WP/REC/others
+- `/admin/users/[id]` — fullName, email, StatusPill, detail card (Email, Status, Roles, Member Since, Last Sign In, User ID mono); `notFound()` on 404; NO write affordances anywhere
+
+### M23/M24 UI Consistency
+- All admin pages use IBM Plex Sans; NAVY=#0c2340; CANVAS=#f8fafc; BORDER=#e2e8f0; TEXT=#0f172a; SUB=#475569; MUTED=#94a3b8; BLUE=#2563eb
+- Error boundaries (error.tsx) per route segment: navy mini-header, canvas bg, outline retry button, dev-only error.message
+- Loading boundaries (loading.tsx): centered spinner text on CANVAS
+
+## Explicit Exclusions
+
+The following were explicitly excluded from M25 scope and are NOT present in the implementation commit:
+
+- No Create User affordance
+- No user edit, deactivation, suspension, delete, password reset, or role reassignment
+- No department delete
+- No department reactivation (DEP-004 enforced at BFF)
+- No backend (NestJS) code changes
+- No Prisma schema changes
+- No database migrations
+- No governance file changes (GD-M25-1.md committed separately in 4226d6d)
+- No fake data or placeholder workflows
+- No candidate search or pipeline integration
+
+## Files Changed (29)
+
+**New pages — Admin workspace (15 files):**
+- `apps/web/src/app/(dashboard)/admin/page.tsx` — redirect to /admin/departments
+- `apps/web/src/app/(dashboard)/admin/departments/page.tsx`
+- `apps/web/src/app/(dashboard)/admin/departments/loading.tsx`
+- `apps/web/src/app/(dashboard)/admin/departments/error.tsx`
+- `apps/web/src/app/(dashboard)/admin/departments/new/page.tsx`
+- `apps/web/src/app/(dashboard)/admin/departments/new/error.tsx`
+- `apps/web/src/app/(dashboard)/admin/departments/[id]/page.tsx`
+- `apps/web/src/app/(dashboard)/admin/departments/[id]/error.tsx`
+- `apps/web/src/app/(dashboard)/admin/departments/[id]/edit/page.tsx`
+- `apps/web/src/app/(dashboard)/admin/departments/[id]/edit/error.tsx`
+- `apps/web/src/app/(dashboard)/admin/users/page.tsx`
+- `apps/web/src/app/(dashboard)/admin/users/loading.tsx`
+- `apps/web/src/app/(dashboard)/admin/users/error.tsx`
+- `apps/web/src/app/(dashboard)/admin/users/[id]/page.tsx`
+- `apps/web/src/app/(dashboard)/admin/users/[id]/error.tsx`
+
+**New BFF routes (2 files):**
+- `apps/web/src/app/api/departments/route.ts` — POST create (SEC-003)
+- `apps/web/src/app/api/departments/[id]/route.ts` — PATCH update (SEC-003 + DEP-004)
+
+**New components and types (10 files):**
+- `apps/web/src/features/admin/types.ts`
+- `apps/web/src/features/admin/components/admin-shell.tsx`
+- `apps/web/src/features/admin/components/department-table.tsx`
+- `apps/web/src/features/admin/components/department-filters.tsx`
+- `apps/web/src/features/admin/components/create-department-form.tsx`
+- `apps/web/src/features/admin/components/edit-department-form.tsx`
+- `apps/web/src/features/admin/components/deactivate-department.tsx`
+- `apps/web/src/features/admin/components/user-table.tsx`
+- `apps/web/src/features/admin/components/user-filters.tsx`
+
+**Modified files — Admin nav injection (3 files):**
+- `apps/web/src/app/(dashboard)/dashboard/page.tsx`
+- `apps/web/src/features/recruiting/components/recruiting-shell.tsx`
+- `apps/web/src/features/workforce/components/workforce-shell.tsx`
+
+## Key Design Decisions (per GD-M25-1)
+
+- **SEC-003**: tenantId never forwarded from BFF; 400 returned if present in request body
+- **DEP-004**: BFF rejects `status: 'ACTIVE'` with 400; reactivation not supported in Phase 1
+- **WP read-only access**: canDeptRead = SA || HRD || WP; WP sees departments list and detail but no write affordances and no Users tab
+- **Admin nav hidden for WP**: canSeeAdmin = SA || HRD only; Workforce Planner never sees Admin link in domain nav
+- **Deactivation guard (422)**: NestJS 422 forwarded unchanged to client; error.message includes employee + position counts
+- **AdminShell synchronous**: AdminShell is NOT async — reads cookies() synchronously inside the Server Component (Next.js App Router pattern)
+- **Users read-only**: no edit, deactivate, suspend, delete, reset, or role reassignment anywhere in M25 scope
+
+## Validation
+
+| Check | Result |
+|---|---|
+| `npm run type-check` (apps/web) | EXIT 0 — 0 TypeScript errors |
+| `npm run lint` (apps/web) | EXIT 0 — 0 ESLint warnings or errors |
+| Human browser verification | PASSED — M25 fully verified 2026-07-13 |
+| Commit | 23d46ef — 29 files changed, 2181 insertions(+) |
+| Push | origin/main — 4226d6d..23d46ef |
+| CI | CONFIRMED GREEN — run 29296384243 — success |
+
+## M25 Overall Maturity
+
+| Layer | Status |
+|---|---|
+| Requirements | Defined — GD-M25-1.md (4226d6d) |
+| Specs | Defined — GD-M25-1 + this PROGRESS.md entry |
+| Directives | GD-M25-1 approved and committed |
+| Execution Plan | Complete — AdminShell, Department CRUD, User read-only, BFF mutations, Admin nav |
+| State Model | DepartmentStatus (ACTIVE/INACTIVE); UserStatus (ACTIVE/INVITED/SUSPENDED/DEACTIVATED) |
+| Test Scenarios | Validated — type-check + lint + human browser verification (all roles tested) |
+| System Loop | Integrated — Admin nav → AdminShell → Departments/Users; BFF mutations → NestJS |
+| Failure Playbook | 422 deactivation guard forwarded with counts; DEP-004 reactivation blocked at BFF; 404 → notFound(); error.tsx per segment |
+| Environment Model | Web-only rebuild; no Docker/infra/env changes required |
+| Data Lifecycle | N/A — no schema or migration changes; data managed by existing NestJS endpoints |
+| Evolution Strategy | Admin BFF pattern established; AdminShell tab-gating pattern documented; WP read-only pattern reusable |
+| **Overall** | **Verified — human browser-verified 2026-07-13; CI confirmed (23d46ef; run 29296384243)** |
