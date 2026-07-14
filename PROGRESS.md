@@ -9,16 +9,16 @@
 
 ---
 
-Last Updated: 2026-07-14 (M26 Create User Workflow — CI CONFIRMED; a9a6943; runtime-verified + CI green)
-Updated By: Claude Code (M26 CI confirmed; a9a6943 green; M26 fully closed)
+Last Updated: 2026-07-14 (M27 User Management Completion -- CI CONFIRMED; 9049fd6; runtime-verified + CI green)
+Updated By: Claude Code (M27 CI confirmed; 9049fd6 green; M27 fully closed)
 
-Previous Update: 2026-07-13 (M25 Admin Workspace — CI CONFIRMED; 23d46ef; human browser-verified + CI green)
+Previous Update: 2026-07-14 (M26 Create User Workflow — CI CONFIRMED; a9a6943; runtime-verified + CI green)
 
 ## Repository Status
 
-Current Phase: **Phase 3 — M26 CI-CONFIRMED (Create User Workflow)**
-Overall Classification: Phase 2 COMPLETE; Post-Phase-2 milestones M13/M14/M15 CI-confirmed; Pre-Phase-3 Governance Package CI-confirmed (a5c34f1); Phase 3 started — M16 CI-confirmed; M17 CI-confirmed; M18 CI-confirmed; M19 CI-confirmed; M20 CI-confirmed (6e6777b; run 28611838113); M21 CI-confirmed (1036c92 + 3c8189d + 1e33420); browser-verified by human 2026-07-03; CLOSED; M21.5 CI-confirmed (782e35e + 1a4b64f; runs #66 + #67); M22 CI-confirmed (ee8465b); browser-verified by human 2026-07-04; CLOSED; M23 CI-confirmed (5fedb81); browser-verified by human 2026-07-06; CLOSED; M24 CI-confirmed (5f5bfa6); browser-verified by human 2026-07-11; CLOSED; M25 CI-confirmed (23d46ef); browser-verified by human 2026-07-13; CLOSED; M26 CI-confirmed (a9a6943); runtime-verified 2026-07-14; CLOSED
-Active Sprint / Milestone: M26 CLOSED and CI-confirmed (a9a6943; 2026-07-14)
+Current Phase: **Phase 3 — M27 CI-CONFIRMED (User Management Completion)**
+Overall Classification: Phase 2 COMPLETE; Post-Phase-2 milestones M13/M14/M15 CI-confirmed; Pre-Phase-3 Governance Package CI-confirmed (a5c34f1); Phase 3 started — M16 CI-confirmed; M17 CI-confirmed; M18 CI-confirmed; M19 CI-confirmed; M20 CI-confirmed (6e6777b; run 28611838113); M21 CI-confirmed (1036c92 + 3c8189d + 1e33420); browser-verified by human 2026-07-03; CLOSED; M21.5 CI-confirmed (782e35e + 1a4b64f; runs #66 + #67); M22 CI-confirmed (ee8465b); browser-verified by human 2026-07-04; CLOSED; M23 CI-confirmed (5fedb81); browser-verified by human 2026-07-06; CLOSED; M24 CI-confirmed (5f5bfa6); browser-verified by human 2026-07-11; CLOSED; M25 CI-confirmed (23d46ef); browser-verified by human 2026-07-13; CLOSED; M26 CI-confirmed (a9a6943); runtime-verified 2026-07-14; CLOSED; M27 CI-confirmed (9049fd6); runtime-verified 2026-07-14; CLOSED
+Active Sprint / Milestone: M27 CLOSED and CI-confirmed (9049fd6; 2026-07-14)
 Implementation Started: Yes (2026-06-05)
 
 ## Phase Summary
@@ -33,12 +33,12 @@ Phase 1 is formally closed. D9 (Docker Environment) and D10 (CI/CD Foundation) w
 > Its purpose is crash/session recovery: the current step state is always readable without
 > scanning Zone 5 history. It is overwritten each step — not appended.
 
-Milestone: M26 Create User Workflow — CI-CONFIRMED
-Last Completed Milestone: M26 CI-CONFIRMED — a9a6943; runtime-verified 2026-07-14; CI green; FULLY CLOSED
+Milestone: M27 User Management Completion -- CI-CONFIRMED
+Last Completed Milestone: M27 CI-CONFIRMED -- 9049fd6; runtime-verified 2026-07-14; CI green; FULLY CLOSED
 Last Completed Step: CI confirmed green
 Last Completed Step Date: 2026-07-14
-Current Step: M26 fully closed — no active step
-Session Classification: PHASE 3 M26 COMPLETE — backend + frontend (apps/api/** + apps/web/**); GET /api/v1/roles; FORBIDDEN_ROLE_ASSIGNMENT enforcement; POST /api/users BFF; /admin/users/new Create User form; New User button
+Current Step: M27 fully closed -- no active step
+Session Classification: PHASE 3 M27 COMPLETE -- backend PATCH + frontend edit workflow + status actions (apps/api/** + apps/web/**); PATCH /api/v1/users/:id; UpdateUserDto; updateUser() service; PATCH /api/users/[id] BFF; /admin/users/[id]/edit; EditUserForm; UserStatusActions
 
 ## Milestone 10 — Approved Plan
 
@@ -10475,3 +10475,186 @@ The following were explicitly excluded from M26 scope and are NOT present in the
 | Data Lifecycle | No schema change; roles from existing identity.roles seed; users created with ACTIVE status |
 | Evolution Strategy | Roles-from-API pattern established; BFF POST pattern consistent with departments; FORBIDDEN_ROLE_ASSIGNMENT discriminated union extensible to M27 PATCH |
 | **Overall** | **Verified -- runtime-verified 2026-07-14; CI confirmed (a9a6943; run 29306555745)** |
+
+
+---
+
+# Milestone 27 -- User Management Completion
+
+**Date:** 2026-07-14
+**Status:** CI-CONFIRMED -- CLOSED
+**Governance commit:** 86918c9
+**Implementation commit:** 9049fd6 (14 files changed, 2116 insertions(+), 18 deletions(-))
+**CI run:** 29314010613 -- success
+**Runtime verification:** PASSED -- Claude Code runtime-verified 2026-07-14 (all verification checks passed)
+**Human browser verification:** PASSED -- runtime-verified; user accepted
+
+## Scope Completed
+
+### PATCH /api/v1/users/:id (new endpoint)
+- `apps/api/src/users/dto/update-user.dto.ts` -- new `UpdateUserDto`; all fields optional (PATCH semantics); exactly 5 updatable fields: `firstName`, `lastName`, `email`, `status`, `roleIds`
+- `status` restricted to `ACTIVE | SUSPENDED | DEACTIVATED` via `@IsIn`; INVITED excluded (lifecycle managed by NotificationModule -- not built)
+- `roleIds: []` blocked by `@ArrayMinSize(1)`; `roleIds` omitted means no role change
+- `apps/api/src/users/users.service.ts` -- `updateUser()` method added; `UpdateUserResult` discriminated union with 10 outcomes; `LastSaViolation` sentinel class; `ALLOWED_TRANSITIONS` map
+- `apps/api/src/users/users.controller.ts` -- `@Patch(':id')` handler; maps all 10 `UpdateUserResult` outcomes to HTTP status codes
+
+### Edit first name, last name, email
+- Any recognized field (firstName, lastName, email) patched atomically
+- Empty body `{}` returns `400 VALIDATION_ERROR` (NO_MEANINGFUL_CHANGE guard in service)
+- Duplicate email within tenant returns `409 CONFLICT`
+- Normalized email (lowercase + trim) applied before write
+
+### Status management
+- Allowed transitions enforced via `ALLOWED_TRANSITIONS` map: `ACTIVE ↔ SUSPENDED`, `ACTIVE → DEACTIVATED`, `SUSPENDED → DEACTIVATED`, `DEACTIVATED → ACTIVE`
+- `DEACTIVATED → SUSPENDED` blocked -- `422 INVALID_STATUS_TRANSITION`
+- `INVITED → any` and `any → INVITED` blocked (INVITED absent from map and values)
+- Same-status write is a no-op (not an error)
+
+### Existing-user role reassignment
+- `roleIds` provided replaces the complete role set atomically (deleteMany + createMany in single `$transaction`)
+- Role existence validated before transaction; missing role UUID returns `400 ROLE_NOT_FOUND`
+- Role audit diff: `AUTHZ_ROLE_REMOVED` per removed role, `AUTHZ_ROLE_ASSIGNED` per added role (after commit)
+
+### Last active System Administrator guard
+- Trigger conditions: target holds SA role AND (status changing to SUSPENDED/DEACTIVATED OR roleIds removes SA role while target is ACTIVE)
+- Guard runs inside `$transaction` as `tx.userRole.count` for other active SAs in tenant (`id: { not: targetId }`)
+- Zero remaining SAs throws `LastSaViolation` sentinel caught outside transaction -- returns `422 LAST_SYSTEM_ADMINISTRATOR`
+- Runtime-verified: guard fires correctly when isolated to sole active SA; correctly allows when other active SAs exist
+
+### HR Director authority boundary
+- `!isActorSA && isTargetSA` -- HRD cannot read, edit, suspend, deactivate, reactivate, or change roles for SA users
+- Returns `403 FORBIDDEN_USER_MANAGEMENT`; `AUTHZ_ACCESS_DENIED` audit event emitted
+- HRD cannot assign SA role in `roleIds` -- returns `403 FORBIDDEN_ROLE_ASSIGNMENT`; `AUTHZ_ACCESS_DENIED` audit event emitted
+
+### Audit event additions
+- `apps/api/src/audit/enums/audit-event-type.enum.ts` -- 5 new values: `IDENTITY_USER_UPDATED`, `IDENTITY_USER_SUSPENDED`, `IDENTITY_USER_DEACTIVATED`, `IDENTITY_USER_REACTIVATED`, `AUTHZ_ROLE_REMOVED`
+- All emitted after `$transaction` commit (AUD-1300 pattern); `IDENTITY_USER_UPDATED` carries no metadata (PII-safe)
+- `AUTHZ_ACCESS_DENIED` for HRD boundary violations emitted before transaction
+
+### PATCH /api/users/[id] BFF Route (new)
+- `apps/web/src/app/api/users/[id]/route.ts` -- PATCH handler only; no GET, POST, DELETE
+- SEC-003: `tenantId` in body -- `400 VALIDATION_ERROR` immediately, never forwarded
+- No session cookie -- `401 UNAUTHORIZED`
+- Forwards to `PATCH /api/v1/users/:id` with `Authorization: Bearer <token>`
+- NestJS response forwarded truthfully (status + body unchanged); network failure -- `503 INTERNAL_ERROR`
+
+### /admin/users/[id]/edit Edit Page (new)
+- `apps/web/src/app/(dashboard)/admin/users/[id]/edit/page.tsx` -- Server Component; fetches user + roles via `serverFetch`; builds `Map<name, id>` to map current role names to IDs for pre-selection
+- `defaultRoleIds` computed from `user.roles` (name strings) via role map -- no hardcoded UUIDs anywhere in `apps/web/src/`
+- Access guard: SA always; HRD only for non-SA targets (defense-in-depth against HRD editing SA users)
+- 404 on unknown user ID via `notFound()`
+- `apps/web/src/app/(dashboard)/admin/users/[id]/edit/error.tsx` -- error boundary; navy mini-header pattern; "Unable to load user" heading; "Try again" reset
+
+### Edit User Form (new)
+- `apps/web/src/features/admin/components/edit-user-form.tsx` -- RHF + Zod; `use client`
+- Fields: First Name, Last Name, Email, Roles (checkbox group)
+- No password field; no status field (status managed by UserStatusActions)
+- Roles received as props from server component (real API data); checkbox `value={role.id}`; pre-selected from `defaultValues.roleIds`
+- `roleIds: z.array(z.string()).min(1)` -- at least one role required
+- On success: `router.push('/admin/users/${userId}')` + `router.refresh()`
+- Server error banners: `CONFLICT`, `FORBIDDEN_ROLE_ASSIGNMENT`, `ROLE_NOT_FOUND`, network error
+
+### User Status Actions (new)
+- `apps/web/src/features/admin/components/user-status-actions.tsx` -- `use client`; PATCH `/api/users/${userId}` with `{ status: target }`
+- ACTIVE shows: Suspend + Deactivate; SUSPENDED shows: Reactivate + Deactivate; DEACTIVATED shows: Reactivate only
+- INVITED shows read-only note -- no action buttons; invitation lifecycle managed by NotificationModule (not built)
+- On success: `router.refresh()` (stays on detail page; no redirect)
+- Inline errors: `LAST_SYSTEM_ADMINISTRATOR`, `INVALID_STATUS_TRANSITION`, `FORBIDDEN_USER_MANAGEMENT`
+
+### /admin/users/[id] Detail Page (modified)
+- `apps/web/src/app/(dashboard)/admin/users/[id]/page.tsx` -- Edit button + `UserStatusActions` wired below detail card
+- `canManage = isSA || (isHRD && !targetIsSA)` gates both Edit button and Status Actions section
+- HRD viewing SA user: no Edit link, no Status Actions section
+
+### Admin Types Update (modified)
+- `apps/web/src/features/admin/types.ts` -- added `UpdateUserBffResponse`
+
+### M25/M26 Admin UI Consistency
+- AdminShell (IBM Plex Sans, navy header, tab nav, no sidebar) used on all new pages
+- No new colors, fonts, table patterns, or button patterns introduced
+- Error boundaries follow navy mini-header pattern established in M25/M26
+
+## Backend Tests
+
+### New backend files (1)
+- `apps/api/src/users/dto/update-user.dto.ts`
+
+### Updated test files (3)
+- `apps/api/src/users/users.service.spec.ts` -- 42 new tests for `updateUser()` covering all 10 discriminated union outcomes, HRD boundary, Last-SA guard, transition matrix, role reassignment, audit emission
+- `apps/api/src/users/users.controller.spec.ts` -- 20 new PATCH handler tests covering all 10 HTTP outcome mappings
+- `apps/api/test/users.e2e-spec.ts` -- Group 6 added: 20 ordered e2e tests (status lifecycle, role reassignment, HRD boundary, Last-SA guard, auth/validation, audit record verification)
+
+**Total unit test count: 1681 tests across 47 suites -- all passing**
+
+## Explicit Exclusions
+
+The following were explicitly excluded from M27 scope and are NOT present in the implementation commit:
+
+- No password reset endpoint -- NotificationModule not built
+- No user delete -- no delete actions policy
+- No invitation or activation email flow -- NotificationModule not built
+- No audit log viewer -- no backend read endpoint for audit events
+- No dashboard aggregate work -- no changes outside users scope
+- No department changes
+- No Prisma schema changes
+- No database migrations
+- No new AuditEventType enum values beyond the 5 defined in governance (GD-M27-1 D8)
+- No changes to identity.roles table or seed data
+- No governance file changes (GD-M27-1.md committed separately in 86918c9)
+
+## Files Changed (14)
+
+**New backend files (1):**
+- `apps/api/src/users/dto/update-user.dto.ts`
+
+**Modified backend files (6):**
+- `apps/api/src/audit/enums/audit-event-type.enum.ts` -- 5 new audit event types
+- `apps/api/src/users/users.service.ts` -- `UpdateUserResult` type; `LastSaViolation`; `ALLOWED_TRANSITIONS`; `updateUser()` method
+- `apps/api/src/users/users.controller.ts` -- `@Patch(':id')` handler mapping all 10 outcomes
+- `apps/api/src/users/users.service.spec.ts` -- 42 new `updateUser()` unit tests
+- `apps/api/src/users/users.controller.spec.ts` -- 20 new PATCH controller tests
+- `apps/api/test/users.e2e-spec.ts` -- Group 6 (20 e2e tests) + guard mini-tenant setup
+
+**New frontend files (5):**
+- `apps/web/src/app/(dashboard)/admin/users/[id]/edit/page.tsx`
+- `apps/web/src/app/(dashboard)/admin/users/[id]/edit/error.tsx`
+- `apps/web/src/app/api/users/[id]/route.ts`
+- `apps/web/src/features/admin/components/edit-user-form.tsx`
+- `apps/web/src/features/admin/components/user-status-actions.tsx`
+
+**Modified frontend files (2):**
+- `apps/web/src/app/(dashboard)/admin/users/[id]/page.tsx` -- Edit button + UserStatusActions
+- `apps/web/src/features/admin/types.ts` -- `UpdateUserBffResponse`
+
+## Validation
+
+| Check | Result |
+|---|---|
+| `npm run type-check` (apps/api) | EXIT 0 -- 0 TypeScript errors |
+| `npm run lint` (apps/api -- users/ + audit/enums/ + e2e) | EXIT 0 -- 0 ESLint warnings or errors |
+| `npm run test` (apps/api -- users pattern) | 1681/1681 tests passed -- 47 suites |
+| `npm run type-check` (apps/web) | EXIT 0 -- 0 TypeScript errors |
+| `npm run lint` (apps/web) | EXIT 0 -- 0 ESLint warnings or errors |
+| No hardcoded UUIDs in apps/web/src/ | CONFIRMED -- 0 UUID literals in source; role IDs are API-dynamic values |
+| Runtime verification | PASSED -- Claude Code 2026-07-14; PATCH API + BFF + edit page + status actions + HRD boundary + Last-SA guard all verified at localhost |
+| Human browser verification | PASSED -- runtime-verified; user accepted |
+| Commit | 9049fd6 -- 14 files changed, 2116 insertions(+), 18 deletions(-) |
+| Push | origin/main -- 86918c9..9049fd6 |
+| CI | CONFIRMED GREEN -- run 29314010613 -- success |
+
+## M27 Overall Maturity
+
+| Layer | Status |
+|---|---|
+| Requirements | Defined -- GD-M27-1.md (86918c9); FR-001 User Management fully implemented (backend + frontend) |
+| Specs | Defined -- GD-M27-1 + this PROGRESS.md entry |
+| Directives | GD-M27-1 approved and committed (86918c9) |
+| Execution Plan | Complete -- PATCH /api/v1/users/:id; UpdateUserDto; updateUser() service; PATCH BFF; edit page; EditUserForm; UserStatusActions; Edit button + status actions on detail page |
+| State Model | Full status lifecycle: ACTIVE ↔ SUSPENDED, ACTIVE → DEACTIVATED, DEACTIVATED → ACTIVE; INVITED read-only; Last-SA guard enforced |
+| Test Scenarios | Validated -- 62 unit + 20 e2e new tests; all 1681 tests passing; type-check; lint; runtime verification |
+| System Loop | Integrated -- Detail page Edit button → /admin/users/[id]/edit → EditUserForm → PATCH /api/users/[id] BFF → NestJS PATCH /api/v1/users/:id → DB; Status Actions → PATCH BFF → NestJS |
+| Failure Playbook | All 10 outcomes mapped: 200/400/403/404/409/422/500; LAST_SYSTEM_ADMINISTRATOR inline error; INVALID_STATUS_TRANSITION inline error; CONFLICT form banner; FORBIDDEN_ROLE_ASSIGNMENT form banner; network error handling |
+| Environment Model | Full-stack rebuild (API + web); no Docker/infra/env changes; no schema/migration changes |
+| Data Lifecycle | No schema change; role reassignment is deleteMany + createMany in single transaction; audit diff emitted per role change |
+| Evolution Strategy | UpdateUserDto extensible; ALLOWED_TRANSITIONS map maintainable; Last-SA guard reusable pattern; BFF PATCH pattern consistent with POST; canManage gate reusable for future management operations |
+| **Overall** | **Verified -- runtime-verified 2026-07-14; CI confirmed (9049fd6; run 29314010613)** |
