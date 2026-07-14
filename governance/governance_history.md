@@ -178,6 +178,14 @@ and is tracked in state/02_employee_lifecycle.md.
 
 ---
 
+## M28 — User Identity Header
+
+| ID | Date | Subject | Impact |
+|---|---|---|---|
+| GD-M28-1 | 2026-07-14 | User Identity Header — JWT Extension, Session Utility, and Header Identity Chip | Draft 2026-07-14 (pending approval); resolves the foundational header identity gap present across all four authenticated shells (Dashboard, Workforce, Recruiting, Admin) since platform launch — no shell has ever shown who is signed in; closes this gap before Phase 4 (Intelligence) begins; JWT payload extended with firstName + lastName (auth.service.ts JwtPayload interface + AuthService.login() signing block); RequestUser extended with firstName + lastName (jwt.strategy.ts — JwtStrategy.validate() uses ?? '' empty-string defaults for backward compat during 1-hour token transition window); no IdentityService query changes required (existing findFirst with include already returns full user row); new getSessionUser() function and SessionUser interface added to apps/web/src/lib/session.ts alongside existing getSessionRoles() (backward compat — all ~25 existing call sites untouched); new UserIdentityChip Server Component at apps/web/src/components/shared/user-identity-chip.tsx — non-interactive, reads session cookie internally, displays displayName · primaryRole [badge]; displayName = firstName ?? email; badge = abbreviation for single role (SA HRD WP REC HM CO EU) or +N for multiple roles; UserIdentityChip applied to all 4 authenticated headers before existing VDIV + LogoutButton; canonical role abbreviation map exported from chip module for future reuse; role switcher explicitly prohibited (backend RBAC evaluates all assigned roles — frontend-only switching is insecure and misleading); explicit exclusions: My Account page, profile edit, password change/reset, role switcher, impersonation, new API endpoints, Prisma schema, database migrations, BFF route changes, middleware changes; validation gate: type-check + lint exit 0 on api + web, auth.service.spec.ts SUCCESS path verifies firstName/lastName in sign() call, jwt.strategy.spec.ts verifies validate() return, browser verification of all 4 headers across SA/HRD/single-role/multi-role/name-missing scenarios, sign out still works, CI green; 12 governance decisions |
+
+---
+
 ## Shared Column Confirmation (Implementation Confirmation — Not a Governance Decision)
 
 | Date | Subject | Outcome |
