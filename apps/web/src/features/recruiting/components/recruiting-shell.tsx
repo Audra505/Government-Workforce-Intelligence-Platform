@@ -3,9 +3,13 @@
 // breadcrumb row, and inline section tabs.
 // Usage: wrap each recruiting page's content with <RecruitingShell activeTab="candidates" breadcrumb="Candidates">.
 // Reference: governance/GD-M20-1.md — Decision 4 (inline nav), Decision 16 (design system)
+// M25A: Admin nav link added for SA+HRD (GD-M25-1 D5, D6).
 
 import Link from 'next/link';
+import { cookies } from 'next/headers';
 import { LogoutButton } from '@/features/auth/logout-button';
+import { SESSION_COOKIE } from '@/lib/auth';
+import { getSessionRoles } from '@/lib/session';
 
 type ActiveTab = 'candidates' | 'applications' | 'interviews' | 'offers';
 type TabCounts = Partial<Record<ActiveTab, number>>;
@@ -33,6 +37,11 @@ const SUB    = '#475569';
 const BLUE   = '#2563eb';
 
 export function RecruitingShell({ activeTab, breadcrumb, children, counts }: Props) {
+  const token = cookies().get(SESSION_COOKIE)?.value;
+  const roles = token ? getSessionRoles(token) : [];
+  const canSeeAdmin =
+    roles.includes('System Administrator') || roles.includes('HR Director');
+
   return (
     <div
       className="flex min-h-screen flex-col"
@@ -68,6 +77,14 @@ export function RecruitingShell({ activeTab, breadcrumb, children, counts }: Pro
               >
                 Recruiting
               </Link>
+              {canSeeAdmin && (
+                <Link
+                  href="/admin/departments"
+                  className="rounded-[5px] px-[13px] py-[6px] text-[13px] font-medium text-white/50 transition-all hover:bg-white/[0.08] hover:text-white/[0.85]"
+                >
+                  Admin
+                </Link>
+              )}
             </nav>
           </div>
 

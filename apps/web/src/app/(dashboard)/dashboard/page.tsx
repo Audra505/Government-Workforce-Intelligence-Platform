@@ -7,7 +7,10 @@
 
 import type { ReactNode } from 'react';
 import Link from 'next/link';
+import { cookies } from 'next/headers';
 import { serverFetch } from '@/lib/api';
+import { SESSION_COOKIE } from '@/lib/auth';
+import { getSessionRoles } from '@/lib/session';
 import { LogoutButton } from '@/features/auth/logout-button';
 
 // ── Design tokens — match Dashboard mockup exactly ──────────────────────────
@@ -249,6 +252,10 @@ export default async function DashboardPage() {
 
   const pageDate = formatPageDate();
 
+  const token = cookies().get(SESSION_COOKIE)?.value;
+  const roles = token ? getSessionRoles(token) : [];
+  const canSeeAdmin = roles.includes('System Administrator') || roles.includes('HR Director');
+
   return (
     <div className="flex min-h-screen flex-col" style={{ backgroundColor: CANVAS, fontFamily: "var(--font-ibm-plex-sans,'IBM Plex Sans',system-ui,sans-serif)" }}>
 
@@ -276,6 +283,14 @@ export default async function DashboardPage() {
               >
                 Recruiting
               </Link>
+              {canSeeAdmin && (
+                <Link
+                  href="/admin/departments"
+                  className="rounded-[5px] px-[13px] py-[6px] text-[13px] font-medium text-white/50 transition-all hover:bg-white/[0.08] hover:text-white/[0.85]"
+                >
+                  Admin
+                </Link>
+              )}
             </nav>
           </div>
           <div className="flex items-center gap-4">
