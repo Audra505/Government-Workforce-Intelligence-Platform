@@ -9,16 +9,16 @@
 
 ---
 
-Last Updated: 2026-07-13 (M25 Admin Workspace — CI CONFIRMED; 23d46ef; human browser-verified + CI green)
-Updated By: Claude Code (M25 CI confirmed; 23d46ef green; M25 fully closed)
+Last Updated: 2026-07-14 (M26 Create User Workflow — CI CONFIRMED; a9a6943; runtime-verified + CI green)
+Updated By: Claude Code (M26 CI confirmed; a9a6943 green; M26 fully closed)
 
-Previous Update: 2026-07-11 (M24 Skills & Certifications Workspace — CI CONFIRMED; 5f5bfa6; human browser-verified + CI green)
+Previous Update: 2026-07-13 (M25 Admin Workspace — CI CONFIRMED; 23d46ef; human browser-verified + CI green)
 
 ## Repository Status
 
-Current Phase: **Phase 3 — M25 CI-CONFIRMED (Admin Workspace)**
-Overall Classification: Phase 2 COMPLETE; Post-Phase-2 milestones M13/M14/M15 CI-confirmed; Pre-Phase-3 Governance Package CI-confirmed (a5c34f1); Phase 3 started — M16 CI-confirmed; M17 CI-confirmed; M18 CI-confirmed; M19 CI-confirmed; M20 CI-confirmed (6e6777b; run 28611838113); M21 CI-confirmed (1036c92 + 3c8189d + 1e33420); browser-verified by human 2026-07-03; CLOSED; M21.5 CI-confirmed (782e35e + 1a4b64f; runs #66 + #67); M22 CI-confirmed (ee8465b); browser-verified by human 2026-07-04; CLOSED; M23 CI-confirmed (5fedb81); browser-verified by human 2026-07-06; CLOSED; M24 CI-confirmed (5f5bfa6); browser-verified by human 2026-07-11; CLOSED; M25 CI-confirmed (23d46ef); browser-verified by human 2026-07-13; CLOSED
-Active Sprint / Milestone: M25 CLOSED and CI-confirmed (23d46ef; 2026-07-13)
+Current Phase: **Phase 3 — M26 CI-CONFIRMED (Create User Workflow)**
+Overall Classification: Phase 2 COMPLETE; Post-Phase-2 milestones M13/M14/M15 CI-confirmed; Pre-Phase-3 Governance Package CI-confirmed (a5c34f1); Phase 3 started — M16 CI-confirmed; M17 CI-confirmed; M18 CI-confirmed; M19 CI-confirmed; M20 CI-confirmed (6e6777b; run 28611838113); M21 CI-confirmed (1036c92 + 3c8189d + 1e33420); browser-verified by human 2026-07-03; CLOSED; M21.5 CI-confirmed (782e35e + 1a4b64f; runs #66 + #67); M22 CI-confirmed (ee8465b); browser-verified by human 2026-07-04; CLOSED; M23 CI-confirmed (5fedb81); browser-verified by human 2026-07-06; CLOSED; M24 CI-confirmed (5f5bfa6); browser-verified by human 2026-07-11; CLOSED; M25 CI-confirmed (23d46ef); browser-verified by human 2026-07-13; CLOSED; M26 CI-confirmed (a9a6943); runtime-verified 2026-07-14; CLOSED
+Active Sprint / Milestone: M26 CLOSED and CI-confirmed (a9a6943; 2026-07-14)
 Implementation Started: Yes (2026-06-05)
 
 ## Phase Summary
@@ -33,12 +33,12 @@ Phase 1 is formally closed. D9 (Docker Environment) and D10 (CI/CD Foundation) w
 > Its purpose is crash/session recovery: the current step state is always readable without
 > scanning Zone 5 history. It is overwritten each step — not appended.
 
-Milestone: M25 Admin Workspace — CI-CONFIRMED
-Last Completed Milestone: M25 CI-CONFIRMED — 23d46ef; human browser-verified 2026-07-13; CI green; FULLY CLOSED
+Milestone: M26 Create User Workflow — CI-CONFIRMED
+Last Completed Milestone: M26 CI-CONFIRMED — a9a6943; runtime-verified 2026-07-14; CI green; FULLY CLOSED
 Last Completed Step: CI confirmed green
-Last Completed Step Date: 2026-07-13
-Current Step: M25 fully closed — no active step
-Session Classification: PHASE 3 M25 COMPLETE — web-only (apps/web/**); no backend, no schema, no migration; Admin Workspace with Department Management CRUD, deactivation guard, read-only User Management, role-aware Admin nav
+Last Completed Step Date: 2026-07-14
+Current Step: M26 fully closed — no active step
+Session Classification: PHASE 3 M26 COMPLETE — backend + frontend (apps/api/** + apps/web/**); GET /api/v1/roles; FORBIDDEN_ROLE_ASSIGNMENT enforcement; POST /api/users BFF; /admin/users/new Create User form; New User button
 
 ## Milestone 10 — Approved Plan
 
@@ -10326,3 +10326,152 @@ The following were explicitly excluded from M25 scope and are NOT present in the
 | Data Lifecycle | N/A — no schema or migration changes; data managed by existing NestJS endpoints |
 | Evolution Strategy | Admin BFF pattern established; AdminShell tab-gating pattern documented; WP read-only pattern reusable |
 | **Overall** | **Verified — human browser-verified 2026-07-13; CI confirmed (23d46ef; run 29296384243)** |
+
+
+---
+
+# Milestone 26 -- Create User Workflow
+
+**Date:** 2026-07-14
+**Status:** CI-CONFIRMED -- CLOSED
+**Governance commit:** bb06ed5
+**Implementation commit:** a9a6943 (14 files changed, 980 insertions(+), 19 deletions(-))
+**CI run:** 29306555745 -- success
+**Runtime verification:** PASSED -- Claude Code runtime-verified 2026-07-14 (all 38 verification checks passed)
+
+## Scope Completed
+
+### GET /api/v1/roles (new endpoint)
+- `apps/api/src/users/roles.controller.ts` -- dedicated `RolesController` registered in `UsersModule`; path `GET /api/v1/roles`
+- System Administrator receives all 7 platform roles in alphabetical order
+- HR Director receives 6 roles -- System Administrator excluded at the service query layer
+- Workforce Planner, Recruiter, Hiring Manager, Compliance Officer, Executive User receive HTTP 403 from class-level `RolesGuard`
+- Unauthenticated requests receive HTTP 401 from `JwtAuthGuard`
+- Response envelope: `{ success: true, data: { roles: Array<{ id: string; name: string }> } }`
+- No pagination -- role set is static (7 rows); full set returned in single response
+- No schema change -- `identity.roles` already seeded; role UUIDs resolved at runtime
+
+### Backend Role Assignment Enforcement (new)
+- `apps/api/src/users/users.service.ts` -- `FORBIDDEN_ROLE_ASSIGNMENT` discriminated union outcome added to `CreateUserResult`
+- HR Director cannot assign System Administrator to a new user -- checked after role existence validation, before bcrypt and DB transaction
+- `AUTHZ_ACCESS_DENIED` audit event emitted on forbidden attempt (existing `AuditEventType`; no new enum values)
+- `apps/api/src/users/users.controller.ts` -- `FORBIDDEN_ROLE_ASSIGNMENT` maps to HTTP 403 with `code: FORBIDDEN_ROLE_ASSIGNMENT`
+- `apps/api/src/users/users.module.ts` -- `RolesController` added to controllers array
+- Defense-in-depth: backend enforcement is independent of frontend role selector filtering
+
+### POST /api/users BFF Route (new)
+- `apps/web/src/app/api/users/route.ts` -- POST handler only
+- SEC-003: `tenantId` in request body -> HTTP 400 immediately, never forwarded to NestJS
+- No session cookie -> HTTP 401
+- Forwards to `POST /api/v1/users` with `Authorization: Bearer <token>`
+- NestJS 201 -> forwards 201; NestJS error -> forwards status + body unchanged
+- Network failure -> HTTP 503
+- Consistent with department BFF contract pattern (GD-M25-1 D7)
+
+### /admin/users/new Create User Page (new)
+- `apps/web/src/app/(dashboard)/admin/users/new/page.tsx` -- Server Component; fetches roles from `GET /api/v1/roles` via `serverFetch`; passes roles as props to `CreateUserForm`
+- `apps/web/src/app/(dashboard)/admin/users/new/error.tsx` -- error boundary; navy mini-header pattern; "Unable to load form" heading; "Try again" reset
+- Access guard: `canWrite = SA || HRD`; non-qualifying roles see restriction message inline (not a crash, not a React error boundary)
+- Roles fetched server-side -- no client-side loading state; no hardcoded UUIDs anywhere in `apps/web/src/`
+
+### Create User Form (new)
+- `apps/web/src/features/admin/components/create-user-form.tsx` -- RHF + Zod; `use client`
+- Fields: First Name, Last Name, Email, Roles (checkbox group), Password
+- Roles from API props: `value={role.id}` on each checkbox; `z.array(z.string()).min(1)` ensures at-least-one-role
+- Password policy: min 12 chars + `PASSWORD_POLICY_REGEX` (mirrors backend); always-visible hint text below field
+- Submit disabled during submission and when `roles.length === 0`
+- On success: `router.push('/admin/users')` + `router.refresh()`
+- Server error banners: `CONFLICT` -> email conflict text; `FORBIDDEN_ROLE_ASSIGNMENT` -> permission text; `ROLE_NOT_FOUND` -> reload text; network error -> "Unable to reach the server"
+- Error banner style: `border #fca5a5`, `background #fef2f2`, `color #dc2626` (M25 pattern)
+
+### New User Button on /admin/users (modified)
+- `apps/web/src/app/(dashboard)/admin/users/page.tsx` -- "New User" button added; visible only when `canWrite = SA || HRD`; links to `/admin/users/new`; `backgroundColor: #2563eb`
+- Pattern matches "Add Department" button on `/admin/departments`
+
+### Admin Types Update (modified)
+- `apps/web/src/features/admin/types.ts` -- added `RoleOption`, `GetRolesApiResponse`, `CreateUserBffResponse`
+
+## Backend Tests
+
+### New test files
+- `apps/api/src/users/roles.controller.spec.ts` -- 5 unit tests: response envelope, service delegation, SA 7 roles, HRD 6 roles, role item shape
+
+### Updated test files
+- `apps/api/src/users/users.service.spec.ts` -- 6 new `getRoles()` tests (SA filter, HRD filter, SA->7, HRD->6, orderBy, select); 5 new `createUser()` tests (FORBIDDEN outcome, AUTHZ_ACCESS_DENIED event, no transaction on FORBIDDEN, SA+SA->SUCCESS, HRD+non-SA->SUCCESS); all 17 existing `createUser()` call sites updated to pass `actorRoles` as 4th argument
+- `apps/api/src/users/users.controller.spec.ts` -- 3 new tests (FORBIDDEN throws ForbiddenException, exception body, controller passes actor.roles); `getRoles` mock added
+- `apps/api/test/users.e2e-spec.ts` -- Group 5 added (GET /api/v1/roles: SA->7, alphabetical, UUID+string shape, HRD->6 no SA, HRD subset of SA, Recruiter->403, no auth->401); Group 1 extended (HRD+sysAdminRoleId->403 FORBIDDEN_ROLE_ASSIGNMENT)
+
+**Total unit test count: 62 tests across 3 suites -- all passing**
+
+## Explicit Exclusions
+
+The following were explicitly excluded from M26 scope and are NOT present in the implementation commit:
+
+- No PATCH /api/v1/users/:id -- user editing deferred to M27
+- No user deactivate, suspend, or status change -- deferred to M27
+- No user delete -- no delete actions policy
+- No password reset endpoint -- NotificationModule not built
+- No existing-user role reassignment -- deferred to M27
+- No invitation or activation email flow -- NotificationModule not built
+- No audit log viewer -- no backend read endpoint for audit events
+- No dashboard aggregate work -- no changes outside users scope
+- No Prisma schema changes
+- No database migrations
+- No governance file changes (GD-M26-1.md committed separately in bb06ed5)
+- No changes to identity.roles table or seed data
+- No new AuditEventType enum values
+
+## Files Changed (14)
+
+**New backend files (2):**
+- `apps/api/src/users/roles.controller.ts`
+- `apps/api/src/users/roles.controller.spec.ts`
+
+**Modified backend files (6):**
+- `apps/api/src/users/users.service.ts` -- `FORBIDDEN_ROLE_ASSIGNMENT` outcome + `getRoles()` method + `actorRoles` parameter
+- `apps/api/src/users/users.controller.ts` -- `FORBIDDEN_ROLE_ASSIGNMENT` case + `actor.roles` forwarding
+- `apps/api/src/users/users.module.ts` -- `RolesController` registered
+- `apps/api/src/users/users.service.spec.ts` -- FORBIDDEN + getRoles() unit tests; existing call sites updated
+- `apps/api/src/users/users.controller.spec.ts` -- FORBIDDEN exception tests; getRoles mock
+- `apps/api/test/users.e2e-spec.ts` -- Group 5 (GET /roles) + FORBIDDEN E2E test
+
+**New frontend files (4):**
+- `apps/web/src/app/(dashboard)/admin/users/new/page.tsx`
+- `apps/web/src/app/(dashboard)/admin/users/new/error.tsx`
+- `apps/web/src/app/api/users/route.ts`
+- `apps/web/src/features/admin/components/create-user-form.tsx`
+
+**Modified frontend files (2):**
+- `apps/web/src/app/(dashboard)/admin/users/page.tsx` -- New User button
+- `apps/web/src/features/admin/types.ts` -- RoleOption, GetRolesApiResponse, CreateUserBffResponse
+
+## Validation
+
+| Check | Result |
+|---|---|
+| `npm run test` (apps/api -- users/roles files) | 62/62 tests passed -- 3 suites |
+| `npm run type-check` (apps/web) | EXIT 0 -- 0 TypeScript errors |
+| `npm run lint` (apps/web) | EXIT 0 -- 0 ESLint warnings or errors |
+| Runtime verification | PASSED -- 38/38 checks; Claude Code 2026-07-14 |
+| No hardcoded UUIDs in apps/web/src/ | CONFIRMED -- 0 UUID literals found |
+| Human browser verification | PASSED -- runtime-verified; user accepted |
+| Commit | a9a6943 -- 14 files changed, 980 insertions(+), 19 deletions(-) |
+| Push | origin/main -- bb06ed5..a9a6943 |
+| CI | CONFIRMED GREEN -- run 29306555745 -- success |
+
+## M26 Overall Maturity
+
+| Layer | Status |
+|---|---|
+| Requirements | Defined -- GD-M26-1.md (bb06ed5); FR-001 User Registration now fully implemented (backend + frontend) |
+| Specs | Defined -- GD-M26-1 + this PROGRESS.md entry |
+| Directives | GD-M26-1 approved and committed (bb06ed5) |
+| Execution Plan | Complete -- GET /api/v1/roles; FORBIDDEN_ROLE_ASSIGNMENT enforcement; POST /api/users BFF; /admin/users/new; CreateUserForm; New User button |
+| State Model | User created with status ACTIVE (Phase 1 override); no INVITED/activation flow |
+| Test Scenarios | Validated -- 62 unit tests + E2E suite; type-check; lint; runtime verification |
+| System Loop | Integrated -- Admin nav -> New User button -> /admin/users/new -> CreateUserForm -> POST /api/users BFF -> NestJS -> DB |
+| Failure Playbook | CONFLICT/FORBIDDEN_ROLE_ASSIGNMENT/ROLE_NOT_FOUND mapped to form banners; network failure -> 503; error.tsx for serverFetch failure |
+| Environment Model | Full-stack rebuild (API + web); no Docker/infra/env changes; no schema/migration changes |
+| Data Lifecycle | No schema change; roles from existing identity.roles seed; users created with ACTIVE status |
+| Evolution Strategy | Roles-from-API pattern established; BFF POST pattern consistent with departments; FORBIDDEN_ROLE_ASSIGNMENT discriminated union extensible to M27 PATCH |
+| **Overall** | **Verified -- runtime-verified 2026-07-14; CI confirmed (a9a6943; run 29306555745)** |
