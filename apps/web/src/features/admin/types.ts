@@ -87,3 +87,11 @@ export type GetRolesApiResponse = {
 export type CreateUserBffResponse =
   | { success: true; data: UserRow }
   | { success: false; error: { code: string; message: string } };
+
+// ── Update User types — M27 (GD-M27-1 D9) ────────────────────────────────────
+// UpdateUserBffResponse: union returned by PATCH /api/users/[id] BFF.
+// tenantId intentionally absent — excluded per SEC-003.
+
+export type UpdateUserBffResponse =
+  | { success: true; data: UserRow }
+  | { success: false; error: { code: string; message: string } };

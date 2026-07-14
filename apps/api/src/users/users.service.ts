@@ -21,6 +21,7 @@ import { AuditEventType } from '../audit/enums/audit-event-type.enum';
 import { BCRYPT_ROUNDS } from '../identity/identity.constants';
 import { CreateUserDto } from './dto/create-user.dto';
 import { ListUsersQueryDto } from './dto/list-users-query.dto';
+import { UpdateUserDto } from './dto/update-user.dto';
 
 // Shared intermediate user shape — produced by all three service methods.
 // Excludes: passwordHash, tenantId (implicit from auth context), failedLoginAttempts,
@@ -57,6 +58,33 @@ export type GetUserByIdResult =
   | { outcome: 'NOT_FOUND' }
   | { outcome: 'INTERNAL_ERROR' };
 
+// Sentinel thrown inside $transaction to abort and signal the Last-SA guard.
+// Never thrown outside this module.
+class LastSaViolation extends Error {
+  constructor() { super('LAST_SYSTEM_ADMINISTRATOR'); }
+}
+
+// Status transitions permitted by GD-M27-1 Decision 4.
+// Absent key (INVITED) = no transitions allowed.
+// Any → INVITED is also disallowed (INVITED not in any value array).
+const ALLOWED_TRANSITIONS: Record<string, string[]> = {
+  ACTIVE: ['SUSPENDED', 'DEACTIVATED'],
+  SUSPENDED: ['ACTIVE', 'DEACTIVATED'],
+  DEACTIVATED: ['ACTIVE'],
+};
+
+export type UpdateUserResult =
+  | { outcome: 'SUCCESS'; user: UserRecord }
+  | { outcome: 'NOT_FOUND' }
+  | { outcome: 'NO_MEANINGFUL_CHANGE' }
+  | { outcome: 'EMAIL_CONFLICT' }
+  | { outcome: 'ROLE_NOT_FOUND'; missingIds: string[] }
+  | { outcome: 'FORBIDDEN_USER_MANAGEMENT' }
+  | { outcome: 'FORBIDDEN_ROLE_ASSIGNMENT'; forbiddenRoleId: string }
+  | { outcome: 'LAST_SYSTEM_ADMINISTRATOR' }
+  | { outcome: 'INVALID_STATUS_TRANSITION'; from: string; to: string }
+  | { outcome: 'INTERNAL_ERROR' };
+
 // Helper type — matches the Prisma row shape returned by USER_READ_SELECT.
 type UserRowWithRoles = {
   id: string;
@@ -67,6 +95,18 @@ type UserRowWithRoles = {
   createdAt: Date;
   lastLoginAt: Date | null;
   userRoles: Array<{ role: { name: string } }>;
+};
+
+// Extended row shape for updateUser — includes role.id for audit event diff.
+type UserRowWithRoleIds = {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  status: string;
+  createdAt: Date;
+  lastLoginAt: Date | null;
+  userRoles: Array<{ role: { id: string; name: string } }>;
 };
 
 // Shared Prisma select for read operations (listUsers, getUserById).
@@ -312,6 +352,278 @@ export class UsersService {
     }
 
     return { outcome: 'SUCCESS', user: toUserRecord(user) };
+  }
+
+  // GD-M27-1 — PATCH /api/v1/users/:id
+  // Applies partial updates to firstName, lastName, email, status, and/or roleIds.
+  // All guards (HRD boundary, status transition, last-SA) are enforced before or
+  // within the $transaction. Audit events are emitted after commit (AUD-1300).
+  async updateUser(
+    id: string,
+    dto: UpdateUserDto,
+    tenantId: string,
+    actorUserId: string,
+    actorRoles: string[],
+  ): Promise<UpdateUserResult> {
+    // Service-layer no-change guard — DTO has all-optional fields, so an empty
+    // body passes DTO validation. The service catches it here (transport-agnostic).
+    const hasMeaningfulField =
+      dto.firstName !== undefined ||
+      dto.lastName !== undefined ||
+      dto.email !== undefined ||
+      dto.status !== undefined ||
+      dto.roleIds !== undefined;
+
+    if (!hasMeaningfulField) {
+      return { outcome: 'NO_MEANINGFUL_CHANGE' };
+    }
+
+    // Fetch target user with role IDs (needed for HRD boundary check + audit diff).
+    // findFirst with tenantId enforces SEC-003 — cross-tenant ID lookup returns NOT_FOUND.
+    let target: UserRowWithRoleIds | null;
+    try {
+      target = await this.prisma.user.findFirst({
+        where: { id, tenantId, deletedAt: null },
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          email: true,
+          status: true,
+          createdAt: true,
+          lastLoginAt: true,
+          userRoles: { select: { role: { select: { id: true, name: true } } } },
+        },
+      });
+    } catch (e) {
+      this.logger.error('updateUser: findFirst failed', e instanceof Error ? e.stack : String(e));
+      return { outcome: 'INTERNAL_ERROR' };
+    }
+
+    if (!target) {
+      return { outcome: 'NOT_FOUND' };
+    }
+
+    const currentStatus = target.status;
+    const currentRoles = target.userRoles.map(ur => ur.role);
+    const currentRoleNames = currentRoles.map(r => r.name);
+    const isTargetSA = currentRoleNames.includes('System Administrator');
+    const isActorSA = actorRoles.includes('System Administrator');
+
+    // GD-M27-1 Decision 6 — HR Director authority boundary.
+    // HRD cannot edit, suspend, deactivate, reactivate, or change roles for SA users.
+    if (!isActorSA && isTargetSA) {
+      await this.auditService.logEvent({
+        tenantId,
+        userId: actorUserId,
+        action: AuditEventType.AUTHZ_ACCESS_DENIED,
+        result: 'FAILURE',
+        entityType: 'USER',
+        entityId: id,
+      });
+      return { outcome: 'FORBIDDEN_USER_MANAGEMENT' };
+    }
+
+    // GD-M27-1 Decision 4 — Status transition validation.
+    // Same-status write (no-op) skips the transition check.
+    if (dto.status !== undefined && dto.status !== currentStatus) {
+      const allowed = ALLOWED_TRANSITIONS[currentStatus] ?? [];
+      if (!allowed.includes(dto.status)) {
+        return { outcome: 'INVALID_STATUS_TRANSITION', from: currentStatus, to: dto.status };
+      }
+    }
+
+    // Role existence validation + FORBIDDEN_ROLE_ASSIGNMENT check (if roleIds provided).
+    let foundRoles: Array<{ id: string; name: string }> = [];
+    if (dto.roleIds !== undefined) {
+      const uniqueRoleIds = [...new Set(dto.roleIds)];
+      try {
+        foundRoles = await this.prisma.role.findMany({
+          where: { id: { in: uniqueRoleIds } },
+          select: { id: true, name: true },
+        });
+      } catch (e) {
+        this.logger.error('updateUser: role lookup failed', e instanceof Error ? e.stack : String(e));
+        return { outcome: 'INTERNAL_ERROR' };
+      }
+
+      if (foundRoles.length !== uniqueRoleIds.length) {
+        const foundIds = new Set(foundRoles.map(r => r.id));
+        const missingIds = uniqueRoleIds.filter(rid => !foundIds.has(rid));
+        return { outcome: 'ROLE_NOT_FOUND', missingIds };
+      }
+
+      // GD-M27-1 Decision 7 — HRD cannot assign System Administrator (same as M26 D3).
+      if (!isActorSA) {
+        const sysAdminRole = foundRoles.find(r => r.name === 'System Administrator');
+        if (sysAdminRole) {
+          await this.auditService.logEvent({
+            tenantId,
+            userId: actorUserId,
+            action: AuditEventType.AUTHZ_ACCESS_DENIED,
+            result: 'FAILURE',
+            entityType: 'ROLE',
+            entityId: sysAdminRole.id,
+          });
+          return { outcome: 'FORBIDDEN_ROLE_ASSIGNMENT', forbiddenRoleId: sysAdminRole.id };
+        }
+      }
+    }
+
+    // GD-M27-1 Decision 5 — Last-SA guard trigger conditions.
+    const statusChangesToInactive =
+      dto.status !== undefined &&
+      dto.status !== currentStatus &&
+      (dto.status === 'SUSPENDED' || dto.status === 'DEACTIVATED');
+
+    const roleRemovesSA =
+      dto.roleIds !== undefined &&
+      isTargetSA &&
+      currentStatus === 'ACTIVE' &&
+      !foundRoles.some(r => r.name === 'System Administrator');
+
+    const needsLastSaGuard = isTargetSA && (statusChangesToInactive || roleRemovesSA);
+
+    // Compute normalised email once for use in both updateData and audit diff.
+    const normalizedEmail = dto.email !== undefined ? dto.email.toLowerCase().trim() : undefined;
+
+    try {
+      await this.prisma.$transaction(async tx => {
+        // Last-SA guard — inside transaction to minimise race window (GD-M27-1 D5).
+        if (needsLastSaGuard) {
+          const remainingSAs = await tx.userRole.count({
+            where: {
+              role: { name: 'System Administrator' },
+              user: { status: 'ACTIVE', deletedAt: null, tenantId, id: { not: id } },
+            },
+          });
+          if (remainingSAs === 0) throw new LastSaViolation();
+        }
+
+        // Apply scalar + status field updates.
+        const updateData: Record<string, unknown> = {};
+        if (dto.firstName !== undefined) updateData['firstName'] = dto.firstName;
+        if (dto.lastName !== undefined) updateData['lastName'] = dto.lastName;
+        if (normalizedEmail !== undefined) updateData['email'] = normalizedEmail;
+        if (dto.status !== undefined && dto.status !== currentStatus) {
+          updateData['status'] = dto.status;
+        }
+
+        if (Object.keys(updateData).length > 0) {
+          await tx.user.update({ where: { id }, data: updateData });
+        }
+
+        // Role replacement — complete set (deleteMany + createMany in one tx).
+        if (dto.roleIds !== undefined) {
+          await tx.userRole.deleteMany({ where: { userId: id } });
+          await tx.userRole.createMany({
+            data: foundRoles.map(r => ({ userId: id, roleId: r.id })),
+          });
+        }
+      });
+    } catch (e) {
+      if (e instanceof LastSaViolation) {
+        return { outcome: 'LAST_SYSTEM_ADMINISTRATOR' };
+      }
+      if (
+        e instanceof Prisma.PrismaClientKnownRequestError &&
+        e.code === 'P2002'
+      ) {
+        return { outcome: 'EMAIL_CONFLICT' };
+      }
+      this.logger.error('updateUser: transaction failed', e instanceof Error ? e.stack : String(e));
+      return { outcome: 'INTERNAL_ERROR' };
+    }
+
+    // Construct updated UserRecord from known values — avoids a second DB round-trip.
+    const finalStatus =
+      dto.status !== undefined && dto.status !== currentStatus ? dto.status : currentStatus;
+    const finalRoles =
+      dto.roleIds !== undefined ? foundRoles.map(r => r.name) : currentRoleNames;
+    const finalEmail = normalizedEmail ?? target.email;
+
+    const updatedUser: UserRecord = {
+      id: target.id,
+      firstName: dto.firstName ?? target.firstName,
+      lastName: dto.lastName ?? target.lastName,
+      email: finalEmail,
+      status: finalStatus,
+      roles: finalRoles,
+      createdAt: target.createdAt,
+      lastLoginAt: target.lastLoginAt,
+    };
+
+    // Emit audit events after transaction commit (AUD-1300).
+    // AuditService.logEvent() swallows its own errors.
+
+    const fieldsChanged =
+      (dto.firstName !== undefined && dto.firstName !== target.firstName) ||
+      (dto.lastName !== undefined && dto.lastName !== target.lastName) ||
+      (normalizedEmail !== undefined && normalizedEmail !== target.email);
+
+    if (fieldsChanged) {
+      await this.auditService.logEvent({
+        tenantId,
+        userId: actorUserId,
+        action: AuditEventType.IDENTITY_USER_UPDATED,
+        result: 'SUCCESS',
+        entityType: 'USER',
+        entityId: id,
+      });
+    }
+
+    if (dto.status !== undefined && dto.status !== currentStatus) {
+      const statusAction =
+        dto.status === 'SUSPENDED'
+          ? AuditEventType.IDENTITY_USER_SUSPENDED
+          : dto.status === 'DEACTIVATED'
+            ? AuditEventType.IDENTITY_USER_DEACTIVATED
+            : AuditEventType.IDENTITY_USER_REACTIVATED;
+
+      await this.auditService.logEvent({
+        tenantId,
+        userId: actorUserId,
+        action: statusAction,
+        result: 'SUCCESS',
+        entityType: 'USER',
+        entityId: id,
+      });
+    }
+
+    if (dto.roleIds !== undefined) {
+      const oldRoleIdSet = new Set(currentRoles.map(r => r.id));
+      const newRoleIdSet = new Set(foundRoles.map(r => r.id));
+
+      for (const role of currentRoles) {
+        if (!newRoleIdSet.has(role.id)) {
+          await this.auditService.logEvent({
+            tenantId,
+            userId: actorUserId,
+            action: AuditEventType.AUTHZ_ROLE_REMOVED,
+            result: 'SUCCESS',
+            entityType: 'USER',
+            entityId: id,
+            metadata: { roleId: role.id, roleName: role.name },
+          });
+        }
+      }
+
+      for (const role of foundRoles) {
+        if (!oldRoleIdSet.has(role.id)) {
+          await this.auditService.logEvent({
+            tenantId,
+            userId: actorUserId,
+            action: AuditEventType.AUTHZ_ROLE_ASSIGNED,
+            result: 'SUCCESS',
+            entityType: 'USER',
+            entityId: id,
+            metadata: { roleId: role.id, roleName: role.name },
+          });
+        }
+      }
+    }
+
+    return { outcome: 'SUCCESS', user: updatedUser };
   }
 
   // GD-M26-1 Decision 2: returns roles the actor may assign.

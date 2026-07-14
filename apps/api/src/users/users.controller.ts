@@ -24,8 +24,10 @@ import {
   NotFoundException,
   Param,
   ParseUUIDPipe,
+  Patch,
   Post,
   Query,
+  UnprocessableEntityException,
   UseGuards,
 } from '@nestjs/common';
 import {
@@ -44,6 +46,7 @@ import { RequestUser } from '../identity/jwt.strategy';
 import { UsersService, UserRecord } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { ListUsersQueryDto } from './dto/list-users-query.dto';
+import { UpdateUserDto } from './dto/update-user.dto';
 import { UserResponseDto } from './dto/user-response.dto';
 
 @ApiTags('users')
@@ -132,6 +135,101 @@ export class UsersController {
           },
         };
       }
+
+      case 'INTERNAL_ERROR':
+        throw new InternalServerErrorException({
+          success: false,
+          error: { code: 'INTERNAL_ERROR', message: 'An unexpected error occurred' },
+        });
+    }
+  }
+
+  @Patch(':id')
+  @ApiOperation({ summary: 'Update user fields, status, and/or role assignments' })
+  @ApiParam({ name: 'id', description: 'User UUID v4', type: 'string' })
+  @ApiResponse({ status: 200, type: UserResponseDto, description: 'User updated successfully' })
+  @ApiResponse({ status: 400, description: 'No meaningful change, role not found, or invalid status value' })
+  @ApiResponse({ status: 401, description: 'Not authenticated' })
+  @ApiResponse({ status: 403, description: 'Insufficient role, forbidden role assignment, or forbidden user management' })
+  @ApiResponse({ status: 404, description: 'User not found in this tenant' })
+  @ApiResponse({ status: 409, description: 'Email already exists within this tenant' })
+  @ApiResponse({ status: 422, description: 'Last System Administrator guard or invalid status transition' })
+  @ApiResponse({ status: 500, description: 'Internal server error' })
+  async updateUser(
+    @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
+    @Body() dto: UpdateUserDto,
+    @CurrentUser() actor: RequestUser,
+  ): Promise<object> {
+    const result = await this.usersService.updateUser(
+      id, dto, actor.tenantId, actor.userId, actor.roles,
+    );
+
+    switch (result.outcome) {
+      case 'SUCCESS':
+        return { success: true, data: toResponseShape(result.user) };
+
+      case 'NOT_FOUND':
+        throw new NotFoundException({
+          success: false,
+          error: { code: 'NOT_FOUND', message: 'user not found' },
+        });
+
+      case 'NO_MEANINGFUL_CHANGE':
+        throw new BadRequestException({
+          success: false,
+          error: { code: 'VALIDATION_ERROR', message: 'request contains no updatable fields' },
+        });
+
+      case 'EMAIL_CONFLICT':
+        throw new ConflictException({
+          success: false,
+          error: { code: 'CONFLICT', message: 'email already exists within this tenant' },
+        });
+
+      case 'ROLE_NOT_FOUND':
+        throw new BadRequestException({
+          success: false,
+          error: {
+            code: 'VALIDATION_ERROR',
+            message: `roles not found: ${result.missingIds.join(', ')}`,
+          },
+        });
+
+      case 'FORBIDDEN_USER_MANAGEMENT':
+        throw new ForbiddenException({
+          success: false,
+          error: {
+            code: 'FORBIDDEN_USER_MANAGEMENT',
+            message: 'HR Director may not manage System Administrator users',
+          },
+        });
+
+      case 'FORBIDDEN_ROLE_ASSIGNMENT':
+        throw new ForbiddenException({
+          success: false,
+          error: {
+            code: 'FORBIDDEN_ROLE_ASSIGNMENT',
+            message: 'HR Director may not assign System Administrator',
+          },
+        });
+
+      case 'LAST_SYSTEM_ADMINISTRATOR':
+        throw new UnprocessableEntityException({
+          success: false,
+          error: {
+            code: 'LAST_SYSTEM_ADMINISTRATOR',
+            message: 'Cannot modify the last active System Administrator',
+          },
+        });
+
+      case 'INVALID_STATUS_TRANSITION':
+        throw new UnprocessableEntityException({
+          success: false,
+          error: {
+            code: 'INVALID_STATUS_TRANSITION',
+            message: `Cannot transition user status from ${result.from} to ${result.to}`,
+          },
+        });
 
       case 'INTERNAL_ERROR':
         throw new InternalServerErrorException({

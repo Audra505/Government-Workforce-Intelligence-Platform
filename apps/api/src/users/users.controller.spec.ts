@@ -13,6 +13,7 @@ import {
   ForbiddenException,
   InternalServerErrorException,
   NotFoundException,
+  UnprocessableEntityException,
 } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
 
@@ -23,6 +24,7 @@ import { UsersService, type UserRecord } from './users.service';
 import type { RequestUser } from '../identity/jwt.strategy';
 import type { ListUsersQueryDto } from './dto/list-users-query.dto';
 import type { CreateUserDto } from './dto/create-user.dto';
+import type { UpdateUserDto } from './dto/update-user.dto';
 
 // ---------------------------------------------------------------------------
 // Test constants
@@ -74,6 +76,7 @@ describe('UsersController', () => {
     listUsers: jest.Mock;
     getUserById: jest.Mock;
     getRoles: jest.Mock;
+    updateUser: jest.Mock;
   };
 
   beforeEach(async () => {
@@ -82,6 +85,7 @@ describe('UsersController', () => {
       listUsers: jest.fn(),
       getUserById: jest.fn(),
       getRoles: jest.fn(),
+      updateUser: jest.fn(),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -307,6 +311,198 @@ describe('UsersController', () => {
       await controller.getUserById(USER_ID, mockActor);
 
       expect(mockUsersService.getUserById).toHaveBeenCalledWith(USER_ID, TENANT_ID);
+    });
+  });
+
+  // --------------------------------------------------------------------------
+  // PATCH /:id — updateUser()
+  // GD-M27-1 Decision 3–7
+  // --------------------------------------------------------------------------
+
+  describe('updateUser()', () => {
+    const updateDto: UpdateUserDto = { firstName: 'Updated' };
+
+    it('SUCCESS: returns { success: true, data: UserRecord shape }', async () => {
+      mockUsersService.updateUser.mockResolvedValue({ outcome: 'SUCCESS', user: userRecord });
+
+      const result = await controller.updateUser(USER_ID, updateDto, mockActor) as Record<string, Record<string, unknown>>;
+
+      expect(result['success']).toBe(true);
+      expect(result['data']!['id']).toBe(USER_ID);
+    });
+
+    it('SUCCESS: createdAt is serialized to ISO 8601 string', async () => {
+      mockUsersService.updateUser.mockResolvedValue({ outcome: 'SUCCESS', user: userRecord });
+
+      const result = await controller.updateUser(USER_ID, updateDto, mockActor) as Record<string, Record<string, unknown>>;
+
+      expect(result['data']!['createdAt']).toBe(CREATED_AT.toISOString());
+    });
+
+    it('passes (id, dto, tenantId, userId, roles) to service', async () => {
+      mockUsersService.updateUser.mockResolvedValue({ outcome: 'SUCCESS', user: userRecord });
+
+      await controller.updateUser(USER_ID, updateDto, mockActor);
+
+      expect(mockUsersService.updateUser).toHaveBeenCalledWith(
+        USER_ID, updateDto, TENANT_ID, ACTOR_ID, mockActor.roles,
+      );
+    });
+
+    it('NOT_FOUND: throws NotFoundException', async () => {
+      mockUsersService.updateUser.mockResolvedValue({ outcome: 'NOT_FOUND' });
+
+      await expect(controller.updateUser(USER_ID, updateDto, mockActor)).rejects.toThrow(NotFoundException);
+    });
+
+    it('NOT_FOUND: exception response contains { success: false, error: { code: "NOT_FOUND" } }', async () => {
+      mockUsersService.updateUser.mockResolvedValue({ outcome: 'NOT_FOUND' });
+
+      try {
+        await controller.updateUser(USER_ID, updateDto, mockActor);
+        fail('expected NotFoundException');
+      } catch (err) {
+        const response = (err as NotFoundException).getResponse() as Record<string, unknown>;
+        expect(response).toMatchObject({ success: false, error: { code: 'NOT_FOUND' } });
+      }
+    });
+
+    it('NO_MEANINGFUL_CHANGE: throws BadRequestException', async () => {
+      mockUsersService.updateUser.mockResolvedValue({ outcome: 'NO_MEANINGFUL_CHANGE' });
+
+      await expect(controller.updateUser(USER_ID, {} as UpdateUserDto, mockActor)).rejects.toThrow(BadRequestException);
+    });
+
+    it('NO_MEANINGFUL_CHANGE: exception response contains code VALIDATION_ERROR', async () => {
+      mockUsersService.updateUser.mockResolvedValue({ outcome: 'NO_MEANINGFUL_CHANGE' });
+
+      try {
+        await controller.updateUser(USER_ID, {} as UpdateUserDto, mockActor);
+        fail('expected BadRequestException');
+      } catch (err) {
+        const response = (err as BadRequestException).getResponse() as Record<string, unknown>;
+        expect(response).toMatchObject({ success: false, error: { code: 'VALIDATION_ERROR' } });
+      }
+    });
+
+    it('EMAIL_CONFLICT: throws ConflictException', async () => {
+      mockUsersService.updateUser.mockResolvedValue({ outcome: 'EMAIL_CONFLICT' });
+
+      await expect(controller.updateUser(USER_ID, updateDto, mockActor)).rejects.toThrow(ConflictException);
+    });
+
+    it('EMAIL_CONFLICT: exception response contains code CONFLICT', async () => {
+      mockUsersService.updateUser.mockResolvedValue({ outcome: 'EMAIL_CONFLICT' });
+
+      try {
+        await controller.updateUser(USER_ID, updateDto, mockActor);
+        fail('expected ConflictException');
+      } catch (err) {
+        const response = (err as ConflictException).getResponse() as Record<string, unknown>;
+        expect(response).toMatchObject({ success: false, error: { code: 'CONFLICT' } });
+      }
+    });
+
+    it('ROLE_NOT_FOUND: throws BadRequestException with VALIDATION_ERROR', async () => {
+      mockUsersService.updateUser.mockResolvedValue({
+        outcome: 'ROLE_NOT_FOUND',
+        missingIds: [ROLE_ID],
+      });
+
+      await expect(controller.updateUser(USER_ID, updateDto, mockActor)).rejects.toThrow(BadRequestException);
+    });
+
+    it('FORBIDDEN_USER_MANAGEMENT: throws ForbiddenException', async () => {
+      mockUsersService.updateUser.mockResolvedValue({ outcome: 'FORBIDDEN_USER_MANAGEMENT' });
+
+      await expect(controller.updateUser(USER_ID, updateDto, mockActor)).rejects.toThrow(ForbiddenException);
+    });
+
+    it('FORBIDDEN_USER_MANAGEMENT: exception response contains code FORBIDDEN_USER_MANAGEMENT', async () => {
+      mockUsersService.updateUser.mockResolvedValue({ outcome: 'FORBIDDEN_USER_MANAGEMENT' });
+
+      try {
+        await controller.updateUser(USER_ID, updateDto, mockActor);
+        fail('expected ForbiddenException');
+      } catch (err) {
+        const response = (err as ForbiddenException).getResponse() as Record<string, unknown>;
+        expect(response).toMatchObject({ success: false, error: { code: 'FORBIDDEN_USER_MANAGEMENT' } });
+      }
+    });
+
+    it('FORBIDDEN_ROLE_ASSIGNMENT: throws ForbiddenException', async () => {
+      mockUsersService.updateUser.mockResolvedValue({
+        outcome: 'FORBIDDEN_ROLE_ASSIGNMENT',
+        forbiddenRoleId: ROLE_ID,
+      });
+
+      await expect(controller.updateUser(USER_ID, updateDto, mockActor)).rejects.toThrow(ForbiddenException);
+    });
+
+    it('FORBIDDEN_ROLE_ASSIGNMENT: exception response contains code FORBIDDEN_ROLE_ASSIGNMENT', async () => {
+      mockUsersService.updateUser.mockResolvedValue({
+        outcome: 'FORBIDDEN_ROLE_ASSIGNMENT',
+        forbiddenRoleId: ROLE_ID,
+      });
+
+      try {
+        await controller.updateUser(USER_ID, updateDto, mockActor);
+        fail('expected ForbiddenException');
+      } catch (err) {
+        const response = (err as ForbiddenException).getResponse() as Record<string, unknown>;
+        expect(response).toMatchObject({ success: false, error: { code: 'FORBIDDEN_ROLE_ASSIGNMENT' } });
+      }
+    });
+
+    it('LAST_SYSTEM_ADMINISTRATOR: throws UnprocessableEntityException', async () => {
+      mockUsersService.updateUser.mockResolvedValue({ outcome: 'LAST_SYSTEM_ADMINISTRATOR' });
+
+      await expect(controller.updateUser(USER_ID, updateDto, mockActor)).rejects.toThrow(UnprocessableEntityException);
+    });
+
+    it('LAST_SYSTEM_ADMINISTRATOR: exception response contains code LAST_SYSTEM_ADMINISTRATOR', async () => {
+      mockUsersService.updateUser.mockResolvedValue({ outcome: 'LAST_SYSTEM_ADMINISTRATOR' });
+
+      try {
+        await controller.updateUser(USER_ID, updateDto, mockActor);
+        fail('expected UnprocessableEntityException');
+      } catch (err) {
+        const response = (err as UnprocessableEntityException).getResponse() as Record<string, unknown>;
+        expect(response).toMatchObject({ success: false, error: { code: 'LAST_SYSTEM_ADMINISTRATOR' } });
+      }
+    });
+
+    it('INVALID_STATUS_TRANSITION: throws UnprocessableEntityException', async () => {
+      mockUsersService.updateUser.mockResolvedValue({
+        outcome: 'INVALID_STATUS_TRANSITION',
+        from: 'INVITED',
+        to: 'SUSPENDED',
+      });
+
+      await expect(controller.updateUser(USER_ID, { status: 'SUSPENDED' }, mockActor)).rejects.toThrow(UnprocessableEntityException);
+    });
+
+    it('INVALID_STATUS_TRANSITION: error message includes from and to values', async () => {
+      mockUsersService.updateUser.mockResolvedValue({
+        outcome: 'INVALID_STATUS_TRANSITION',
+        from: 'INVITED',
+        to: 'SUSPENDED',
+      });
+
+      try {
+        await controller.updateUser(USER_ID, { status: 'SUSPENDED' }, mockActor);
+        fail('expected UnprocessableEntityException');
+      } catch (err) {
+        const response = (err as UnprocessableEntityException).getResponse() as Record<string, { message: string }>;
+        expect(response['error']!.message).toContain('INVITED');
+        expect(response['error']!.message).toContain('SUSPENDED');
+      }
+    });
+
+    it('INTERNAL_ERROR: throws InternalServerErrorException', async () => {
+      mockUsersService.updateUser.mockResolvedValue({ outcome: 'INTERNAL_ERROR' });
+
+      await expect(controller.updateUser(USER_ID, updateDto, mockActor)).rejects.toThrow(InternalServerErrorException);
     });
   });
 });

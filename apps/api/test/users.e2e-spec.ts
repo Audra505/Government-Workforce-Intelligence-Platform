@@ -28,12 +28,15 @@ import { AppModule } from '../src/app.module';
 
 const FIXTURE_PASSWORD = 'E2eTest1234!';
 const SUFFIX = Date.now();
-const FIXTURE_TENANT_CODE = `E2E-USERS-${SUFFIX}`;
-const CROSS_TENANT_CODE   = `E2E-CROSS-${SUFFIX}`;
-const ADMIN_EMAIL         = `e2e-admin-${SUFFIX}@test.gov`;
-const HR_EMAIL            = `e2e-hr-${SUFFIX}@test.gov`;
-const RESTRICTED_EMAIL    = `e2e-restricted-${SUFFIX}@test.gov`;
-const CROSS_TENANT_EMAIL  = `e2e-cross-${SUFFIX}@test.gov`;
+const FIXTURE_TENANT_CODE  = `E2E-USERS-${SUFFIX}`;
+const CROSS_TENANT_CODE    = `E2E-CROSS-${SUFFIX}`;
+const GUARD_TENANT_CODE    = `E2E-GUARD-${SUFFIX}`;
+const ADMIN_EMAIL          = `e2e-admin-${SUFFIX}@test.gov`;
+const HR_EMAIL             = `e2e-hr-${SUFFIX}@test.gov`;
+const RESTRICTED_EMAIL     = `e2e-restricted-${SUFFIX}@test.gov`;
+const CROSS_TENANT_EMAIL   = `e2e-cross-${SUFFIX}@test.gov`;
+const PATCH_TARGET_EMAIL   = `e2e-patch-target-${SUFFIX}@test.gov`;
+const GUARD_ADMIN_EMAIL    = `e2e-guard-admin-${SUFFIX}@test.gov`;
 
 // ---------------------------------------------------------------------------
 // Tests
@@ -46,13 +49,17 @@ describe('Users (e2e)', () => {
   let adminToken: string;
   let hrToken: string;
   let restrictedToken: string;
+  let guardAdminToken: string;
 
   let fixtureTenantId: string;
   let crossTenantId: string;
+  let guardTenantId: string;
   let adminUserId: string;
   let hrUserId: string;
   let restrictedUserId: string;
   let crossTenantUserId: string;
+  let patchTargetId: string;
+  let guardAdminId: string;
   let sysAdminRoleId: string;
   let hrDirectorRoleId: string;
   let recruiterRoleId: string;
@@ -158,6 +165,41 @@ describe('Users (e2e)', () => {
     crossTenantUserId = crossUser.id;
     await prisma.userRole.create({ data: { userId: crossUser.id, roleId: sysAdminRoleId } });
 
+    // PATCH target user (HRD — non-SA, in fixture tenant — for Group 6 PATCH tests)
+    const patchTargetUser = await prisma.user.create({
+      data: {
+        tenantId: fixtureTenantId,
+        email: PATCH_TARGET_EMAIL,
+        passwordHash,
+        firstName: 'Patch',
+        lastName: 'Target',
+        status: 'ACTIVE',
+        failedLoginAttempts: 0,
+      },
+    });
+    patchTargetId = patchTargetUser.id;
+    await prisma.userRole.create({ data: { userId: patchTargetUser.id, roleId: hrDirectorRoleId } });
+
+    // Guard tenant + guard admin (sole SA — for Last-SA guard e2e test)
+    const guardTenant = await prisma.tenant.create({
+      data: { name: 'E2E Guard Tenant', code: GUARD_TENANT_CODE, status: 'ACTIVE' },
+    });
+    guardTenantId = guardTenant.id;
+
+    const guardAdminUser = await prisma.user.create({
+      data: {
+        tenantId: guardTenantId,
+        email: GUARD_ADMIN_EMAIL,
+        passwordHash,
+        firstName: 'Guard',
+        lastName: 'Admin',
+        status: 'ACTIVE',
+        failedLoginAttempts: 0,
+      },
+    });
+    guardAdminId = guardAdminUser.id;
+    await prisma.userRole.create({ data: { userId: guardAdminUser.id, roleId: sysAdminRoleId } });
+
     // Authenticate all fixture users and capture JWTs
     const adminRes = await request(app.getHttpServer())
       .post('/api/v1/auth/login')
@@ -173,6 +215,11 @@ describe('Users (e2e)', () => {
       .post('/api/v1/auth/login')
       .send({ email: RESTRICTED_EMAIL, password: FIXTURE_PASSWORD });
     restrictedToken = restrictedRes.body.data.accessToken as string;
+
+    const guardAdminRes = await request(app.getHttpServer())
+      .post('/api/v1/auth/login')
+      .send({ email: GUARD_ADMIN_EMAIL, password: FIXTURE_PASSWORD });
+    guardAdminToken = guardAdminRes.body.data.accessToken as string;
   }, 30_000);
 
   afterAll(async () => {
@@ -184,14 +231,19 @@ describe('Users (e2e)', () => {
         await prisma.user.delete({ where: { id: userId } }).catch(() => {});
       }
 
-      // Remove audit events written by fixture actor users (login + user creation events)
-      const actorIds = [adminUserId, hrUserId, restrictedUserId].filter(Boolean);
+      // Remove audit events written by fixture actor users (login + user management events)
+      const actorIds = [adminUserId, hrUserId, restrictedUserId, guardAdminId].filter(Boolean);
       if (actorIds.length > 0) {
         await prisma.auditEvent.deleteMany({ where: { userId: { in: actorIds } } }).catch(() => {});
       }
 
+      // Remove entityId-based audit events for PATCH target (IDENTITY_USER_* events)
+      if (patchTargetId) {
+        await prisma.auditEvent.deleteMany({ where: { entityId: patchTargetId } }).catch(() => {});
+      }
+
       // Remove fixture users (in fixture tenant)
-      for (const userId of [adminUserId, hrUserId, restrictedUserId].filter(Boolean)) {
+      for (const userId of [adminUserId, hrUserId, restrictedUserId, patchTargetId].filter(Boolean)) {
         await prisma.userRole.deleteMany({ where: { userId } }).catch(() => {});
         await prisma.user.delete({ where: { id: userId } }).catch(() => {});
       }
@@ -202,12 +254,22 @@ describe('Users (e2e)', () => {
         await prisma.user.delete({ where: { id: crossTenantUserId } }).catch(() => {});
       }
 
+      // Remove guard tenant user and tenant
+      if (guardAdminId) {
+        await prisma.auditEvent.deleteMany({ where: { entityId: guardAdminId } }).catch(() => {});
+        await prisma.userRole.deleteMany({ where: { userId: guardAdminId } }).catch(() => {});
+        await prisma.user.delete({ where: { id: guardAdminId } }).catch(() => {});
+      }
+
       // Remove tenants
       if (fixtureTenantId) {
         await prisma.tenant.delete({ where: { id: fixtureTenantId } }).catch(() => {});
       }
       if (crossTenantId) {
         await prisma.tenant.delete({ where: { id: crossTenantId } }).catch(() => {});
+      }
+      if (guardTenantId) {
+        await prisma.tenant.delete({ where: { id: guardTenantId } }).catch(() => {});
       }
 
       await prisma.$disconnect();
@@ -690,6 +752,245 @@ describe('Users (e2e)', () => {
 
       const record = await prisma.auditEvent.findFirst({
         where: { entityId: createdId, action: 'AUTHZ_ROLE_ASSIGNED' },
+      });
+
+      expect(record).not.toBeNull();
+    });
+  });
+
+  // --------------------------------------------------------------------------
+  // Group 6: PATCH /api/v1/users/:id
+  // GD-M27-1 Decisions 3–8
+  // Tests run in order — status cycling restores patchTarget to ACTIVE by end of group.
+  // --------------------------------------------------------------------------
+
+  describe('PATCH /api/v1/users/:id', () => {
+    // ---- Field updates ----
+
+    it('SA updates patchTarget firstName → HTTP 200 + updated firstName in response', async () => {
+      const res = await request(app.getHttpServer())
+        .patch(`/api/v1/users/${patchTargetId}`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ firstName: 'PatchedFirst' });
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data.firstName).toBe('PatchedFirst');
+    });
+
+    it('SA updates patchTarget lastName → HTTP 200 + updated lastName in response', async () => {
+      const res = await request(app.getHttpServer())
+        .patch(`/api/v1/users/${patchTargetId}`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ lastName: 'PatchedLast' });
+
+      expect(res.status).toBe(200);
+      expect(res.body.data.lastName).toBe('PatchedLast');
+    });
+
+    // ---- Status lifecycle (ordered: ACTIVE → SUSPENDED → DEACTIVATED → ACTIVE) ----
+
+    it('SA suspends patchTarget (ACTIVE → SUSPENDED) → HTTP 200 + status SUSPENDED', async () => {
+      const res = await request(app.getHttpServer())
+        .patch(`/api/v1/users/${patchTargetId}`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ status: 'SUSPENDED' });
+
+      expect(res.status).toBe(200);
+      expect(res.body.data.status).toBe('SUSPENDED');
+    });
+
+    it('SA deactivates patchTarget (SUSPENDED → DEACTIVATED) → HTTP 200 + status DEACTIVATED', async () => {
+      const res = await request(app.getHttpServer())
+        .patch(`/api/v1/users/${patchTargetId}`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ status: 'DEACTIVATED' });
+
+      expect(res.status).toBe(200);
+      expect(res.body.data.status).toBe('DEACTIVATED');
+    });
+
+    it('SA tries DEACTIVATED → SUSPENDED → HTTP 422 INVALID_STATUS_TRANSITION', async () => {
+      const res = await request(app.getHttpServer())
+        .patch(`/api/v1/users/${patchTargetId}`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ status: 'SUSPENDED' });
+
+      expect(res.status).toBe(422);
+      expect(res.body).toMatchObject({ success: false, error: { code: 'INVALID_STATUS_TRANSITION' } });
+    });
+
+    it('SA reactivates patchTarget (DEACTIVATED → ACTIVE) → HTTP 200 + status ACTIVE', async () => {
+      const res = await request(app.getHttpServer())
+        .patch(`/api/v1/users/${patchTargetId}`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ status: 'ACTIVE' });
+
+      expect(res.status).toBe(200);
+      expect(res.body.data.status).toBe('ACTIVE');
+    });
+
+    // ---- Role reassignment ----
+
+    it('SA assigns SA role to patchTarget → HTTP 200 + roles includes System Administrator', async () => {
+      const res = await request(app.getHttpServer())
+        .patch(`/api/v1/users/${patchTargetId}`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ roleIds: [sysAdminRoleId] });
+
+      expect(res.status).toBe(200);
+      expect(res.body.data.roles).toContain('System Administrator');
+    });
+
+    it('SA restores patchTarget to HRD role → HTTP 200 + roles contains only HR Director', async () => {
+      const res = await request(app.getHttpServer())
+        .patch(`/api/v1/users/${patchTargetId}`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ roleIds: [hrDirectorRoleId] });
+
+      expect(res.status).toBe(200);
+      expect(res.body.data.roles).toContain('HR Director');
+      expect(res.body.data.roles).not.toContain('System Administrator');
+    });
+
+    // ---- HRD actor: allowed on non-SA target ----
+
+    it('HRD updates patchTarget (non-SA) firstName → HTTP 200', async () => {
+      const res = await request(app.getHttpServer())
+        .patch(`/api/v1/users/${patchTargetId}`)
+        .set('Authorization', `Bearer ${hrToken}`)
+        .send({ firstName: 'HrdPatched' });
+
+      expect(res.status).toBe(200);
+      expect(res.body.data.firstName).toBe('HrdPatched');
+    });
+
+    // ---- HRD authority boundary ----
+
+    it('HRD targets SA user (adminUser) → HTTP 403 code FORBIDDEN_USER_MANAGEMENT', async () => {
+      const res = await request(app.getHttpServer())
+        .patch(`/api/v1/users/${adminUserId}`)
+        .set('Authorization', `Bearer ${hrToken}`)
+        .send({ firstName: 'Attempt' });
+
+      expect(res.status).toBe(403);
+      expect(res.body).toMatchObject({ success: false, error: { code: 'FORBIDDEN_USER_MANAGEMENT' } });
+    });
+
+    it('HRD tries to assign SA role to patchTarget → HTTP 403 code FORBIDDEN_ROLE_ASSIGNMENT', async () => {
+      const res = await request(app.getHttpServer())
+        .patch(`/api/v1/users/${patchTargetId}`)
+        .set('Authorization', `Bearer ${hrToken}`)
+        .send({ roleIds: [sysAdminRoleId] });
+
+      expect(res.status).toBe(403);
+      expect(res.body).toMatchObject({ success: false, error: { code: 'FORBIDDEN_ROLE_ASSIGNMENT' } });
+    });
+
+    // ---- Auth & role guards ----
+
+    it('no Authorization header → HTTP 401', async () => {
+      const res = await request(app.getHttpServer())
+        .patch(`/api/v1/users/${patchTargetId}`)
+        .send({ firstName: 'Anon' });
+
+      expect(res.status).toBe(401);
+    });
+
+    it('Recruiter JWT → HTTP 403', async () => {
+      const res = await request(app.getHttpServer())
+        .patch(`/api/v1/users/${patchTargetId}`)
+        .set('Authorization', `Bearer ${restrictedToken}`)
+        .send({ firstName: 'Attempt' });
+
+      expect(res.status).toBe(403);
+    });
+
+    // ---- Not found ----
+
+    it('valid UUID v4 with no matching user → HTTP 404', async () => {
+      const res = await request(app.getHttpServer())
+        .patch('/api/v1/users/00000000-0000-4000-8000-000000000099')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ firstName: 'Ghost' });
+
+      expect(res.status).toBe(404);
+    });
+
+    // ---- Input validation (ValidationPipe / ParseUUIDPipe) ----
+
+    it('invalid UUID path parameter → HTTP 400', async () => {
+      const res = await request(app.getHttpServer())
+        .patch('/api/v1/users/not-a-uuid')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ firstName: 'Bad' });
+
+      expect(res.status).toBe(400);
+    });
+
+    it('status value "INVITED" (not in @IsIn list) → HTTP 400 (DTO validation)', async () => {
+      const res = await request(app.getHttpServer())
+        .patch(`/api/v1/users/${patchTargetId}`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ status: 'INVITED' });
+
+      expect(res.status).toBe(400);
+    });
+
+    it('empty body → HTTP 400 (no updatable fields)', async () => {
+      const res = await request(app.getHttpServer())
+        .patch(`/api/v1/users/${patchTargetId}`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({});
+
+      expect(res.status).toBe(400);
+      expect(res.body).toMatchObject({ success: false, error: { code: 'VALIDATION_ERROR' } });
+    });
+
+    it('duplicate email within tenant → HTTP 409 code CONFLICT', async () => {
+      const res = await request(app.getHttpServer())
+        .patch(`/api/v1/users/${patchTargetId}`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ email: ADMIN_EMAIL }); // ADMIN_EMAIL already exists in fixtureTenant
+
+      expect(res.status).toBe(409);
+      expect(res.body).toMatchObject({ success: false, error: { code: 'CONFLICT' } });
+    });
+
+    // ---- Last-SA guard ----
+
+    it('Last-SA guard: sole SA in guardTenant self-suspends → HTTP 422 LAST_SYSTEM_ADMINISTRATOR', async () => {
+      const res = await request(app.getHttpServer())
+        .patch(`/api/v1/users/${guardAdminId}`)
+        .set('Authorization', `Bearer ${guardAdminToken}`)
+        .send({ status: 'SUSPENDED' });
+
+      expect(res.status).toBe(422);
+      expect(res.body).toMatchObject({ success: false, error: { code: 'LAST_SYSTEM_ADMINISTRATOR' } });
+    });
+
+    // ---- Audit record verification ----
+
+    it('IDENTITY_USER_UPDATED audit record exists for patchTarget after PATCH', async () => {
+      const record = await prisma.auditEvent.findFirst({
+        where: { entityId: patchTargetId, action: 'IDENTITY_USER_UPDATED' },
+      });
+
+      expect(record).not.toBeNull();
+      expect(record!.tenantId).toBe(fixtureTenantId);
+    });
+
+    it('IDENTITY_USER_SUSPENDED audit record exists for patchTarget', async () => {
+      const record = await prisma.auditEvent.findFirst({
+        where: { entityId: patchTargetId, action: 'IDENTITY_USER_SUSPENDED' },
+      });
+
+      expect(record).not.toBeNull();
+    });
+
+    it('IDENTITY_USER_REACTIVATED audit record exists for patchTarget', async () => {
+      const record = await prisma.auditEvent.findFirst({
+        where: { entityId: patchTargetId, action: 'IDENTITY_USER_REACTIVATED' },
       });
 
       expect(record).not.toBeNull();

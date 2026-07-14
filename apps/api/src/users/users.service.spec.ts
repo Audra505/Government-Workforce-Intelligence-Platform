@@ -21,6 +21,7 @@ import { BCRYPT_ROUNDS } from '../identity/identity.constants';
 import { UsersService, type UserRecord } from './users.service';
 import { type CreateUserDto } from './dto/create-user.dto';
 import { type ListUsersQueryDto } from './dto/list-users-query.dto';
+import { type UpdateUserDto } from './dto/update-user.dto';
 
 // ---------------------------------------------------------------------------
 // Test constants
@@ -82,15 +83,22 @@ describe('UsersService', () => {
     $transaction: jest.Mock;
   };
   let mockTx: {
-    user: { create: jest.Mock };
-    userRole: { createMany: jest.Mock };
+    user: { create: jest.Mock; update: jest.Mock };
+    userRole: { createMany: jest.Mock; deleteMany: jest.Mock; count: jest.Mock };
   };
   let mockAuditService: { logEvent: jest.Mock };
 
   beforeEach(async () => {
     mockTx = {
-      user: { create: jest.fn().mockResolvedValue(createdRow) },
-      userRole: { createMany: jest.fn().mockResolvedValue({ count: 1 }) },
+      user: {
+        create: jest.fn().mockResolvedValue(createdRow),
+        update: jest.fn().mockResolvedValue(undefined),
+      },
+      userRole: {
+        createMany: jest.fn().mockResolvedValue({ count: 1 }),
+        deleteMany: jest.fn().mockResolvedValue(undefined),
+        count: jest.fn().mockResolvedValue(1), // default: 1 remaining SA (guard passes)
+      },
     };
 
     mockPrisma = {
@@ -528,6 +536,470 @@ describe('UsersService', () => {
 
       const callArgs = mockPrisma.role.findMany.mock.calls[0]![0] as { select: Record<string, unknown> };
       expect(callArgs.select).toEqual({ id: true, name: true });
+    });
+  });
+
+  // --------------------------------------------------------------------------
+  // updateUser()
+  // GD-M27-1 Decisions 3–8
+  // --------------------------------------------------------------------------
+
+  // Helper: target user row with role IDs (extended shape required by updateUser).
+  // Default is an ACTIVE System Administrator — override via the overrides param.
+  function makeTargetRow(overrides: Record<string, unknown> = {}): Record<string, unknown> {
+    return {
+      id: USER_ID,
+      firstName: 'Jane',
+      lastName: 'Smith',
+      email: 'jane.smith@agency.gov',
+      status: 'ACTIVE',
+      createdAt: CREATED_AT,
+      lastLoginAt: null,
+      userRoles: [{ role: { id: ROLE_ID_1, name: 'System Administrator' } }],
+      ...overrides,
+    };
+  }
+
+  const SA_ACTOR_ROLES = ['System Administrator'];
+  const HRD_ACTOR_ROLES = ['HR Director'];
+  const NON_SA_TARGET_ROLES = [{ role: { id: ROLE_ID_2, name: 'HR Director' } }];
+
+  describe('updateUser()', () => {
+    // ---- No meaningful change ----
+
+    it('NO_MEANINGFUL_CHANGE: empty dto returns { outcome: "NO_MEANINGFUL_CHANGE" }', async () => {
+      const result = await service.updateUser(USER_ID, {} as UpdateUserDto, TENANT_ID, ACTOR_ID, SA_ACTOR_ROLES);
+      expect(result.outcome).toBe('NO_MEANINGFUL_CHANGE');
+    });
+
+    it('NO_MEANINGFUL_CHANGE: prisma is never called when DTO is empty', async () => {
+      await service.updateUser(USER_ID, {} as UpdateUserDto, TENANT_ID, ACTOR_ID, SA_ACTOR_ROLES);
+      expect(mockPrisma.user.findFirst).not.toHaveBeenCalled();
+    });
+
+    // ---- NOT_FOUND ----
+
+    it('NOT_FOUND: user absent returns { outcome: "NOT_FOUND" }', async () => {
+      mockPrisma.user.findFirst.mockResolvedValue(null);
+      const result = await service.updateUser(USER_ID, { firstName: 'New' }, TENANT_ID, ACTOR_ID, SA_ACTOR_ROLES);
+      expect(result.outcome).toBe('NOT_FOUND');
+    });
+
+    it('NOT_FOUND: cross-tenant ID returns null → NOT_FOUND (no enumeration)', async () => {
+      mockPrisma.user.findFirst.mockResolvedValue(null);
+      const result = await service.updateUser(USER_ID, { firstName: 'New' }, 'zzzzzzzz-zzzz-zzzz-zzzz-zzzzzzzzzzzz', ACTOR_ID, SA_ACTOR_ROLES);
+      expect(result.outcome).toBe('NOT_FOUND');
+    });
+
+    // ---- Field updates ----
+
+    it('SUCCESS: firstName update returns { outcome: "SUCCESS" } with updated firstName', async () => {
+      mockPrisma.user.findFirst.mockResolvedValue(makeTargetRow());
+
+      const result = await service.updateUser(USER_ID, { firstName: 'Updated' }, TENANT_ID, ACTOR_ID, SA_ACTOR_ROLES);
+
+      expect(result.outcome).toBe('SUCCESS');
+      expect((result as { outcome: 'SUCCESS'; user: UserRecord }).user.firstName).toBe('Updated');
+    });
+
+    it('SUCCESS: lastName update — user.update is called with { lastName }', async () => {
+      mockPrisma.user.findFirst.mockResolvedValue(makeTargetRow());
+
+      await service.updateUser(USER_ID, { lastName: 'NewLast' }, TENANT_ID, ACTOR_ID, SA_ACTOR_ROLES);
+
+      const updateCall = mockTx.user.update.mock.calls[0]![0] as { data: Record<string, unknown> };
+      expect(updateCall.data['lastName']).toBe('NewLast');
+    });
+
+    it('SUCCESS: email is normalized to lowercase and trimmed before write', async () => {
+      mockPrisma.user.findFirst.mockResolvedValue(makeTargetRow());
+
+      await service.updateUser(USER_ID, { email: '  Jane.Smith@AGENCY.GOV  ' }, TENANT_ID, ACTOR_ID, SA_ACTOR_ROLES);
+
+      const updateCall = mockTx.user.update.mock.calls[0]![0] as { data: Record<string, unknown> };
+      expect(updateCall.data['email']).toBe('jane.smith@agency.gov');
+    });
+
+    it('SUCCESS: IDENTITY_USER_UPDATED audit event emitted when field changes', async () => {
+      mockPrisma.user.findFirst.mockResolvedValue(makeTargetRow({ firstName: 'Old' }));
+
+      await service.updateUser(USER_ID, { firstName: 'New' }, TENANT_ID, ACTOR_ID, SA_ACTOR_ROLES);
+
+      expect(mockAuditService.logEvent).toHaveBeenCalledWith(
+        expect.objectContaining({ action: AuditEventType.IDENTITY_USER_UPDATED }),
+      );
+    });
+
+    it('SUCCESS: no IDENTITY_USER_UPDATED when provided email equals current email', async () => {
+      mockPrisma.user.findFirst.mockResolvedValue(makeTargetRow({ email: 'jane.smith@agency.gov' }));
+
+      await service.updateUser(USER_ID, { email: 'JANE.SMITH@AGENCY.GOV' }, TENANT_ID, ACTOR_ID, SA_ACTOR_ROLES);
+
+      const fieldAudit = mockAuditService.logEvent.mock.calls.filter(
+        (c: unknown[]) => (c[0] as { action: string }).action === AuditEventType.IDENTITY_USER_UPDATED,
+      );
+      expect(fieldAudit.length).toBe(0);
+    });
+
+    // ---- Email conflict ----
+
+    it('EMAIL_CONFLICT: P2002 in transaction returns { outcome: "EMAIL_CONFLICT" }', async () => {
+      mockPrisma.user.findFirst.mockResolvedValue(makeTargetRow());
+      const p2002 = new Prisma.PrismaClientKnownRequestError('unique constraint', {
+        code: 'P2002',
+        clientVersion: '5.0.0',
+      });
+      mockPrisma.$transaction.mockRejectedValue(p2002);
+
+      const result = await service.updateUser(USER_ID, { email: 'conflict@test.gov' }, TENANT_ID, ACTOR_ID, SA_ACTOR_ROLES);
+
+      expect(result.outcome).toBe('EMAIL_CONFLICT');
+    });
+
+    // ---- Status transitions ----
+
+    it('SUCCESS: ACTIVE → SUSPENDED returns SUCCESS with SUSPENDED status', async () => {
+      mockPrisma.user.findFirst.mockResolvedValue(makeTargetRow({
+        status: 'ACTIVE',
+        userRoles: NON_SA_TARGET_ROLES,
+      }));
+
+      const result = await service.updateUser(USER_ID, { status: 'SUSPENDED' }, TENANT_ID, ACTOR_ID, SA_ACTOR_ROLES);
+
+      expect(result.outcome).toBe('SUCCESS');
+      expect((result as { outcome: 'SUCCESS'; user: UserRecord }).user.status).toBe('SUSPENDED');
+    });
+
+    it('SUCCESS: ACTIVE → DEACTIVATED returns DEACTIVATED status', async () => {
+      mockPrisma.user.findFirst.mockResolvedValue(makeTargetRow({
+        status: 'ACTIVE',
+        userRoles: NON_SA_TARGET_ROLES,
+      }));
+
+      const result = await service.updateUser(USER_ID, { status: 'DEACTIVATED' }, TENANT_ID, ACTOR_ID, SA_ACTOR_ROLES);
+
+      expect(result.outcome).toBe('SUCCESS');
+      expect((result as { outcome: 'SUCCESS'; user: UserRecord }).user.status).toBe('DEACTIVATED');
+    });
+
+    it('SUCCESS: SUSPENDED → ACTIVE returns ACTIVE status', async () => {
+      mockPrisma.user.findFirst.mockResolvedValue(makeTargetRow({
+        status: 'SUSPENDED',
+        userRoles: NON_SA_TARGET_ROLES,
+      }));
+
+      const result = await service.updateUser(USER_ID, { status: 'ACTIVE' }, TENANT_ID, ACTOR_ID, SA_ACTOR_ROLES);
+
+      expect(result.outcome).toBe('SUCCESS');
+      expect((result as { outcome: 'SUCCESS'; user: UserRecord }).user.status).toBe('ACTIVE');
+    });
+
+    it('SUCCESS: SUSPENDED → DEACTIVATED returns DEACTIVATED status', async () => {
+      mockPrisma.user.findFirst.mockResolvedValue(makeTargetRow({
+        status: 'SUSPENDED',
+        userRoles: NON_SA_TARGET_ROLES,
+      }));
+
+      const result = await service.updateUser(USER_ID, { status: 'DEACTIVATED' }, TENANT_ID, ACTOR_ID, SA_ACTOR_ROLES);
+
+      expect(result.outcome).toBe('SUCCESS');
+    });
+
+    it('SUCCESS: DEACTIVATED → ACTIVE returns ACTIVE status', async () => {
+      mockPrisma.user.findFirst.mockResolvedValue(makeTargetRow({
+        status: 'DEACTIVATED',
+        userRoles: NON_SA_TARGET_ROLES,
+      }));
+
+      const result = await service.updateUser(USER_ID, { status: 'ACTIVE' }, TENANT_ID, ACTOR_ID, SA_ACTOR_ROLES);
+
+      expect(result.outcome).toBe('SUCCESS');
+    });
+
+    it('INVALID_STATUS_TRANSITION: INVITED → SUSPENDED returns INVALID_STATUS_TRANSITION', async () => {
+      mockPrisma.user.findFirst.mockResolvedValue(makeTargetRow({
+        status: 'INVITED',
+        userRoles: NON_SA_TARGET_ROLES,
+      }));
+
+      const result = await service.updateUser(USER_ID, { status: 'SUSPENDED' }, TENANT_ID, ACTOR_ID, SA_ACTOR_ROLES);
+
+      expect(result.outcome).toBe('INVALID_STATUS_TRANSITION');
+      expect((result as { outcome: 'INVALID_STATUS_TRANSITION'; from: string; to: string }).from).toBe('INVITED');
+    });
+
+    it('INVALID_STATUS_TRANSITION: INVITED → DEACTIVATED returns INVALID_STATUS_TRANSITION', async () => {
+      mockPrisma.user.findFirst.mockResolvedValue(makeTargetRow({
+        status: 'INVITED',
+        userRoles: NON_SA_TARGET_ROLES,
+      }));
+
+      const result = await service.updateUser(USER_ID, { status: 'DEACTIVATED' }, TENANT_ID, ACTOR_ID, SA_ACTOR_ROLES);
+
+      expect(result.outcome).toBe('INVALID_STATUS_TRANSITION');
+    });
+
+    it('INVALID_STATUS_TRANSITION: DEACTIVATED → SUSPENDED returns INVALID_STATUS_TRANSITION', async () => {
+      mockPrisma.user.findFirst.mockResolvedValue(makeTargetRow({
+        status: 'DEACTIVATED',
+        userRoles: NON_SA_TARGET_ROLES,
+      }));
+
+      const result = await service.updateUser(USER_ID, { status: 'SUSPENDED' }, TENANT_ID, ACTOR_ID, SA_ACTOR_ROLES);
+
+      expect(result.outcome).toBe('INVALID_STATUS_TRANSITION');
+      expect((result as { outcome: 'INVALID_STATUS_TRANSITION'; from: string }).from).toBe('DEACTIVATED');
+    });
+
+    it('SUCCESS: same-status send is treated as no-op — update not called for status field', async () => {
+      mockPrisma.user.findFirst.mockResolvedValue(makeTargetRow({
+        status: 'ACTIVE',
+        userRoles: NON_SA_TARGET_ROLES,
+      }));
+
+      // Also send a different field so the request is not NO_MEANINGFUL_CHANGE
+      await service.updateUser(USER_ID, { status: 'ACTIVE', firstName: 'Same' }, TENANT_ID, ACTOR_ID, SA_ACTOR_ROLES);
+
+      const updateCall = mockTx.user.update.mock.calls[0]?.[0] as { data: Record<string, unknown> } | undefined;
+      // status should NOT be in updateData when it equals currentStatus
+      expect(updateCall?.data['status']).toBeUndefined();
+    });
+
+    // ---- Status audit events ----
+
+    it('IDENTITY_USER_SUSPENDED emitted when status transitions to SUSPENDED', async () => {
+      mockPrisma.user.findFirst.mockResolvedValue(makeTargetRow({
+        status: 'ACTIVE',
+        userRoles: NON_SA_TARGET_ROLES,
+      }));
+
+      await service.updateUser(USER_ID, { status: 'SUSPENDED' }, TENANT_ID, ACTOR_ID, SA_ACTOR_ROLES);
+
+      expect(mockAuditService.logEvent).toHaveBeenCalledWith(
+        expect.objectContaining({ action: AuditEventType.IDENTITY_USER_SUSPENDED }),
+      );
+    });
+
+    it('IDENTITY_USER_DEACTIVATED emitted when status transitions to DEACTIVATED', async () => {
+      mockPrisma.user.findFirst.mockResolvedValue(makeTargetRow({
+        status: 'ACTIVE',
+        userRoles: NON_SA_TARGET_ROLES,
+      }));
+
+      await service.updateUser(USER_ID, { status: 'DEACTIVATED' }, TENANT_ID, ACTOR_ID, SA_ACTOR_ROLES);
+
+      expect(mockAuditService.logEvent).toHaveBeenCalledWith(
+        expect.objectContaining({ action: AuditEventType.IDENTITY_USER_DEACTIVATED }),
+      );
+    });
+
+    it('IDENTITY_USER_REACTIVATED emitted when status transitions to ACTIVE from SUSPENDED', async () => {
+      mockPrisma.user.findFirst.mockResolvedValue(makeTargetRow({
+        status: 'SUSPENDED',
+        userRoles: NON_SA_TARGET_ROLES,
+      }));
+
+      await service.updateUser(USER_ID, { status: 'ACTIVE' }, TENANT_ID, ACTOR_ID, SA_ACTOR_ROLES);
+
+      expect(mockAuditService.logEvent).toHaveBeenCalledWith(
+        expect.objectContaining({ action: AuditEventType.IDENTITY_USER_REACTIVATED }),
+      );
+    });
+
+    // ---- Last-SA guard ----
+
+    it('LAST_SYSTEM_ADMINISTRATOR: SA target + status → SUSPENDED + 0 remaining active SAs', async () => {
+      mockPrisma.user.findFirst.mockResolvedValue(makeTargetRow({ status: 'ACTIVE' })); // SA user
+      mockTx.userRole.count.mockResolvedValue(0);
+
+      const result = await service.updateUser(USER_ID, { status: 'SUSPENDED' }, TENANT_ID, ACTOR_ID, SA_ACTOR_ROLES);
+
+      expect(result.outcome).toBe('LAST_SYSTEM_ADMINISTRATOR');
+    });
+
+    it('LAST_SYSTEM_ADMINISTRATOR: SA target + status → DEACTIVATED + 0 remaining active SAs', async () => {
+      mockPrisma.user.findFirst.mockResolvedValue(makeTargetRow({ status: 'ACTIVE' }));
+      mockTx.userRole.count.mockResolvedValue(0);
+
+      const result = await service.updateUser(USER_ID, { status: 'DEACTIVATED' }, TENANT_ID, ACTOR_ID, SA_ACTOR_ROLES);
+
+      expect(result.outcome).toBe('LAST_SYSTEM_ADMINISTRATOR');
+    });
+
+    it('SUCCESS: SA target + status → SUSPENDED + 1 remaining active SA — guard passes', async () => {
+      mockPrisma.user.findFirst.mockResolvedValue(makeTargetRow({ status: 'ACTIVE' }));
+      mockTx.userRole.count.mockResolvedValue(1);
+
+      const result = await service.updateUser(USER_ID, { status: 'SUSPENDED' }, TENANT_ID, ACTOR_ID, SA_ACTOR_ROLES);
+
+      expect(result.outcome).toBe('SUCCESS');
+    });
+
+    it('LAST_SYSTEM_ADMINISTRATOR: SA target + role removal removes SA + 0 remaining active SAs', async () => {
+      mockPrisma.user.findFirst.mockResolvedValue(makeTargetRow({ status: 'ACTIVE' }));
+      mockPrisma.role.findMany.mockResolvedValue([foundRole2]); // new roles: no SA
+      mockTx.userRole.count.mockResolvedValue(0);
+
+      const result = await service.updateUser(USER_ID, { roleIds: [ROLE_ID_2] }, TENANT_ID, ACTOR_ID, SA_ACTOR_ROLES);
+
+      expect(result.outcome).toBe('LAST_SYSTEM_ADMINISTRATOR');
+    });
+
+    it('SUCCESS: SA target + role removal + 1 remaining active SA — guard passes', async () => {
+      mockPrisma.user.findFirst.mockResolvedValue(makeTargetRow({ status: 'ACTIVE' }));
+      mockPrisma.role.findMany.mockResolvedValue([foundRole2]);
+      mockTx.userRole.count.mockResolvedValue(1);
+
+      const result = await service.updateUser(USER_ID, { roleIds: [ROLE_ID_2] }, TENANT_ID, ACTOR_ID, SA_ACTOR_ROLES);
+
+      expect(result.outcome).toBe('SUCCESS');
+    });
+
+    it('no Last-SA guard check for non-SA target user + status → DEACTIVATED', async () => {
+      mockPrisma.user.findFirst.mockResolvedValue(makeTargetRow({
+        status: 'ACTIVE',
+        userRoles: NON_SA_TARGET_ROLES,
+      }));
+
+      await service.updateUser(USER_ID, { status: 'DEACTIVATED' }, TENANT_ID, ACTOR_ID, SA_ACTOR_ROLES);
+
+      expect(mockTx.userRole.count).not.toHaveBeenCalled();
+    });
+
+    // ---- HRD authority boundary ----
+
+    it('FORBIDDEN_USER_MANAGEMENT: HRD actor + SA target returns { outcome: "FORBIDDEN_USER_MANAGEMENT" }', async () => {
+      mockPrisma.user.findFirst.mockResolvedValue(makeTargetRow()); // default: SA target
+
+      const result = await service.updateUser(USER_ID, { firstName: 'Attempt' }, TENANT_ID, ACTOR_ID, HRD_ACTOR_ROLES);
+
+      expect(result.outcome).toBe('FORBIDDEN_USER_MANAGEMENT');
+    });
+
+    it('FORBIDDEN_USER_MANAGEMENT: AUTHZ_ACCESS_DENIED audit event emitted', async () => {
+      mockPrisma.user.findFirst.mockResolvedValue(makeTargetRow());
+
+      await service.updateUser(USER_ID, { firstName: 'Attempt' }, TENANT_ID, ACTOR_ID, HRD_ACTOR_ROLES);
+
+      expect(mockAuditService.logEvent).toHaveBeenCalledWith(
+        expect.objectContaining({
+          action: AuditEventType.AUTHZ_ACCESS_DENIED,
+          result: 'FAILURE',
+          entityType: 'USER',
+          entityId: USER_ID,
+        }),
+      );
+    });
+
+    it('SUCCESS: SA actor + SA target → allowed (no FORBIDDEN_USER_MANAGEMENT)', async () => {
+      mockPrisma.user.findFirst.mockResolvedValue(makeTargetRow()); // SA target
+      mockTx.userRole.count.mockResolvedValue(1);
+
+      const result = await service.updateUser(USER_ID, { firstName: 'New' }, TENANT_ID, ACTOR_ID, SA_ACTOR_ROLES);
+
+      expect(result.outcome).toBe('SUCCESS');
+    });
+
+    it('SUCCESS: HRD actor + non-SA target → allowed', async () => {
+      mockPrisma.user.findFirst.mockResolvedValue(makeTargetRow({ userRoles: NON_SA_TARGET_ROLES }));
+
+      const result = await service.updateUser(USER_ID, { firstName: 'New' }, TENANT_ID, ACTOR_ID, HRD_ACTOR_ROLES);
+
+      expect(result.outcome).toBe('SUCCESS');
+    });
+
+    // ---- Role reassignment ----
+
+    it('ROLE_NOT_FOUND: unknown roleId returns { outcome: "ROLE_NOT_FOUND", missingIds }', async () => {
+      mockPrisma.user.findFirst.mockResolvedValue(makeTargetRow({ userRoles: NON_SA_TARGET_ROLES }));
+      mockPrisma.role.findMany.mockResolvedValue([]); // none found
+
+      const result = await service.updateUser(USER_ID, { roleIds: [ROLE_ID_1] }, TENANT_ID, ACTOR_ID, SA_ACTOR_ROLES);
+
+      expect(result.outcome).toBe('ROLE_NOT_FOUND');
+      expect((result as { outcome: 'ROLE_NOT_FOUND'; missingIds: string[] }).missingIds).toContain(ROLE_ID_1);
+    });
+
+    it('FORBIDDEN_ROLE_ASSIGNMENT: HRD actor + SA roleId in roleIds returns FORBIDDEN_ROLE_ASSIGNMENT', async () => {
+      mockPrisma.user.findFirst.mockResolvedValue(makeTargetRow({ userRoles: NON_SA_TARGET_ROLES }));
+      mockPrisma.role.findMany.mockResolvedValue([foundRole1]); // SA role
+
+      const result = await service.updateUser(USER_ID, { roleIds: [ROLE_ID_1] }, TENANT_ID, ACTOR_ID, HRD_ACTOR_ROLES);
+
+      expect(result.outcome).toBe('FORBIDDEN_ROLE_ASSIGNMENT');
+      expect((result as { outcome: 'FORBIDDEN_ROLE_ASSIGNMENT'; forbiddenRoleId: string }).forbiddenRoleId).toBe(ROLE_ID_1);
+    });
+
+    it('FORBIDDEN_ROLE_ASSIGNMENT: AUTHZ_ACCESS_DENIED emitted on entityType ROLE', async () => {
+      mockPrisma.user.findFirst.mockResolvedValue(makeTargetRow({ userRoles: NON_SA_TARGET_ROLES }));
+      mockPrisma.role.findMany.mockResolvedValue([foundRole1]);
+
+      await service.updateUser(USER_ID, { roleIds: [ROLE_ID_1] }, TENANT_ID, ACTOR_ID, HRD_ACTOR_ROLES);
+
+      expect(mockAuditService.logEvent).toHaveBeenCalledWith(
+        expect.objectContaining({
+          action: AuditEventType.AUTHZ_ACCESS_DENIED,
+          result: 'FAILURE',
+          entityType: 'ROLE',
+          entityId: ROLE_ID_1,
+        }),
+      );
+    });
+
+    it('SUCCESS: SA actor replaces roles — deleteMany + createMany called in transaction', async () => {
+      mockPrisma.user.findFirst.mockResolvedValue(makeTargetRow({ userRoles: NON_SA_TARGET_ROLES }));
+      mockPrisma.role.findMany.mockResolvedValue([foundRole1, foundRole2]);
+
+      await service.updateUser(USER_ID, { roleIds: [ROLE_ID_1, ROLE_ID_2] }, TENANT_ID, ACTOR_ID, SA_ACTOR_ROLES);
+
+      expect(mockTx.userRole.deleteMany).toHaveBeenCalledWith({ where: { userId: USER_ID } });
+      expect(mockTx.userRole.createMany).toHaveBeenCalled();
+    });
+
+    it('SUCCESS: role replacement — updated user.roles reflects new role set', async () => {
+      mockPrisma.user.findFirst.mockResolvedValue(makeTargetRow({ userRoles: NON_SA_TARGET_ROLES }));
+      mockPrisma.role.findMany.mockResolvedValue([foundRole1]); // SA role replaces HRD
+
+      const result = await service.updateUser(USER_ID, { roleIds: [ROLE_ID_1] }, TENANT_ID, ACTOR_ID, SA_ACTOR_ROLES);
+
+      expect((result as { outcome: 'SUCCESS'; user: UserRecord }).user.roles).toEqual(['System Administrator']);
+    });
+
+    // ---- Role audit events ----
+
+    it('AUTHZ_ROLE_REMOVED emitted for each role removed from user', async () => {
+      // Target has SA + HRD; new roleIds has only HRD → SA is removed
+      mockPrisma.user.findFirst.mockResolvedValue(makeTargetRow({
+        userRoles: [
+          { role: { id: ROLE_ID_1, name: 'System Administrator' } },
+          { role: { id: ROLE_ID_2, name: 'HR Director' } },
+        ],
+      }));
+      // New set: HRD only (SA removed)
+      mockPrisma.role.findMany.mockResolvedValue([foundRole2]);
+      mockTx.userRole.count.mockResolvedValue(1); // still 1 other active SA — guard passes
+
+      await service.updateUser(USER_ID, { roleIds: [ROLE_ID_2] }, TENANT_ID, ACTOR_ID, SA_ACTOR_ROLES);
+
+      const removedCalls = mockAuditService.logEvent.mock.calls.filter(
+        (c: unknown[]) => (c[0] as { action: string }).action === AuditEventType.AUTHZ_ROLE_REMOVED,
+      );
+      expect(removedCalls.length).toBe(1);
+      expect((removedCalls[0]![0] as { metadata: Record<string, unknown> }).metadata['roleId']).toBe(ROLE_ID_1);
+    });
+
+    it('AUTHZ_ROLE_ASSIGNED emitted for each role newly added during replacement', async () => {
+      // Target has HRD only; new roleIds adds SA
+      mockPrisma.user.findFirst.mockResolvedValue(makeTargetRow({ userRoles: NON_SA_TARGET_ROLES }));
+      mockPrisma.role.findMany.mockResolvedValue([foundRole1]); // SA added
+
+      await service.updateUser(USER_ID, { roleIds: [ROLE_ID_1] }, TENANT_ID, ACTOR_ID, SA_ACTOR_ROLES);
+
+      const assignedCalls = mockAuditService.logEvent.mock.calls.filter(
+        (c: unknown[]) => (c[0] as { action: string }).action === AuditEventType.AUTHZ_ROLE_ASSIGNED,
+      );
+      expect(assignedCalls.length).toBe(1);
+      expect((assignedCalls[0]![0] as { metadata: Record<string, unknown> }).metadata['roleId']).toBe(ROLE_ID_1);
     });
   });
 });

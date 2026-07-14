@@ -22,13 +22,20 @@ export enum AuditEventType {
   // AUD-250: Identity User Management Events
   // Reference: directives/08_audit_rules.md — AUD-250
   // Reference: spec/07_security_architecture.md — Mandatory Audit Events (Administration: User Creation)
+  // GD-M27-1 Decision 8 adds UPDATED/SUSPENDED/DEACTIVATED/REACTIVATED.
   // -------------------------------------------------------------------------
-  IDENTITY_USER_CREATED = 'IDENTITY_USER_CREATED',
+  IDENTITY_USER_CREATED     = 'IDENTITY_USER_CREATED',
+  IDENTITY_USER_UPDATED     = 'IDENTITY_USER_UPDATED',
+  IDENTITY_USER_SUSPENDED   = 'IDENTITY_USER_SUSPENDED',
+  IDENTITY_USER_DEACTIVATED = 'IDENTITY_USER_DEACTIVATED',
+  IDENTITY_USER_REACTIVATED = 'IDENTITY_USER_REACTIVATED',
 
   // -------------------------------------------------------------------------
   // AUD-300: Authorization Events
+  // GD-M27-1 Decision 8 adds AUTHZ_ROLE_REMOVED for role replacement audit.
   // -------------------------------------------------------------------------
   AUTHZ_ROLE_ASSIGNED = 'AUTHZ_ROLE_ASSIGNED',
+  AUTHZ_ROLE_REMOVED  = 'AUTHZ_ROLE_REMOVED',
   AUTHZ_PERMISSION_CHANGED = 'AUTHZ_PERMISSION_CHANGED',
   AUTHZ_ACCESS_DENIED = 'AUTHZ_ACCESS_DENIED',
   AUTHZ_PRIVILEGE_ESCALATION_ATTEMPT = 'AUTHZ_PRIVILEGE_ESCALATION_ATTEMPT',
