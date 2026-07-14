@@ -40,6 +40,8 @@ const mockActor: RequestUser = {
   userId: ACTOR_ID,
   tenantId: TENANT_ID,
   email: 'admin@dev.gov',
+  firstName: '',
+  lastName: '',
   roles: ['System Administrator'],
 };
 

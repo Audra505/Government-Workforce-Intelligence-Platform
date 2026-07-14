@@ -38,10 +38,12 @@ const CREATED_AT = new Date('2026-01-01T00:00:00.000Z');
 const UPDATED_AT = new Date('2026-01-02T00:00:00.000Z');
 
 const mockActor: RequestUser = {
-  userId:   ACTOR_ID,
-  tenantId: TENANT_ID,
-  email:    'admin@dev.gov',
-  roles:    ['System Administrator'],
+  userId:    ACTOR_ID,
+  tenantId:  TENANT_ID,
+  email:     'admin@dev.gov',
+  firstName: '',
+  lastName:  '',
+  roles:     ['System Administrator'],
 };
 
 const skillRecord: SkillRecord = {

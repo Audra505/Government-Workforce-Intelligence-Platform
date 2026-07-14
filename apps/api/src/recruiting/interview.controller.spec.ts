@@ -85,10 +85,12 @@ const listQuery: ListInterviewsQueryDto = {
 };
 
 const mockActor: RequestUser = {
-  userId:   ACTOR_ID,
-  tenantId: TENANT_ID,
-  email:    'actor@tenant.gov',
-  roles:    ['System Administrator'],
+  userId:    ACTOR_ID,
+  tenantId:  TENANT_ID,
+  email:     'actor@tenant.gov',
+  firstName: '',
+  lastName:  '',
+  roles:     ['System Administrator'],
 };
 
 const complianceActor: RequestUser = {

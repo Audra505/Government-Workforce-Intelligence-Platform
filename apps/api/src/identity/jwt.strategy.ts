@@ -15,6 +15,8 @@ export interface RequestUser {
   userId: string;
   tenantId: string;
   email: string;
+  firstName: string;  // GD-M28-1 D3: empty string when absent (pre-M28 token compat)
+  lastName: string;   // GD-M28-1 D3: empty string when absent (pre-M28 token compat)
   roles: string[];
 }
 
@@ -37,6 +39,8 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       userId: payload.sub,
       tenantId: payload.tenantId,
       email: payload.email,
+      firstName: payload.firstName ?? '',
+      lastName: payload.lastName ?? '',
       roles: payload.roles,
     };
   }

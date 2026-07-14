@@ -30,6 +30,8 @@ const mockCurrentUser: RequestUser = {
   userId: USER_ID,
   tenantId: TENANT_ID,
   email: EMAIL,
+  firstName: '',
+  lastName: '',
   roles: ['System Administrator'],
 };
 

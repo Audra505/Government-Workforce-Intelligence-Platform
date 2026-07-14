@@ -10,6 +10,7 @@ import { cookies } from 'next/headers';
 import { LogoutButton } from '@/features/auth/logout-button';
 import { SESSION_COOKIE } from '@/lib/auth';
 import { getSessionRoles } from '@/lib/session';
+import { UserIdentityChip } from '@/components/shared/user-identity-chip';
 
 type ActiveTab = 'candidates' | 'applications' | 'interviews' | 'offers';
 type TabCounts = Partial<Record<ActiveTab, number>>;
@@ -89,6 +90,7 @@ export function RecruitingShell({ activeTab, breadcrumb, children, counts }: Pro
           </div>
 
           <div className="flex items-center gap-4">
+            <UserIdentityChip />
             <span aria-hidden="true" style={{ width: 1, height: 16, backgroundColor: 'rgba(255,255,255,0.2)', display: 'inline-block' }} />
             <LogoutButton />
           </div>

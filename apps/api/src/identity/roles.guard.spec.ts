@@ -36,6 +36,8 @@ function makeUser(roles: string[]): RequestUser {
     userId: 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb',
     tenantId: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
     email: 'test@example.gov',
+    firstName: '',
+    lastName: '',
     roles,
   };
 }

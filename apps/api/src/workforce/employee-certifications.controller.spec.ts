@@ -33,10 +33,12 @@ const ISSUE_DATE      = new Date('2025-03-15T00:00:00.000Z');
 const EXPIRATION_DATE = new Date('2026-07-10T00:00:00.000Z');
 
 const mockActor: RequestUser = {
-  userId:   ACTOR_ID,
-  tenantId: TENANT_ID,
-  email:    'admin@dev.gov',
-  roles:    ['System Administrator'],
+  userId:    ACTOR_ID,
+  tenantId:  TENANT_ID,
+  email:     'admin@dev.gov',
+  firstName: '',
+  lastName:  '',
+  roles:     ['System Administrator'],
 };
 
 const expiringRecord: ExpiringCertificationRecord = {

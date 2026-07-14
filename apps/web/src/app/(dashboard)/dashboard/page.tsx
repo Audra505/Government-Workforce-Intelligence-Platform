@@ -12,6 +12,7 @@ import { serverFetch } from '@/lib/api';
 import { SESSION_COOKIE } from '@/lib/auth';
 import { getSessionRoles } from '@/lib/session';
 import { LogoutButton } from '@/features/auth/logout-button';
+import { UserIdentityChip } from '@/components/shared/user-identity-chip';
 
 // ── Design tokens — match Dashboard mockup exactly ──────────────────────────
 const NAVY   = '#0c2340';
@@ -294,6 +295,7 @@ export default async function DashboardPage() {
             </nav>
           </div>
           <div className="flex items-center gap-4">
+            <UserIdentityChip />
             <span
               aria-hidden="true"
               style={{ width: 1, height: 16, backgroundColor: 'rgba(255,255,255,0.2)', display: 'inline-block' }}

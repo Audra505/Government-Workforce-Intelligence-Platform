@@ -17,10 +17,12 @@ import { IdentityService } from './identity.service';
 import { JWT_ACCESS_EXPIRES_IN_SECONDS } from './identity.constants';
 
 export interface JwtPayload {
-  sub: string;       // user.id — standard JWT subject claim
-  tenantId: string;  // user.tenantId — enforces tenant isolation at every protected request
-  email: string;     // included for convenience in JwtStrategy and GET /auth/me
-  roles: string[];   // role names — permission loading deferred to Phase 2 RBAC guard
+  sub: string;        // user.id — standard JWT subject claim
+  tenantId: string;   // user.tenantId — enforces tenant isolation at every protected request
+  email: string;      // included for convenience in JwtStrategy and GET /auth/me
+  firstName: string;  // GD-M28-1 D2: included for UserIdentityChip display
+  lastName: string;   // GD-M28-1 D2: included for UserIdentityChip display
+  roles: string[];    // role names — permission loading deferred to Phase 2 RBAC guard
 }
 
 // Structured result returned to AuthController.
@@ -47,6 +49,8 @@ export class AuthService {
           sub: result.user.id,
           tenantId: result.user.tenantId,
           email: result.user.email,
+          firstName: result.user.firstName,
+          lastName: result.user.lastName,
           roles: result.user.userRoles.map((ur) => ur.role.name),
         };
         const accessToken = this.jwtService.sign(payload);

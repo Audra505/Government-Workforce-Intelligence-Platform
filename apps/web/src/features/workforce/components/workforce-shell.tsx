@@ -10,6 +10,7 @@ import { cookies } from 'next/headers';
 import { LogoutButton } from '@/features/auth/logout-button';
 import { SESSION_COOKIE } from '@/lib/auth';
 import { getSessionRoles } from '@/lib/session';
+import { UserIdentityChip } from '@/components/shared/user-identity-chip';
 
 // GD-M24-1 D4: ActiveTab extended with 'skills' and 'certifications'.
 // Canonical tab order: Positions · Vacancies · Employees · Skills · Certifications.
@@ -91,6 +92,7 @@ export function WorkforceShell({ activeTab, breadcrumb, children, counts }: Prop
           </div>
 
           <div className="flex items-center gap-4">
+            <UserIdentityChip />
             <span aria-hidden="true" style={{ width: 1, height: 16, backgroundColor: 'rgba(255,255,255,0.2)', display: 'inline-block' }} />
             <LogoutButton />
           </div>

@@ -32,6 +32,8 @@ const successUser = {
   id: USER_ID,
   tenantId: TENANT_ID,
   email: EMAIL,
+  firstName: 'Test',
+  lastName: 'User',
   userRoles: [
     { role: { id: ROLE_ID, name: 'System Administrator' } },
   ],
@@ -112,7 +114,7 @@ describe('AuthService', () => {
     expect(JWT_ACCESS_EXPIRES_IN_SECONDS).toBe(3600);
   });
 
-  it('login() SUCCESS: JWT payload contains sub=userId, tenantId, email, and roles', async () => {
+  it('login() SUCCESS: JWT payload contains sub, tenantId, email, firstName, lastName, and roles', async () => {
     mockIdentityService.validateCredentials.mockResolvedValue({
       outcome: 'SUCCESS',
       user: successUser,
@@ -125,6 +127,8 @@ describe('AuthService', () => {
       sub: USER_ID,
       tenantId: TENANT_ID,
       email: EMAIL,
+      firstName: 'Test',
+      lastName: 'User',
       roles: ['System Administrator'],
     });
   });

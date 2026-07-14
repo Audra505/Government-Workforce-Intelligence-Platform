@@ -23,6 +23,8 @@ const mockPayload: JwtPayload = {
   sub: 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb',
   tenantId: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
   email: 'test@example.gov',
+  firstName: 'Test',
+  lastName: 'User',
   roles: ['System Administrator'],
 };
 
@@ -85,20 +87,49 @@ describe('JwtStrategy', () => {
     expect(result.email).toBe(mockPayload.email);
   });
 
+  it('validate() maps payload.firstName to RequestUser.firstName', () => {
+    const result: RequestUser = strategy.validate(mockPayload);
+
+    expect(result.firstName).toBe(mockPayload.firstName);
+  });
+
+  it('validate() maps payload.lastName to RequestUser.lastName', () => {
+    const result: RequestUser = strategy.validate(mockPayload);
+
+    expect(result.lastName).toBe(mockPayload.lastName);
+  });
+
   it('validate() maps payload.roles array to RequestUser.roles', () => {
     const result: RequestUser = strategy.validate(mockPayload);
 
     expect(result.roles).toEqual(mockPayload.roles);
   });
 
-  it('validate() returns a complete RequestUser with all four fields', () => {
+  it('validate() returns a complete RequestUser with all six fields', () => {
     const result: RequestUser = strategy.validate(mockPayload);
 
     expect(result).toEqual({
       userId: mockPayload.sub,
       tenantId: mockPayload.tenantId,
       email: mockPayload.email,
+      firstName: mockPayload.firstName,
+      lastName: mockPayload.lastName,
       roles: mockPayload.roles,
     });
+  });
+
+  it('validate() defaults firstName and lastName to empty string for pre-M28 tokens without name fields', () => {
+    // Simulates a token issued before M28 that carries no firstName/lastName.
+    const legacyPayload = {
+      sub: mockPayload.sub,
+      tenantId: mockPayload.tenantId,
+      email: mockPayload.email,
+      roles: mockPayload.roles,
+    } as unknown as JwtPayload;
+
+    const result: RequestUser = strategy.validate(legacyPayload);
+
+    expect(result.firstName).toBe('');
+    expect(result.lastName).toBe('');
   });
 });

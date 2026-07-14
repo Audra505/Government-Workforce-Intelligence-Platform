@@ -22,6 +22,8 @@ const SA_ACTOR: RequestUser = {
   userId: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
   tenantId: 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb',
   email: 'admin@dev.gov',
+  firstName: '',
+  lastName: '',
   roles: ['System Administrator'],
 };
 
@@ -29,6 +31,8 @@ const HRD_ACTOR: RequestUser = {
   userId: 'cccccccc-cccc-cccc-cccc-cccccccccccc',
   tenantId: 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb',
   email: 'hr@dev.gov',
+  firstName: '',
+  lastName: '',
   roles: ['HR Director'],
 };
 
