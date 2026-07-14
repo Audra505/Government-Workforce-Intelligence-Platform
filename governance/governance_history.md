@@ -162,6 +162,14 @@ and is tracked in state/02_employee_lifecycle.md.
 
 ---
 
+## M26 — Create User
+
+| ID | Date | Subject | Impact |
+|---|---|---|---|
+| GD-M26-1 | 2026-07-13 | Create User — Roles Endpoint, Assignable Role Policy, and Create User Form | Draft 2026-07-13 (pending approval); resolves GD-M25-1 Decision 4 (Create User Deferral) via Option A — new GET /api/v1/roles endpoint; SA actor receives all 7 platform roles, HRD actor receives 6 roles (System Administrator excluded from response); closes backend assignable-role gap — UsersService.createUser() currently does not restrict which roles HRD may assign; M26 patches service with FORBIDDEN_ROLE_ASSIGNMENT guard (HRD + SA roleId → HTTP 403 + AUTHZ_ACCESS_DENIED audit event); new BFF route POST /api/users follows SEC-003 tenantId rejection and truthful error propagation pattern; new /admin/users/new page under AdminShell with canWrite = SA || HRD guard; CreateUserForm: RHF + Zod, role multi-select populated from GET /api/v1/roles live fetch, firstName/lastName/email/password fields, inline password policy hint (12 chars + uppercase + lowercase + digit + special character); "New User" button added to /admin/users for SA + HRD; Phase 1 ACTIVE override preserved (invitation/activation flow not built); password is admin-set substitute (no email notification, no forced change on first login); error mapping: EMAIL_CONFLICT → 409 form banner, FORBIDDEN_ROLE_ASSIGNMENT → 403 form banner, ROLE_NOT_FOUND → 400 form banner; UI consistency follows GD-M25-1 D12 (AdminShell, NAVY header, CANVAS bg, IBM Plex Sans, max-w-[1200px], blue #2563eb buttons); 11 governance decisions; explicit exclusions: user edit, deactivate, suspend, delete, role reassignment, password reset, invitation flow, audit log viewer, department changes, dashboard aggregate, bulk import, Prisma schema, migrations |
+
+---
+
 ## Shared Column Confirmation (Implementation Confirmation — Not a Governance Decision)
 
 | Date | Subject | Outcome |
