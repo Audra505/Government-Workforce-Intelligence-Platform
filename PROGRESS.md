@@ -9,16 +9,16 @@
 
 ---
 
-Last Updated: 2026-07-14 (M27 User Management Completion -- CI CONFIRMED; 9049fd6; runtime-verified + CI green)
-Updated By: Claude Code (M27 CI confirmed; 9049fd6 green; M27 fully closed)
+Last Updated: 2026-07-14 (M28 User Identity Header -- CI CONFIRMED; 46ffcce; runtime-verified + human browser-verified + CI green)
+Updated By: Claude Code (M28 CI confirmed; 46ffcce green; M28 fully closed)
 
-Previous Update: 2026-07-14 (M26 Create User Workflow — CI CONFIRMED; a9a6943; runtime-verified + CI green)
+Previous Update: 2026-07-14 (M27 User Management Completion -- CI CONFIRMED; 9049fd6; runtime-verified + CI green)
 
 ## Repository Status
 
-Current Phase: **Phase 3 — M27 CI-CONFIRMED (User Management Completion)**
-Overall Classification: Phase 2 COMPLETE; Post-Phase-2 milestones M13/M14/M15 CI-confirmed; Pre-Phase-3 Governance Package CI-confirmed (a5c34f1); Phase 3 started — M16 CI-confirmed; M17 CI-confirmed; M18 CI-confirmed; M19 CI-confirmed; M20 CI-confirmed (6e6777b; run 28611838113); M21 CI-confirmed (1036c92 + 3c8189d + 1e33420); browser-verified by human 2026-07-03; CLOSED; M21.5 CI-confirmed (782e35e + 1a4b64f; runs #66 + #67); M22 CI-confirmed (ee8465b); browser-verified by human 2026-07-04; CLOSED; M23 CI-confirmed (5fedb81); browser-verified by human 2026-07-06; CLOSED; M24 CI-confirmed (5f5bfa6); browser-verified by human 2026-07-11; CLOSED; M25 CI-confirmed (23d46ef); browser-verified by human 2026-07-13; CLOSED; M26 CI-confirmed (a9a6943); runtime-verified 2026-07-14; CLOSED; M27 CI-confirmed (9049fd6); runtime-verified 2026-07-14; CLOSED
-Active Sprint / Milestone: M27 CLOSED and CI-confirmed (9049fd6; 2026-07-14)
+Current Phase: **Phase 3 — M28 CI-CONFIRMED (User Identity Header)**
+Overall Classification: Phase 2 COMPLETE; Post-Phase-2 milestones M13/M14/M15 CI-confirmed; Pre-Phase-3 Governance Package CI-confirmed (a5c34f1); Phase 3 started — M16 CI-confirmed; M17 CI-confirmed; M18 CI-confirmed; M19 CI-confirmed; M20 CI-confirmed (6e6777b; run 28611838113); M21 CI-confirmed (1036c92 + 3c8189d + 1e33420); browser-verified by human 2026-07-03; CLOSED; M21.5 CI-confirmed (782e35e + 1a4b64f; runs #66 + #67); M22 CI-confirmed (ee8465b); browser-verified by human 2026-07-04; CLOSED; M23 CI-confirmed (5fedb81); browser-verified by human 2026-07-06; CLOSED; M24 CI-confirmed (5f5bfa6); browser-verified by human 2026-07-11; CLOSED; M25 CI-confirmed (23d46ef); browser-verified by human 2026-07-13; CLOSED; M26 CI-confirmed (a9a6943); runtime-verified 2026-07-14; CLOSED; M27 CI-confirmed (9049fd6); runtime-verified 2026-07-14; CLOSED; M28 CI-confirmed (46ffcce); runtime-verified + human browser-verified 2026-07-14; CLOSED
+Active Sprint / Milestone: M28 CLOSED and CI-confirmed (46ffcce; 2026-07-14)
 Implementation Started: Yes (2026-06-05)
 
 ## Phase Summary
@@ -33,12 +33,12 @@ Phase 1 is formally closed. D9 (Docker Environment) and D10 (CI/CD Foundation) w
 > Its purpose is crash/session recovery: the current step state is always readable without
 > scanning Zone 5 history. It is overwritten each step — not appended.
 
-Milestone: M27 User Management Completion -- CI-CONFIRMED
-Last Completed Milestone: M27 CI-CONFIRMED -- 9049fd6; runtime-verified 2026-07-14; CI green; FULLY CLOSED
+Milestone: M28 User Identity Header -- CI-CONFIRMED
+Last Completed Milestone: M28 CI-CONFIRMED -- 46ffcce; runtime-verified + human browser-verified 2026-07-14; CI green; FULLY CLOSED
 Last Completed Step: CI confirmed green
 Last Completed Step Date: 2026-07-14
-Current Step: M27 fully closed -- no active step
-Session Classification: PHASE 3 M27 COMPLETE -- backend PATCH + frontend edit workflow + status actions (apps/api/** + apps/web/**); PATCH /api/v1/users/:id; UpdateUserDto; updateUser() service; PATCH /api/users/[id] BFF; /admin/users/[id]/edit; EditUserForm; UserStatusActions
+Current Step: M28 fully closed -- no active step
+Session Classification: PHASE 3 M28 COMPLETE -- JWT payload firstName/lastName; RequestUser backward-compat; getSessionUser(); UserIdentityChip; chip in Dashboard + WorkforceShell + RecruitingShell + AdminShell; RequestUser cascade fix across 16 spec files
 
 ## Milestone 10 — Approved Plan
 
@@ -10658,3 +10658,155 @@ The following were explicitly excluded from M27 scope and are NOT present in the
 | Data Lifecycle | No schema change; role reassignment is deleteMany + createMany in single transaction; audit diff emitted per role change |
 | Evolution Strategy | UpdateUserDto extensible; ALLOWED_TRANSITIONS map maintainable; Last-SA guard reusable pattern; BFF PATCH pattern consistent with POST; canManage gate reusable for future management operations |
 | **Overall** | **Verified -- runtime-verified 2026-07-14; CI confirmed (9049fd6; run 29314010613)** |
+
+---
+
+# Milestone M28 — User Identity Header
+
+**Date:** 2026-07-14
+**Status:** CI-CONFIRMED — CLOSED
+**Governance commit:** a8ce221 (`docs(governance): authorize M28 user identity header`)
+**Implementation commit:** 46ffcce (`Implement M28 User Identity Header`)
+**CI run:** #87 — run ID 29370495724 — `completed / success`
+
+## Scope Completed
+
+### Backend — JWT Payload Extension (GD-M28-1 D2)
+
+- `apps/api/src/identity/auth.service.ts` — `JwtPayload` interface extended with `firstName: string` and `lastName: string`; `login()` SUCCESS case encodes both fields from `result.user` (no IdentityService query change needed — `findFirst` with `include` already returns all user columns)
+
+### Backend — RequestUser Backward-Safe Defaults (GD-M28-1 D3)
+
+- `apps/api/src/identity/jwt.strategy.ts` — `RequestUser` interface extended with `firstName: string` and `lastName: string`; `validate()` applies `payload.firstName ?? ''` and `payload.lastName ?? ''` to handle pre-M28 tokens during 1-hour expiry window without breaking existing sessions
+
+### Backend — RequestUser Cascade Fix (16 spec files)
+
+Adding non-optional `firstName`/`lastName` to `RequestUser` required updating every standalone `RequestUser` literal mock object across the codebase. 16 spec files patched with `firstName: ''` and `lastName: ''` (empty string matches the `?? ''` backward-compat semantic). Spread-based constructions (`{ ...mockActor, roles: [...] }`) were not modified.
+
+Files: `auth.controller.spec.ts`, `roles.guard.spec.ts`, `roles.controller.spec.ts`, `users.controller.spec.ts`, `organization.controller.spec.ts`, `offer.controller.spec.ts`, `interview.controller.spec.ts`, `hire.controller.spec.ts`, `candidate.controller.spec.ts`, `application.controller.spec.ts`, `vacancy.controller.spec.ts`, `skill.controller.spec.ts`, `position.controller.spec.ts`, `employee.controller.spec.ts`, `employee-certifications.controller.spec.ts`, `certification.controller.spec.ts`
+
+### Auth/Session Tests (GD-M28-1 D2, D3)
+
+- `apps/api/src/identity/auth.service.spec.ts` — `successUser` gains `firstName: 'Test'`, `lastName: 'User'`; payload test updated to assert both name fields
+- `apps/api/src/identity/jwt.strategy.spec.ts` — rewritten to 9 tests: complete RequestUser mapping; `firstName` and `lastName` field mapping; backward-compat default for pre-M28 tokens without name fields (uses `as unknown as JwtPayload` cast)
+
+### Frontend — Session Utility (GD-M28-1 D4)
+
+- `apps/web/src/lib/session.ts` — `getSessionUser()` and `SessionUser` interface added as additive exports; `getSessionRoles()` preserved byte-for-byte for ~25 existing call sites; `getSessionUser()` applies `typeof raw.X === 'string'` type guards for all fields; returns safe empty-string defaults for missing/malformed fields
+
+### Frontend — Role Abbreviation Map (GD-M28-1 D6)
+
+Canonical `ROLE_ABBREVIATIONS` map exported from `user-identity-chip.tsx`:
+
+| Role | Abbreviation |
+|---|---|
+| System Administrator | SA |
+| HR Director | HRD |
+| Workforce Planner | WP |
+| Recruiter | REC |
+| Hiring Manager | HM |
+| Compliance Officer | CO |
+| Executive User | EU |
+
+Fallback: `primaryRole.slice(0, 3).toUpperCase()` for unmapped roles.
+
+### Frontend — UserIdentityChip (GD-M28-1 D5, D6, D7)
+
+- `apps/web/src/components/shared/user-identity-chip.tsx` — new Next.js Server Component (no `'use client'`); reads `gov-platform-session` cookie via `cookies()` from `next/headers`; returns `null` when no token or no roles
+- Display: `{displayName} · {primaryRole} [{badge}]`
+  - `displayName = user.firstName || user.email` (email fallback for pre-M28 or name-absent tokens)
+  - `badge`: single-role → role abbreviation (e.g. SA); multi-role → +N where N = extra role count
+- Non-interactive: `cursor: 'default'`, `userSelect: 'none'`, no `onClick`, no `onKeyDown`, no `role="button"`, no `role="menu"`
+- Badge style: `background: rgba(147,197,253,0.15)`, `color: #93c5fd`
+
+### Frontend — Header Integration (GD-M28-1 D1)
+
+Chip placed `[UserIdentityChip] [VDIV] [LogoutButton]` in all 4 authenticated shells:
+
+- `apps/web/src/app/(dashboard)/dashboard/page.tsx` — Dashboard header
+- `apps/web/src/features/workforce/components/workforce-shell.tsx` — WorkforceShell header
+- `apps/web/src/features/recruiting/components/recruiting-shell.tsx` — RecruitingShell header
+- `apps/web/src/features/admin/components/admin-shell.tsx` — AdminShell header
+
+## Files Changed (26 total)
+
+**New frontend files (1):**
+- `apps/web/src/components/shared/user-identity-chip.tsx`
+
+**Modified backend files (6):**
+- `apps/api/src/identity/auth.service.ts`
+- `apps/api/src/identity/auth.service.spec.ts`
+- `apps/api/src/identity/jwt.strategy.ts`
+- `apps/api/src/identity/jwt.strategy.spec.ts`
+- `apps/api/src/identity/auth.controller.spec.ts`
+- `apps/api/src/identity/roles.guard.spec.ts`
+
+**Modified backend spec files — cascade fix (16):**
+- `apps/api/src/organization/organization.controller.spec.ts`
+- `apps/api/src/recruiting/application.controller.spec.ts`
+- `apps/api/src/recruiting/candidate.controller.spec.ts`
+- `apps/api/src/recruiting/hire.controller.spec.ts`
+- `apps/api/src/recruiting/interview.controller.spec.ts`
+- `apps/api/src/recruiting/offer.controller.spec.ts`
+- `apps/api/src/users/roles.controller.spec.ts`
+- `apps/api/src/users/users.controller.spec.ts`
+- `apps/api/src/workforce/certification.controller.spec.ts`
+- `apps/api/src/workforce/employee-certifications.controller.spec.ts`
+- `apps/api/src/workforce/employee.controller.spec.ts`
+- `apps/api/src/workforce/position.controller.spec.ts`
+- `apps/api/src/workforce/skill.controller.spec.ts`
+- `apps/api/src/workforce/vacancy.controller.spec.ts`
+
+**Modified frontend files (5):**
+- `apps/web/src/lib/session.ts`
+- `apps/web/src/app/(dashboard)/dashboard/page.tsx`
+- `apps/web/src/features/admin/components/admin-shell.tsx`
+- `apps/web/src/features/recruiting/components/recruiting-shell.tsx`
+- `apps/web/src/features/workforce/components/workforce-shell.tsx`
+
+## Validation
+
+| Check | Result |
+|---|---|
+| Backend auth/session tests (4 suites, 47 tests) | EXIT 0 -- all passing |
+| API type-check (`tsc --noEmit`) | EXIT 0 -- 0 TypeScript errors |
+| `npm run type-check` (apps/web) | EXIT 0 -- 0 TypeScript errors |
+| `npm run lint` (apps/web) | EXIT 0 -- no ESLint warnings or errors |
+| Runtime verification | PASSED -- Claude Code 2026-07-14; chip confirmed in RSC payload for all 4 shells; firstName display; SA badge; cursor:default; userSelect:none; Sign Out functional (HTTP 307 to /login after logout) |
+| Human browser verification | PASSED -- user confirmed |
+| Commit | 46ffcce -- 26 files changed, 227 insertions(+), 42 deletions(-) |
+| Push | origin/main -- a8ce221..46ffcce |
+| CI | CONFIRMED GREEN -- run #87 (ID 29370495724) -- completed / success |
+
+## Explicit Exclusions
+
+The following were explicitly excluded from M28 scope and are NOT present in the implementation commit:
+
+- No role switcher -- backend RBAC evaluates all assigned roles; frontend-only switching would be insecure and misleading
+- No account menu
+- No My Account page
+- No profile edit
+- No password change or reset -- NotificationModule not built
+- No impersonation behavior
+- No seed or test fixture changes
+- No BFF route changes
+- No Prisma schema changes
+- No database migrations
+- No Phase 4 Intelligence work
+
+## M28 Overall Maturity
+
+| Layer | Status |
+|---|---|
+| Requirements | Defined -- GD-M28-1.md (a8ce221); authenticated user identity visibility requirement satisfied |
+| Specs | Defined -- GD-M28-1 (12 decisions) + this PROGRESS.md entry |
+| Directives | GD-M28-1 approved and committed (a8ce221) |
+| Execution Plan | Complete -- JWT payload; RequestUser; getSessionUser(); UserIdentityChip; 4-shell header integration |
+| State Model | Token-driven display: firstName fallback to email; single-role to abbreviation badge; multi-role to +N badge; no session/no roles to null (chip hidden) |
+| Test Scenarios | Validated -- 9 jwt.strategy tests (incl. backward-compat); auth.service payload test; cascade fix across 16 spec files; all 1684 tests passing; type-check; lint; runtime verification; human browser verification |
+| System Loop | Integrated -- Login to JWT (firstName/lastName) to BFF cookie to getSessionUser() to UserIdentityChip to RSC render in all 4 authenticated shells |
+| Failure Playbook | Backward-compat: pre-M28 tokens (no firstName/lastName) handled via ?? '' in validate() and type guards in getSessionUser(); chip returns null for missing token or missing roles |
+| Environment Model | No Docker/infra/env changes; no schema/migration changes; full-stack build validated |
+| Data Lifecycle | No schema change; firstName/lastName sourced from existing user record; no new DB writes |
+| Evolution Strategy | UserIdentityChip is non-interactive by design; ROLE_ABBREVIATIONS map is extensible; getSessionRoles() preserved for existing call sites; backward-compat window is JWT expiry (1h) |
+| **Overall** | **Verified -- runtime-verified + human browser-verified 2026-07-14; CI confirmed (46ffcce; run #87 / ID 29370495724)** |
