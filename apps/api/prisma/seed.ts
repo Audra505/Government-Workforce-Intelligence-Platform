@@ -137,6 +137,9 @@ async function seedDevUser(): Promise<void> {
   console.log(`  [OK] Role assigned: ${role.name}`);
 
   console.log(`\nDev fixture ready. Login: ${DEV_SEED_EMAIL} / ${DEV_SEED_PASSWORD}`);
+
+  // Fixture users share the same tenant — call while tenant reference is in scope.
+  await seedFixtureUsers(tenant.id);
 }
 
 async function seedFixtureUsers(tenantId: string): Promise<void> {
@@ -202,11 +205,6 @@ async function main(): Promise<void> {
   console.log(`\nSeed complete. ${count} roles in identity.roles.`);
 
   await seedDevUser();
-
-  // Fixture users share the same tenant as the admin seed user.
-  // seedDevUser() guarantees the DEV tenant exists before this runs.
-  const tenant = await prisma.tenant.findUniqueOrThrow({ where: { code: DEV_TENANT_CODE } });
-  await seedFixtureUsers(tenant.id);
 }
 
 main()
