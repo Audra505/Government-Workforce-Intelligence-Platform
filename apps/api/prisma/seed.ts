@@ -1,7 +1,8 @@
 // =============================================================================
-// Database Seed — Authoritative Role Set + Development Fixture
+// Database Seed — Authoritative Role Set + Development Fixtures
 // Milestone 2: Database Foundation (roles)
 // Milestone 5: Authentication Foundation (dev seed user)
+// Milestone 29: Dev fixture users for all platform roles
 // Reference: directives/10_role_based_access_rules.md, execution/02_phase_1_foundation.md
 // =============================================================================
 // All upserts are idempotent — safe to run multiple times.
@@ -11,6 +12,12 @@
 // - Recovery-oriented: every run resets passwordHash, failedLoginAttempts,
 //   lockedUntil, and status to known-good values
 // - Allowlist guard: skipped in all non-development environments by default
+//
+// Dev fixture users (NODE_ENV=development only):
+// - One user per non-SA platform role for browser verification of role-gated UI
+// - Same password policy as admin seed user: DevRole1234!
+// - firstName/lastName set so M28 UserIdentityChip can be verified per role
+// - All upserts idempotent — role assignments use userId_roleId unique index
 // =============================================================================
 
 import * as bcrypt from 'bcrypt';
@@ -26,6 +33,19 @@ const DEV_SEED_LAST_NAME = 'Admin';
 const DEV_SEED_ROLE = 'System Administrator';
 const DEV_TENANT_NAME = 'Development Agency';
 const DEV_TENANT_CODE = 'DEV';
+
+// Dev fixture password — satisfies password policy (12+ chars, upper, lower, digit, special)
+const DEV_FIXTURE_PASSWORD = 'DevRole1234!';
+
+// One fixture user per non-SA role — enables role-gated browser verification without manual setup
+const DEV_FIXTURE_USERS = [
+  { email: 'hrd@dev.gov',       firstName: 'Hana',  lastName: 'Reid',   role: 'HR Director'          },
+  { email: 'wp@dev.gov',        firstName: 'Will',  lastName: 'Patel',  role: 'Workforce Planner'    },
+  { email: 'recruiter@dev.gov', firstName: 'Rosa',  lastName: 'Chen',   role: 'Recruiter'            },
+  { email: 'hm@dev.gov',        firstName: 'Hugo',  lastName: 'Mills',  role: 'Hiring Manager'       },
+  { email: 'co@dev.gov',        firstName: 'Clara', lastName: 'Ortiz',  role: 'Compliance Officer'   },
+  { email: 'exec@dev.gov',      firstName: 'Eva',   lastName: 'Nguyen', role: 'Executive User'       },
+] as const;
 
 export const PLATFORM_ROLES = [
   {
@@ -119,6 +139,53 @@ async function seedDevUser(): Promise<void> {
   console.log(`\nDev fixture ready. Login: ${DEV_SEED_EMAIL} / ${DEV_SEED_PASSWORD}`);
 }
 
+async function seedFixtureUsers(tenantId: string): Promise<void> {
+  if (process.env['NODE_ENV'] !== 'development') return;
+
+  console.log('\nSeeding dev fixture users...');
+
+  const passwordHash = await bcrypt.hash(DEV_FIXTURE_PASSWORD, 12);
+
+  for (const fixture of DEV_FIXTURE_USERS) {
+    const user = await prisma.user.upsert({
+      where: { tenantId_email: { tenantId, email: fixture.email } },
+      update: {
+        passwordHash,
+        firstName: fixture.firstName,
+        lastName: fixture.lastName,
+        failedLoginAttempts: 0,
+        lockedUntil: null,
+        status: 'ACTIVE',
+      },
+      create: {
+        tenantId,
+        email: fixture.email,
+        passwordHash,
+        firstName: fixture.firstName,
+        lastName: fixture.lastName,
+        status: 'ACTIVE',
+        failedLoginAttempts: 0,
+      },
+    });
+
+    const role = await prisma.role.findUniqueOrThrow({ where: { name: fixture.role } });
+
+    await prisma.userRole.upsert({
+      where: { userId_roleId: { userId: user.id, roleId: role.id } },
+      update: {},
+      create: { userId: user.id, roleId: role.id },
+    });
+
+    console.log(`  [OK] ${fixture.email} → ${fixture.role}`);
+  }
+
+  console.log('\nDev fixture credentials (development only):');
+  console.log(`  Password for all fixture users: ${DEV_FIXTURE_PASSWORD}`);
+  for (const f of DEV_FIXTURE_USERS) {
+    console.log(`  ${f.email.padEnd(22)} ${f.firstName} ${f.lastName} — ${f.role}`);
+  }
+}
+
 async function main(): Promise<void> {
   console.log('Seeding platform roles...');
 
@@ -135,6 +202,11 @@ async function main(): Promise<void> {
   console.log(`\nSeed complete. ${count} roles in identity.roles.`);
 
   await seedDevUser();
+
+  // Fixture users share the same tenant as the admin seed user.
+  // seedDevUser() guarantees the DEV tenant exists before this runs.
+  const tenant = await prisma.tenant.findUniqueOrThrow({ where: { code: DEV_TENANT_CODE } });
+  await seedFixtureUsers(tenant.id);
 }
 
 main()
