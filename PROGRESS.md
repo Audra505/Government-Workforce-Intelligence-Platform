@@ -9,16 +9,16 @@
 
 ---
 
-Last Updated: 2026-07-14 (M28 User Identity Header -- CI CONFIRMED; 46ffcce; runtime-verified + human browser-verified + CI green)
-Updated By: Claude Code (M28 CI confirmed; 46ffcce green; M28 fully closed)
+Last Updated: 2026-07-14 (M29 Dev Role Fixture Users -- CI CONFIRMED; 45efe2f; seed validated + CI green)
+Updated By: Claude Code (M29 CI confirmed; 45efe2f green; M29 fully closed)
 
-Previous Update: 2026-07-14 (M27 User Management Completion -- CI CONFIRMED; 9049fd6; runtime-verified + CI green)
+Previous Update: 2026-07-14 (M28 User Identity Header -- CI CONFIRMED; 46ffcce; runtime-verified + human browser-verified + CI green)
 
 ## Repository Status
 
-Current Phase: **Phase 3 — M28 CI-CONFIRMED (User Identity Header)**
-Overall Classification: Phase 2 COMPLETE; Post-Phase-2 milestones M13/M14/M15 CI-confirmed; Pre-Phase-3 Governance Package CI-confirmed (a5c34f1); Phase 3 started — M16 CI-confirmed; M17 CI-confirmed; M18 CI-confirmed; M19 CI-confirmed; M20 CI-confirmed (6e6777b; run 28611838113); M21 CI-confirmed (1036c92 + 3c8189d + 1e33420); browser-verified by human 2026-07-03; CLOSED; M21.5 CI-confirmed (782e35e + 1a4b64f; runs #66 + #67); M22 CI-confirmed (ee8465b); browser-verified by human 2026-07-04; CLOSED; M23 CI-confirmed (5fedb81); browser-verified by human 2026-07-06; CLOSED; M24 CI-confirmed (5f5bfa6); browser-verified by human 2026-07-11; CLOSED; M25 CI-confirmed (23d46ef); browser-verified by human 2026-07-13; CLOSED; M26 CI-confirmed (a9a6943); runtime-verified 2026-07-14; CLOSED; M27 CI-confirmed (9049fd6); runtime-verified 2026-07-14; CLOSED; M28 CI-confirmed (46ffcce); runtime-verified + human browser-verified 2026-07-14; CLOSED
-Active Sprint / Milestone: M28 CLOSED and CI-confirmed (46ffcce; 2026-07-14)
+Current Phase: **Phase 3 — M29 CI-CONFIRMED (Dev Role Fixture Users)**
+Overall Classification: Phase 2 COMPLETE; Post-Phase-2 milestones M13/M14/M15 CI-confirmed; Pre-Phase-3 Governance Package CI-confirmed (a5c34f1); Phase 3 started — M16 CI-confirmed; M17 CI-confirmed; M18 CI-confirmed; M19 CI-confirmed; M20 CI-confirmed (6e6777b; run 28611838113); M21 CI-confirmed (1036c92 + 3c8189d + 1e33420); browser-verified by human 2026-07-03; CLOSED; M21.5 CI-confirmed (782e35e + 1a4b64f; runs #66 + #67); M22 CI-confirmed (ee8465b); browser-verified by human 2026-07-04; CLOSED; M23 CI-confirmed (5fedb81); browser-verified by human 2026-07-06; CLOSED; M24 CI-confirmed (5f5bfa6); browser-verified by human 2026-07-11; CLOSED; M25 CI-confirmed (23d46ef); browser-verified by human 2026-07-13; CLOSED; M26 CI-confirmed (a9a6943); runtime-verified 2026-07-14; CLOSED; M27 CI-confirmed (9049fd6); runtime-verified 2026-07-14; CLOSED; M28 CI-confirmed (46ffcce); runtime-verified + human browser-verified 2026-07-14; CLOSED; M29 CI-confirmed (45efe2f); seed validated 2026-07-14; CLOSED
+Active Sprint / Milestone: M29 CLOSED and CI-confirmed (45efe2f; 2026-07-14)
 Implementation Started: Yes (2026-06-05)
 
 ## Phase Summary
@@ -33,12 +33,12 @@ Phase 1 is formally closed. D9 (Docker Environment) and D10 (CI/CD Foundation) w
 > Its purpose is crash/session recovery: the current step state is always readable without
 > scanning Zone 5 history. It is overwritten each step — not appended.
 
-Milestone: M28 User Identity Header -- CI-CONFIRMED
-Last Completed Milestone: M28 CI-CONFIRMED -- 46ffcce; runtime-verified + human browser-verified 2026-07-14; CI green; FULLY CLOSED
-Last Completed Step: CI confirmed green
+Milestone: M29 Dev Role Fixture Users -- CI-CONFIRMED
+Last Completed Milestone: M29 CI-CONFIRMED -- 45efe2f; seed validated + CI green 2026-07-14; FULLY CLOSED
+Last Completed Step: CI confirmed green (run #91)
 Last Completed Step Date: 2026-07-14
-Current Step: M28 fully closed -- no active step
-Session Classification: PHASE 3 M28 COMPLETE -- JWT payload firstName/lastName; RequestUser backward-compat; getSessionUser(); UserIdentityChip; chip in Dashboard + WorkforceShell + RecruitingShell + AdminShell; RequestUser cascade fix across 16 spec files
+Current Step: M29 fully closed -- no active step
+Session Classification: PHASE 3 M29 COMPLETE -- 7 idempotent dev fixture users; one per non-SA role; firstName/lastName set; DevRole1234! password; development-only guard; CI-seed-safe pattern (seedFixtureUsers inside seedDevUser)
 
 ## Milestone 10 — Approved Plan
 
@@ -10810,3 +10810,105 @@ The following were explicitly excluded from M28 scope and are NOT present in the
 | Data Lifecycle | No schema change; firstName/lastName sourced from existing user record; no new DB writes |
 | Evolution Strategy | UserIdentityChip is non-interactive by design; ROLE_ABBREVIATIONS map is extensible; getSessionRoles() preserved for existing call sites; backward-compat window is JWT expiry (1h) |
 | **Overall** | **Verified -- runtime-verified + human browser-verified 2026-07-14; CI confirmed (46ffcce; run #87 / ID 29370495724)** |
+
+---
+
+# Milestone M29 — Dev Role Fixture Users
+
+**Date:** 2026-07-14
+**Status:** CI-CONFIRMED — CLOSED
+**Governance:** None (dev tooling only — no governance document required)
+**Implementation commit:** 45efe2f (`Add M29 dev role fixture users`)
+**CI run:** #91 — `completed / success`
+
+## Scope Completed
+
+### Seed Extension — Dev Fixture Users
+
+- `apps/api/prisma/seed.ts` — `seedFixtureUsers(tenantId)` function added; called from inside `seedDevUser()` while tenant is in scope; guarded by `if (process.env['NODE_ENV'] !== 'development') return;` so CI (non-development) is unaffected
+- 6 fixture users added (one per non-SA platform role):
+
+| Email | First | Last | Role |
+|---|---|---|---|
+| hrd@dev.gov | Hana | Reid | HR Director |
+| wp@dev.gov | Will | Patel | Workforce Planner |
+| recruiter@dev.gov | Rosa | Chen | Recruiter |
+| hm@dev.gov | Hugo | Mills | Hiring Manager |
+| co@dev.gov | Clara | Ortiz | Compliance Officer |
+| exec@dev.gov | Eva | Nguyen | Executive User |
+
+### Dev Fixture Credentials (complete set)
+
+| Email | Password | Role |
+|---|---|---|
+| admin@dev.gov | DevAdmin1234! | System Administrator |
+| hrd@dev.gov | DevRole1234! | HR Director |
+| wp@dev.gov | DevRole1234! | Workforce Planner |
+| recruiter@dev.gov | DevRole1234! | Recruiter |
+| hm@dev.gov | DevRole1234! | Hiring Manager |
+| co@dev.gov | DevRole1234! | Compliance Officer |
+| exec@dev.gov | DevRole1234! | Executive User |
+
+### Idempotency
+
+- All upserts keyed on `tenantId_email` unique index for users; `userId_roleId` unique index for role assignments
+- Update clause includes `passwordHash`, `firstName`, `lastName`, `failedLoginAttempts: 0`, `lockedUntil: null`, `status: 'ACTIVE'` — re-seeding always restores known-good state and corrects stale names from pre-M29 seeds
+
+### CI-Safety Pattern
+
+- `seedFixtureUsers()` is nested inside `seedDevUser()` at the point where `tenantId` is already in scope
+- `seedDevUser()` returns early on `NODE_ENV !== 'development'` — fixture logic never executes in CI
+- No unconditional `findUniqueOrThrow` for DEV tenant in `main()` — previous pattern that caused CI run #90 failure was removed
+
+### Password Policy Compliance
+
+- `DevRole1234!` satisfies all password policy rules: 12+ chars, uppercase, lowercase, digit, special character
+
+## Files Changed (1 total)
+
+- `apps/api/prisma/seed.ts` — `seedFixtureUsers()` added; called from `seedDevUser()`
+
+## Validation
+
+| Check | Result |
+|---|---|
+| Seed idempotency | Verified -- re-seeding restores names + resets auth state; no duplicate rows |
+| firstName/lastName in JWT | Verified -- M28 UserIdentityChip shows correct names per fixture login |
+| Password policy compliance | Verified -- DevRole1234! satisfies all policy rules |
+| Role assignment | Verified -- one role per fixture user; role lookup via findUniqueOrThrow surfaces missing roles clearly |
+| CI-safety guard | Verified -- seedFixtureUsers() inside seedDevUser(); NODE_ENV guard at top covers all fixture logic |
+| CI run #90 (first attempt) | FAILED -- root cause: unconditional DEV tenant findUniqueOrThrow in main() threw when NODE_ENV !== development; fixed in recommit |
+| CI run #91 (second commit, 45efe2f) | CONFIRMED GREEN -- completed / success |
+
+## CI Failure Root Cause (Run #90)
+
+- **Root cause:** `main()` called `prisma.tenant.findUniqueOrThrow({ where: { code: 'DEV' } })` unconditionally after `seedDevUser()`. In CI, `NODE_ENV` is not `development`, so `seedDevUser()` returned early without creating the DEV tenant. The unconditional lookup threw `NotFoundError`.
+- **Fix:** Moved `seedFixtureUsers(tenant.id)` call inside `seedDevUser()` at the point where `tenant` is already in scope. Removed the unconditional tenant lookup from `main()`. The `NODE_ENV` guard at the top of `seedDevUser()` now covers all fixture logic.
+- **Prevention:** CI-only seed functions must be nested inside dev-gated functions or guarded individually. Unconditional lookups for dev-only resources in `main()` are unsafe.
+
+## Explicit Exclusions
+
+- No governance document (dev tooling only)
+- No Prisma schema changes
+- No database migrations
+- No frontend changes
+- No backend behavior changes outside seed.ts
+- No Phase 4 work
+- No production credentials
+
+## M29 Overall Maturity
+
+| Layer | Status |
+|---|---|
+| Requirements | Implied -- dev fixture users required for role-gated browser verification of M28+ features |
+| Specs | This PROGRESS.md entry |
+| Directives | None required (dev tooling) |
+| Execution Plan | Complete -- seedFixtureUsers() inside seedDevUser(); idempotent upserts; CI-safe guard pattern |
+| State Model | All fixture users: ACTIVE status; 0 failedLoginAttempts; null lockedUntil; re-seeding restores known-good state |
+| Test Scenarios | Validated -- seed idempotency; JWT firstName/lastName per role; CI confirmed (run #91) |
+| System Loop | Integrated -- `prisma db seed` in Docker/local dev creates fixture users; login flow produces correct JWT; UserIdentityChip shows correct name per role |
+| Failure Playbook | Re-seed restores known-good state; CI guard prevents fixture logic in non-dev; findUniqueOrThrow on role surfaces missing roles clearly |
+| Environment Model | Development-only; NODE_ENV guard prevents execution in CI/staging/production |
+| Data Lifecycle | Upsert on re-seed; no hard deletes; name and auth state restored on every seed run |
+| Evolution Strategy | Additional fixture users can be added to DEV_FIXTURE_USERS array; password policy version tracked by constant |
+| **Overall** | **Verified -- seed validated locally + CI confirmed (45efe2f; run #91); CLOSED 2026-07-14** |
