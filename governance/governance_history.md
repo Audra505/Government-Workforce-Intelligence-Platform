@@ -186,6 +186,14 @@ and is tracked in state/02_employee_lifecycle.md.
 
 ---
 
+## M30 — Phase 4 Intelligence Foundation
+
+| ID | Date | Subject | Impact |
+|---|---|---|---|
+| GD-M30-1 | 2026-07-14 | Phase 4 Intelligence Foundation — IntelligenceModule, Deterministic Vacancy Risk, and Role-Based Intelligence Matrix | Draft 2026-07-14 (pending approval); opens Phase 4 Intelligence; establishes IntelligenceModule at apps/api/src/intelligence/ (named spec/11 path deviation authorized — follows existing module co-location convention); authorizes VacancyRiskService (deterministic-v1 formula: vacancy age factor 0–40 pts, priority factor 0–40 pts, fill date proximity 0–15 pts, vacancy status factor 0–5 pts; riskScore 0–100 integer; thresholds LOW 0–24 / MEDIUM 25–49 / HIGH 50–74 / CRITICAL 75–100); mandates confidence scoring (100%/70%/50%/40% based on available inputs); mandates IntelligenceExplainabilityOutput interface (riskScore, riskLevel, confidence, reasoning, factors, computedAt, formulaVersion) as foundation for all future Phase 4 services; authorizes GET /api/v1/intelligence/vacancy-risk (RBAC: SA + HR Director + Workforce Planner; forbidden: Recruiter / HM / CO / EU in M30); adds INTELLIGENCE_VACANCY_RISK_QUERIED AuditEventType; authorizes dashboard vacancy risk panel between KPI row and Pipeline row (visible to allowed roles; silently omitted for forbidden roles; mandatory human-review advisory footer); establishes Role-Based Intelligence Matrix (governance record defining future intelligence signal access per all 7 roles — M30 implements SA/HRD/WP vacancy risk only; Recruiter/HM/CO/EU signals deferred to M31–M34 with explicit BE/FE enforcement classifications); explicit no-LLM rule for M30 (OpenAI integration requires separate governance); no schema changes; no migrations; no BFF routes; no existing pages changed; 14 governance decisions |
+
+---
+
 ## Shared Column Confirmation (Implementation Confirmation — Not a Governance Decision)
 
 | Date | Subject | Outcome |
