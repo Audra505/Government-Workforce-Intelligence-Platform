@@ -43,7 +43,7 @@ export function UserIdentityChip() {
         userSelect: 'none',
       }}
     >
-      <span>{displayName}</span>
+      <span style={{ color: '#ffffff', fontWeight: 600 }}>{displayName}</span>
       <span style={{ color: 'rgba(255,255,255,0.4)' }}>·</span>
       <span>{primaryRole}</span>
       <span
