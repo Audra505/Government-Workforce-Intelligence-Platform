@@ -9,16 +9,16 @@
 
 ---
 
-Last Updated: 2026-07-14 (M29 Dev Role Fixture Users -- CI CONFIRMED; 45efe2f; seed validated + CI green)
-Updated By: Claude Code (M29 CI confirmed; 45efe2f green; M29 fully closed)
+Last Updated: 2026-07-16 (M30 Intelligence Foundation and Vacancy Risk Panel -- CI CONFIRMED; 407195b; runtime-verified + browser-verified + CI green)
+Updated By: Claude Code (M30 CI confirmed; 407195b green; M30 fully closed)
 
-Previous Update: 2026-07-14 (M28 User Identity Header -- CI CONFIRMED; 46ffcce; runtime-verified + human browser-verified + CI green)
+Previous Update: 2026-07-14 (M29 Dev Role Fixture Users -- CI CONFIRMED; 45efe2f; seed validated + CI green)
 
 ## Repository Status
 
-Current Phase: **Phase 3 — M29 CI-CONFIRMED (Dev Role Fixture Users)**
-Overall Classification: Phase 2 COMPLETE; Post-Phase-2 milestones M13/M14/M15 CI-confirmed; Pre-Phase-3 Governance Package CI-confirmed (a5c34f1); Phase 3 started — M16 CI-confirmed; M17 CI-confirmed; M18 CI-confirmed; M19 CI-confirmed; M20 CI-confirmed (6e6777b; run 28611838113); M21 CI-confirmed (1036c92 + 3c8189d + 1e33420); browser-verified by human 2026-07-03; CLOSED; M21.5 CI-confirmed (782e35e + 1a4b64f; runs #66 + #67); M22 CI-confirmed (ee8465b); browser-verified by human 2026-07-04; CLOSED; M23 CI-confirmed (5fedb81); browser-verified by human 2026-07-06; CLOSED; M24 CI-confirmed (5f5bfa6); browser-verified by human 2026-07-11; CLOSED; M25 CI-confirmed (23d46ef); browser-verified by human 2026-07-13; CLOSED; M26 CI-confirmed (a9a6943); runtime-verified 2026-07-14; CLOSED; M27 CI-confirmed (9049fd6); runtime-verified 2026-07-14; CLOSED; M28 CI-confirmed (46ffcce); runtime-verified + human browser-verified 2026-07-14; CLOSED; M29 CI-confirmed (45efe2f); seed validated 2026-07-14; CLOSED
-Active Sprint / Milestone: M29 CLOSED and CI-confirmed (45efe2f; 2026-07-14)
+Current Phase: **Phase 4 — M30 CI-CONFIRMED (Intelligence Foundation and Vacancy Risk Panel)**
+Overall Classification: Phase 2 COMPLETE; Post-Phase-2 milestones M13/M14/M15 CI-confirmed; Pre-Phase-3 Governance Package CI-confirmed (a5c34f1); Phase 3 started — M16 CI-confirmed; M17 CI-confirmed; M18 CI-confirmed; M19 CI-confirmed; M20 CI-confirmed (6e6777b; run 28611838113); M21 CI-confirmed (1036c92 + 3c8189d + 1e33420); browser-verified by human 2026-07-03; CLOSED; M21.5 CI-confirmed (782e35e + 1a4b64f; runs #66 + #67); M22 CI-confirmed (ee8465b); browser-verified by human 2026-07-04; CLOSED; M23 CI-confirmed (5fedb81); browser-verified by human 2026-07-06; CLOSED; M24 CI-confirmed (5f5bfa6); browser-verified by human 2026-07-11; CLOSED; M25 CI-confirmed (23d46ef); browser-verified by human 2026-07-13; CLOSED; M26 CI-confirmed (a9a6943); runtime-verified 2026-07-14; CLOSED; M27 CI-confirmed (9049fd6); runtime-verified 2026-07-14; CLOSED; M28 CI-confirmed (46ffcce); runtime-verified + human browser-verified 2026-07-14; CLOSED; M29 CI-confirmed (45efe2f); seed validated 2026-07-14; CLOSED; Phase 3 COMPLETE; Phase 4 Intelligence STARTED — M30 CI-confirmed (407195b); governance GD-M30-1.md authorized (3c9366e) and amended twice (d3a2a65, 0401672); runtime-verified + browser-verified 2026-07-16; CLOSED
+Active Sprint / Milestone: M30 CLOSED and CI-confirmed (407195b; 2026-07-16)
 Implementation Started: Yes (2026-06-05)
 
 ## Phase Summary
@@ -33,12 +33,12 @@ Phase 1 is formally closed. D9 (Docker Environment) and D10 (CI/CD Foundation) w
 > Its purpose is crash/session recovery: the current step state is always readable without
 > scanning Zone 5 history. It is overwritten each step — not appended.
 
-Milestone: M29 Dev Role Fixture Users -- CI-CONFIRMED
-Last Completed Milestone: M29 CI-CONFIRMED -- 45efe2f; seed validated + CI green 2026-07-14; FULLY CLOSED
-Last Completed Step: CI confirmed green (run #91)
-Last Completed Step Date: 2026-07-14
-Current Step: M29 fully closed -- no active step
-Session Classification: PHASE 3 M29 COMPLETE -- 7 idempotent dev fixture users; one per non-SA role; firstName/lastName set; DevRole1234! password; development-only guard; CI-seed-safe pattern (seedFixtureUsers inside seedDevUser)
+Milestone: M30 Intelligence Foundation and Vacancy Risk Panel -- CI-CONFIRMED
+Last Completed Milestone: M30 CI-CONFIRMED -- 407195b; runtime-verified + browser-verified + CI green 2026-07-16; FULLY CLOSED
+Last Completed Step: CI confirmed green (Install, Lint, Build, Test -- completed / success)
+Last Completed Step Date: 2026-07-16
+Current Step: M30 fully closed -- no active step
+Session Classification: PHASE 4 M30 COMPLETE -- IntelligenceModule foundation; deterministic VacancyRiskService; GET /api/v1/intelligence/vacancy-risk; RBAC (SA/HRD/WP allowed, Recruiter/HM/CO/EU forbidden); tenant isolation from JWT tenantId only; deterministic-v1 scoring with Low/Medium/High/Critical risk levels; confidence behavior; explainability response contract; VacancyRiskResponseDto; INTELLIGENCE_VACANCY_RISK_QUERIED audit event with PII-safe metadata; Dashboard Vacancy Risk Signals panel with Operational Snapshot + Workforce Intelligence section labels, warm panel treatment, aligned Risk/Vacancy/Priority/Days Open/Why This Is Risky/Confidence grid, no factor breakdown or raw score math, forbidden-role silent omission, allowed-role in-panel error state. Governance: GD-M30-1.md (3c9366e; amended d3a2a65, 0401672)
 
 ## Milestone 10 — Approved Plan
 
@@ -10912,3 +10912,129 @@ The following were explicitly excluded from M28 scope and are NOT present in the
 | Data Lifecycle | Upsert on re-seed; no hard deletes; name and auth state restored on every seed run |
 | Evolution Strategy | Additional fixture users can be added to DEV_FIXTURE_USERS array; password policy version tracked by constant |
 | **Overall** | **Verified -- seed validated locally + CI confirmed (45efe2f; run #91); CLOSED 2026-07-14** |
+
+---
+
+# Milestone M30 — Intelligence Foundation and Vacancy Risk Panel
+
+**Date:** 2026-07-16
+**Status:** CI-CONFIRMED — CLOSED
+**Governance:** `governance/GD-M30-1.md`
+  - Authorization: `3c9366e` (`docs(governance): authorize M30 intelligence foundation`)
+  - Amendment 1 — dashboard error handling: `d3a2a65` (`docs(governance): align M30 dashboard error handling`)
+  - Amendment 2 — reasoning display: `0401672` (`docs(governance): align M30 vacancy risk reasoning display`)
+**Implementation commit:** `407195b` (`Implement M30 intelligence foundation and vacancy risk panel`)
+**CI run:** completed / success
+
+## Scope Completed
+
+### Phase 4 Intelligence — Entry Milestone
+
+- Phase 4 (Intelligence) started with M30 as the entry milestone per GD-M30-1
+- `IntelligenceModule` foundation created at `apps/api/src/intelligence/` (module, controller, service, DTOs, interfaces) — authorized path deviation from spec/11 per GD-M30-1 Decision 2
+- Deterministic `VacancyRiskService` implemented — no external AI/LLM of any kind; fully unit-testable
+
+### Backend — Vacancy Risk Endpoint
+
+- `GET /api/v1/intelligence/vacancy-risk` implemented (`intelligence.controller.ts`)
+- RBAC enforced: System Administrator, HR Director, Workforce Planner allowed (200 OK)
+- RBAC enforced: Recruiter, Hiring Manager, Compliance Officer, Executive User forbidden (403 Forbidden) for the M30 vacancy-risk endpoint
+- Tenant isolation enforced from JWT `tenantId` only — never from query, body, or path params (SEC-003)
+- Deterministic-v1 risk scoring implemented (vacancy age, priority, fill-date proximity, vacancy status factors)
+- Risk levels Low / Medium / High / Critical implemented per governed score thresholds (GD-M30-1 Decision 6)
+- Confidence behavior implemented per GD-M30-1 Decision 7 (priority / fill-date / daysOpen-driven confidence tiers)
+- Explainability response contract implemented (`IntelligenceExplainabilityOutput` / `RiskFactor` — GD-M30-1 Decision 8)
+- `VacancyRiskResponseDto` added at `intelligence/dto/vacancy-risk-response.dto.ts`
+- Audit event `INTELLIGENCE_VACANCY_RISK_QUERIED` added to `AuditEventType` enum
+- PII-safe audit metadata emitted for every successful call (`formulaVersion`, `itemsReturned`, `pageSize`, `statusFilter` only — no risk scores, no vacancy IDs, no names)
+
+### Frontend — Dashboard Vacancy Risk Signals Panel
+
+- Vacancy Risk Signals panel added to `apps/web/src/app/(dashboard)/dashboard/page.tsx`, positioned between the KPI row and the Recruiting Pipeline row
+- "Operational Snapshot" section label added above the KPI row
+- "Workforce Intelligence" section label added above the panel — no product-facing "Phase 4" or "M30" chips
+- Warm intelligence panel treatment added (amber-tinted header band, subtle amber accent divider, icon badge next to the panel title)
+- Aligned Risk / Vacancy / Priority / Days Open / Why This Is Risky / Confidence grid — explicit CSS Grid column template so values stay vertically aligned under their headers across every row
+- Risk pill + score as the primary/strong visual treatment per row
+- Priority rendered as a colored dot + plain text — not a pill
+- Confidence rendered as plain muted text — not a pill, not a raw percentage
+- Backend `reasoning` string displayed verbatim in the "Why This Is Risky" column — never composed or paraphrased on the frontend
+- Factor breakdown display and raw score-contribution math (e.g. +10, +40, +5) excluded entirely from the panel
+- Forbidden roles: frontend skips the intelligence fetch entirely (no network call issued) and the panel is silently omitted — no error, no placeholder
+- Allowed-role fetch failure renders a small in-panel error state ("Vacancy risk scores unavailable. Reload the dashboard to try again.") — the rest of the dashboard remains stable
+
+## Files Changed (11 total)
+
+- `apps/api/src/app.module.ts` — `IntelligenceModule` registered
+- `apps/api/src/audit/enums/audit-event-type.enum.ts` — `INTELLIGENCE_VACANCY_RISK_QUERIED` added
+- `apps/api/src/intelligence/intelligence.module.ts` — new
+- `apps/api/src/intelligence/intelligence.controller.ts` — new
+- `apps/api/src/intelligence/intelligence.controller.spec.ts` — new
+- `apps/api/src/intelligence/services/vacancy-risk.service.ts` — new
+- `apps/api/src/intelligence/services/vacancy-risk.service.spec.ts` — new
+- `apps/api/src/intelligence/dto/vacancy-risk-query.dto.ts` — new
+- `apps/api/src/intelligence/dto/vacancy-risk-response.dto.ts` — new
+- `apps/api/src/intelligence/interfaces/intelligence-explainability.interface.ts` — new
+- `apps/web/src/app/(dashboard)/dashboard/page.tsx` — Vacancy Risk Signals panel + section eyebrows + aligned grid layout
+
+## Validation
+
+| Check | Result |
+|---|---|
+| API type-check | Passed — 0 errors |
+| API lint | Passed — 0 errors |
+| Targeted intelligence tests | Passed — 76/76 |
+| Full API test suite | Passed — 1760/1760 across 49 suites |
+| Web type-check | Passed — 0 errors |
+| Web lint | Passed — "No ESLint warnings or errors" |
+| Runtime verification | Passed — full Docker stack (postgres + api + web) rebuilt and health-checked per SETUP.md's documented workflow |
+| Browser verification — allowed roles | Passed — System Administrator, HR Director, Workforce Planner all see the panel with correct RBAC, warm treatment, aligned grid, dot/text priority, muted confidence text, and verbatim reasoning |
+| Forbidden-role omission + no endpoint call | Verified — Recruiter, Hiring Manager, Compliance Officer, Executive User: panel absent from DOM; zero network calls to `/intelligence/vacancy-risk` observed |
+| Audit event | Verified — `INTELLIGENCE_VACANCY_RISK_QUERIED` / `SUCCESS` written to `audit.audit_events` for every successful call; metadata confirmed PII-safe by direct DB query |
+| CI | Success — commit `407195b`, "Install, Lint, Build, Test" completed / success |
+
+## Explicit Exclusions
+
+- No OpenAI/LLM integration of any kind
+- No attrition prediction
+- No candidate matching
+- No demand forecasting
+- No executive analytics dashboard
+- No full role-personalized dashboard
+- No audit log viewer
+- No report/data export functionality
+- No notifications or email integration
+- No Phase 5 reporting
+- No Prisma schema changes
+- No database migrations
+- No BFF routes
+
+## M30 Overall Maturity
+
+| Layer | Status |
+|---|---|
+| Requirements | Defined -- GD-M30-1.md; spec/01_requirements.md FR-401, FR-900–904; spec/11_ai_architecture.md |
+| Specs | Defined -- GD-M30-1 (14 decisions, 2 amendments) + this PROGRESS.md entry |
+| Directives | GD-M30-1 approved and committed (3c9366e); amended (d3a2a65, 0401672) |
+| Execution Plan | Complete -- IntelligenceModule; VacancyRiskService; IntelligenceController; DTOs; interfaces; audit event; dashboard panel |
+| State Model | Vacancy risk eligibility (OPEN/IN_RECRUITMENT only); deterministic score 0–100; 4-tier risk level; 4-tier confidence; role-gated panel visibility (allowed/forbidden); 3-state panel render (data/empty/error) |
+| Test Scenarios | Validated -- 76 backend intelligence tests (formula, thresholds, confidence, RBAC x7 roles, tenant isolation, response shape, audit); full 1760-test API suite green; type-check + lint clean on both apps |
+| System Loop | Integrated -- JWT to RolesGuard to VacancyRiskService to PrismaService to AuditService to dashboard serverFetch to role-gated panel render |
+| Failure Playbook | Allowed-role fetch failure -- in-panel error state, dashboard stays stable; forbidden role -- silent omission, no error surfaced; backend malformed vacancy data -- logged and excluded, never throws |
+| Environment Model | No Docker/infra/env changes; no schema/migration changes; full-stack Docker rebuild verified (web + api) |
+| Data Lifecycle | No schema change; scores computed live from existing Vacancy/Position/Department data on every request; no persistence of computed scores; audit event persisted per query |
+| Evolution Strategy | IntelligenceExplainabilityOutput is the foundation contract for all future Phase 4 services (Decision 8); Role-Based Intelligence Matrix (Decision 11) staged for future milestones; services/ dto/ interfaces/ subdirectories anticipate additional Phase 4 services |
+| **Overall** | **Verified -- runtime-verified + browser-verified 2026-07-16; CI confirmed (407195b)** |
+
+## Capability Maturity Summary (Phase 4 Entry)
+
+| Capability | Status |
+|---|---|
+| Phase 4 Intelligence | Started |
+| Vacancy Risk Intelligence | Verified |
+| Role-Based Intelligence Matrix | Governed (GD-M30-1 Decision 11) -- staged for future milestones |
+| AI/LLM integration | Deferred |
+| Workforce Readiness | Deferred |
+| Attrition Prediction | Deferred |
+| Candidate Matching | Deferred |
+| Executive Analytics | Deferred |
