@@ -194,6 +194,14 @@ and is tracked in state/02_employee_lifecycle.md.
 
 ---
 
+## M31 — Workforce Readiness Panel
+
+| ID | Date | Subject | Impact |
+|---|---|---|---|
+| GD-M31-1 | 2026-07-16 | Workforce Readiness Panel — Deterministic Readiness Scoring, Endpoint, and Executive-Aggregate Access | Draft 2026-07-16 (pending approval); implements the "Workforce readiness score" row GD-M30-1 Decision 11 already staged for M31 (SA/HRD/WP backend-enforced, Executive User aggregated KPI); extends the existing IntelligenceModule with WorkforceReadinessService (no new module) — reuses IntelligenceExplainabilityOutput from GD-M30-1 Decision 8 verbatim and directly calls VacancyRiskService as an injected dependency for the vacancy-pressure input factor; authorizes GET /api/v1/intelligence/workforce-readiness (RBAC: SA + HR Director + Workforce Planner + Executive User; forbidden: Recruiter / HM / CO); readiness-deterministic-v1 formula (Staffing Coverage 0–30 pts, Position Capacity 0–20 pts, Vacancy Pressure 0–30 pts via VacancyRiskService reuse, Certification Compliance 0–20 pts; readinessScore 0–100; thresholds CRITICAL 0–24 / AT_RISK 25–49 / DEVELOPING 50–74 / READY 75–100 — deliberately distinct labels from vacancy-risk's LOW/MEDIUM/HIGH/CRITICAL scale); confidence with multiplicative compounding reductions for zero-position/zero-certification/small-workforce cases, floored at 10, never 0; declares the Executive User aggregation guarantee required by GD-M30-1 Decision 11 — response shape is byte-identical for EU and SA/HRD/WP because WorkforceReadinessService never queries row-level Employee/Vacancy/Position/EmployeeCertification records in the first place; adds INTELLIGENCE_WORKFORCE_READINESS_QUERIED AuditEventType with PII-safe aggregate-only metadata; authorizes a Workforce Readiness card within the existing "Workforce Intelligence" dashboard section (no new eyebrow, no new route) with independent per-signal role gating (canSeeVacancyRisk vs. canSeeWorkforceReadiness) replacing M30's single section-wide gate; explicit no-gauge/no-chart/no-score-math prohibition carried forward from the GD-M30-1 Decision 10 amendment; explicit no-LLM rule restated unchanged from GD-M30-1 Decision 12; no schema changes; no migrations; no BFF routes; explicitly excludes attrition prediction (M32), demand forecasting (M32+), candidate matching (M33), executive analytics dashboard beyond the readiness card (M34), Compliance Officer intelligence signals, and FR-411/FR-412 readiness breakdown/trend analysis; 14 governance decisions |
+
+---
+
 ## Shared Column Confirmation (Implementation Confirmation — Not a Governance Decision)
 
 | Date | Subject | Outcome |
