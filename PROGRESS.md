@@ -9,16 +9,16 @@
 
 ---
 
-Last Updated: 2026-07-16 (M30 Intelligence Foundation and Vacancy Risk Panel -- CI CONFIRMED; 407195b; runtime-verified + browser-verified + CI green)
-Updated By: Claude Code (M30 CI confirmed; 407195b green; M30 fully closed)
+Last Updated: 2026-07-16 (M31 Workforce Readiness Intelligence -- implementation commit recorded; runtime-verified + browser-verified; CI pending confirmation)
+Updated By: Claude Code (M31 finalized and committed)
 
-Previous Update: 2026-07-14 (M29 Dev Role Fixture Users -- CI CONFIRMED; 45efe2f; seed validated + CI green)
+Previous Update: 2026-07-16 (M30 Intelligence Foundation and Vacancy Risk Panel -- CI CONFIRMED; 407195b; runtime-verified + browser-verified + CI green)
 
 ## Repository Status
 
-Current Phase: **Phase 4 — M30 CI-CONFIRMED (Intelligence Foundation and Vacancy Risk Panel)**
-Overall Classification: Phase 2 COMPLETE; Post-Phase-2 milestones M13/M14/M15 CI-confirmed; Pre-Phase-3 Governance Package CI-confirmed (a5c34f1); Phase 3 started — M16 CI-confirmed; M17 CI-confirmed; M18 CI-confirmed; M19 CI-confirmed; M20 CI-confirmed (6e6777b; run 28611838113); M21 CI-confirmed (1036c92 + 3c8189d + 1e33420); browser-verified by human 2026-07-03; CLOSED; M21.5 CI-confirmed (782e35e + 1a4b64f; runs #66 + #67); M22 CI-confirmed (ee8465b); browser-verified by human 2026-07-04; CLOSED; M23 CI-confirmed (5fedb81); browser-verified by human 2026-07-06; CLOSED; M24 CI-confirmed (5f5bfa6); browser-verified by human 2026-07-11; CLOSED; M25 CI-confirmed (23d46ef); browser-verified by human 2026-07-13; CLOSED; M26 CI-confirmed (a9a6943); runtime-verified 2026-07-14; CLOSED; M27 CI-confirmed (9049fd6); runtime-verified 2026-07-14; CLOSED; M28 CI-confirmed (46ffcce); runtime-verified + human browser-verified 2026-07-14; CLOSED; M29 CI-confirmed (45efe2f); seed validated 2026-07-14; CLOSED; Phase 3 COMPLETE; Phase 4 Intelligence STARTED — M30 CI-confirmed (407195b); governance GD-M30-1.md authorized (3c9366e) and amended twice (d3a2a65, 0401672); runtime-verified + browser-verified 2026-07-16; CLOSED
-Active Sprint / Milestone: M30 CLOSED and CI-confirmed (407195b; 2026-07-16)
+Current Phase: **Phase 4 — M31 (Workforce Readiness Intelligence)**
+Overall Classification: Phase 2 COMPLETE; Post-Phase-2 milestones M13/M14/M15 CI-confirmed; Pre-Phase-3 Governance Package CI-confirmed (a5c34f1); Phase 3 started — M16 CI-confirmed; M17 CI-confirmed; M18 CI-confirmed; M19 CI-confirmed; M20 CI-confirmed (6e6777b; run 28611838113); M21 CI-confirmed (1036c92 + 3c8189d + 1e33420); browser-verified by human 2026-07-03; CLOSED; M21.5 CI-confirmed (782e35e + 1a4b64f; runs #66 + #67); M22 CI-confirmed (ee8465b); browser-verified by human 2026-07-04; CLOSED; M23 CI-confirmed (5fedb81); browser-verified by human 2026-07-06; CLOSED; M24 CI-confirmed (5f5bfa6); browser-verified by human 2026-07-11; CLOSED; M25 CI-confirmed (23d46ef); browser-verified by human 2026-07-13; CLOSED; M26 CI-confirmed (a9a6943); runtime-verified 2026-07-14; CLOSED; M27 CI-confirmed (9049fd6); runtime-verified 2026-07-14; CLOSED; M28 CI-confirmed (46ffcce); runtime-verified + human browser-verified 2026-07-14; CLOSED; M29 CI-confirmed (45efe2f); seed validated 2026-07-14; CLOSED; Phase 3 COMPLETE; Phase 4 Intelligence STARTED — M30 CI-confirmed (407195b); governance GD-M30-1.md authorized (3c9366e) and amended twice (d3a2a65, 0401672); runtime-verified + browser-verified 2026-07-16; CLOSED; M31 Workforce Readiness Intelligence implemented — governance GD-M31-1.md authorized (051fa8f); runtime-verified + browser-verified 2026-07-16; committed; CI status to be confirmed on next session per repo's standard CI-confirmation practice
+Active Sprint / Milestone: M31 implementation commit created (2026-07-16); CI confirmation pending
 Implementation Started: Yes (2026-06-05)
 
 ## Phase Summary
@@ -33,12 +33,12 @@ Phase 1 is formally closed. D9 (Docker Environment) and D10 (CI/CD Foundation) w
 > Its purpose is crash/session recovery: the current step state is always readable without
 > scanning Zone 5 history. It is overwritten each step — not appended.
 
-Milestone: M30 Intelligence Foundation and Vacancy Risk Panel -- CI-CONFIRMED
+Milestone: M31 Workforce Readiness Intelligence -- IMPLEMENTATION COMMIT CREATED
 Last Completed Milestone: M30 CI-CONFIRMED -- 407195b; runtime-verified + browser-verified + CI green 2026-07-16; FULLY CLOSED
-Last Completed Step: CI confirmed green (Install, Lint, Build, Test -- completed / success)
+Last Completed Step: M31 implementation committed and pushed; runtime-verified + browser-verified; CI confirmation pending
 Last Completed Step Date: 2026-07-16
-Current Step: M30 fully closed -- no active step
-Session Classification: PHASE 4 M30 COMPLETE -- IntelligenceModule foundation; deterministic VacancyRiskService; GET /api/v1/intelligence/vacancy-risk; RBAC (SA/HRD/WP allowed, Recruiter/HM/CO/EU forbidden); tenant isolation from JWT tenantId only; deterministic-v1 scoring with Low/Medium/High/Critical risk levels; confidence behavior; explainability response contract; VacancyRiskResponseDto; INTELLIGENCE_VACANCY_RISK_QUERIED audit event with PII-safe metadata; Dashboard Vacancy Risk Signals panel with Operational Snapshot + Workforce Intelligence section labels, warm panel treatment, aligned Risk/Vacancy/Priority/Days Open/Why This Is Risky/Confidence grid, no factor breakdown or raw score math, forbidden-role silent omission, allowed-role in-panel error state. Governance: GD-M30-1.md (3c9366e; amended d3a2a65, 0401672)
+Current Step: M31 implementation closed out this session -- CI confirmation deferred to next session per repo's standard CI-confirmation practice
+Session Classification: PHASE 4 M31 IMPLEMENTED -- WorkforceReadinessService (deterministic readiness-deterministic-v1 formula: Staffing Coverage 0-30, Position Capacity 0-20, Vacancy Pressure 0-30 via governed reuse of VacancyRiskService.score(tenantId, {}), Certification Compliance 0-20); readiness levels CRITICAL/AT_RISK/DEVELOPING/READY; confidence + insufficient-data behavior; GET /api/v1/intelligence/workforce-readiness; RBAC (SA/HRD/WP/Executive User allowed, Recruiter/HM/CO forbidden); tenant isolation from JWT tenantId only; explainability response contract reused verbatim from M30; WorkforceReadinessResponseDto; INTELLIGENCE_WORKFORCE_READINESS_QUERIED audit event with PII-safe aggregate-only metadata; Executive User aggregate-only guarantee (byte-identical response to System Administrator) verified at unit-test and browser level; dashboard Workforce Readiness card added with independent per-signal RBAC gating (canSeeVacancyRisk vs canSeeWorkforceReadiness); side-by-side 1fr/2fr Workforce Intelligence layout (Readiness first, Vacancy Risk second) for roles with both signals; single-column fallback for Executive User; Workforce Intelligence section omitted entirely for forbidden roles; Days Open column removed from Vacancy Risk table; final visual polish (header divider alignment, centered content rhythm) applied per iterative user review. Governance: GD-M31-1.md (051fa8f)
 
 ## Milestone 10 — Approved Plan
 
@@ -11036,5 +11036,136 @@ The following were explicitly excluded from M28 scope and are NOT present in the
 | AI/LLM integration | Deferred |
 | Workforce Readiness | Deferred |
 | Attrition Prediction | Deferred |
+| Candidate Matching | Deferred |
+| Executive Analytics | Deferred |
+
+---
+
+# Milestone M31 — Workforce Readiness Intelligence
+
+**Date:** 2026-07-16
+**Status:** IMPLEMENTATION COMMIT CREATED — CI confirmation pending (deferred to next session per repo's standard CI-confirmation practice)
+**Governance:** `governance/GD-M31-1.md`
+  - Authorization: `051fa8f` (`docs(governance): authorize M31 workforce readiness`)
+**Implementation commit:** this commit (`Implement M31 workforce readiness intelligence`) — see `git log -1` on `main` for the resolved hash; not self-referenceable at write time
+**CI run:** pending — to be confirmed and recorded in a follow-up session, matching the M29/M30 CI-confirmation pattern
+
+## Scope Completed
+
+### Phase 4 Intelligence — Continued After M30
+
+- Phase 4 (Intelligence) continued with M31 per GD-M31-1, reusing the `IntelligenceModule` foundation established in M30
+- Workforce Readiness intelligence implemented as the second Phase 4 signal, alongside the existing Vacancy Risk signal
+
+### Backend — Workforce Readiness Endpoint
+
+- `WorkforceReadinessService` added at `apps/api/src/intelligence/services/workforce-readiness.service.ts`
+- `GET /api/v1/intelligence/workforce-readiness` added (`intelligence.controller.ts`)
+- `WorkforceReadinessResponseDto` added at `intelligence/dto/workforce-readiness-response.dto.ts`
+- Deterministic `readiness-deterministic-v1` formula implemented — no external AI/LLM of any kind:
+  - Staffing Coverage factor (0–30 pts) — active workforce ratio
+  - Position Capacity factor (0–20 pts) — filled/active-position ratio
+  - Vacancy Pressure factor (0–30 pts) — implemented via governed reuse of `VacancyRiskService.score(tenantId, {})` (GD-M31-1 Decision 5), not a duplicated formula
+  - Certification Compliance factor (0–20 pts) — active/total certification ratio
+- Readiness classifications implemented: CRITICAL (0–24) / AT_RISK (25–49) / DEVELOPING (50–74) / READY (75–100), per GD-M31-1 Decision 6
+- Confidence and insufficient-data behavior implemented per GD-M31-1 Decision 7 (base 100, ×0.5 zero active positions, ×0.7 zero certifications, ×0.6 workforce <3, floor 10)
+- Explainability response contract reused verbatim from the M30 pattern (`IntelligenceExplainabilityOutput` / `RiskFactor`) — the controller maps `riskScore`/`riskLevel` onto `readinessScore`/`readinessLevel` at the HTTP response boundary only; the shared interface itself is untouched
+- Audit event `INTELLIGENCE_WORKFORCE_READINESS_QUERIED` added to `AuditEventType` enum
+- PII-safe, aggregate-only audit metadata emitted for every successful call (`formulaVersion`, `readinessLevel`, `confidence` only — no factors, no reasoning, no score)
+- RBAC enforced: System Administrator, HR Director, Workforce Planner, and Executive User allowed (200 OK)
+- RBAC enforced: Recruiter, Hiring Manager, Compliance Officer forbidden (403 Forbidden)
+- Executive User aggregate-only guarantee implemented and verified — response is byte-identical in shape and value to System Administrator's response (no row-level or individual data exists in this endpoint for any role)
+
+### Frontend — Dashboard Workforce Readiness Card
+
+- Workforce Readiness card added to `apps/web/src/app/(dashboard)/dashboard/page.tsx`
+- Independent per-signal gating implemented — `canSeeVacancyRisk` and `canSeeWorkforceReadiness` are separate booleans (replacing the single M30 `canSeeIntelligence` gate), since the two signals have different allowed-role lists
+- Workforce Readiness visible to System Administrator, HR Director, Workforce Planner, and Executive User
+- Vacancy Risk Signals remains hidden from Executive User (unchanged from M30)
+- Workforce Intelligence section (eyebrow + both cards) omitted entirely for Recruiter, Hiring Manager, and Compliance Officer — no error surfaced, no network call issued
+- Side-by-side Workforce Intelligence layout implemented for roles with both signals: Workforce Readiness (1fr, left) leads, Vacancy Risk Signals (2fr, right) follows, reusing the same 1fr/2fr split pattern already established by the Workforce Status/Certifications row
+- Single-column Workforce Readiness fallback implemented for Executive User (grid collapses to `1fr` when only one signal is visible)
+- Days Open column removed from the Vacancy Risk Signals table (Risk / Vacancy / Priority / Why This Is Risky / Confidence remain) — the per-row `reasoning` string already carries day-range context from the API; no new frontend text was introduced
+- No factor-contribution math displayed anywhere (plain-language factor-detail chips only, e.g. "57% of active positions filled")
+- No charts, gauges, or sparklines added — plain score + level pill + text, consistent with M30's Vacancy Risk treatment
+- No fake/placeholder data — all values sourced from live `serverFetch` calls, `Promise.allSettled`-protected
+- Existing dashboard sections (Operational Snapshot, Recruiting Pipeline, Open Vacancies, Workforce Status, Certifications Expiring Soon) preserved unchanged
+- Final visual polish applied per iterative user review: Workforce Readiness header subtitle shortened to one line so its accent divider aligns with Vacancy Risk's; content block (score/reasoning/factor chips) restructured into a `flex:1, justifyContent:center` wrapper so it centers within the grid-stretched card height instead of sitting compressed at the top; increased spacing/line-height/chip padding throughout for better vertical rhythm; card bottoms confirmed aligned via direct DOM measurement (both 461px, footer flush at 460px in both cards)
+
+## Files Changed (8 total)
+
+- `apps/api/src/audit/enums/audit-event-type.enum.ts` — `INTELLIGENCE_WORKFORCE_READINESS_QUERIED` added
+- `apps/api/src/intelligence/intelligence.controller.ts` — `GET /workforce-readiness` handler added
+- `apps/api/src/intelligence/intelligence.controller.spec.ts` — Workforce Readiness unit/RBAC/tenant-isolation/aggregation-guarantee tests added
+- `apps/api/src/intelligence/intelligence.module.ts` — `WorkforceReadinessService` registered
+- `apps/api/src/intelligence/dto/workforce-readiness-response.dto.ts` — new
+- `apps/api/src/intelligence/services/workforce-readiness.service.ts` — new
+- `apps/api/src/intelligence/services/workforce-readiness.service.spec.ts` — new (37 tests)
+- `apps/web/src/app/(dashboard)/dashboard/page.tsx` — Workforce Readiness card, independent per-signal gating, side-by-side layout, Days Open column removal, visual polish
+
+## Validation
+
+| Check | Result |
+|---|---|
+| API type-check | Passed — 0 errors |
+| API lint | Passed — 0 errors |
+| Targeted workforce-readiness tests | Passed — 37/37 |
+| Targeted intelligence tests | Passed — 130/130 across 3 suites |
+| Full API test suite | Passed — 1814/1814 across 50 suites |
+| Web type-check | Passed — 0 errors |
+| Web lint | Passed — "No ESLint warnings or errors" |
+| Runtime verification | Passed — full Docker stack (postgres + api + web) rebuilt and health-checked per SETUP.md's documented workflow |
+| Browser verification — System Administrator, HR Director, Workforce Planner | Passed — side-by-side 1fr/2fr layout, Readiness first, Vacancy Risk second, real data, no factor math, advisory language present, lower sections intact |
+| Browser verification — Executive User | Passed — single-column Readiness-only collapse, response content identical to System Administrator, Vacancy Risk absent, no individual-level detail |
+| Forbidden-role omission + no endpoint call | Verified — Recruiter, Hiring Manager, Compliance Officer: Workforce Intelligence section absent from DOM; zero network calls to either intelligence endpoint (both signals are server-side `serverFetch` calls, never issued client-side to begin with) |
+| Audit event | Verified — `INTELLIGENCE_WORKFORCE_READINESS_QUERIED` / `SUCCESS` written on every successful query; metadata confirmed PII-safe (`formulaVersion`, `readinessLevel`, `confidence` only) |
+| Executive User aggregate-only response | Verified — unit test `toEqual` byte-identical comparison against System Administrator response, plus visual confirmation via browser screenshot |
+| No OpenAI/LLM/external AI | Verified — no import, no HTTP/network call in `score()`, confirmed by dedicated unit tests |
+| CI | Pending — commit not yet confirmed green; to be checked and recorded in a follow-up session per repo's standard CI-confirmation practice |
+
+## Explicit Exclusions
+
+- No OpenAI/LLM integration of any kind
+- No attrition prediction
+- No demand forecasting
+- No candidate matching
+- No executive analytics dashboard beyond the Workforce Readiness card
+- No compliance intelligence
+- No audit log viewer
+- No report/data export functionality
+- No notifications or email integration
+- No Phase 5 reporting
+- No Prisma schema changes
+- No database migrations
+- No BFF routes
+
+## M31 Overall Maturity
+
+| Layer | Status |
+|---|---|
+| Requirements | Defined -- GD-M31-1.md; spec/01_requirements.md FR-410, FR-900 |
+| Specs | Defined -- GD-M31-1 (14 decisions) + this PROGRESS.md entry |
+| Directives | GD-M31-1 approved and committed (051fa8f) |
+| Execution Plan | Complete -- WorkforceReadinessService; GET /workforce-readiness; WorkforceReadinessResponseDto; audit event; dashboard card |
+| State Model | Readiness score 0–100; 4-tier readiness level; confidence with insufficient-data floor; role-gated card visibility (allowed/forbidden); independent per-signal gating; 3-state card render (data/empty/error) |
+| Test Scenarios | Validated -- 37 workforce-readiness service tests (factors, thresholds, confidence, insufficient-data, VacancyRiskService reuse, tenant isolation, no-external-AI); 130 total intelligence tests; full 1814-test API suite green; type-check + lint clean on both apps |
+| System Loop | Integrated -- JWT to RolesGuard to WorkforceReadinessService to PrismaService + VacancyRiskService to AuditService to dashboard serverFetch to independently-gated card render |
+| Failure Playbook | Allowed-role fetch failure -- in-card error state, dashboard stays stable; VacancyRiskService reuse failure -- caught, defaults to 0 pressure, never crashes; forbidden role -- silent omission, no error surfaced |
+| Environment Model | No Docker/infra/env changes; no schema/migration changes; full-stack Docker rebuild verified (web + api) |
+| Data Lifecycle | No schema change; scores computed live from existing Employee/Position/EmployeeCertification/Vacancy data on every request; no persistence of computed scores; audit event persisted per query |
+| Evolution Strategy | Continues the IntelligenceExplainabilityOutput foundation contract from M30; Role-Based Intelligence Matrix (GD-M30-1 Decision 11) now has two implemented signals with independent gating; further Phase 4 signals can reuse the same pattern |
+| **Overall** | **Implemented -- runtime-verified + browser-verified 2026-07-16; commit created and pushed; CI confirmation pending** |
+
+## Capability Maturity Summary (Phase 4, Post-M31)
+
+| Capability | Status |
+|---|---|
+| Phase 4 Intelligence | Continued |
+| Vacancy Risk Intelligence | Verified |
+| Workforce Readiness Intelligence | Verified |
+| Role-Based Intelligence Matrix | Actively implemented in stages (GD-M30-1 Decision 11) — two signals live with independent per-signal gating |
+| AI/LLM integration | Deferred |
+| Attrition Prediction | Deferred |
+| Demand Forecasting | Deferred |
 | Candidate Matching | Deferred |
 | Executive Analytics | Deferred |

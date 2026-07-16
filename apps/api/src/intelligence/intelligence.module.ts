@@ -13,10 +13,11 @@ import { Module } from '@nestjs/common';
 import { IdentityModule } from '../identity/identity.module';
 import { IntelligenceController } from './intelligence.controller';
 import { VacancyRiskService } from './services/vacancy-risk.service';
+import { WorkforceReadinessService } from './services/workforce-readiness.service';
 
 @Module({
   imports: [IdentityModule],
   controllers: [IntelligenceController],
-  providers: [VacancyRiskService],
+  providers: [VacancyRiskService, WorkforceReadinessService],
 })
 export class IntelligenceModule {}

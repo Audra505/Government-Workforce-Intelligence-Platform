@@ -67,6 +67,19 @@ type VacancyRiskRes = {
     formulaVersion: string;
   };
 };
+type WorkforceReadinessFactor = { name: string; contribution: number; detail: string };
+type WorkforceReadinessRes = {
+  success: boolean;
+  data: {
+    readinessScore: number;
+    readinessLevel: string;
+    confidence: number;
+    reasoning: string;
+    factors: WorkforceReadinessFactor[];
+    computedAt: string;
+    formulaVersion: string;
+  };
+};
 
 // ── Data helpers ─────────────────────────────────────────────────────────────
 function n(r: PromiseSettledResult<unknown>): number | null {
@@ -111,9 +124,9 @@ const CARD = {
 } as const;
 
 // Vacancy Risk Signals column template — explicit grid so header labels and
-// row values stay aligned (Risk / Vacancy / Priority / Days Open / Why This
-// Is Risky / Confidence). Same technique already used by .pipe-item below.
-const RISK_GRID_COLS = '100px 1.5fr 100px 70px 2fr 80px';
+// row values stay aligned (Risk / Vacancy / Priority / Why This Is Risky /
+// Confidence). Same technique already used by .pipe-item below.
+const RISK_GRID_COLS = '100px 1.5fr 100px 2fr 80px';
 
 // ── Sub-components (Server-safe: no hooks) ───────────────────────────────────
 
@@ -219,11 +232,18 @@ export default async function DashboardPage() {
   const token = cookies().get(SESSION_COOKIE)?.value;
   const roles = token ? getSessionRoles(token) : [];
   const canSeeAdmin = roles.includes('System Administrator') || roles.includes('HR Director');
-  const canSeeIntelligence = roles.some(r =>
+  // GD-M31-1 Decision 10: independent per-signal gating — vacancy risk and
+  // workforce readiness have different allowed-role lists (Executive User is
+  // allowed for readiness only), so each signal is gated separately rather
+  // than sharing one broad "canSeeIntelligence" boolean.
+  const canSeeVacancyRisk = roles.some(r =>
     ['System Administrator', 'HR Director', 'Workforce Planner'].includes(r)
   );
+  const canSeeWorkforceReadiness = roles.some(r =>
+    ['System Administrator', 'HR Director', 'Workforce Planner', 'Executive User'].includes(r)
+  );
 
-  // 23 parallel fetches — allSettled so no single failure crashes the page
+  // 24 parallel fetches — allSettled so no single failure crashes the page
   const [
     r0, r1, r2, r3, r4,     // employee status counts
     r5,                      // active positions
@@ -236,6 +256,7 @@ export default async function DashboardPage() {
     r20,                     // expiring certifications (top 3)
     r21,                     // total positions (for KPI bar proportion)
     r22,                     // intelligence: vacancy risk scores (only fetched for allowed roles)
+    r23,                     // intelligence: workforce readiness (only fetched for allowed roles)
   ] = await Promise.allSettled([
     serverFetch<Count>('/api/v1/employees?employmentStatus=ACTIVE&pageSize=1').catch(() => null),
     serverFetch<Count>('/api/v1/employees?employmentStatus=PENDING_ONBOARDING&pageSize=1').catch(() => null),
@@ -259,8 +280,11 @@ export default async function DashboardPage() {
     serverFetch<VacancyListRes>('/api/v1/vacancies?status=OPEN&pageSize=3').catch(() => null),
     serverFetch<CertsRes>('/api/v1/employee-certifications/expiring?withinDays=30&pageSize=3').catch(() => null),
     serverFetch<Count>('/api/v1/positions?pageSize=1').catch(() => null),
-    canSeeIntelligence
+    canSeeVacancyRisk
       ? serverFetch<VacancyRiskRes>('/api/v1/intelligence/vacancy-risk?pageSize=5')
+      : Promise.resolve(null),
+    canSeeWorkforceReadiness
+      ? serverFetch<WorkforceReadinessRes>('/api/v1/intelligence/workforce-readiness')
       : Promise.resolve(null),
   ]);
 
@@ -288,7 +312,9 @@ export default async function DashboardPage() {
   const openVacancyList    = settled<VacancyListRes>(r19);
   const certsData          = settled<CertsRes>(r20);
   const vacancyRiskData        = settled<VacancyRiskRes>(r22);
-  const vacancyRiskFetchFailed = canSeeIntelligence && r22.status === 'rejected';
+  const vacancyRiskFetchFailed = canSeeVacancyRisk && r22.status === 'rejected';
+  const readinessData          = settled<WorkforceReadinessRes>(r23);
+  const readinessFetchFailed   = canSeeWorkforceReadiness && r23.status === 'rejected';
 
   // ── Derived ──────────────────────────────────────────────────────────────
   // Unfilled = OPEN + IN_RECRUITMENT; show partial sum if only one succeeded
@@ -445,133 +471,252 @@ export default async function DashboardPage() {
 
           </div>
 
-          {/* ── VACANCY RISK SIGNALS — role-gated (SA, HRD, WP) — GD-M30-1 D10 */}
-          {canSeeIntelligence && (
-            <div style={{ marginBottom: 16 }}>
-              <SectionEyebrow label="Workforce Intelligence" accentColor={AMBER} />
-              <div style={CARD}>
-                {/* Warm intelligence panel treatment — amber-tinted header + accent
-                    line, reusing the same amber-wash pair used elsewhere in this
-                    file (riskCfg.HIGH / PriorityBadge). Card body below remains the
-                    standard white CARD shell — no new visual system. */}
-                <div style={{ background: '#fffbeb', borderBottom: '1px solid #fde68a', padding: '14px 20px', display: 'flex', alignItems: 'center', gap: 12 }}>
-                  <span
-                    aria-hidden="true"
-                    style={{ width: 32, height: 32, borderRadius: 8, flexShrink: 0, background: '#ffffff', border: '1px solid #fde68a', display: 'flex', alignItems: 'center', justifyContent: 'center', color: AMBER }}
-                  >
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M12 2 4 5v6c0 5 3.4 8.7 8 10 4.6-1.3 8-5 8-10V5z" />
-                    </svg>
-                  </span>
-                  <div>
-                    <span style={{ fontSize: 13, fontWeight: 600, color: TEXT }}>Vacancy Risk Signals</span>
-                    <p style={{ fontSize: 11, color: SUB, margin: '2px 0 0' }}>
-                      Ranked by computed risk — highest attention first
+          {/* ── WORKFORCE INTELLIGENCE — independent per-signal gating (GD-M31-1 D10):
+               the eyebrow renders if either signal is visible; each panel beneath it
+               is gated by its own boolean, since vacancy risk and workforce readiness
+               have different allowed-role lists (Executive User: readiness only).
+               Layout: Workforce Readiness (1fr) leads, Vacancy Risk Signals (2fr)
+               follows, side by side — same 1fr/2fr split already used by Workforce
+               Status/Certifications below. Collapses to a single column when only
+               one signal is visible (e.g. Executive User sees readiness alone). */}
+          {(canSeeVacancyRisk || canSeeWorkforceReadiness) && (
+            <SectionEyebrow label="Workforce Intelligence" accentColor={AMBER} />
+          )}
+
+          {(canSeeWorkforceReadiness || canSeeVacancyRisk) && (
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: canSeeWorkforceReadiness && canSeeVacancyRisk ? '1fr 2fr' : '1fr',
+                gap: 16,
+                marginBottom: 16,
+              }}
+            >
+
+              {/* ── WORKFORCE READINESS — role-gated (SA, HRD, WP, Executive User) — GD-M31-1 D10/D11
+                   Executive User receives this exact same aggregate card — no row-level detail
+                   of any kind exists in this panel for any role. Comes first (left). */}
+              {canSeeWorkforceReadiness && (
+                <div style={{ ...CARD, display: 'flex', flexDirection: 'column' }}>
+                  {/* Warm intelligence panel treatment — same amber-wash pair used by the
+                      Vacancy Risk Signals panel. No new visual system.
+                      Subtitle kept to one line (matching the Vacancy Risk header) so the
+                      accent divider below sits at the same height in both cards. */}
+                  <div style={{ background: '#fffbeb', borderBottom: '1px solid #fde68a', padding: '14px 20px', display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <span
+                      aria-hidden="true"
+                      style={{ width: 32, height: 32, borderRadius: 8, flexShrink: 0, background: '#ffffff', border: '1px solid #fde68a', display: 'flex', alignItems: 'center', justifyContent: 'center', color: AMBER }}
+                    >
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
+                      </svg>
+                    </span>
+                    <div>
+                      <span style={{ fontSize: 13, fontWeight: 600, color: TEXT }}>Workforce Readiness</span>
+                      <p style={{ fontSize: 11, color: SUB, margin: '2px 0 0', whiteSpace: 'nowrap' }}>
+                        Staffing, capacity, vacancy pressure &amp; compliance
+                      </p>
+                    </div>
+                  </div>
+                  <div aria-hidden="true" style={{ height: 1, background: 'rgba(217,119,6,.25)' }} />
+
+                  {readinessFetchFailed ? (
+                    <p style={{ padding: '20px', fontSize: 13, color: SUB }}>
+                      Workforce readiness unavailable. Reload the dashboard to try again.
+                    </p>
+                  ) : readinessData !== null ? (
+                    (() => {
+                      // readinessLevel pill colors — same wash-tint derivation as riskCfg below
+                      // (a light tint of an already-used solid token); no new visual system.
+                      const readinessCfg: Record<string, { bg: string; c: string; bd: string }> = {
+                        READY:      { bg: '#f0fdf4', c: GREEN, bd: '#bbf7d0' },
+                        DEVELOPING: { bg: '#eff6ff', c: BLUE,  bd: 'rgba(37,99,235,.2)' },
+                        AT_RISK:    { bg: '#fffbeb', c: AMBER, bd: '#fde68a' },
+                        CRITICAL:   { bg: '#fef2f2', c: RED,   bd: '#fecaca' },
+                      };
+                      const rc = readinessCfg[readinessData.data.readinessLevel] ?? readinessCfg.AT_RISK!;
+                      const confidenceLabel =
+                        readinessData.data.confidence >= 70 ? 'High'
+                        : readinessData.data.confidence >= 40 ? 'Medium'
+                        : 'Low';
+                      return (
+                        <>
+                          {/* Content block grows to fill the space the grid-stretch gives this
+                              card (matching the taller Vacancy Risk panel) and centers its
+                              contents within that space — rather than stacking tight at the top
+                              and leaving dead space below, per user visual feedback. */}
+                          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 20, padding: '20px 0' }}>
+                            <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, padding: '0 20px' }}>
+                              <span style={{ fontFamily: MONO, fontSize: 32, fontWeight: 700, color: TEXT, letterSpacing: '-.02em', fontVariantNumeric: 'tabular-nums' }}>
+                                {readinessData.data.readinessScore}
+                              </span>
+                              <span style={{ display: 'inline-block', fontSize: 10, fontWeight: 700, padding: '2px 9px', borderRadius: 9999, letterSpacing: '.04em', textTransform: 'uppercase' as const, whiteSpace: 'nowrap', background: rc.bg, color: rc.c, border: `1px solid ${rc.bd}` }}>
+                                {readinessData.data.readinessLevel.replace('_', ' ')}
+                              </span>
+                            </div>
+                            {/* Reasoning — the exact string returned by the API; never composed on the frontend */}
+                            <p style={{ padding: '0 20px', fontSize: 12.5, color: SUB, lineHeight: 1.65 }}>
+                              {readinessData.data.reasoning}
+                            </p>
+                            {/* Key factors at a high level — plain-language chips, no raw contribution math */}
+                            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', padding: '0 20px' }}>
+                              {readinessData.data.factors.map((f) => (
+                                <span
+                                  key={f.name}
+                                  style={{ fontSize: 10.5, color: SUB, background: CANVAS, border: `1px solid ${BORDER}`, borderRadius: 9999, padding: '5px 12px' }}
+                                >
+                                  {f.detail}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                          <div style={{ borderTop: `1px solid ${BORDER}`, padding: '14px 20px', display: 'flex', flexDirection: canSeeVacancyRisk ? 'column' : 'row', justifyContent: 'space-between', alignItems: canSeeVacancyRisk ? 'flex-start' : 'center', gap: 4, flexWrap: 'wrap' }}>
+                            <p style={{ fontSize: 11, color: MUTED, margin: 0, lineHeight: 1.5 }}>
+                              Readiness computed from live workforce, vacancy, and certification data using a deterministic, rules-based formula. Human review required before action.
+                            </p>
+                            <span style={{ fontSize: 10.5, color: MUTED, whiteSpace: 'nowrap' }}>
+                              Confidence: {confidenceLabel}
+                            </span>
+                          </div>
+                        </>
+                      );
+                    })()
+                  ) : (
+                    <p style={{ padding: '20px', fontSize: 13, color: MUTED }}>
+                      Workforce readiness not available at this time.
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {/* ── VACANCY RISK SIGNALS — role-gated (SA, HRD, WP) — GD-M30-1 D10. Comes second (right). */}
+              {canSeeVacancyRisk && (
+                <div style={CARD}>
+                  {/* Warm intelligence panel treatment — amber-tinted header + accent
+                      line, reusing the same amber-wash pair used elsewhere in this
+                      file (riskCfg.HIGH / PriorityBadge). Card body below remains the
+                      standard white CARD shell — no new visual system. */}
+                  <div style={{ background: '#fffbeb', borderBottom: '1px solid #fde68a', padding: '14px 20px', display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <span
+                      aria-hidden="true"
+                      style={{ width: 32, height: 32, borderRadius: 8, flexShrink: 0, background: '#ffffff', border: '1px solid #fde68a', display: 'flex', alignItems: 'center', justifyContent: 'center', color: AMBER }}
+                    >
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M12 2 4 5v6c0 5 3.4 8.7 8 10 4.6-1.3 8-5 8-10V5z" />
+                      </svg>
+                    </span>
+                    <div>
+                      <span style={{ fontSize: 13, fontWeight: 600, color: TEXT }}>Vacancy Risk Signals</span>
+                      <p style={{ fontSize: 11, color: SUB, margin: '2px 0 0' }}>
+                        Ranked by computed risk — highest attention first
+                      </p>
+                    </div>
+                  </div>
+                  <div aria-hidden="true" style={{ height: 1, background: 'rgba(217,119,6,.25)' }} />
+                  {/* Horizontal-scroll safety net — this panel now shares the row with
+                      Workforce Readiness (2fr of a 1fr/2fr split) rather than spanning
+                      the full page width, so the column template can get tight on
+                      narrower viewports. This never affects layout when there's room. */}
+                  <div style={{ overflowX: 'auto' }}>
+                    {vacancyRiskFetchFailed ? (
+                      <p style={{ padding: '20px', fontSize: 13, color: SUB }}>
+                        Vacancy risk scores unavailable. Reload the dashboard to try again.
+                      </p>
+                    ) : vacancyRiskData !== null && vacancyRiskData.data.items.length > 0 ? (
+                      <>
+                        {/* Column headers — explicit grid so values align under their label across every row. */}
+                        <div style={{ display: 'grid', gridTemplateColumns: RISK_GRID_COLS, gap: 12, padding: '10px 20px 8px', borderBottom: `1px solid ${BORDER}`, minWidth: 640 }}>
+                          {(['Risk', 'Vacancy', 'Priority', 'Why This Is Risky', 'Confidence'] as const).map((h) => (
+                            <span
+                              key={h}
+                              style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '.08em', color: MUTED }}
+                            >
+                              {h}
+                            </span>
+                          ))}
+                        </div>
+                        {vacancyRiskData.data.items.map((item) => {
+                          // Risk stays the one strong badge treatment per row (GD-M30-1 D10).
+                          const riskCfg: Record<string, { bg: string; c: string; bd: string }> = {
+                            CRITICAL: { bg: '#fef2f2', c: RED,   bd: '#fecaca' },
+                            HIGH:     { bg: '#fffbeb', c: AMBER, bd: '#fde68a' },
+                            MEDIUM:   { bg: '#eff6ff', c: BLUE,  bd: 'rgba(37,99,235,.2)' },
+                            LOW:      { bg: CANVAS,    c: MUTED, bd: BORDER },
+                          };
+                          const rt = riskCfg[item.riskLevel] ?? riskCfg.LOW!;
+                          // Priority: lower-emphasis dot + text, not a pill (GD-M30-1 D10 row-level display hierarchy).
+                          const priorityDotColor: Record<string, string> = {
+                            CRITICAL: RED, HIGH: AMBER, MEDIUM: BLUE, LOW: MUTED,
+                          };
+                          const priorityLabel = item.priority
+                            ? item.priority.charAt(0) + item.priority.slice(1).toLowerCase()
+                            : null;
+                          // Confidence: plain muted text, not a pill or raw percentage (GD-M30-1 D10).
+                          const confidenceLabel =
+                            item.confidence >= 70 ? 'High' : item.confidence >= 40 ? 'Medium' : 'Low';
+                          return (
+                            <div
+                              key={item.vacancyId}
+                              style={{ display: 'grid', gridTemplateColumns: RISK_GRID_COLS, gap: 12, alignItems: 'start', padding: '12px 20px', borderBottom: `1px solid ${BORDER}`, minWidth: 640 }}
+                            >
+                              {/* Risk — pill has a fixed width so the score column stays aligned
+                                  across rows regardless of label length (HIGH vs CRITICAL vs MEDIUM). */}
+                              <span style={{ display: 'inline-flex', alignItems: 'baseline', gap: 6, flexShrink: 0 }}>
+                                <span style={{ display: 'inline-block', width: 68, textAlign: 'center' as const, fontSize: 10, fontWeight: 700, padding: '2px 0', borderRadius: 9999, letterSpacing: '.04em', textTransform: 'uppercase' as const, whiteSpace: 'nowrap', background: rt.bg, color: rt.c, border: `1px solid ${rt.bd}` }}>
+                                  {item.riskLevel}
+                                </span>
+                                <span style={{ fontFamily: MONO, fontSize: 13, fontWeight: 700, color: TEXT, fontVariantNumeric: 'tabular-nums' }}>
+                                  {item.riskScore}
+                                </span>
+                              </span>
+
+                              {/* Vacancy */}
+                              <div style={{ minWidth: 0 }}>
+                                <p style={{ fontSize: 13, fontWeight: 500, color: TEXT, margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                  {item.positionTitle}
+                                </p>
+                                {item.departmentName && (
+                                  <p style={{ fontSize: 11, color: MUTED, margin: '2px 0 0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                    {item.departmentName}
+                                  </p>
+                                )}
+                              </div>
+
+                              {/* Priority — dot + text, not a pill */}
+                              {priorityLabel ? (
+                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, color: SUB, whiteSpace: 'nowrap' }}>
+                                  <span style={{ width: 7, height: 7, borderRadius: '50%', background: priorityDotColor[item.priority!] ?? MUTED, flexShrink: 0, display: 'inline-block' }} />
+                                  {priorityLabel}
+                                </span>
+                              ) : <span />}
+
+                              {/* Why This Is Risky — the exact reasoning string returned by the API (GD-M30-1 D8/D10). Never composed on the frontend. */}
+                              <p style={{ fontSize: 12, color: SUB, margin: 0, lineHeight: 1.45 }}>
+                                {item.reasoning}
+                              </p>
+
+                              {/* Confidence — plain muted text, not a pill */}
+                              <span style={{ fontSize: 11, color: MUTED, whiteSpace: 'nowrap' }}>
+                                {confidenceLabel}
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </>
+                    ) : (
+                      <p style={{ padding: '20px', fontSize: 13, color: MUTED }}>
+                        No open vacancies scored at this time.
+                      </p>
+                    )}
+                  </div>
+                  <div style={{ borderTop: `1px solid ${BORDER}`, padding: '10px 20px' }}>
+                    <p style={{ fontSize: 11, color: MUTED, margin: 0, lineHeight: 1.5 }}>
+                      Scores computed from live vacancy data using deterministic-v1 formula. Human review required before action.
                     </p>
                   </div>
                 </div>
-                <div aria-hidden="true" style={{ height: 1, background: 'rgba(217,119,6,.25)' }} />
-                {vacancyRiskFetchFailed ? (
-                  <p style={{ padding: '20px', fontSize: 13, color: SUB }}>
-                    Vacancy risk scores unavailable. Reload the dashboard to try again.
-                  </p>
-                ) : vacancyRiskData !== null && vacancyRiskData.data.items.length > 0 ? (
-                  <>
-                    {/* Column headers — explicit grid so values align under their label across every row. */}
-                    <div style={{ display: 'grid', gridTemplateColumns: RISK_GRID_COLS, gap: 12, padding: '10px 20px 8px', borderBottom: `1px solid ${BORDER}` }}>
-                      {(['Risk', 'Vacancy', 'Priority', 'Days Open', 'Why This Is Risky', 'Confidence'] as const).map((h) => (
-                        <span
-                          key={h}
-                          style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '.08em', color: MUTED, textAlign: h === 'Days Open' ? 'right' as const : 'left' as const }}
-                        >
-                          {h}
-                        </span>
-                      ))}
-                    </div>
-                    {vacancyRiskData.data.items.map((item) => {
-                      // Risk stays the one strong badge treatment per row (GD-M30-1 D10).
-                      const riskCfg: Record<string, { bg: string; c: string; bd: string }> = {
-                        CRITICAL: { bg: '#fef2f2', c: RED,   bd: '#fecaca' },
-                        HIGH:     { bg: '#fffbeb', c: AMBER, bd: '#fde68a' },
-                        MEDIUM:   { bg: '#eff6ff', c: BLUE,  bd: 'rgba(37,99,235,.2)' },
-                        LOW:      { bg: CANVAS,    c: MUTED, bd: BORDER },
-                      };
-                      const rt = riskCfg[item.riskLevel] ?? riskCfg.LOW!;
-                      // Priority: lower-emphasis dot + text, not a pill (GD-M30-1 D10 row-level display hierarchy).
-                      const priorityDotColor: Record<string, string> = {
-                        CRITICAL: RED, HIGH: AMBER, MEDIUM: BLUE, LOW: MUTED,
-                      };
-                      const priorityLabel = item.priority
-                        ? item.priority.charAt(0) + item.priority.slice(1).toLowerCase()
-                        : null;
-                      // Confidence: plain muted text, not a pill or raw percentage (GD-M30-1 D10).
-                      const confidenceLabel =
-                        item.confidence >= 70 ? 'High' : item.confidence >= 40 ? 'Medium' : 'Low';
-                      return (
-                        <div
-                          key={item.vacancyId}
-                          style={{ display: 'grid', gridTemplateColumns: RISK_GRID_COLS, gap: 12, alignItems: 'start', padding: '12px 20px', borderBottom: `1px solid ${BORDER}` }}
-                        >
-                          {/* Risk — pill has a fixed width so the score column stays aligned
-                              across rows regardless of label length (HIGH vs CRITICAL vs MEDIUM). */}
-                          <span style={{ display: 'inline-flex', alignItems: 'baseline', gap: 6, flexShrink: 0 }}>
-                            <span style={{ display: 'inline-block', width: 68, textAlign: 'center' as const, fontSize: 10, fontWeight: 700, padding: '2px 0', borderRadius: 9999, letterSpacing: '.04em', textTransform: 'uppercase' as const, whiteSpace: 'nowrap', background: rt.bg, color: rt.c, border: `1px solid ${rt.bd}` }}>
-                              {item.riskLevel}
-                            </span>
-                            <span style={{ fontFamily: MONO, fontSize: 13, fontWeight: 700, color: TEXT, fontVariantNumeric: 'tabular-nums' }}>
-                              {item.riskScore}
-                            </span>
-                          </span>
+              )}
 
-                          {/* Vacancy */}
-                          <div style={{ minWidth: 0 }}>
-                            <p style={{ fontSize: 13, fontWeight: 500, color: TEXT, margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                              {item.positionTitle}
-                            </p>
-                            {item.departmentName && (
-                              <p style={{ fontSize: 11, color: MUTED, margin: '2px 0 0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                {item.departmentName}
-                              </p>
-                            )}
-                          </div>
-
-                          {/* Priority — dot + text, not a pill */}
-                          {priorityLabel ? (
-                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, color: SUB, whiteSpace: 'nowrap' }}>
-                              <span style={{ width: 7, height: 7, borderRadius: '50%', background: priorityDotColor[item.priority!] ?? MUTED, flexShrink: 0, display: 'inline-block' }} />
-                              {priorityLabel}
-                            </span>
-                          ) : <span />}
-
-                          {/* Days Open */}
-                          <span style={{ fontFamily: MONO, fontSize: 11, color: SUB, whiteSpace: 'nowrap', textAlign: 'right' as const }}>
-                            {item.daysOpen}d
-                          </span>
-
-                          {/* Why This Is Risky — the exact reasoning string returned by the API (GD-M30-1 D8/D10). Never composed on the frontend. */}
-                          <p style={{ fontSize: 12, color: SUB, margin: 0, lineHeight: 1.45 }}>
-                            {item.reasoning}
-                          </p>
-
-                          {/* Confidence — plain muted text, not a pill */}
-                          <span style={{ fontSize: 11, color: MUTED, whiteSpace: 'nowrap' }}>
-                            {confidenceLabel}
-                          </span>
-                        </div>
-                      );
-                    })}
-                  </>
-                ) : (
-                  <p style={{ padding: '20px', fontSize: 13, color: MUTED }}>
-                    No open vacancies scored at this time.
-                  </p>
-                )}
-                <div style={{ borderTop: `1px solid ${BORDER}`, padding: '10px 20px' }}>
-                  <p style={{ fontSize: 11, color: MUTED, margin: 0, lineHeight: 1.5 }}>
-                    Scores computed from live vacancy data using deterministic-v1 formula. Human review required before action.
-                  </p>
-                </div>
-              </div>
             </div>
           )}
 

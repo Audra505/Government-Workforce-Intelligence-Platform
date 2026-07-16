@@ -166,6 +166,8 @@ export enum AuditEventType {
   // FR-904: All intelligence queries must be auditable from day one.
   // -------------------------------------------------------------------------
   INTELLIGENCE_VACANCY_RISK_QUERIED = 'INTELLIGENCE_VACANCY_RISK_QUERIED',
+  // GD-M31-1 Decision 9: workforce readiness queries auditable from day one.
+  INTELLIGENCE_WORKFORCE_READINESS_QUERIED = 'INTELLIGENCE_WORKFORCE_READINESS_QUERIED',
 
   // -------------------------------------------------------------------------
   // AUD-900: Integration Events

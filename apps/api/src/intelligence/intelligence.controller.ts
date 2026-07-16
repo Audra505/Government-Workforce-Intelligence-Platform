@@ -26,6 +26,8 @@ import { AuditEventType } from '../audit/enums/audit-event-type.enum';
 import { VacancyRiskService } from './services/vacancy-risk.service';
 import { VacancyRiskQueryDto } from './dto/vacancy-risk-query.dto';
 import { VacancyRiskResponseDto } from './dto/vacancy-risk-response.dto';
+import { WorkforceReadinessService } from './services/workforce-readiness.service';
+import { WorkforceReadinessResponseDto } from './dto/workforce-readiness-response.dto';
 
 @ApiTags('intelligence')
 @Controller({ version: '1', path: 'intelligence' })
@@ -34,6 +36,7 @@ import { VacancyRiskResponseDto } from './dto/vacancy-risk-response.dto';
 export class IntelligenceController {
   constructor(
     private readonly vacancyRiskService: VacancyRiskService,
+    private readonly workforceReadinessService: WorkforceReadinessService,
     private readonly auditService: AuditService,
   ) {}
 
@@ -87,6 +90,61 @@ export class IntelligenceController {
         total:          result.total,
         scoredAt,
         formulaVersion: VacancyRiskService.FORMULA_VERSION,
+      },
+    };
+  }
+
+  // --------------------------------------------------------------------------
+  // GET /api/v1/intelligence/workforce-readiness
+  // --------------------------------------------------------------------------
+
+  @Get('workforce-readiness')
+  @RequireRoles('System Administrator', 'HR Director', 'Workforce Planner', 'Executive User')
+  @ApiOperation({
+    summary: 'Get deterministic workforce readiness score for this tenant (FR-410)',
+    description:
+      'Returns a single tenant-wide readiness score composed from staffing coverage, ' +
+      'position capacity, vacancy pressure (reusing VacancyRiskService), and certification ' +
+      'compliance. Allowed roles: System Administrator, HR Director, Workforce Planner, ' +
+      'Executive User. Executive User receives the identical aggregate response — no ' +
+      'individual-level data exists in this endpoint for any role. ' +
+      'Fully deterministic and reproducible — no external AI is called.',
+  })
+  @ApiResponse({ status: 200, type: WorkforceReadinessResponseDto, description: 'Workforce readiness score returned' })
+  @ApiResponse({ status: 401, description: 'Not authenticated' })
+  @ApiResponse({ status: 403, description: 'Insufficient role' })
+  @ApiResponse({ status: 500, description: 'Internal server error' })
+  async getWorkforceReadiness(
+    @CurrentUser() actor: RequestUser,
+  ): Promise<WorkforceReadinessResponseDto> {
+    const result = await this.workforceReadinessService.score(actor.tenantId);
+
+    // GD-M31-1 Decision 9: audit every readiness query
+    // Metadata must be PII-safe and aggregate-only — no individual employee/vacancy/cert data
+    await this.auditService.logEvent({
+      tenantId:   actor.tenantId,
+      userId:     actor.userId,
+      entityType: 'intelligence',
+      entityId:   undefined,
+      action:     AuditEventType.INTELLIGENCE_WORKFORCE_READINESS_QUERIED,
+      result:     'SUCCESS',
+      metadata: {
+        formulaVersion: WorkforceReadinessService.FORMULA_VERSION,
+        readinessLevel: result.riskLevel,
+        confidence:     result.confidence,
+      },
+    });
+
+    return {
+      success: true,
+      data: {
+        readinessScore: result.riskScore,
+        readinessLevel: result.riskLevel,
+        confidence:     result.confidence,
+        reasoning:      result.reasoning,
+        factors:        result.factors,
+        computedAt:     result.computedAt,
+        formulaVersion: result.formulaVersion,
       },
     };
   }
