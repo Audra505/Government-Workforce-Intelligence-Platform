@@ -11,6 +11,7 @@ import { UsersModule } from './users/users.module';
 import { OrganizationModule } from './organization/organization.module';
 import { WorkforceModule } from './workforce/workforce.module';
 import { RecruitingModule } from './recruiting/recruiting.module';
+import { IntelligenceModule } from './intelligence/intelligence.module';
 
 // Reference: execution/02_phase_1_foundation.md — Deliverable 3 (Backend Foundation)
 // Reference: spec/10_backend_architecture.md — Module Organization
@@ -23,6 +24,7 @@ import { RecruitingModule } from './recruiting/recruiting.module';
 //   Milestone 7: OrganizationModule (Organization Management — FR-050, FR-051)
 //   Milestone 8: WorkforceModule (Position Management — FR-100)
 //   Milestone 16+: RecruitingModule (Phase 3 Recruiting Domain — FR-300+)
+//   M30+: IntelligenceModule (Phase 4 Intelligence — FR-401+; GD-M30-1)
 
 @Module({
   imports: [
@@ -39,6 +41,7 @@ import { RecruitingModule } from './recruiting/recruiting.module';
     OrganizationModule,
     WorkforceModule,
     RecruitingModule,
+    IntelligenceModule,
   ],
   controllers: [],
   providers: [],

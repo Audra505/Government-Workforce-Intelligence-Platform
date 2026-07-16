@@ -162,6 +162,12 @@ export enum AuditEventType {
   REPORTING_REPORT_ACCESSED = 'REPORTING_REPORT_ACCESSED',
 
   // -------------------------------------------------------------------------
+  // AUD-800+: Intelligence Events — Phase 4 (GD-M30-1 Decision 9)
+  // FR-904: All intelligence queries must be auditable from day one.
+  // -------------------------------------------------------------------------
+  INTELLIGENCE_VACANCY_RISK_QUERIED = 'INTELLIGENCE_VACANCY_RISK_QUERIED',
+
+  // -------------------------------------------------------------------------
   // AUD-900: Integration Events
   // -------------------------------------------------------------------------
   INTEGRATION_SYNC_STARTED = 'INTEGRATION_SYNC_STARTED',
