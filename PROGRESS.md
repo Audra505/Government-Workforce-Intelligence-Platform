@@ -9,16 +9,16 @@
 
 ---
 
-Last Updated: 2026-07-16 (M31 Workforce Readiness Intelligence -- implementation commit recorded; runtime-verified + browser-verified; CI pending confirmation)
-Updated By: Claude Code (M31 finalized and committed)
+Last Updated: 2026-07-16 (M31 Workforce Readiness Intelligence -- CI CONFIRMED; cbcacdb; runtime-verified + browser-verified + CI green)
+Updated By: Claude Code (M31 CI confirmed; cbcacdb green; M31 fully closed)
 
 Previous Update: 2026-07-16 (M30 Intelligence Foundation and Vacancy Risk Panel -- CI CONFIRMED; 407195b; runtime-verified + browser-verified + CI green)
 
 ## Repository Status
 
-Current Phase: **Phase 4 — M31 (Workforce Readiness Intelligence)**
-Overall Classification: Phase 2 COMPLETE; Post-Phase-2 milestones M13/M14/M15 CI-confirmed; Pre-Phase-3 Governance Package CI-confirmed (a5c34f1); Phase 3 started — M16 CI-confirmed; M17 CI-confirmed; M18 CI-confirmed; M19 CI-confirmed; M20 CI-confirmed (6e6777b; run 28611838113); M21 CI-confirmed (1036c92 + 3c8189d + 1e33420); browser-verified by human 2026-07-03; CLOSED; M21.5 CI-confirmed (782e35e + 1a4b64f; runs #66 + #67); M22 CI-confirmed (ee8465b); browser-verified by human 2026-07-04; CLOSED; M23 CI-confirmed (5fedb81); browser-verified by human 2026-07-06; CLOSED; M24 CI-confirmed (5f5bfa6); browser-verified by human 2026-07-11; CLOSED; M25 CI-confirmed (23d46ef); browser-verified by human 2026-07-13; CLOSED; M26 CI-confirmed (a9a6943); runtime-verified 2026-07-14; CLOSED; M27 CI-confirmed (9049fd6); runtime-verified 2026-07-14; CLOSED; M28 CI-confirmed (46ffcce); runtime-verified + human browser-verified 2026-07-14; CLOSED; M29 CI-confirmed (45efe2f); seed validated 2026-07-14; CLOSED; Phase 3 COMPLETE; Phase 4 Intelligence STARTED — M30 CI-confirmed (407195b); governance GD-M30-1.md authorized (3c9366e) and amended twice (d3a2a65, 0401672); runtime-verified + browser-verified 2026-07-16; CLOSED; M31 Workforce Readiness Intelligence implemented — governance GD-M31-1.md authorized (051fa8f); runtime-verified + browser-verified 2026-07-16; committed; CI status to be confirmed on next session per repo's standard CI-confirmation practice
-Active Sprint / Milestone: M31 implementation commit created (2026-07-16); CI confirmation pending
+Current Phase: **Phase 4 — M31 CI-CONFIRMED (Workforce Readiness Intelligence)**
+Overall Classification: Phase 2 COMPLETE; Post-Phase-2 milestones M13/M14/M15 CI-confirmed; Pre-Phase-3 Governance Package CI-confirmed (a5c34f1); Phase 3 started — M16 CI-confirmed; M17 CI-confirmed; M18 CI-confirmed; M19 CI-confirmed; M20 CI-confirmed (6e6777b; run 28611838113); M21 CI-confirmed (1036c92 + 3c8189d + 1e33420); browser-verified by human 2026-07-03; CLOSED; M21.5 CI-confirmed (782e35e + 1a4b64f; runs #66 + #67); M22 CI-confirmed (ee8465b); browser-verified by human 2026-07-04; CLOSED; M23 CI-confirmed (5fedb81); browser-verified by human 2026-07-06; CLOSED; M24 CI-confirmed (5f5bfa6); browser-verified by human 2026-07-11; CLOSED; M25 CI-confirmed (23d46ef); browser-verified by human 2026-07-13; CLOSED; M26 CI-confirmed (a9a6943); runtime-verified 2026-07-14; CLOSED; M27 CI-confirmed (9049fd6); runtime-verified 2026-07-14; CLOSED; M28 CI-confirmed (46ffcce); runtime-verified + human browser-verified 2026-07-14; CLOSED; M29 CI-confirmed (45efe2f); seed validated 2026-07-14; CLOSED; Phase 3 COMPLETE; Phase 4 Intelligence STARTED — M30 CI-confirmed (407195b); governance GD-M30-1.md authorized (3c9366e) and amended twice (d3a2a65, 0401672); runtime-verified + browser-verified 2026-07-16; CLOSED; M31 CI-confirmed (cbcacdb); governance GD-M31-1.md authorized (051fa8f); runtime-verified + browser-verified 2026-07-16; CI run #99 (ID 29534898812) completed / success; CLOSED
+Active Sprint / Milestone: M31 CLOSED and CI-confirmed (cbcacdb; 2026-07-16)
 Implementation Started: Yes (2026-06-05)
 
 ## Phase Summary
@@ -33,11 +33,11 @@ Phase 1 is formally closed. D9 (Docker Environment) and D10 (CI/CD Foundation) w
 > Its purpose is crash/session recovery: the current step state is always readable without
 > scanning Zone 5 history. It is overwritten each step — not appended.
 
-Milestone: M31 Workforce Readiness Intelligence -- IMPLEMENTATION COMMIT CREATED
-Last Completed Milestone: M30 CI-CONFIRMED -- 407195b; runtime-verified + browser-verified + CI green 2026-07-16; FULLY CLOSED
-Last Completed Step: M31 implementation committed and pushed; runtime-verified + browser-verified; CI confirmation pending
+Milestone: M31 Workforce Readiness Intelligence -- CI-CONFIRMED
+Last Completed Milestone: M31 CI-CONFIRMED -- cbcacdb; runtime-verified + browser-verified + CI green 2026-07-16; FULLY CLOSED
+Last Completed Step: CI confirmed green (run #99, ID 29534898812 -- completed / success)
 Last Completed Step Date: 2026-07-16
-Current Step: M31 implementation closed out this session -- CI confirmation deferred to next session per repo's standard CI-confirmation practice
+Current Step: M31 fully closed -- no active step
 Session Classification: PHASE 4 M31 IMPLEMENTED -- WorkforceReadinessService (deterministic readiness-deterministic-v1 formula: Staffing Coverage 0-30, Position Capacity 0-20, Vacancy Pressure 0-30 via governed reuse of VacancyRiskService.score(tenantId, {}), Certification Compliance 0-20); readiness levels CRITICAL/AT_RISK/DEVELOPING/READY; confidence + insufficient-data behavior; GET /api/v1/intelligence/workforce-readiness; RBAC (SA/HRD/WP/Executive User allowed, Recruiter/HM/CO forbidden); tenant isolation from JWT tenantId only; explainability response contract reused verbatim from M30; WorkforceReadinessResponseDto; INTELLIGENCE_WORKFORCE_READINESS_QUERIED audit event with PII-safe aggregate-only metadata; Executive User aggregate-only guarantee (byte-identical response to System Administrator) verified at unit-test and browser level; dashboard Workforce Readiness card added with independent per-signal RBAC gating (canSeeVacancyRisk vs canSeeWorkforceReadiness); side-by-side 1fr/2fr Workforce Intelligence layout (Readiness first, Vacancy Risk second) for roles with both signals; single-column fallback for Executive User; Workforce Intelligence section omitted entirely for forbidden roles; Days Open column removed from Vacancy Risk table; final visual polish (header divider alignment, centered content rhythm) applied per iterative user review. Governance: GD-M31-1.md (051fa8f)
 
 ## Milestone 10 — Approved Plan
@@ -11044,11 +11044,11 @@ The following were explicitly excluded from M28 scope and are NOT present in the
 # Milestone M31 — Workforce Readiness Intelligence
 
 **Date:** 2026-07-16
-**Status:** IMPLEMENTATION COMMIT CREATED — CI confirmation pending (deferred to next session per repo's standard CI-confirmation practice)
+**Status:** CI-CONFIRMED — CLOSED
 **Governance:** `governance/GD-M31-1.md`
   - Authorization: `051fa8f` (`docs(governance): authorize M31 workforce readiness`)
-**Implementation commit:** this commit (`Implement M31 workforce readiness intelligence`) — see `git log -1` on `main` for the resolved hash; not self-referenceable at write time
-**CI run:** pending — to be confirmed and recorded in a follow-up session, matching the M29/M30 CI-confirmation pattern
+**Implementation commit:** `cbcacdb` (`Implement M31 workforce readiness intelligence`)
+**CI run:** #99 (ID `29534898812`) — `completed / success`
 
 ## Scope Completed
 
@@ -11121,7 +11121,7 @@ The following were explicitly excluded from M28 scope and are NOT present in the
 | Audit event | Verified — `INTELLIGENCE_WORKFORCE_READINESS_QUERIED` / `SUCCESS` written on every successful query; metadata confirmed PII-safe (`formulaVersion`, `readinessLevel`, `confidence` only) |
 | Executive User aggregate-only response | Verified — unit test `toEqual` byte-identical comparison against System Administrator response, plus visual confirmation via browser screenshot |
 | No OpenAI/LLM/external AI | Verified — no import, no HTTP/network call in `score()`, confirmed by dedicated unit tests |
-| CI | Pending — commit not yet confirmed green; to be checked and recorded in a follow-up session per repo's standard CI-confirmation practice |
+| CI | Success — commit `cbcacdb`, run #99 (ID `29534898812`), "Install, Lint, Build, Test" completed / success |
 
 ## Explicit Exclusions
 
@@ -11154,7 +11154,7 @@ The following were explicitly excluded from M28 scope and are NOT present in the
 | Environment Model | No Docker/infra/env changes; no schema/migration changes; full-stack Docker rebuild verified (web + api) |
 | Data Lifecycle | No schema change; scores computed live from existing Employee/Position/EmployeeCertification/Vacancy data on every request; no persistence of computed scores; audit event persisted per query |
 | Evolution Strategy | Continues the IntelligenceExplainabilityOutput foundation contract from M30; Role-Based Intelligence Matrix (GD-M30-1 Decision 11) now has two implemented signals with independent gating; further Phase 4 signals can reuse the same pattern |
-| **Overall** | **Implemented -- runtime-verified + browser-verified 2026-07-16; commit created and pushed; CI confirmation pending** |
+| **Overall** | **Verified -- runtime-verified + browser-verified 2026-07-16; CI confirmed (cbcacdb; run #99 / ID 29534898812)** |
 
 ## Capability Maturity Summary (Phase 4, Post-M31)
 
