@@ -14,7 +14,7 @@ import { getSessionRoles } from '@/lib/session';
 import { LogoutButton } from '@/features/auth/logout-button';
 import { UserIdentityChip } from '@/components/shared/user-identity-chip';
 import { IntelligenceWorkspace } from '@/features/intelligence/components/intelligence-workspace';
-import type { WorkforceReadinessRes, AttritionRiskRes, VacancyRiskRes } from '@/features/intelligence/types';
+import type { WorkforceReadinessRes, AttritionRiskRes, VacancyRiskRes, DepartmentGapRes } from '@/features/intelligence/types';
 
 const NAVY  = '#0c2340';
 const CANVAS = '#f8fafc';
@@ -44,6 +44,12 @@ export default async function IntelligencePage({
   const canSeeVacancyRisk = roles.some((r) =>
     ['System Administrator', 'HR Director', 'Workforce Planner'].includes(r),
   );
+  // GD-M33-1 Decision 4: same allowed-role list as Vacancy Risk (Executive User
+  // explicitly excluded — Decision 4's deliberate exclusion, not an oversight),
+  // kept as its own boolean per the established one-boolean-per-signal discipline.
+  const canSeeDepartmentGap = roles.some((r) =>
+    ['System Administrator', 'HR Director', 'Workforce Planner'].includes(r),
+  );
 
   // GD-M32-1 Decision 20/21: forbidden roles (Recruiter, Hiring Manager,
   // Compliance Officer) must not reach this route, not merely have the nav
@@ -52,7 +58,7 @@ export default async function IntelligencePage({
     redirect('/dashboard');
   }
 
-  const [r0, r1, r2] = await Promise.allSettled([
+  const [r0, r1, r2, r3] = await Promise.allSettled([
     serverFetch<WorkforceReadinessRes>('/api/v1/intelligence/workforce-readiness'),
     serverFetch<AttritionRiskRes>('/api/v1/intelligence/attrition-risk'),
     // pageSize=5 — matches the approved mockup and dashboard-level expectation
@@ -60,6 +66,12 @@ export default async function IntelligencePage({
     // no new endpoint behavior).
     canSeeVacancyRisk
       ? serverFetch<VacancyRiskRes>('/api/v1/intelligence/vacancy-risk?pageSize=5')
+      : Promise.resolve(null),
+    // GD-M33-1 Decision 4: Executive User never issues this fetch at all — not
+    // fetched-then-hidden, simply never requested, matching the existing
+    // Vacancy Risk fetch-gating pattern above.
+    canSeeDepartmentGap
+      ? serverFetch<DepartmentGapRes>('/api/v1/intelligence/department-gap')
       : Promise.resolve(null),
   ]);
 
@@ -69,6 +81,8 @@ export default async function IntelligencePage({
   const attritionFetchFailed = r1.status === 'rejected';
   const vacancyRiskData        = settled<VacancyRiskRes>(r2);
   const vacancyRiskFetchFailed = canSeeVacancyRisk && r2.status === 'rejected';
+  const departmentGapData        = settled<DepartmentGapRes>(r3);
+  const departmentGapFetchFailed = canSeeDepartmentGap && r3.status === 'rejected';
 
   // One-time initial tab selection from a query param (e.g. a "View all →"
   // link from the dashboard's Vacancy Risk card). This is not row selection —
@@ -165,6 +179,9 @@ export default async function IntelligencePage({
             attritionFetchFailed={attritionFetchFailed}
             vacancyRiskData={vacancyRiskData}
             vacancyRiskFetchFailed={vacancyRiskFetchFailed}
+            canSeeDepartmentGap={canSeeDepartmentGap}
+            departmentGapData={departmentGapData}
+            departmentGapFetchFailed={departmentGapFetchFailed}
           />
         </div>
       </main>

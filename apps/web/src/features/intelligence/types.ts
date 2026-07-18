@@ -61,6 +61,45 @@ export type AttritionRiskRes = {
   };
 };
 
+// GD-M33-1 Decision 9 — mirrors GET /api/v1/intelligence/department-gap exactly.
+// readiness/attrition are null for a suppressed department (GD-M33-1 Decision 6) —
+// the API never includes a suppressed department's actual headcount anywhere in
+// this shape, so there is no field here to accidentally render.
+export type DepartmentGapSignal = {
+  score: number;
+  level: string;
+  confidence: number;
+  reasoning: string;
+  factors: RiskFactor[];
+  formulaVersion: string;
+};
+
+export type DepartmentVacancyContext = {
+  openCount: number;
+  criticalCount: number;
+  avgDaysOpen: number | null;
+};
+
+export type DepartmentGapEntry = {
+  departmentId: string;
+  departmentName: string;
+  suppressed: boolean;
+  suppressionReason: string | null;
+  readiness: DepartmentGapSignal | null;
+  attrition: DepartmentGapSignal | null;
+  vacancyContext: DepartmentVacancyContext;
+};
+
+export type DepartmentGapRes = {
+  success: boolean;
+  data: {
+    departments: DepartmentGapEntry[];
+    minimumHeadcountThreshold: number;
+    computedAt: string;
+    formulaVersion: string;
+  };
+};
+
 // GD-M31-1 Decision 5 / GD-M32-1 Decision 5 / GD-M30-1 Decision 5 governed
 // factor maximums. Mirrored here for display only (proportion bar + "x / max"
 // label) — the contribution numerator always comes from the API response;

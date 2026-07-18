@@ -1,5 +1,9 @@
 // Reference: governance/GD-M32-1.md — Decisions 2, 3, 5, 6, 7, 8, 11, 12
+// Reference: governance/GD-M33-1.md — Decisions 2, 5, 6, 7 (scoreByDepartment addition;
+//   Decision 7 formally narrows GD-M32-1 Decision 11's department-level prohibition to
+//   permit this method's output ONLY through DepartmentGapService's suppression rule)
 // Reference: spec/01_requirements.md — FR-402 (Attrition Prediction), FR-900 (Explainability)
+// Reference: directives/06_attrition_scoring_rules.md — Reporting Rules ("Department Risk")
 // Reference: spec/07_security_architecture.md — SEC-003 Tenant Isolation
 //
 // AttritionRiskService implements the governed attrition-deterministic-v1 formula.
@@ -9,13 +13,24 @@
 // Aggregate-only by construction (GD-M32-1 Decision 11): every Prisma call in this service
 // is a count() or a findMany() selecting only positionId — no employee row, name, or
 // identifier is ever fetched into memory in individually-identifiable form. There is no
-// per-employee data for any caller to redact because none is ever queried.
+// per-employee data for any caller to redact because none is ever queried. This holds for
+// scoreByDepartment() too — it is the same count()-only, no-row-level-employee-data query
+// pattern, applied per department.
 //
 // No cross-service dependency is needed (GD-M32-1 Decision 2) — none of the three governed
 // factors depend on VacancyRiskService or WorkforceReadinessService output.
 //
 // Any change to factor weights, thresholds, the trailing window, or formula structure
 // requires a new governance decision.
+//
+// scoreByDepartment() (GD-M33-1 Decision 5) computes the IDENTICAL formula per department
+// instead of per tenant — it calls the same private computeRiskLevel(), computeConfidence(),
+// buildFactors(), and composeReasoning() pure-function helpers score() already uses. Only
+// the Prisma query population filter differs. score() itself is unmodified by this addition.
+// GD-M32-1 Decision 11 originally prohibited any department-level attrition breakdown
+// outright; GD-M33-1 Decision 7 formally narrows that prohibition — this method's output
+// must only ever reach a caller through DepartmentGapService's minimum-headcount
+// suppression rule (GD-M33-1 Decision 6), never returned directly to an HTTP response.
 
 import { Injectable, Logger } from '@nestjs/common';
 
@@ -29,6 +44,21 @@ import type { RiskFactor, IntelligenceExplainabilityOutput } from '../interfaces
 const TRAILING_WINDOW_MS = 365 * 86_400_000;
 const CURRENT_WORKFORCE_STATUSES = ['ACTIVE', 'ON_LEAVE', 'PENDING_ONBOARDING', 'SUSPENDED'];
 const SEPARATION_RATE_CEILING = 0.30;
+
+// ---------------------------------------------------------------------------
+// Public API types — GD-M33-1 Decision 5
+// ---------------------------------------------------------------------------
+
+export interface DepartmentAttritionResult {
+  departmentId: string;
+  departmentName: string;
+  // baselineWorkforce this department's attrition score was computed from (GD-M32-1
+  // Decision 5's separation-rate denominator) — used ONLY by DepartmentGapService's
+  // minimum-headcount suppression check (GD-M33-1 Decision 6); callers must never
+  // expose this number in an API response.
+  population: number;
+  output: IntelligenceExplainabilityOutput;
+}
 
 // ---------------------------------------------------------------------------
 // Service
@@ -144,6 +174,122 @@ export class AttritionRiskService {
       computedAt: now.toISOString(),
       formulaVersion: AttritionRiskService.FORMULA_VERSION,
     };
+  }
+
+  // -------------------------------------------------------------------------
+  // Public API — scoreByDepartment() (GD-M33-1 Decision 5)
+  //
+  // Computes the same attrition-deterministic-v1 formula per department instead of
+  // tenant-wide. No new weight, threshold, or trailing-window change — every number
+  // below is produced by the exact same private helpers score() calls, applied to
+  // department-scoped query results.
+  // -------------------------------------------------------------------------
+
+  async scoreByDepartment(tenantId: string): Promise<DepartmentAttritionResult[]> {
+    const now = new Date();
+    const windowStart = new Date(now.getTime() - TRAILING_WINDOW_MS);
+
+    const departments = await this.prisma.department.findMany({
+      where: { tenantId, deletedAt: null },
+      select: { id: true, name: true },
+    });
+    if (departments.length === 0) return [];
+
+    return Promise.all(
+      departments.map(async (dept): Promise<DepartmentAttritionResult> => {
+        const [
+          trailingSeparations,
+          baselineWorkforce,
+          activeEmployees,
+          shortTenureCount,
+          filledVacancies,
+        ] = await Promise.all([
+          this.prisma.employee.count({
+            where: {
+              tenantId, deletedAt: null, departmentId: dept.id,
+              employmentStatus: 'SEPARATED',
+              terminationDate: { gte: windowStart },
+            },
+          }),
+          this.prisma.employee.count({
+            where: {
+              tenantId, deletedAt: null, departmentId: dept.id,
+              OR: [
+                { employmentStatus: { not: 'SEPARATED' } },
+                { employmentStatus: 'SEPARATED', terminationDate: { gte: windowStart } },
+              ],
+            },
+          }),
+          this.prisma.employee.count({
+            where: {
+              tenantId, deletedAt: null, departmentId: dept.id,
+              employmentStatus: { in: CURRENT_WORKFORCE_STATUSES },
+            },
+          }),
+          this.prisma.employee.count({
+            where: {
+              tenantId, deletedAt: null, departmentId: dept.id,
+              employmentStatus: { in: CURRENT_WORKFORCE_STATUSES },
+              hireDate: { gte: windowStart },
+            },
+          }),
+          // Vacancy has no departmentId of its own — scoped via the position relation
+          // (Position.departmentId), the same relation VacancyRiskService already joins.
+          this.prisma.vacancy.findMany({
+            where: {
+              tenantId, deletedAt: null,
+              filledAt: { gte: windowStart },
+              position: { departmentId: dept.id },
+            },
+            select: { positionId: true },
+          }),
+        ]);
+
+        const positionFillCounts = new Map<string, number>();
+        for (const v of filledVacancies as { positionId: string }[]) {
+          positionFillCounts.set(v.positionId, (positionFillCounts.get(v.positionId) ?? 0) + 1);
+        }
+        const eligiblePositionsCount = positionFillCounts.size;
+        const recurringPositionsCount = [...positionFillCounts.values()].filter(c => c >= 2).length;
+
+        // -- Identical formula to score() above — GD-M32-1 Decision 5, reused verbatim --
+        const separationRate = baselineWorkforce > 0 ? trailingSeparations / baselineWorkforce : null;
+        const separationFactor = separationRate !== null
+          ? Math.round(Math.min(1, separationRate / SEPARATION_RATE_CEILING) * 50)
+          : 25;
+
+        const shortTenureRatio = activeEmployees > 0 ? shortTenureCount / activeEmployees : null;
+        const tenureFactor = shortTenureRatio !== null ? Math.round(shortTenureRatio * 30) : 15;
+
+        const recurrenceRatio = eligiblePositionsCount > 0 ? recurringPositionsCount / eligiblePositionsCount : null;
+        const recurrenceFactor = recurrenceRatio !== null ? Math.round(recurrenceRatio * 20) : 10;
+
+        const attritionScore = Math.min(100, separationFactor + tenureFactor + recurrenceFactor);
+        const attritionRiskLevel = this.computeRiskLevel(attritionScore);
+        const confidence = this.computeConfidence(baselineWorkforce, activeEmployees, eligiblePositionsCount);
+        const factors = this.buildFactors(
+          separationFactor, separationRate,
+          tenureFactor, shortTenureRatio,
+          recurrenceFactor, recurringPositionsCount, eligiblePositionsCount,
+        );
+        const reasoning = this.composeReasoning(attritionRiskLevel, factors);
+
+        return {
+          departmentId: dept.id,
+          departmentName: dept.name,
+          population: baselineWorkforce,
+          output: {
+            riskScore: attritionScore,
+            riskLevel: attritionRiskLevel,
+            confidence,
+            reasoning,
+            factors,
+            computedAt: now.toISOString(),
+            formulaVersion: AttritionRiskService.FORMULA_VERSION,
+          },
+        };
+      }),
+    );
   }
 
   // -------------------------------------------------------------------------

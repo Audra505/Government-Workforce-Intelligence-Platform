@@ -9,16 +9,16 @@
 
 ---
 
-Last Updated: 2026-07-18 (M32 Aggregate Attrition Risk + Intelligence Detail Workspace -- LOCALLY IMPLEMENTED, RUNTIME-VERIFIED, BROWSER-VERIFIED; ready for commit and CI confirmation)
-Updated By: Claude Code (M32 full runtime/browser verification complete after Docker Desktop restart; finalizing for a single implementation commit)
+Last Updated: 2026-07-18 (M33 Capacity & Gap Intelligence -- LOCALLY IMPLEMENTED, RUNTIME-VERIFIED, BROWSER-VERIFIED; ready for commit and CI confirmation)
+Updated By: Claude Code (M33 full runtime/browser verification complete including the Department Gap UI clarity follow-up; finalizing for a single implementation commit; also closed the M32 record, which had been committed and CI-confirmed but never updated in this ledger)
 
 Previous Update: 2026-07-16 (M31 Workforce Readiness Intelligence -- CI CONFIRMED; cbcacdb; runtime-verified + browser-verified + CI green)
 
 ## Repository Status
 
-Current Phase: **Phase 4 — M32 RUNTIME/BROWSER-VERIFIED, READY FOR CI CONFIRMATION (Aggregate Attrition Risk + Intelligence Detail Workspace)**
-Overall Classification: Phase 2 COMPLETE; Post-Phase-2 milestones M13/M14/M15 CI-confirmed; Pre-Phase-3 Governance Package CI-confirmed (a5c34f1); Phase 3 started — M16 CI-confirmed; M17 CI-confirmed; M18 CI-confirmed; M19 CI-confirmed; M20 CI-confirmed (6e6777b; run 28611838113); M21 CI-confirmed (1036c92 + 3c8189d + 1e33420); browser-verified by human 2026-07-03; CLOSED; M21.5 CI-confirmed (782e35e + 1a4b64f; runs #66 + #67); M22 CI-confirmed (ee8465b); browser-verified by human 2026-07-04; CLOSED; M23 CI-confirmed (5fedb81); browser-verified by human 2026-07-06; CLOSED; M24 CI-confirmed (5f5bfa6); browser-verified by human 2026-07-11; CLOSED; M25 CI-confirmed (23d46ef); browser-verified by human 2026-07-13; CLOSED; M26 CI-confirmed (a9a6943); runtime-verified 2026-07-14; CLOSED; M27 CI-confirmed (9049fd6); runtime-verified 2026-07-14; CLOSED; M28 CI-confirmed (46ffcce); runtime-verified + human browser-verified 2026-07-14; CLOSED; M29 CI-confirmed (45efe2f); seed validated 2026-07-14; CLOSED; Phase 3 COMPLETE; Phase 4 Intelligence STARTED — M30 CI-confirmed (407195b); governance GD-M30-1.md authorized (3c9366e) and amended twice (d3a2a65, 0401672); runtime-verified + browser-verified 2026-07-16; CLOSED; M31 CI-confirmed (cbcacdb); governance GD-M31-1.md authorized (051fa8f); runtime-verified + browser-verified 2026-07-16; CI run #99 (ID 29534898812) completed / success; CLOSED; M32 RUNTIME/BROWSER-VERIFIED — governance GD-M32-1.md authorized (e43c700) and amended with Amendment 1 (Intelligence Detail Workspace); backend AttritionRiskService + frontend Intelligence workspace + dashboard condensation/alignment + nav reorder implemented and verified against the rebuilt Docker stack (all 7 M29 fixture users, live RBAC, audit event, dashboard/nav/workspace rendering by role, master-detail 0-network-request behavior all confirmed); type-check/lint clean both apps; full API suite 1869/1869 passing; NOT yet committed, NOT yet CI-confirmed — commit and push are the next step; OPEN pending CI
-Active Sprint / Milestone: M32 — runtime/browser-verified, staged for a single implementation commit; CI confirmation pending push
+Current Phase: **Phase 4 — M33 RUNTIME/BROWSER-VERIFIED, READY FOR CI CONFIRMATION (Capacity & Gap Intelligence)**
+Overall Classification: Phase 2 COMPLETE; Post-Phase-2 milestones M13/M14/M15 CI-confirmed; Pre-Phase-3 Governance Package CI-confirmed (a5c34f1); Phase 3 started — M16 CI-confirmed; M17 CI-confirmed; M18 CI-confirmed; M19 CI-confirmed; M20 CI-confirmed (6e6777b; run 28611838113); M21 CI-confirmed (1036c92 + 3c8189d + 1e33420); browser-verified by human 2026-07-03; CLOSED; M21.5 CI-confirmed (782e35e + 1a4b64f; runs #66 + #67); M22 CI-confirmed (ee8465b); browser-verified by human 2026-07-04; CLOSED; M23 CI-confirmed (5fedb81); browser-verified by human 2026-07-06; CLOSED; M24 CI-confirmed (5f5bfa6); browser-verified by human 2026-07-11; CLOSED; M25 CI-confirmed (23d46ef); browser-verified by human 2026-07-13; CLOSED; M26 CI-confirmed (a9a6943); runtime-verified 2026-07-14; CLOSED; M27 CI-confirmed (9049fd6); runtime-verified 2026-07-14; CLOSED; M28 CI-confirmed (46ffcce); runtime-verified + human browser-verified 2026-07-14; CLOSED; M29 CI-confirmed (45efe2f); seed validated 2026-07-14; CLOSED; Phase 3 COMPLETE; Phase 4 Intelligence STARTED — M30 CI-confirmed (407195b); governance GD-M30-1.md authorized (3c9366e) and amended twice (d3a2a65, 0401672); runtime-verified + browser-verified 2026-07-16; CLOSED; M31 CI-confirmed (cbcacdb); governance GD-M31-1.md authorized (051fa8f); runtime-verified + browser-verified 2026-07-16; CI run #99 (ID 29534898812) completed / success; CLOSED; M32 CI-CONFIRMED (dad0afc; run 29654755142 completed/success); governance GD-M32-1.md authorized (e43c700) and amended with Amendment 1 (Intelligence Detail Workspace); runtime-verified + browser-verified 2026-07-18; CLOSED; M33 RUNTIME/BROWSER-VERIFIED — governance GD-M33-1.md authorized (2026-07-18, pending approval, local); department-level Workforce Readiness/Attrition Risk (scoreByDepartment(), reusing GD-M31-1/GD-M32-1 formulas verbatim) + DepartmentGapService + GET /api/v1/intelligence/department-gap + enabled Department Gap tab implemented and verified against the rebuilt Docker stack (RBAC, minimum-headcount suppression on real data, no-headcount-exposure, audit event, workspace behavior by role, UI clarity follow-up all confirmed); type-check/lint clean both apps; full API suite 1918/1918 passing; NOT yet committed, NOT yet CI-confirmed — commit and push are the next step; OPEN pending CI
+Active Sprint / Milestone: M33 — runtime/browser-verified, staged for a single implementation commit; CI confirmation pending push
 Implementation Started: Yes (2026-06-05)
 
 ## Phase Summary
@@ -33,12 +33,12 @@ Phase 1 is formally closed. D9 (Docker Environment) and D10 (CI/CD Foundation) w
 > Its purpose is crash/session recovery: the current step state is always readable without
 > scanning Zone 5 history. It is overwritten each step — not appended.
 
-Milestone: M32 Aggregate Attrition Risk + Intelligence Detail Workspace -- RUNTIME-VERIFIED, BROWSER-VERIFIED, READY FOR COMMIT
-Last Completed Milestone: M31 CI-CONFIRMED -- cbcacdb; runtime-verified + browser-verified + CI green 2026-07-16; FULLY CLOSED
-Last Completed Step: Full runtime + browser verification pass after Docker Desktop restart -- all 3 containers healthy on rebuilt images; all 7 M29 fixture users login 200 OK; attrition-risk RBAC confirmed (SA/HRD/WP/Executive User 200, Recruiter/HM/CO 403, no-JWT 401); audit event confirmed PII-safe via direct DB query; dashboard/nav/workspace role rendering confirmed via Playwright across all 7 roles; Vacancy Risk tab confirmed at exactly 5 rows; master-detail row click confirmed 0 network requests; final validation clean (API type-check/lint, web type-check/lint, targeted attrition 37/37, targeted intelligence 185/185, full API suite 1869/1869)
+Milestone: M33 Capacity & Gap Intelligence -- RUNTIME-VERIFIED, BROWSER-VERIFIED, READY FOR COMMIT
+Last Completed Milestone: M32 CI-CONFIRMED -- dad0afc; run 29654755142 completed/success; runtime-verified + browser-verified 2026-07-18; FULLY CLOSED
+Last Completed Step: Focused browser re-verification of the Department Gap UI clarity follow-up (rebuilt web image; tile label, helper text, grouped list sections, auto-selection of first scored department, suppressed-department messaging, dashboard-unchanged all confirmed via screenshots across all 7 roles); final validation clean (API type-check/lint, web type-check/lint, targeted department-gap 16/16, targeted intelligence 234/234, full API suite 1918/1918)
 Last Completed Step Date: 2026-07-18
-Current Step: Finalizing for a single M32 implementation commit -- staging the 17 M32-related files plus this PROGRESS.md update, committing, pushing once, then checking GitHub Actions CI for the pushed commit.
-Session Classification: PHASE 4 M32 RUNTIME/BROWSER-VERIFIED -- Backend: AttritionRiskService (deterministic attrition-deterministic-v1 formula: Separation Rate 0-50, Tenure Composition 0-30, Position Recurrence 0-20, per GD-M32-1 Decision 5); GET /api/v1/intelligence/attrition-risk; RBAC (SA/HRD/WP/Executive User allowed, Recruiter/HM/CO forbidden); INTELLIGENCE_ATTRITION_RISK_QUERIED audit event, PII-safe aggregate-only metadata; explainability contract reused verbatim from M30/M31 pattern. Frontend: new /intelligence route (Server Component, pre-fetch RBAC redirect) with client-state-only (useState, no URL params, no server round trip) Intelligence workspace -- Workforce Signals tab (summary strip + one integrated two-column factor-contribution panel) and Vacancy Risk tab (KPI strip + master-detail: 5-row ranked list + instant-swap selected-vacancy factor breakdown, zero network requests on row click, confirmed live); disabled "Soon" Department Gap tab placeholder; Intelligence nav item added consistently across all 4 authenticated shells (dashboard, workforce, recruiting, admin) for SA/HRD/WP/Executive User only, hidden for Recruiter/Hiring Manager/Compliance Officer, reordered to sit directly after Dashboard and styled with a distinguishing blue accent; dashboard Workforce Readiness and Attrition Risk cards condensed and stacked vertically in a shared left column (no "View all" link on any of the three intelligence cards -- the nav item is the way in); Vacancy Risk Signals widened to `1.4fr` of the row, horizontal scrollbar removed, risk score centered/uniform-width; all three card headers height-matched and the stacked column height-stretched so dividers and bottoms align across the row; outdated dashboard/loading.tsx Suspense skeleton (missing Intelligence/Admin nav, pre-M25 styling) rewritten to match current design. Governance: GD-M32-1.md authorized (e43c700) and amended with Amendment 1 -- Decisions 15-21 -- authorizing the Intelligence workspace scope/nav/route/RBAC/factor-display rules; reviewed against final implementation, no factual mismatch found, no correction needed. Validation: type-check + lint clean on both apps; full API suite 1869/1869 (51 suites) passing; full runtime + browser verification passing across all 7 roles; NOT yet committed, NOT yet CI-confirmed -- commit/push is the immediate next step.
+Current Step: Finalizing for a single M33 implementation commit -- staging the 16 M33-related files plus this PROGRESS.md update, committing, pushing once, then checking GitHub Actions CI for the pushed commit. (Also closed the stale M32 record above, which had been committed as dad0afc and CI-confirmed earlier this session but never reflected in this ledger.)
+Session Classification: PHASE 4 M33 RUNTIME/BROWSER-VERIFIED -- Backend: WorkforceReadinessService.scoreByDepartment() and AttritionRiskService.scoreByDepartment() added, reusing the GD-M31-1/GD-M32-1 formulas verbatim (only the query population filter changes from tenantId alone to tenantId+departmentId) -- proven via a byte-identical-output equivalence test against the existing score() methods; new DepartmentGapService orchestrates both plus vacancy-context aggregation (reusing VacancyRiskService's existing department join) and applies a governed minimum-headcount suppression rule (constant = 5, GD-M33-1 Decision 6) -- departments below threshold return suppressed:true with no score and no headcount disclosed anywhere, confirmed on real dev-tenant data (13 of 14 departments suppressed); GET /api/v1/intelligence/department-gap added, no query parameters accepted (verified: a supplied ?departmentId= is silently ignored), RBAC System Administrator/HR Director/Workforce Planner only (Executive User explicitly excluded, a deliberate GD-M33-1 Decision 4 choice, not an oversight); INTELLIGENCE_DEPARTMENT_GAP_QUERIED audit event with PII-safe aggregate-only metadata (formulaVersion, departmentCount, suppressedDepartmentCount only). Frontend: Department Gap tab in the existing /intelligence workspace enabled for SA/HRD/WP (absent, not disabled, for Executive User -- no fetch issued); department master-detail layout matching the existing Vacancy Risk tab pattern; UI clarity follow-up added a clearer tile label ("Departments Eligible for Scoring"), explanatory helper text, list grouped into "Eligible for Scoring" / "Insufficient Data -- Scores Hidden" sections (alphabetical within each, not leaderboard-sorted), default selection auto-lands on the first scored department when one exists, and suppressed-department detail shows a neutral "Insufficient data -- scores hidden" badge plus governed protection messaging with zero score/factor/headcount content. Dashboard: untouched in every M33-related turn -- confirmed byte-for-byte unchanged via screenshot comparison. Governance: GD-M33-1.md authored (7-decision-plus document; in-document amendments narrowing GD-M32-1 Decision 11's department-level attrition prohibition and un-deferring GD-M31-1's FR-411 gap, rather than editing those committed files directly); reviewed against final implementation for factual accuracy before commit -- no mismatch found, no correction needed (the later UI-clarity presentational refinements remain within what the governed decisions already authorize). Validation: type-check + lint clean on both apps; full API suite 1918/1918 (52 suites) passing; full runtime + browser verification passing across all 7 roles across three separate verification passes this session; NOT yet committed, NOT yet CI-confirmed -- commit/push is the immediate next step.
 
 ## Milestone 10 — Approved Plan
 
@@ -11174,15 +11174,15 @@ The following were explicitly excluded from M28 scope and are NOT present in the
 
 # Milestone M32 — Aggregate Attrition Risk + Intelligence Detail Workspace
 
-**Date:** 2026-07-17 (implemented) — 2026-07-18 (runtime/browser-verified, finalized for commit)
-**Status:** LOCALLY IMPLEMENTED, RUNTIME-VERIFIED, BROWSER-VERIFIED — READY FOR CI CONFIRMATION. CI will be confirmed after this commit is pushed; this entry must not claim CI passed until a GitHub Actions run for the pushed commit exists and is observed green.
+**Date:** 2026-07-17 (implemented) — 2026-07-18 (runtime/browser-verified, committed, CI-confirmed)
+**Status:** CI-CONFIRMED — CLOSED
 **Governance:** `governance/GD-M32-1.md`
   - Authorization: `e43c700` (`docs(governance): authorize M32 aggregate attrition risk`)
   - Amendment 1 — Intelligence Detail Workspace (Decisions 15–21: scope/nav/route, sub-tab structure, Workforce Signals tab, Vacancy Risk tab, factor contribution display rule, RBAC, validation gate additions) — committed together with this milestone's implementation commit
   - `governance/governance_history.md` — Amendment 1 summary appended to the existing GD-M32-1 row — committed together with this milestone's implementation commit
   - Reviewed against the final implementation for factual accuracy before commit (nav item existence, tab structure, RBAC, factor-display rule) — no mismatch found; no governance correction was needed
-**Implementation commit:** recorded below once created
-**CI run:** not yet triggered as of this entry — will be confirmed in a follow-up PROGRESS.md update after push
+**Implementation commit:** `dad0afc` (`Implement M32 aggregate attrition intelligence workspace`)
+**CI run:** completed / success (run ID `29654755142`)
 
 ## Scope Completed (implementation-complete, verification-incomplete)
 
@@ -11314,7 +11314,7 @@ Docker Desktop's engine failure (documented below under Known Risks / Limitation
 | Environment Model | Verified — full Docker stack (postgres + api + web) rebuilt and health-checked per SETUP.md's documented rebuild decision tree; no schema/migration/infra changes made |
 | Data Lifecycle | No schema change; scores computed live on every request; audit event persisted per query (confirmed via direct DB query) |
 | Evolution Strategy | Continues the IntelligenceExplainabilityOutput foundation contract from M30/M31; Intelligence workspace establishes the first client-state master-detail pattern in this codebase, available for reuse by future Phase 4 signals |
-| **Overall** | **Locally implemented, runtime-verified, browser-verified — ready for commit and CI confirmation. Not yet marked Verified/CLOSED: that status is reserved until a GitHub Actions run for the pushed commit is observed green.** |
+| **Overall** | **Verified — runtime-verified + browser-verified + CI-confirmed (`dad0afc`; run 29654755142 completed/success). CLOSED.** |
 
 ## Capability Maturity Summary (Phase 4, Post-M32)
 
@@ -11323,16 +11323,179 @@ Docker Desktop's engine failure (documented below under Known Risks / Limitation
 | Phase 4 Intelligence | Continued |
 | Vacancy Risk Intelligence | Verified (M30) |
 | Workforce Readiness Intelligence | Verified (M31) |
-| Aggregate Attrition Risk Intelligence | Runtime-verified + browser-verified — CI confirmation pending push |
-| Intelligence Detail Workspace | Runtime-verified + browser-verified — CI confirmation pending push; no dedicated automated E2E suite yet |
+| Aggregate Attrition Risk Intelligence | Verified (M32) |
+| Intelligence Detail Workspace | Verified (M32) — no dedicated automated E2E suite yet |
 | Role-Based Intelligence Matrix | Actively implemented in stages (GD-M30-1 Decision 11) — three signals live-verified with independent per-signal gating |
 | AI/LLM integration | Deferred |
 | Demand Forecasting | Deferred |
 | Candidate Matching | Deferred |
 | Executive Analytics | Deferred |
 
+## Next Actions (Historical — M32 Closure)
+
+1. ~~Stage the 17 M32-related files plus this PROGRESS.md update, create the implementation commit, and push once.~~ Done — `dad0afc`.
+2. ~~Check GitHub Actions for the pushed commit's CI run.~~ Done — run 29654755142, completed/success.
+3. ~~Once CI is observed green, update this PROGRESS.md entry's Status to CI-CONFIRMED / CLOSED with the commit hash and CI run ID.~~ Done above.
+
+M32 is fully closed. See the M33 entry below for the next milestone.
+
+---
+
+# Milestone M33 — Capacity & Gap Intelligence
+
+**Date:** 2026-07-18 (implemented, runtime-verified, browser-verified across three passes including a UI-clarity follow-up)
+**Status:** LOCALLY IMPLEMENTED, RUNTIME-VERIFIED, BROWSER-VERIFIED — READY FOR CI CONFIRMATION. CI will be confirmed after this commit is pushed; this entry must not claim CI passed until a GitHub Actions run for the pushed commit exists and is observed green.
+**Governance:** `governance/GD-M33-1.md`
+  - Authored 2026-07-18, produced by a dedicated Phase 4 capability alignment audit (this session) that re-evaluated the full intended Phase 4 capability set and recommended combining department-level breakdown into one milestone rather than a standalone score
+  - Contains in-document amendments narrowing `GD-M32-1` Decision 11's department-level attrition prohibition and un-deferring `GD-M31-1`'s FR-411 "Department readiness breakdown" gap — done as amendment decisions within `GD-M33-1.md` itself, not by editing the already-committed `GD-M31-1.md`/`GD-M32-1.md` files
+  - `governance/governance_history.md` — new M33 section added, matching the existing table format
+  - Reviewed against the final implementation for factual accuracy before commit (RBAC, suppression rule, endpoint shape, workspace behavior, and the later UI-clarity presentational refinements) — no mismatch found; no correction needed
+**Implementation commit:** recorded below once created
+**CI run:** not yet triggered as of this entry — will be confirmed in a follow-up PROGRESS.md update after push
+
+## Scope Completed
+
+### Phase 4 Intelligence — Extending Two Existing Signals, Not a New One
+
+M33 does not introduce a fourth intelligence score. It extends the two existing agency-wide signals (Workforce Readiness from M31, Attrition Risk from M32) with a department-level dimension, using their exact governed formulas unmodified, plus exposes existing vacancy data grouped by department. This closes a gap named explicitly in `GD-M31-1.md`'s own text four separate times ("Department readiness breakdown (FR-411) — deferred") and in `directives/06_attrition_scoring_rules.md`'s Reporting Rules ("Department Risk").
+
+### Backend — Department-Level Formula Reuse
+
+- `WorkforceReadinessService.scoreByDepartment(tenantId)` added — computes the identical `readiness-deterministic-v1` formula from `GD-M31-1` Decision 5, scoped per department instead of tenant-wide. `score()` itself is unmodified.
+- `AttritionRiskService.scoreByDepartment(tenantId)` added — computes the identical `attrition-deterministic-v1` formula from `GD-M32-1` Decision 5, scoped per department. `score()` itself is unmodified.
+- Formula equivalence is not just claimed but tested: a dedicated unit test proves a single department containing the whole tenant's population returns byte-identical output to the tenant-wide `score()` call, for both services.
+- New `DepartmentGapService` (`apps/api/src/intelligence/services/department-gap.service.ts`) — a pure orchestrator with no formula logic of its own; calls both `scoreByDepartment()` methods plus a vacancy-context aggregation reusing `VacancyRiskService`'s existing department join.
+- New `DepartmentGapResponseDto` (`apps/api/src/intelligence/dto/department-gap-response.dto.ts`).
+- `GET /api/v1/intelligence/department-gap` added to `IntelligenceController` — **no query parameters accepted**, a deliberate design choice (a caller-suppliable department filter would enable a re-identification drill-down attack); verified live that a supplied `?departmentId=` is silently ignored and the full department list is returned regardless.
+- RBAC: System Administrator, HR Director, Workforce Planner allowed (200 OK); Executive User, Recruiter, Hiring Manager, Compliance Officer all forbidden (403); no JWT → 401. Executive User's exclusion is explicit and deliberate (`GD-M33-1` Decision 4) — department-level data is inherently less aggregated than the tenant-wide numbers EU already receives, and no aggregation-guarantee declaration was made for it in this milestone.
+- Tenant isolation from JWT `tenantId` only (SEC-003), matching every other Phase 4 endpoint.
+
+### Minimum-Headcount Suppression Rule (the core new safeguard)
+
+- Governed constant `MINIMUM_DEPARTMENT_HEADCOUNT = 5` (`GD-M33-1` Decision 6).
+- A department is suppressed if **either** its readiness population or its attrition population (each service's own already-governed population definition) is below 5 — checked independently per signal but suppressed together, to avoid a partial-suppression response shape that could itself narrow the inferred headcount range.
+- Suppressed departments return `suppressed: true`, a fixed non-identifying `suppressionReason` string, and `readiness`/`attrition` both `null` — **the actual headcount is never included anywhere in the response, the audit metadata, or the frontend** — confirmed structurally (there is no such field on the DTO to leak) and confirmed on real dev-tenant data: 13 of 14 departments suppressed, 1 scored ("Test Department"), verified via direct API inspection and three separate rounds of browser testing.
+- Vacancy context (open count, high/critical count, avg days open) is explicitly **not** subject to suppression — it is position-level, not person-level, data, and remains visible even for suppressed departments (confirmed live: a suppressed department's detail panel still shows real vacancy counts).
+
+### Audit
+
+- `INTELLIGENCE_DEPARTMENT_GAP_QUERIED` added to `AuditEventType` enum.
+- Metadata is exactly `{ formulaVersion, departmentCount, suppressedDepartmentCount }` — no department name, ID, score, or headcount — confirmed via direct `psql` query against live audit rows during verification (`departmentCount: 14, suppressedDepartmentCount: 13` matching the live response).
+
+### Frontend — Department Gap Tab
+
+- Enabled the previously-disabled placeholder tab in the existing `/intelligence` workspace (`apps/web/src/features/intelligence/components/intelligence-workspace.tsx`), following the exact master-detail visual pattern already established for the Vacancy Risk tab.
+- `apps/web/src/app/(dashboard)/intelligence/page.tsx`: added a `canSeeDepartmentGap` boolean (SA/HRD/WP only) gating a 4th `serverFetch` — Executive User's fetch is never issued at all (ternary short-circuit at the fetch call site, not a post-fetch filter).
+- `apps/web/src/features/intelligence/types.ts`: added `DepartmentGapSignal`, `DepartmentVacancyContext`, `DepartmentGapEntry`, `DepartmentGapRes` types mirroring the backend response exactly.
+- **UI clarity follow-up** (same session, before finalization): the initial implementation was functionally correct but confusing on real data where most departments are suppressed. Fixed by: renaming the KPI tile to "Departments Eligible for Scoring"; adding governed helper text ("Departments below the minimum reporting threshold are protected to avoid exposing near-individual workforce signals"); regrouping the department list into two labeled, alphabetically-ordered sections ("Eligible for Scoring" / "Insufficient Data — Scores Hidden") instead of one flat list with per-row badges (a data-availability grouping, not a score-based ranking — still not a leaderboard); changing the default selection to auto-land on the first scored department rather than whichever department sorts first alphabetically; and adding a neutral blue "Insufficient data — scores hidden" badge plus a second explanatory sentence ("This protects individuals... it is not a data error") to the suppressed-department detail panel, framing suppression as a deliberate protection rather than an error state.
+- Factor contribution details (proportion bars, point values) remain confined to `/intelligence` only — the dashboard was not touched by any part of M33.
+
+## Files Changed (16 total — all uncommitted working-tree changes)
+
+Modified (11):
+- `apps/api/src/audit/enums/audit-event-type.enum.ts`
+- `apps/api/src/intelligence/intelligence.controller.ts`
+- `apps/api/src/intelligence/intelligence.controller.spec.ts`
+- `apps/api/src/intelligence/intelligence.module.ts`
+- `apps/api/src/intelligence/services/attrition-risk.service.ts`
+- `apps/api/src/intelligence/services/attrition-risk.service.spec.ts`
+- `apps/api/src/intelligence/services/workforce-readiness.service.ts`
+- `apps/api/src/intelligence/services/workforce-readiness.service.spec.ts`
+- `apps/web/src/app/(dashboard)/intelligence/page.tsx`
+- `apps/web/src/features/intelligence/components/intelligence-workspace.tsx`
+- `apps/web/src/features/intelligence/types.ts`
+
+New (4):
+- `apps/api/src/intelligence/dto/department-gap-response.dto.ts`
+- `apps/api/src/intelligence/services/department-gap.service.ts`
+- `apps/api/src/intelligence/services/department-gap.service.spec.ts`
+- `governance/GD-M33-1.md`
+
+(Plus `governance/governance_history.md`, modified, and `PROGRESS.md` itself — not counted in the 16 source/governance files above.)
+
+## Validation
+
+| Check | Result |
+|---|---|
+| API type-check | Passed — 0 errors |
+| API lint | Passed — 0 errors |
+| Web type-check | Passed — 0 errors |
+| Web lint | Passed — "No ESLint warnings or errors" |
+| Targeted `department-gap.service.spec.ts` | Passed — 16/16 |
+| Targeted intelligence suite (5 files) | Passed — 234/234 |
+| Full unfiltered API test suite | Passed — **1918/1918 tests, 52/52 suites** |
+| Docker runtime rebuild (SETUP.md decision tree — both `api` and `web` across two rounds, `web` only for the UI-clarity round) | Passed — all 3 containers `(healthy)` after every rebuild |
+| Fixture user login / RBAC (`department-gap` endpoint) | Passed — SA/HRD/WP 200; Executive User/Recruiter/Hiring Manager/Compliance Officer 403; no JWT 401 |
+| No-query-parameter enforcement | Passed — `?departmentId=<valid-id>` silently ignored, identical full response returned |
+| Minimum-headcount suppression on real data | Passed — 13 of 14 dev-tenant departments suppressed, 1 scored; no headcount in any suppressed entry |
+| Audit event | Passed — `INTELLIGENCE_DEPARTMENT_GAP_QUERIED` / `SUCCESS`, metadata exactly `{formulaVersion, departmentCount, suppressedDepartmentCount}` |
+| Intelligence workspace by role (3 browser verification passes) | Passed — SA/HRD/WP: tab enabled, grouped list, default-selects first scored department, suppressed/scored detail both correct; Executive User: tab absent, no fetch issued, Workforce Signals only; Recruiter/Hiring Manager/Compliance Officer: no Intelligence nav, `/intelligence` redirects before any fetch |
+| Dashboard unchanged | Passed — screenshot-confirmed byte-for-byte identical to the M32 baseline across all verification rounds; `dashboard/page.tsx` never modified in any M33 turn |
+| No individual employee data / no leaderboard | Passed — no employee identifiers, rows, lists, rankings, or names anywhere; department list is alphabetical/grouped by data-availability, never sorted or colored by score |
+| No fake data / OpenAI / LLM | Passed — confirmed via code review and dedicated unit tests (no HTTP dependency in any new service) |
+| CI | Not yet triggered — nothing committed or pushed |
+
+## Explicit Exclusions (per `GD-M33-1.md`)
+
+- No new scoring formulas, weights, or thresholds — `scoreByDepartment()` reuses `GD-M31-1`/`GD-M32-1` Decision 5 verbatim
+- No Prisma schema changes or migrations of any kind
+- No OpenAI/LLM integration of any kind
+- No demand forecasting (schema-blocked — needs a stateful `Forecast` entity and historical snapshot data that do not exist)
+- No candidate matching or skill gap analysis (schema-blocked — `Position`/`Candidate` lack required-skills/skills fields)
+- No full compliance intelligence (Phase 5 territory per `spec/15`'s own phase table — a Policy/Review/Finding/Exception subsystem, not a Phase 4 score)
+- No Compliance Officer slice in M33
+- No Executive User department-level access — deliberate, pending a dedicated future aggregation-guarantee decision
+- No individual employee details, identifiers, rows, lists, or rankings, at any scope
+- No department leaderboard or "worst department" ranking
+- No cross-tenant comparison
+- No department trend or history over time (FR-412 — no snapshot mechanism exists)
+- No fake or placeholder data
+- No new BFF routes
+- No dashboard changes of any kind
+- Nothing staged, committed, or pushed prior to the finalization commit recorded below
+
+## Known Risks / Limitations
+
+- No dedicated automated E2E/Playwright suite exists yet for the Intelligence workspace or the Department Gap tab specifically — verification across all three rounds this session was performed via ad hoc Playwright scripts (not committed to the repo) plus screenshot review, not a repeatable CI-gated E2E suite. Same known gap already noted for M32; not unique to M33.
+- Real dev-tenant data happens to have only one department above the minimum-headcount threshold (13 of 14 suppressed) — this thoroughly exercises the suppression path but means live verification of "two or more differently-scored departments side by side" has not been observed on this dataset. The formula-equivalence unit tests (proving `scoreByDepartment()` matches `score()` exactly) provide the correctness guarantee independent of how many departments happen to be scored in dev data.
+- Department name is used (not `departmentId`) to join vacancy-context data to `VacancyRiskService`'s existing output, since `VacancyRiskItem` does not expose `departmentId`. `Department.name` is not database-uniqueness-enforced (only `Department.code` is) — a theoretical edge case where two departments share an identical display name would misattribute vacancy context between them. Not observed in real data; documented as a known, low-probability limitation rather than fixed, since fixing it would require touching `VacancyRiskService` (out of M33's stated scope of reusing existing services unmodified).
+
+## M33 Overall Maturity
+
+| Layer | Status |
+|---|---|
+| Requirements | Defined — `GD-M33-1.md`; `spec/01_requirements.md` FR-411; `directives/06_attrition_scoring_rules.md` Reporting Rules |
+| Specs | Defined — `GD-M33-1` (17 decisions) + this PROGRESS.md entry |
+| Directives | `GD-M33-1` authored and applied; in-document amendments to `GD-M31-1`/`GD-M32-1` decisions recorded within `GD-M33-1.md` itself; reviewed against final implementation — no mismatch found |
+| Execution Plan | Complete — `scoreByDepartment()` on both existing services; `DepartmentGapService`; `DepartmentGapResponseDto`; `GET /department-gap`; audit event; Department Gap tab; UI clarity follow-up |
+| State Model | Suppressed vs. scored department, per-signal population check, alphabetical/grouped (not ranked) department ordering, client-state-only tab/selection (no URL params, no server round trip) |
+| Test Scenarios | Validated at unit/integration level (16 department-gap tests, formula-equivalence tests on both extended services, 234 targeted intelligence tests, full 1918-test API suite green, type-check + lint clean on both apps) AND at runtime/browser level (RBAC, suppression on real data, audit metadata, workspace behavior by role, dashboard-unchanged, UI clarity — three separate verification passes) |
+| System Loop | Implemented and exercised as a running system — JWT → RolesGuard → DepartmentGapService → WorkforceReadinessService/AttritionRiskService/VacancyRiskService → PrismaService → AuditService → workspace `serverFetch` → client-state-driven render, all confirmed live against the rebuilt Docker stack |
+| Failure Playbook | Coded (fetch-failure state, pre-fetch RBAC redirect) following the identical pattern M30/M31/M32 already established and verified |
+| Environment Model | Verified — full Docker stack rebuilt and health-checked per SETUP.md's documented rebuild decision tree across three separate rounds this session; no schema/migration/infra changes made |
+| Data Lifecycle | No schema change; department scores computed live on every request from existing data; audit event persisted per query (confirmed via direct DB query) |
+| Evolution Strategy | Establishes the `scoreByDepartment()` extension pattern any future Phase 4 signal can reuse for department-level breakdown without duplicating formula logic; the minimum-headcount suppression rule is now a reusable governed pattern for any future small-population intelligence surface |
+| **Overall** | **Locally implemented, runtime-verified, browser-verified — ready for commit and CI confirmation. Not yet marked Verified/CLOSED: that status is reserved until a GitHub Actions run for the pushed commit is observed green.** |
+
+## Capability Maturity Summary (Phase 4, Post-M33)
+
+| Capability | Status |
+|---|---|
+| Phase 4 Intelligence | Continued |
+| Vacancy Risk Intelligence | Verified (M30) |
+| Workforce Readiness Intelligence | Verified (M31) — now also available department-scoped (M33) |
+| Aggregate Attrition Risk Intelligence | Verified (M32) — now also available department-scoped (M33) |
+| Intelligence Detail Workspace | Verified (M32); Department Gap tab runtime-verified + browser-verified — CI confirmation pending push |
+| Department-Level Capacity & Gap Intelligence | Runtime-verified + browser-verified — CI confirmation pending push; closes the FR-411 gap `GD-M31-1` deferred |
+| Role-Based Intelligence Matrix | Actively implemented in stages (`GD-M30-1` Decision 11) — four signals live-verified with independent per-signal gating |
+| AI/LLM integration | Deferred |
+| Demand Forecasting | Deferred — schema-blocked (no historical snapshot mechanism) |
+| Candidate Matching | Deferred — schema-blocked (`Position`/`Candidate` lack skills fields) |
+| Full Compliance Intelligence | Deferred — Phase 5 territory |
+| Executive Analytics Expansion | Deferred to M34 per `GD-M30-1` Decision 11 |
+
 ## Next Actions
 
-1. Stage the 17 M32-related files plus this PROGRESS.md update, create the implementation commit, and push once.
+1. Stage the 16 M33-related files plus this PROGRESS.md update, create the implementation commit, and push once.
 2. Check GitHub Actions for the pushed commit's CI run.
 3. Once CI is observed green, update this PROGRESS.md entry's Status to CI-CONFIRMED / CLOSED with the commit hash and CI run ID — not before.

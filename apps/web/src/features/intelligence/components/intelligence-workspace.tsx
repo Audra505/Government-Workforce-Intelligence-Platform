@@ -1,17 +1,20 @@
 'use client';
 
-// Client Component — GD-M32-1 Amendment 1 (Decisions 16-18).
-// Owns two pieces of client-side UI state only: which sub-tab is active, and
-// which vacancy is selected in the Vacancy Risk master-detail view. All data
-// is fetched once, server-side, by the parent page and passed down as props —
-// switching tabs or selecting a vacancy never triggers a network request or a
-// URL change (Decision 18: "no repeated stacked-card detail layout"; the
-// implementation decision that produced this file: client-side state, not
-// query params or server round trips, so selection is instant).
+// Client Component — GD-M32-1 Amendment 1 (Decisions 16-18); GD-M33-1 Decisions 13-15
+// (Department Gap tab).
+// Owns three pieces of client-side UI state only: which sub-tab is active, which
+// vacancy is selected in the Vacancy Risk master-detail view, and which department
+// is selected in the Department Gap master-detail view. All data is fetched once,
+// server-side, by the parent page and passed down as props — switching tabs or
+// selecting a vacancy/department never triggers a network request or a URL change
+// (GD-M32-1 Decision 18 / GD-M33-1 Decision 13: "no repeated stacked-card detail
+// layout"; client-side state, not query params or server round trips, so selection
+// is instant).
 
 import { useState } from 'react';
 import type {
   RiskFactor, VacancyRiskItem, VacancyRiskRes, WorkforceReadinessRes, AttritionRiskRes,
+  DepartmentGapRes, DepartmentGapEntry, DepartmentGapSignal, DepartmentVacancyContext,
 } from '../types';
 import { FACTOR_MAX, FACTOR_LABEL, confidenceLabel } from '../types';
 
@@ -48,7 +51,7 @@ const RISK_CFG: Record<string, { bg: string; c: string; bd: string }> = {
   CRITICAL: { bg: '#fef2f2', c: RED,   bd: '#fecaca' },
 };
 
-type Tab = 'workforce-signals' | 'vacancy-risk';
+type Tab = 'workforce-signals' | 'vacancy-risk' | 'department-gap';
 
 type Props = {
   initialTab: Tab;
@@ -59,6 +62,9 @@ type Props = {
   attritionFetchFailed: boolean;
   vacancyRiskData: VacancyRiskRes | null;
   vacancyRiskFetchFailed: boolean;
+  canSeeDepartmentGap: boolean;
+  departmentGapData: DepartmentGapRes | null;
+  departmentGapFetchFailed: boolean;
 };
 
 export function IntelligenceWorkspace({
@@ -70,10 +76,15 @@ export function IntelligenceWorkspace({
   attritionFetchFailed,
   vacancyRiskData,
   vacancyRiskFetchFailed,
+  canSeeDepartmentGap,
+  departmentGapData,
+  departmentGapFetchFailed,
 }: Props) {
-  const [activeTab, setActiveTab] = useState<Tab>(
-    initialTab === 'vacancy-risk' && !canSeeVacancyRisk ? 'workforce-signals' : initialTab,
-  );
+  const initialTabClamped =
+    initialTab === 'vacancy-risk' && !canSeeVacancyRisk ? 'workforce-signals'
+    : initialTab === 'department-gap' && !canSeeDepartmentGap ? 'workforce-signals'
+    : initialTab;
+  const [activeTab, setActiveTab] = useState<Tab>(initialTabClamped);
 
   // Fetched once by the server page and handed down — selecting a different
   // vacancy below never re-fetches this list.
@@ -84,6 +95,20 @@ export function IntelligenceWorkspace({
   const selectedVacancy =
     vacancyItems.find((v) => v.vacancyId === selectedVacancyId) ?? vacancyItems[0] ?? null;
 
+  // GD-M33-1 Decision 13: same instant, client-state-only selection pattern as
+  // Vacancy Risk above — fetched once, selecting a different department never
+  // re-fetches this list.
+  const departmentEntries = departmentGapData?.data.departments ?? [];
+  // UI clarity fix: default to the first department that actually has a score,
+  // rather than whichever department happens to sort first alphabetically —
+  // when most departments are suppressed (the common case for small/test
+  // tenants), landing on a suppressed department first reads as "broken."
+  // Falls back to the first department overall if every department is
+  // suppressed, so the panel is never empty.
+  const [selectedDepartmentId, setSelectedDepartmentId] = useState<string | null>(
+    (departmentEntries.find((d) => !d.suppressed) ?? departmentEntries[0])?.departmentId ?? null,
+  );
+
   return (
     <div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 28, borderBottom: `1px solid ${BORDER}`, margin: '20px 0 24px' }}>
@@ -91,12 +116,12 @@ export function IntelligenceWorkspace({
         {canSeeVacancyRisk && (
           <TabButton label="Vacancy Risk" active={activeTab === 'vacancy-risk'} onClick={() => setActiveTab('vacancy-risk')} />
         )}
-        <span style={{ padding: '10px 2px 12px', fontSize: 13, color: '#cbd5e1', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-          Department Gap
-          <span style={{ fontSize: 8.5, fontWeight: 700, letterSpacing: '.04em', textTransform: 'uppercase' as const, color: '#94a3b8', background: '#f1f5f9', border: `1px solid ${BORDER}`, borderRadius: 9999, padding: '1px 7px' }}>
-            Soon
-          </span>
-        </span>
+        {/* GD-M33-1 Decision 15: Executive User never sees this tab at all — not a
+            disabled placeholder, simply absent, matching how the Vacancy Risk tab
+            already behaves for EU today. */}
+        {canSeeDepartmentGap && (
+          <TabButton label="Department Gap" active={activeTab === 'department-gap'} onClick={() => setActiveTab('department-gap')} />
+        )}
       </div>
 
       {activeTab === 'workforce-signals' ? (
@@ -106,13 +131,21 @@ export function IntelligenceWorkspace({
           attritionData={attritionData}
           attritionFetchFailed={attritionFetchFailed}
         />
-      ) : (
+      ) : activeTab === 'vacancy-risk' ? (
         <VacancyRiskTab
           items={vacancyItems}
           fetchFailed={vacancyRiskFetchFailed}
           selectedVacancy={selectedVacancy}
           selectedVacancyId={selectedVacancy?.vacancyId ?? null}
           onSelect={setSelectedVacancyId}
+        />
+      ) : (
+        <DepartmentGapTab
+          entries={departmentEntries}
+          fetchFailed={departmentGapFetchFailed}
+          minimumHeadcountThreshold={departmentGapData?.data.minimumHeadcountThreshold ?? null}
+          selectedDepartmentId={selectedDepartmentId}
+          onSelect={setSelectedDepartmentId}
         />
       )}
 
@@ -465,6 +498,271 @@ function VacancyRiskTab({
             </div>
           </div>
         )}
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Department Gap tab — GD-M33-1 Decisions 13, 14, 15
+// ---------------------------------------------------------------------------
+
+function DepartmentGapTab({
+  entries, fetchFailed, minimumHeadcountThreshold, selectedDepartmentId, onSelect,
+}: {
+  entries: DepartmentGapEntry[];
+  fetchFailed: boolean;
+  minimumHeadcountThreshold: number | null;
+  selectedDepartmentId: string | null;
+  onSelect: (id: string) => void;
+}) {
+  if (fetchFailed) {
+    return <p style={{ fontSize: 13, color: SUB }}>Department gap data unavailable. Reload to try again.</p>;
+  }
+  if (entries.length === 0) {
+    return <p style={{ fontSize: 13, color: MUTED }}>No departments to report at this time.</p>;
+  }
+
+  // Real, derivable aggregates only — computed here from the same fetched list,
+  // not invented (same discipline as the Vacancy Risk tab's Risk Summary strip,
+  // GD-M32-1 Decision 18 / GD-M33-1 Decision 13).
+  // UI clarity fix: split into two groups so a tenant where most departments are
+  // suppressed doesn't read as "mostly broken" — grouping by data-availability is
+  // not a ranking (no score, no order-by-severity within either group; both stay
+  // in the API's existing alphabetical order), so this is not a leaderboard.
+  const scoredEntries = entries.filter((d) => !d.suppressed);
+  const suppressedEntries = entries.filter((d) => d.suppressed);
+  const selected = entries.find((d) => d.departmentId === selectedDepartmentId) ?? entries[0] ?? null;
+
+  return (
+    <div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 12 }}>
+        <div style={{ ...CARD, padding: '18px 20px' }}>
+          <p style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.1em', color: MUTED, marginBottom: 8 }}>
+            Departments Eligible for Scoring
+          </p>
+          <p style={{ margin: 0 }}>
+            <span style={{ fontFamily: MONO, fontSize: 24, fontWeight: 700, color: TEXT, letterSpacing: '-.02em' }}>{scoredEntries.length}</span>{' '}
+            <span style={{ fontSize: 14, color: MUTED, fontWeight: 500 }}>of {entries.length} departments</span>
+          </p>
+        </div>
+        <div style={{ ...CARD, padding: '18px 20px' }}>
+          <p style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.1em', color: MUTED, marginBottom: 8 }}>
+            Minimum Reporting Threshold
+          </p>
+          <p style={{ margin: 0 }}>
+            <span style={{ fontFamily: MONO, fontSize: 24, fontWeight: 700, color: TEXT, letterSpacing: '-.02em' }}>
+              {minimumHeadcountThreshold ?? '—'}
+            </span>
+            <span style={{ fontSize: 14, color: MUTED, fontWeight: 500 }}> employees</span>
+          </p>
+        </div>
+      </div>
+
+      {/* UI clarity fix: explain up front, before the list, why most departments
+          may show no score — framed as a protection, not a data problem. */}
+      <p style={{ fontSize: 12, color: SUB, lineHeight: 1.5, margin: '0 0 20px', display: 'flex', alignItems: 'flex-start', gap: 7 }}>
+        <span aria-hidden="true" style={{ color: MUTED, flexShrink: 0, lineHeight: 1.4 }}>&#128274;</span>
+        <span>
+          Departments below the minimum reporting threshold are protected to avoid
+          exposing near-individual workforce signals.
+        </span>
+      </p>
+
+      {/* 280px / 1fr master-detail — same pattern as the Vacancy Risk tab
+          (GD-M32-1 Decision 18), narrower left column since department names are
+          the only content the list itself carries (Decision 13: "not a leaderboard"
+          — no score, no risk color, no ranking within either group below). */}
+      <div style={{ display: 'grid', gridTemplateColumns: '280px 1fr', gap: 16, alignItems: 'start' }}>
+        <div style={CARD}>
+          <div style={{ padding: '14px 20px', borderBottom: `1px solid ${BORDER}` }}>
+            <div style={{ fontSize: 13, fontWeight: 600, color: TEXT }}>Departments</div>
+            <div style={{ fontSize: 11.5, color: MUTED, marginTop: 2 }}>
+              {entries.length} in this tenant
+            </div>
+          </div>
+
+          {scoredEntries.length > 0 && (
+            <>
+              <div style={{ padding: '9px 20px', background: CANVAS, borderBottom: `1px solid ${BORDER}` }}>
+                <span style={{ fontSize: 9.5, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '.06em', color: MUTED }}>
+                  Eligible for Scoring
+                </span>
+              </div>
+              {scoredEntries.map((entry) => (
+                <DepartmentListRow key={entry.departmentId} entry={entry} isSelected={entry.departmentId === selectedDepartmentId} onSelect={onSelect} />
+              ))}
+            </>
+          )}
+
+          {suppressedEntries.length > 0 && (
+            <>
+              <div style={{ padding: '9px 20px', background: CANVAS, borderBottom: `1px solid ${BORDER}` }}>
+                <span style={{ fontSize: 9.5, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '.06em', color: MUTED }}>
+                  Insufficient Data — Scores Hidden
+                </span>
+              </div>
+              {suppressedEntries.map((entry) => (
+                <DepartmentListRow key={entry.departmentId} entry={entry} isSelected={entry.departmentId === selectedDepartmentId} onSelect={onSelect} />
+              ))}
+            </>
+          )}
+        </div>
+
+        {selected && (
+          <div style={CARD}>
+            <div style={{ padding: '18px 24px', borderBottom: `1px solid ${BORDER}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+              <h3 style={{ fontSize: 17, fontWeight: 700, color: TEXT, margin: 0 }}>{selected.departmentName}</h3>
+              {selected.suppressed && (
+                <span style={{ fontSize: 10, fontWeight: 700, padding: '3px 10px', borderRadius: 9999, letterSpacing: '.03em', textTransform: 'uppercase' as const, whiteSpace: 'nowrap', background: '#eff6ff', color: BLUE, border: '1px solid rgba(37,99,235,.2)' }}>
+                  Insufficient data — scores hidden
+                </span>
+              )}
+            </div>
+
+            {selected.suppressed ? (
+              // GD-M33-1 Decision 6/13: the API's suppressionReason string is a
+              // fixed, non-identifying sentence that never includes the
+              // department's actual headcount; rendered verbatim, never composed
+              // or embellished. The second sentence is the same static, governed
+              // rationale shown above the list — repeated here so the explanation
+              // travels with the specific department a user is looking at, not
+              // just as a one-time notice they may have scrolled past.
+              <div style={{ padding: '20px 24px' }}>
+                <p style={{ fontSize: 13, color: SUB, lineHeight: 1.6, marginBottom: 8 }}>
+                  {selected.suppressionReason ?? 'Insufficient data to report readiness or attrition for this department.'}
+                </p>
+                <p style={{ fontSize: 12, color: MUTED, lineHeight: 1.6, marginBottom: 20 }}>
+                  This protects individuals in small departments from being identifiable through an aggregate score — it is not a data error.
+                </p>
+                <VacancyContextStrip context={selected.vacancyContext} />
+              </div>
+            ) : (
+              <div style={{ padding: '20px 24px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24, marginBottom: 20 }}>
+                  <DepartmentSignalBlock label="Workforce Readiness" signal={selected.readiness} levelMap={READINESS_CFG} />
+                  <DepartmentSignalBlock label="Attrition Risk" signal={selected.attrition} levelMap={RISK_CFG} />
+                </div>
+                <VacancyContextStrip context={selected.vacancyContext} />
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// Single department row, shared by the "Eligible for Scoring" and "Insufficient
+// Data" groups above. Suppressed rows are visually de-emphasized (muted text,
+// no icon/pill) rather than flagged with a per-row badge — the section header
+// they sit under already states their status, so a repeated per-row badge on
+// every suppressed row would be redundant, not clearer (GD-M33-1 Decision 13:
+// still no score, no risk color, no ranking — de-emphasis only).
+function DepartmentListRow({
+  entry, isSelected, onSelect,
+}: {
+  entry: DepartmentGapEntry;
+  isSelected: boolean;
+  onSelect: (id: string) => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={() => onSelect(entry.departmentId)}
+      style={{
+        display: 'flex',
+        width: '100%',
+        alignItems: 'center',
+        gap: 10,
+        padding: '11px 20px',
+        border: 'none',
+        borderBottom: `1px solid ${BORDER}`,
+        borderLeft: `3px solid ${isSelected ? AMBER : 'transparent'}`,
+        background: isSelected ? '#fffbeb' : 'transparent',
+        textAlign: 'left',
+        cursor: 'pointer',
+        fontFamily: 'inherit',
+        fontSize: 'inherit',
+      }}
+    >
+      <span
+        style={{
+          fontSize: 12.5,
+          fontWeight: 500,
+          color: entry.suppressed ? MUTED : TEXT,
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          whiteSpace: 'nowrap',
+          minWidth: 0,
+        }}
+      >
+        {entry.departmentName}
+      </span>
+    </button>
+  );
+}
+
+function DepartmentSignalBlock({
+  label, signal, levelMap,
+}: {
+  label: string;
+  signal: DepartmentGapSignal | null;
+  levelMap: Record<string, { bg: string; c: string; bd: string }>;
+}) {
+  if (!signal) {
+    return (
+      <div>
+        <p style={{ fontSize: 11, fontWeight: 700, color: AMBER, textTransform: 'uppercase' as const, letterSpacing: '.07em', marginBottom: 10 }}>
+          {label}
+        </p>
+        <p style={{ fontSize: 12, color: MUTED }}>Not available.</p>
+      </div>
+    );
+  }
+
+  const cfg = levelMap[signal.level] ?? levelMap['MEDIUM'] ?? levelMap['LOW']!;
+
+  return (
+    <div>
+      <p style={{ fontSize: 11, fontWeight: 700, color: AMBER, textTransform: 'uppercase' as const, letterSpacing: '.07em', marginBottom: 10 }}>
+        {label}
+      </p>
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 8 }}>
+        <span style={{ fontFamily: MONO, fontSize: 24, fontWeight: 700, color: TEXT, letterSpacing: '-.02em' }}>{signal.score}</span>
+        <span style={{ display: 'inline-block', fontSize: 10, fontWeight: 700, padding: '2px 9px', borderRadius: 9999, letterSpacing: '.04em', textTransform: 'uppercase' as const, whiteSpace: 'nowrap', background: cfg.bg, color: cfg.c, border: `1px solid ${cfg.bd}` }}>
+          {signal.level.replace('_', ' ')}
+        </span>
+      </div>
+      <p style={{ fontSize: 12, color: SUB, lineHeight: 1.5, marginBottom: 14 }}>{signal.reasoning}</p>
+      <FactorTable factors={signal.factors} />
+      <p style={{ fontSize: 10.5, color: MUTED, marginTop: 10, fontFamily: MONO }}>
+        {signal.formulaVersion} · Confidence: {confidenceLabel(signal.confidence)}
+      </p>
+    </div>
+  );
+}
+
+function VacancyContextStrip({ context }: { context: DepartmentVacancyContext }) {
+  return (
+    <div style={{ borderTop: `1px solid ${BORDER}`, paddingTop: 16, display: 'flex', gap: 28, flexWrap: 'wrap' }}>
+      <div>
+        <p style={{ fontSize: 9.5, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '.06em', color: MUTED, marginBottom: 4 }}>
+          Open Vacancies
+        </p>
+        <span style={{ fontFamily: MONO, fontSize: 15, fontWeight: 700, color: TEXT }}>{context.openCount}</span>
+      </div>
+      <div>
+        <p style={{ fontSize: 9.5, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '.06em', color: MUTED, marginBottom: 4 }}>
+          High/Critical Risk
+        </p>
+        <span style={{ fontFamily: MONO, fontSize: 15, fontWeight: 700, color: TEXT }}>{context.criticalCount}</span>
+      </div>
+      <div>
+        <p style={{ fontSize: 9.5, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '.06em', color: MUTED, marginBottom: 4 }}>
+          Avg. Days Open
+        </p>
+        <span style={{ fontFamily: MONO, fontSize: 15, fontWeight: 700, color: TEXT }}>{context.avgDaysOpen ?? '—'}</span>
       </div>
     </div>
   );

@@ -24,6 +24,8 @@ import { IntelligenceController } from './intelligence.controller';
 import { VacancyRiskService } from './services/vacancy-risk.service';
 import { WorkforceReadinessService } from './services/workforce-readiness.service';
 import { AttritionRiskService } from './services/attrition-risk.service';
+import { DepartmentGapService } from './services/department-gap.service';
+import type { DepartmentGapResult } from './services/department-gap.service';
 import { AuditService } from '../audit/audit.service';
 import { AuditEventType } from '../audit/enums/audit-event-type.enum';
 import type { RequestUser } from '../identity/jwt.strategy';
@@ -101,6 +103,44 @@ const mockAttritionOutput: IntelligenceExplainabilityOutput = {
   formulaVersion: 'attrition-deterministic-v1',
 };
 
+// GD-M33-1: DepartmentGapService returns a fully-orchestrated, suppression-applied
+// result — the controller does no shaping of its own beyond passing it through.
+const mockDepartmentGapResult: DepartmentGapResult = {
+  departments: [
+    {
+      departmentId: 'dept-1',
+      departmentName: 'Field Operations',
+      suppressed: false,
+      suppressionReason: null,
+      readiness: {
+        score: 68, level: 'DEVELOPING', confidence: 90,
+        reasoning: 'Workforce readiness is DEVELOPING, driven primarily by strong staffing coverage.',
+        factors: [{ name: 'staffingCoverage', contribution: 27, detail: '90% of current workforce active' }],
+        formulaVersion: 'readiness-deterministic-v1',
+      },
+      attrition: {
+        score: 30, level: 'LOW', confidence: 85,
+        reasoning: 'Attrition risk is LOW, driven primarily by a low separation rate.',
+        factors: [{ name: 'separationRate', contribution: 5, detail: '2% trailing 12-month separation rate' }],
+        formulaVersion: 'attrition-deterministic-v1',
+      },
+      vacancyContext: { openCount: 2, criticalCount: 0, avgDaysOpen: 14 },
+    },
+    {
+      departmentId: 'dept-2',
+      departmentName: 'Tiny Unit',
+      suppressed: true,
+      suppressionReason: 'Department population below minimum reporting threshold (5).',
+      readiness: null,
+      attrition: null,
+      vacancyContext: { openCount: 1, criticalCount: 1, avgDaysOpen: 20 },
+    },
+  ],
+  minimumHeadcountThreshold: 5,
+  computedAt: '2026-07-18T12:00:00.000Z',
+  formulaVersion: 'department-gap-deterministic-v1',
+};
+
 // ===========================================================================
 // 1. Controller unit tests — guards mocked, direct method calls
 // ===========================================================================
@@ -110,12 +150,14 @@ describe('IntelligenceController — unit', () => {
   let mockVacancyRiskService: { score: jest.Mock };
   let mockWorkforceReadinessService: { score: jest.Mock };
   let mockAttritionRiskService: { score: jest.Mock };
+  let mockDepartmentGapService: { getByTenant: jest.Mock };
   let mockAuditService: { logEvent: jest.Mock };
 
   beforeEach(async () => {
     mockVacancyRiskService = { score: jest.fn() };
     mockWorkforceReadinessService = { score: jest.fn() };
     mockAttritionRiskService = { score: jest.fn() };
+    mockDepartmentGapService = { getByTenant: jest.fn() };
     mockAuditService = { logEvent: jest.fn().mockResolvedValue(undefined) };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -124,6 +166,7 @@ describe('IntelligenceController — unit', () => {
         { provide: VacancyRiskService, useValue: mockVacancyRiskService },
         { provide: WorkforceReadinessService, useValue: mockWorkforceReadinessService },
         { provide: AttritionRiskService, useValue: mockAttritionRiskService },
+        { provide: DepartmentGapService, useValue: mockDepartmentGapService },
         { provide: AuditService, useValue: mockAuditService },
       ],
     })
@@ -254,12 +297,14 @@ describe('IntelligenceController — Workforce Readiness — unit', () => {
   let mockVacancyRiskService: { score: jest.Mock };
   let mockWorkforceReadinessService: { score: jest.Mock };
   let mockAttritionRiskService: { score: jest.Mock };
+  let mockDepartmentGapService: { getByTenant: jest.Mock };
   let mockAuditService: { logEvent: jest.Mock };
 
   beforeEach(async () => {
     mockVacancyRiskService = { score: jest.fn() };
     mockWorkforceReadinessService = { score: jest.fn() };
     mockAttritionRiskService = { score: jest.fn() };
+    mockDepartmentGapService = { getByTenant: jest.fn() };
     mockAuditService = { logEvent: jest.fn().mockResolvedValue(undefined) };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -268,6 +313,7 @@ describe('IntelligenceController — Workforce Readiness — unit', () => {
         { provide: VacancyRiskService, useValue: mockVacancyRiskService },
         { provide: WorkforceReadinessService, useValue: mockWorkforceReadinessService },
         { provide: AttritionRiskService, useValue: mockAttritionRiskService },
+        { provide: DepartmentGapService, useValue: mockDepartmentGapService },
         { provide: AuditService, useValue: mockAuditService },
       ],
     })
@@ -388,12 +434,14 @@ describe('IntelligenceController — Attrition Risk — unit', () => {
   let mockVacancyRiskService: { score: jest.Mock };
   let mockWorkforceReadinessService: { score: jest.Mock };
   let mockAttritionRiskService: { score: jest.Mock };
+  let mockDepartmentGapService: { getByTenant: jest.Mock };
   let mockAuditService: { logEvent: jest.Mock };
 
   beforeEach(async () => {
     mockVacancyRiskService = { score: jest.fn() };
     mockWorkforceReadinessService = { score: jest.fn() };
     mockAttritionRiskService = { score: jest.fn() };
+    mockDepartmentGapService = { getByTenant: jest.fn() };
     mockAuditService = { logEvent: jest.fn().mockResolvedValue(undefined) };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -402,6 +450,7 @@ describe('IntelligenceController — Attrition Risk — unit', () => {
         { provide: VacancyRiskService, useValue: mockVacancyRiskService },
         { provide: WorkforceReadinessService, useValue: mockWorkforceReadinessService },
         { provide: AttritionRiskService, useValue: mockAttritionRiskService },
+        { provide: DepartmentGapService, useValue: mockDepartmentGapService },
         { provide: AuditService, useValue: mockAuditService },
       ],
     })
@@ -530,6 +579,120 @@ describe('IntelligenceController — Attrition Risk — unit', () => {
 });
 
 // ===========================================================================
+// 1d. Department Gap — unit — GD-M33-1
+// ===========================================================================
+
+describe('IntelligenceController — Department Gap — unit', () => {
+  let controller: IntelligenceController;
+  let mockVacancyRiskService: { score: jest.Mock };
+  let mockWorkforceReadinessService: { score: jest.Mock };
+  let mockAttritionRiskService: { score: jest.Mock };
+  let mockDepartmentGapService: { getByTenant: jest.Mock };
+  let mockAuditService: { logEvent: jest.Mock };
+
+  beforeEach(async () => {
+    mockVacancyRiskService = { score: jest.fn() };
+    mockWorkforceReadinessService = { score: jest.fn() };
+    mockAttritionRiskService = { score: jest.fn() };
+    mockDepartmentGapService = { getByTenant: jest.fn() };
+    mockAuditService = { logEvent: jest.fn().mockResolvedValue(undefined) };
+
+    const module: TestingModule = await Test.createTestingModule({
+      controllers: [IntelligenceController],
+      providers: [
+        { provide: VacancyRiskService, useValue: mockVacancyRiskService },
+        { provide: WorkforceReadinessService, useValue: mockWorkforceReadinessService },
+        { provide: AttritionRiskService, useValue: mockAttritionRiskService },
+        { provide: DepartmentGapService, useValue: mockDepartmentGapService },
+        { provide: AuditService, useValue: mockAuditService },
+      ],
+    })
+      .overrideGuard(JwtAuthGuard).useValue({ canActivate: () => true })
+      .overrideGuard(RolesGuard).useValue({ canActivate: () => true })
+      .compile();
+
+    controller = module.get<IntelligenceController>(IntelligenceController);
+  });
+
+  afterEach(() => jest.clearAllMocks());
+
+  it('returns success:true with data.departments, data.minimumHeadcountThreshold, data.computedAt, data.formulaVersion', async () => {
+    mockDepartmentGapService.getByTenant.mockResolvedValue(mockDepartmentGapResult);
+
+    const result = await controller.getDepartmentGap(mockActor);
+
+    expect(result.success).toBe(true);
+    expect(result.data.departments).toHaveLength(2);
+    expect(result.data.minimumHeadcountThreshold).toBe(5);
+    expect(result.data.formulaVersion).toBe('department-gap-deterministic-v1');
+  });
+
+  it('passes actor.tenantId (from JWT) to DepartmentGapService.getByTenant — no other argument', async () => {
+    mockDepartmentGapService.getByTenant.mockResolvedValue(mockDepartmentGapResult);
+
+    await controller.getDepartmentGap(mockActor);
+
+    expect(mockDepartmentGapService.getByTenant).toHaveBeenCalledWith(TENANT_ID);
+    expect(mockDepartmentGapService.getByTenant).toHaveBeenCalledTimes(1);
+  });
+
+  it('creates INTELLIGENCE_DEPARTMENT_GAP_QUERIED audit event on every successful call', async () => {
+    mockDepartmentGapService.getByTenant.mockResolvedValue(mockDepartmentGapResult);
+
+    await controller.getDepartmentGap(mockActor);
+
+    expect(mockAuditService.logEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: AuditEventType.INTELLIGENCE_DEPARTMENT_GAP_QUERIED,
+        result: 'SUCCESS',
+        tenantId: TENANT_ID,
+        userId: USER_ID,
+        entityType: 'intelligence',
+      }),
+    );
+  });
+
+  it('audit metadata key-set is exactly formulaVersion/departmentCount/suppressedDepartmentCount — PII-safe, no department detail', async () => {
+    mockDepartmentGapService.getByTenant.mockResolvedValue(mockDepartmentGapResult);
+
+    await controller.getDepartmentGap(mockActor);
+
+    const auditCall = mockAuditService.logEvent.mock.calls[0]![0] as { metadata: Record<string, unknown> };
+    expect(auditCall.metadata['formulaVersion']).toBe('department-gap-deterministic-v1');
+    expect(auditCall.metadata['departmentCount']).toBe(2);
+    expect(auditCall.metadata['suppressedDepartmentCount']).toBe(1);
+    expect(auditCall.metadata).not.toHaveProperty('departmentId');
+    expect(auditCall.metadata).not.toHaveProperty('departmentName');
+    expect(auditCall.metadata).not.toHaveProperty('departments');
+    expect(Object.keys(auditCall.metadata)).toEqual(['formulaVersion', 'departmentCount', 'suppressedDepartmentCount']);
+  });
+
+  it('response contains no individual employee row, identifier, ranking, or list of any kind', async () => {
+    mockDepartmentGapService.getByTenant.mockResolvedValue(mockDepartmentGapResult);
+
+    const result = await controller.getDepartmentGap(mockActor);
+    const json = JSON.stringify(result);
+
+    expect(json).not.toMatch(/employeeId|employeeNumber|firstName|lastName|"email"/i);
+    expect(result.data).not.toHaveProperty('employees');
+    expect(result.data).not.toHaveProperty('rankings');
+    expect(result.data).not.toHaveProperty('rows');
+  });
+
+  it('a suppressed department in the response never includes its actual headcount/population', async () => {
+    mockDepartmentGapService.getByTenant.mockResolvedValue(mockDepartmentGapResult);
+
+    const result = await controller.getDepartmentGap(mockActor);
+    const suppressedEntry = result.data.departments.find(d => d.suppressed)!;
+
+    expect(suppressedEntry.readiness).toBeNull();
+    expect(suppressedEntry.attrition).toBeNull();
+    expect(JSON.stringify(suppressedEntry)).not.toContain('"population"');
+    expect(JSON.stringify(suppressedEntry)).not.toContain('"headcount"');
+  });
+});
+
+// ===========================================================================
 // 2. RBAC enforcement — RolesGuard live, JwtAuthGuard mocked to inject user
 // GD-M30-1 Decision 4 + 14 validation gate
 // ===========================================================================
@@ -546,6 +709,10 @@ describe('IntelligenceController — RBAC enforcement', () => {
   const ATTRITION_ALLOWED_ROLES = ['System Administrator', 'HR Director', 'Workforce Planner', 'Executive User'];
   const ATTRITION_FORBIDDEN_ROLES = ['Recruiter', 'Hiring Manager', 'Compliance Officer'];
 
+  // GD-M33-1 Decision 4: Executive User is explicitly NOT allowed for department-gap
+  const DEPARTMENT_GAP_ALLOWED_ROLES = ['System Administrator', 'HR Director', 'Workforce Planner'];
+  const DEPARTMENT_GAP_FORBIDDEN_ROLES = ['Recruiter', 'Hiring Manager', 'Compliance Officer', 'Executive User'];
+
   async function buildApp(roles: string[] | 'no-auth'): Promise<INestApplication> {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [IntelligenceController],
@@ -561,6 +728,10 @@ describe('IntelligenceController — RBAC enforcement', () => {
         {
           provide: AttritionRiskService,
           useValue: { score: jest.fn().mockResolvedValue(mockAttritionOutput) },
+        },
+        {
+          provide: DepartmentGapService,
+          useValue: { getByTenant: jest.fn().mockResolvedValue(mockDepartmentGapResult) },
         },
         { provide: AuditService, useValue: { logEvent: jest.fn() } },
         RolesGuard,
@@ -667,6 +838,46 @@ describe('IntelligenceController — RBAC enforcement', () => {
       .expect(401);
     await app.close();
   });
+
+  // GD-M33-1 Decision 4 + 17 validation gate — department-gap endpoint
+  it.each(DEPARTMENT_GAP_ALLOWED_ROLES)('department-gap: %s → 200 OK', async (role) => {
+    const app = await buildApp([role]);
+    await request(app.getHttpServer())
+      .get('/api/v1/intelligence/department-gap')
+      .expect(200);
+    await app.close();
+  });
+
+  it.each(DEPARTMENT_GAP_FORBIDDEN_ROLES)('department-gap: %s → 403 Forbidden', async (role) => {
+    const app = await buildApp([role]);
+    await request(app.getHttpServer())
+      .get('/api/v1/intelligence/department-gap')
+      .expect(403);
+    await app.close();
+  });
+
+  it('department-gap: no JWT → 401 Unauthorized', async () => {
+    const app = await buildApp('no-auth');
+    await request(app.getHttpServer())
+      .get('/api/v1/intelligence/department-gap')
+      .expect(401);
+    await app.close();
+  });
+
+  // GD-M33-1 Decision 3 — no caller-supplied department filter of any kind
+  it('department-gap: a query string (e.g. ?departmentId=x) is silently ignored — same 200 response as no query string', async () => {
+    const app = await buildApp(['System Administrator']);
+
+    const withoutQuery = await request(app.getHttpServer())
+      .get('/api/v1/intelligence/department-gap')
+      .expect(200);
+    const withQuery = await request(app.getHttpServer())
+      .get('/api/v1/intelligence/department-gap?departmentId=some-dept-id&department=x')
+      .expect(200);
+
+    expect(withQuery.body).toEqual(withoutQuery.body);
+    await app.close();
+  });
 });
 
 // ===========================================================================
@@ -678,11 +889,13 @@ describe('IntelligenceController — tenant isolation', () => {
   let mockVacancyRiskService: { score: jest.Mock };
   let mockWorkforceReadinessService: { score: jest.Mock };
   let mockAttritionRiskService: { score: jest.Mock };
+  let mockDepartmentGapService: { getByTenant: jest.Mock };
 
   beforeEach(async () => {
     mockVacancyRiskService = { score: jest.fn().mockResolvedValue({ items: [], total: 0 }) };
     mockWorkforceReadinessService = { score: jest.fn().mockResolvedValue(mockReadinessOutput) };
     mockAttritionRiskService = { score: jest.fn().mockResolvedValue(mockAttritionOutput) };
+    mockDepartmentGapService = { getByTenant: jest.fn().mockResolvedValue(mockDepartmentGapResult) };
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [IntelligenceController],
@@ -690,6 +903,7 @@ describe('IntelligenceController — tenant isolation', () => {
         { provide: VacancyRiskService, useValue: mockVacancyRiskService },
         { provide: WorkforceReadinessService, useValue: mockWorkforceReadinessService },
         { provide: AttritionRiskService, useValue: mockAttritionRiskService },
+        { provide: DepartmentGapService, useValue: mockDepartmentGapService },
         { provide: AuditService, useValue: { logEvent: jest.fn() } },
       ],
     })
@@ -757,5 +971,25 @@ describe('IntelligenceController — tenant isolation', () => {
 
     expect(mockAttritionRiskService.score).toHaveBeenNthCalledWith(1, 'tenant-a');
     expect(mockAttritionRiskService.score).toHaveBeenNthCalledWith(2, 'tenant-b');
+  });
+
+  // GD-M33-1 Decision 3 — department-gap endpoint
+  it('department-gap: tenantId for service call comes from JWT actor.tenantId, not from query string', async () => {
+    const actorTenantA: RequestUser = { ...mockActor, tenantId: 'tenant-a' };
+
+    await controller.getDepartmentGap(actorTenantA);
+
+    expect(mockDepartmentGapService.getByTenant).toHaveBeenCalledWith('tenant-a');
+  });
+
+  it('department-gap: two actors with different tenantIds produce separate service calls with their own tenantId', async () => {
+    const actorA: RequestUser = { ...mockActor, tenantId: 'tenant-a' };
+    const actorB: RequestUser = { ...mockActor, tenantId: 'tenant-b' };
+
+    await controller.getDepartmentGap(actorA);
+    await controller.getDepartmentGap(actorB);
+
+    expect(mockDepartmentGapService.getByTenant).toHaveBeenNthCalledWith(1, 'tenant-a');
+    expect(mockDepartmentGapService.getByTenant).toHaveBeenNthCalledWith(2, 'tenant-b');
   });
 });

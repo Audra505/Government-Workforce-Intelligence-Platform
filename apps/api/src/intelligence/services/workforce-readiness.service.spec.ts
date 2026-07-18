@@ -59,6 +59,7 @@ describe('WorkforceReadinessService', () => {
     employee: { count: jest.fn() },
     position: { count: jest.fn() },
     employeeCertification: { count: jest.fn() },
+    department: { findMany: jest.fn() },
   };
 
   const mockVacancyRiskService = { score: jest.fn() };
@@ -601,6 +602,132 @@ describe('WorkforceReadinessService', () => {
       await expect(service.score(TENANT_ID)).resolves.toBeDefined();
 
       fetchSpy.mockRestore();
+    });
+  });
+
+  // ===========================================================================
+  // scoreByDepartment() — GD-M33-1 Decision 5 (department-level extension)
+  // ===========================================================================
+
+  describe('scoreByDepartment()', () => {
+    it('queries Department scoped to tenantId and deletedAt:null, selecting only id and name', async () => {
+      mockPrisma.department.findMany.mockResolvedValue([]);
+      mockVacancyRiskService.score.mockResolvedValue({ items: [], total: 0 });
+
+      await service.scoreByDepartment(TENANT_ID);
+
+      expect(mockPrisma.department.findMany).toHaveBeenCalledWith({
+        where: { tenantId: TENANT_ID, deletedAt: null },
+        select: { id: true, name: true },
+      });
+    });
+
+    it('returns an empty array when the tenant has no departments', async () => {
+      mockPrisma.department.findMany.mockResolvedValue([]);
+      mockVacancyRiskService.score.mockResolvedValue({ items: [], total: 0 });
+
+      const result = await service.scoreByDepartment(TENANT_ID);
+      expect(result).toEqual([]);
+    });
+
+    it('a single department containing the entire tenant population returns byte-identical formula output to score(tenantId) — proves no formula drift (GD-M33-1 Decision 17)', async () => {
+      mockPrisma.department.findMany.mockResolvedValue([{ id: 'dept-1', name: 'Whole Tenant' }]);
+      setFullyReadyMocks();
+
+      const tenantWide = await service.score(TENANT_ID);
+      const byDept = await service.scoreByDepartment(TENANT_ID);
+
+      expect(byDept).toHaveLength(1);
+      expect(byDept[0]!.output.riskScore).toBe(tenantWide.riskScore);
+      expect(byDept[0]!.output.riskLevel).toBe(tenantWide.riskLevel);
+      expect(byDept[0]!.output.confidence).toBe(tenantWide.confidence);
+      expect(byDept[0]!.output.factors).toEqual(tenantWide.factors);
+      expect(byDept[0]!.output.formulaVersion).toBe(tenantWide.formulaVersion);
+      expect(byDept[0]!.output.formulaVersion).toBe('readiness-deterministic-v1'); // unchanged constant
+    });
+
+    it('returns one entry per department with correct departmentId/departmentName', async () => {
+      mockPrisma.department.findMany.mockResolvedValue([
+        { id: 'dept-1', name: 'Alpha' },
+        { id: 'dept-2', name: 'Beta' },
+      ]);
+      setFullyReadyMocks();
+
+      const result = await service.scoreByDepartment(TENANT_ID);
+
+      expect(result).toHaveLength(2);
+      expect(result.map(r => r.departmentId)).toEqual(['dept-1', 'dept-2']);
+      expect(result.map(r => r.departmentName)).toEqual(['Alpha', 'Beta']);
+    });
+
+    it('population field equals the staffing-coverage denominator (active + pending + onLeave + suspended)', async () => {
+      mockPrisma.department.findMany.mockResolvedValue([{ id: 'dept-1', name: 'Alpha' }]);
+      mockPrisma.employee.count.mockImplementation(({ where }: { where: Record<string, unknown> }) => {
+        if (where['employmentStatus'] === 'ACTIVE' && where['positionId']) return Promise.resolve(3);
+        if (where['employmentStatus'] === 'ACTIVE') return Promise.resolve(3);
+        if (where['employmentStatus'] === 'PENDING_ONBOARDING') return Promise.resolve(1);
+        if (where['employmentStatus'] === 'ON_LEAVE') return Promise.resolve(0);
+        if (where['employmentStatus'] === 'SUSPENDED') return Promise.resolve(1);
+        return Promise.resolve(0);
+      });
+      mockPrisma.position.count.mockResolvedValue(3);
+      mockPrisma.employeeCertification.count.mockResolvedValue(0);
+      mockVacancyRiskService.score.mockResolvedValue({ items: [], total: 0 });
+
+      const result = await service.scoreByDepartment(TENANT_ID);
+      expect(result[0]!.population).toBe(5); // 3 + 1 + 0 + 1
+    });
+
+    it('every Employee/Position/EmployeeCertification query is scoped by departmentId, not just tenantId', async () => {
+      mockPrisma.department.findMany.mockResolvedValue([{ id: 'dept-42', name: 'Scoped Dept' }]);
+      setFullyReadyMocks();
+
+      await service.scoreByDepartment(TENANT_ID);
+
+      expect(mockPrisma.employee.count).toHaveBeenCalledWith(
+        expect.objectContaining({ where: expect.objectContaining({ departmentId: 'dept-42' }) }),
+      );
+      expect(mockPrisma.position.count).toHaveBeenCalledWith(
+        expect.objectContaining({ where: expect.objectContaining({ departmentId: 'dept-42' }) }),
+      );
+      expect(mockPrisma.employeeCertification.count).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({ employee: expect.objectContaining({ departmentId: 'dept-42' }) }),
+        }),
+      );
+    });
+
+    it('Vacancy Pressure Factor groups the single VacancyRiskService.score() call by departmentName, not a per-department query', async () => {
+      mockPrisma.department.findMany.mockResolvedValue([
+        { id: 'dept-1', name: 'Field Operations' },
+        { id: 'dept-2', name: 'HQ' },
+      ]);
+      setFullyReadyMocks();
+      mockVacancyRiskService.score.mockResolvedValue({
+        items: [
+          { ...makeVacancyItem(80), departmentName: 'Field Operations' },
+          { ...makeVacancyItem(20), departmentName: 'HQ' },
+        ],
+        total: 2,
+      });
+
+      await service.scoreByDepartment(TENANT_ID);
+
+      // Called exactly once for the whole tenant, not once per department.
+      expect(mockVacancyRiskService.score).toHaveBeenCalledTimes(1);
+      expect(mockVacancyRiskService.score).toHaveBeenCalledWith(TENANT_ID, { pageSize: 50 });
+    });
+
+    it('no employee identifier, name, or row-level data appears anywhere in the output', async () => {
+      mockPrisma.department.findMany.mockResolvedValue([{ id: 'dept-1', name: 'Alpha' }]);
+      setFullyReadyMocks();
+
+      const result = await service.scoreByDepartment(TENANT_ID);
+      const serialized = JSON.stringify(result).toLowerCase();
+
+      expect(serialized).not.toContain('firstname');
+      expect(serialized).not.toContain('lastname');
+      expect(serialized).not.toContain('email');
     });
   });
 });

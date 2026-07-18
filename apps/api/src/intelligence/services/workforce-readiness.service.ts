@@ -1,5 +1,8 @@
 // Reference: governance/GD-M31-1.md — Decisions 2, 3, 5, 6, 7, 8, 12
-// Reference: spec/01_requirements.md — FR-410 (Workforce Readiness Scoring), FR-900 (Explainability)
+// Reference: governance/GD-M33-1.md — Decisions 2, 5, 6 (scoreByDepartment addition)
+// Reference: spec/01_requirements.md — FR-410 (Workforce Readiness Scoring), FR-411
+//   (Department Readiness — this file's scoreByDepartment() is what closes that gap),
+//   FR-900 (Explainability)
 // Reference: spec/07_security_architecture.md — SEC-003 Tenant Isolation
 //
 // WorkforceReadinessService implements the governed readiness-deterministic-v1 formula.
@@ -15,12 +18,34 @@
 //
 // Any change to factor weights, thresholds, or formula structure requires a new
 // governance decision.
+//
+// scoreByDepartment() (GD-M33-1 Decision 5) computes the IDENTICAL formula per
+// department instead of per tenant — it calls the same private computeReadinessLevel(),
+// computeConfidence(), buildFactors(), and composeReasoning() pure-function helpers
+// score() already uses, so there is exactly one place the formula math lives. Only the
+// Prisma query population filter differs (tenantId + departmentId instead of tenantId
+// alone). score() itself is unmodified by this addition.
 
 import { Injectable, Logger } from '@nestjs/common';
 
 import { PrismaService } from '../../database/prisma.service';
 import type { RiskFactor, IntelligenceExplainabilityOutput } from '../interfaces/intelligence-explainability.interface';
 import { VacancyRiskService } from './vacancy-risk.service';
+
+// ---------------------------------------------------------------------------
+// Public API types — GD-M33-1 Decision 5
+// ---------------------------------------------------------------------------
+
+export interface DepartmentReadinessResult {
+  departmentId: string;
+  departmentName: string;
+  // "currently part of the workforce" population this department's readiness score was
+  // computed from (GD-M31-1 Decision 5's staffing-coverage denominator) — used ONLY by
+  // DepartmentGapService's minimum-headcount suppression check (GD-M33-1 Decision 6);
+  // callers must never expose this number in an API response.
+  population: number;
+  output: IntelligenceExplainabilityOutput;
+}
 
 // ---------------------------------------------------------------------------
 // Service
@@ -127,6 +152,121 @@ export class WorkforceReadinessService {
       computedAt: now.toISOString(),
       formulaVersion: WorkforceReadinessService.FORMULA_VERSION,
     };
+  }
+
+  // -------------------------------------------------------------------------
+  // Public API — scoreByDepartment() (GD-M33-1 Decision 5)
+  //
+  // Computes the same readiness-deterministic-v1 formula per department instead of
+  // tenant-wide. No new weight, threshold, or factor — every number below is produced
+  // by the exact same private helpers score() calls, applied to department-scoped
+  // query results.
+  // -------------------------------------------------------------------------
+
+  async scoreByDepartment(tenantId: string): Promise<DepartmentReadinessResult[]> {
+    const now = new Date();
+
+    const departments = await this.prisma.department.findMany({
+      where: { tenantId, deletedAt: null },
+      select: { id: true, name: true },
+    });
+    if (departments.length === 0) return [];
+
+    // GD-M33-1 Decision 5: Vacancy Pressure Factor per department reuses the same
+    // VacancyRiskService.score() call the tenant-wide formula makes (GD-M31-1 Decision
+    // 5) — fetched once for the whole tenant and grouped by departmentName, not a new
+    // per-department query path into VacancyRiskService. pageSize:50 is the existing
+    // DTO's governed maximum (vacancy-risk-query.dto.ts); tenants with more than 50
+    // open/in-recruitment vacancies will see a lower-bound average for this factor only.
+    const vacancyScoresByDeptName = new Map<string, number[]>();
+    try {
+      const vacancyResult = await this.vacancyRiskService.score(tenantId, { pageSize: 50 });
+      for (const item of vacancyResult.items) {
+        if (item.departmentName === null) continue;
+        const arr = vacancyScoresByDeptName.get(item.departmentName) ?? [];
+        arr.push(item.riskScore);
+        vacancyScoresByDeptName.set(item.departmentName, arr);
+      }
+    } catch (err) {
+      this.logger.warn(
+        'Vacancy Pressure Factor (department-scoped): VacancyRiskService.score() failed; defaulting to 0 for every department',
+        err instanceof Error ? err.message : String(err),
+      );
+    }
+
+    return Promise.all(
+      departments.map(async (dept): Promise<DepartmentReadinessResult> => {
+        const [
+          activeEmployees,
+          pendingOnboarding,
+          onLeave,
+          suspended,
+          activePositions,
+          employeesWithActivePosition,
+          activeCertifications,
+          totalCertifications,
+        ] = await Promise.all([
+          this.prisma.employee.count({ where: { tenantId, deletedAt: null, departmentId: dept.id, employmentStatus: 'ACTIVE' } }),
+          this.prisma.employee.count({ where: { tenantId, deletedAt: null, departmentId: dept.id, employmentStatus: 'PENDING_ONBOARDING' } }),
+          this.prisma.employee.count({ where: { tenantId, deletedAt: null, departmentId: dept.id, employmentStatus: 'ON_LEAVE' } }),
+          this.prisma.employee.count({ where: { tenantId, deletedAt: null, departmentId: dept.id, employmentStatus: 'SUSPENDED' } }),
+          this.prisma.position.count({ where: { tenantId, deletedAt: null, departmentId: dept.id, status: 'ACTIVE' } }),
+          this.prisma.employee.count({
+            where: { tenantId, deletedAt: null, departmentId: dept.id, employmentStatus: 'ACTIVE', positionId: { not: null } },
+          }),
+          this.prisma.employeeCertification.count({
+            where: { status: 'ACTIVE', employee: { tenantId, deletedAt: null, departmentId: dept.id } },
+          }),
+          this.prisma.employeeCertification.count({
+            where: { employee: { tenantId, deletedAt: null, departmentId: dept.id } },
+          }),
+        ]);
+
+        const deptVacancyScores = vacancyScoresByDeptName.get(dept.name) ?? [];
+        const avgVacancyRisk = deptVacancyScores.length > 0
+          ? deptVacancyScores.reduce((sum, s) => sum + s, 0) / deptVacancyScores.length
+          : 0;
+
+        // -- Identical formula to score() above — GD-M31-1 Decision 5, reused verbatim --
+        const staffingDenominator = activeEmployees + pendingOnboarding + onLeave + suspended;
+        const staffingRatio = staffingDenominator > 0 ? activeEmployees / staffingDenominator : null;
+        const staffingFactor = staffingRatio !== null ? Math.round(staffingRatio * 30) : 15;
+
+        const capacityRatio = activePositions > 0 ? Math.min(1, employeesWithActivePosition / activePositions) : null;
+        const capacityFactor = capacityRatio !== null ? Math.round(capacityRatio * 20) : 10;
+
+        const vacancyPressureFactor = Math.round(((100 - avgVacancyRisk) / 100) * 30);
+
+        const complianceRatio = totalCertifications > 0 ? activeCertifications / totalCertifications : null;
+        const complianceFactor = complianceRatio !== null ? Math.round(complianceRatio * 20) : 10;
+
+        const readinessScore = Math.min(100, staffingFactor + capacityFactor + vacancyPressureFactor + complianceFactor);
+        const readinessLevel = this.computeReadinessLevel(readinessScore);
+        const confidence = this.computeConfidence(activePositions, totalCertifications, staffingDenominator);
+        const factors = this.buildFactors(
+          staffingFactor, staffingRatio,
+          capacityFactor, capacityRatio,
+          vacancyPressureFactor, avgVacancyRisk,
+          complianceFactor, complianceRatio,
+        );
+        const reasoning = this.composeReasoning(readinessLevel, factors);
+
+        return {
+          departmentId: dept.id,
+          departmentName: dept.name,
+          population: staffingDenominator,
+          output: {
+            riskScore: readinessScore,
+            riskLevel: readinessLevel,
+            confidence,
+            reasoning,
+            factors,
+            computedAt: now.toISOString(),
+            formulaVersion: WorkforceReadinessService.FORMULA_VERSION,
+          },
+        };
+      }),
+    );
   }
 
   // -------------------------------------------------------------------------

@@ -38,6 +38,7 @@ describe('AttritionRiskService', () => {
   const mockPrisma = {
     employee: { count: jest.fn() },
     vacancy: { findMany: jest.fn() },
+    department: { findMany: jest.fn() },
   };
 
   // Classifies which of the four employee.count() calls this is, by WHERE shape,
@@ -504,6 +505,107 @@ describe('AttritionRiskService', () => {
       await expect(service.score(TENANT_ID)).resolves.toBeDefined();
 
       fetchSpy.mockRestore();
+    });
+  });
+
+  // ===========================================================================
+  // scoreByDepartment() — GD-M33-1 Decision 5 (department-level extension)
+  // ===========================================================================
+
+  describe('scoreByDepartment()', () => {
+    it('queries Department scoped to tenantId and deletedAt:null, selecting only id and name', async () => {
+      mockPrisma.department.findMany.mockResolvedValue([]);
+
+      await service.scoreByDepartment(TENANT_ID);
+
+      expect(mockPrisma.department.findMany).toHaveBeenCalledWith({
+        where: { tenantId: TENANT_ID, deletedAt: null },
+        select: { id: true, name: true },
+      });
+    });
+
+    it('returns an empty array when the tenant has no departments', async () => {
+      mockPrisma.department.findMany.mockResolvedValue([]);
+
+      const result = await service.scoreByDepartment(TENANT_ID);
+      expect(result).toEqual([]);
+    });
+
+    it('a single department containing the entire tenant population returns byte-identical formula output to score(tenantId) — proves no formula drift (GD-M33-1 Decision 17)', async () => {
+      mockPrisma.department.findMany.mockResolvedValue([{ id: 'dept-1', name: 'Whole Tenant' }]);
+      setLowRiskMocks();
+
+      const tenantWide = await service.score(TENANT_ID);
+      const byDept = await service.scoreByDepartment(TENANT_ID);
+
+      expect(byDept).toHaveLength(1);
+      expect(byDept[0]!.output.riskScore).toBe(tenantWide.riskScore);
+      expect(byDept[0]!.output.riskLevel).toBe(tenantWide.riskLevel);
+      expect(byDept[0]!.output.confidence).toBe(tenantWide.confidence);
+      expect(byDept[0]!.output.factors).toEqual(tenantWide.factors);
+      expect(byDept[0]!.output.formulaVersion).toBe(tenantWide.formulaVersion);
+      expect(byDept[0]!.output.formulaVersion).toBe('attrition-deterministic-v1'); // unchanged constant
+    });
+
+    it('returns one entry per department with correct departmentId/departmentName', async () => {
+      mockPrisma.department.findMany.mockResolvedValue([
+        { id: 'dept-1', name: 'Alpha' },
+        { id: 'dept-2', name: 'Beta' },
+      ]);
+      setLowRiskMocks();
+
+      const result = await service.scoreByDepartment(TENANT_ID);
+
+      expect(result).toHaveLength(2);
+      expect(result.map(r => r.departmentId)).toEqual(['dept-1', 'dept-2']);
+      expect(result.map(r => r.departmentName)).toEqual(['Alpha', 'Beta']);
+    });
+
+    it('population field equals baselineWorkforce (current + recently separated) — GD-M32-1 Decision 5', async () => {
+      mockPrisma.department.findMany.mockResolvedValue([{ id: 'dept-1', name: 'Alpha' }]);
+      mockCounts({ trailingSeparations: 2, baselineWorkforce: 12, activeEmployees: 10, shortTenureCount: 0 });
+      mockFilledVacancies([]);
+
+      const result = await service.scoreByDepartment(TENANT_ID);
+      expect(result[0]!.population).toBe(12);
+    });
+
+    it('every Employee query is scoped by departmentId, not just tenantId', async () => {
+      mockPrisma.department.findMany.mockResolvedValue([{ id: 'dept-42', name: 'Scoped Dept' }]);
+      setLowRiskMocks();
+
+      await service.scoreByDepartment(TENANT_ID);
+
+      const calls = mockPrisma.employee.count.mock.calls as Array<[{ where: Record<string, unknown> }]>;
+      expect(calls.length).toBeGreaterThan(0);
+      for (const [{ where }] of calls) {
+        expect(where['departmentId']).toBe('dept-42');
+      }
+    });
+
+    it('the filled-vacancies query is scoped via position.departmentId (Vacancy has no direct departmentId column)', async () => {
+      mockPrisma.department.findMany.mockResolvedValue([{ id: 'dept-42', name: 'Scoped Dept' }]);
+      setLowRiskMocks();
+
+      await service.scoreByDepartment(TENANT_ID);
+
+      expect(mockPrisma.vacancy.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({ position: { departmentId: 'dept-42' } }),
+        }),
+      );
+    });
+
+    it('no employee identifier, name, or row-level data appears anywhere in the output', async () => {
+      mockPrisma.department.findMany.mockResolvedValue([{ id: 'dept-1', name: 'Alpha' }]);
+      setLowRiskMocks();
+
+      const result = await service.scoreByDepartment(TENANT_ID);
+      const serialized = JSON.stringify(result).toLowerCase();
+
+      expect(serialized).not.toContain('firstname');
+      expect(serialized).not.toContain('lastname');
+      expect(serialized).not.toContain('email');
     });
   });
 });

@@ -12,6 +12,13 @@
 // Audit (GD-M30-1 Decision 9):
 //   INTELLIGENCE_VACANCY_RISK_QUERIED emitted on every successful call.
 //   Audit metadata must be PII-safe: no individual riskScore values, no employee data.
+//
+// GET /department-gap (GD-M33-1 Decisions 3, 4, 10):
+//   RBAC: System Administrator, HR Director, Workforce Planner only — Executive User,
+//   Recruiter, Hiring Manager, Compliance Officer all forbidden.
+//   No query parameters accepted — every department is returned in one response, never
+//   a caller-selectable single-department filter (see GD-M33-1 Decision 3 rationale).
+//   INTELLIGENCE_DEPARTMENT_GAP_QUERIED emitted on every successful call.
 
 import { Controller, Get, Query, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
@@ -30,6 +37,8 @@ import { WorkforceReadinessService } from './services/workforce-readiness.servic
 import { WorkforceReadinessResponseDto } from './dto/workforce-readiness-response.dto';
 import { AttritionRiskService } from './services/attrition-risk.service';
 import { AttritionRiskResponseDto } from './dto/attrition-risk-response.dto';
+import { DepartmentGapService } from './services/department-gap.service';
+import { DepartmentGapResponseDto } from './dto/department-gap-response.dto';
 
 @ApiTags('intelligence')
 @Controller({ version: '1', path: 'intelligence' })
@@ -40,6 +49,7 @@ export class IntelligenceController {
     private readonly vacancyRiskService: VacancyRiskService,
     private readonly workforceReadinessService: WorkforceReadinessService,
     private readonly attritionRiskService: AttritionRiskService,
+    private readonly departmentGapService: DepartmentGapService,
     private readonly auditService: AuditService,
   ) {}
 
@@ -206,6 +216,60 @@ export class IntelligenceController {
         factors:            result.factors,
         computedAt:         result.computedAt,
         formulaVersion:     result.formulaVersion,
+      },
+    };
+  }
+
+  // --------------------------------------------------------------------------
+  // GET /api/v1/intelligence/department-gap
+  // --------------------------------------------------------------------------
+
+  @Get('department-gap')
+  @RequireRoles('System Administrator', 'HR Director', 'Workforce Planner')
+  @ApiOperation({
+    summary: 'Get department-level workforce readiness, attrition risk, and vacancy context for this tenant (FR-411)',
+    description:
+      'Returns every department in the tenant with its readiness and attrition scores ' +
+      '(reusing the exact GD-M31-1/GD-M32-1 formulas, re-scoped by department) plus ' +
+      'vacancy context. Departments below the governed minimum headcount (GD-M33-1 ' +
+      'Decision 6) are suppressed — no score, no headcount disclosed. Allowed roles: ' +
+      'System Administrator, HR Director, Workforce Planner. No query parameters are ' +
+      'accepted; the endpoint always returns every department in one response. ' +
+      'Fully deterministic and reproducible — no external AI is called.',
+  })
+  @ApiResponse({ status: 200, type: DepartmentGapResponseDto, description: 'Department gap data returned' })
+  @ApiResponse({ status: 401, description: 'Not authenticated' })
+  @ApiResponse({ status: 403, description: 'Insufficient role' })
+  @ApiResponse({ status: 500, description: 'Internal server error' })
+  async getDepartmentGap(
+    @CurrentUser() actor: RequestUser,
+  ): Promise<DepartmentGapResponseDto> {
+    const result = await this.departmentGapService.getByTenant(actor.tenantId);
+
+    // GD-M33-1 Decision 10: audit every department-gap query. Metadata must be
+    // PII-safe and department-detail-free — only aggregate counts, never a
+    // department's name, id, score, or actual headcount.
+    await this.auditService.logEvent({
+      tenantId:   actor.tenantId,
+      userId:     actor.userId,
+      entityType: 'intelligence',
+      entityId:   undefined,
+      action:     AuditEventType.INTELLIGENCE_DEPARTMENT_GAP_QUERIED,
+      result:     'SUCCESS',
+      metadata: {
+        formulaVersion:            DepartmentGapService.FORMULA_VERSION,
+        departmentCount:           result.departments.length,
+        suppressedDepartmentCount: result.departments.filter(d => d.suppressed).length,
+      },
+    });
+
+    return {
+      success: true,
+      data: {
+        departments:              result.departments,
+        minimumHeadcountThreshold: result.minimumHeadcountThreshold,
+        computedAt:                result.computedAt,
+        formulaVersion:            result.formulaVersion,
       },
     };
   }
