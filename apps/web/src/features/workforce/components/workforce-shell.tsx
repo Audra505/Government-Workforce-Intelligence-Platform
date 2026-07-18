@@ -45,6 +45,11 @@ export function WorkforceShell({ activeTab, breadcrumb, children, counts }: Prop
   const roles = token ? getSessionRoles(token) : [];
   const canSeeAdmin =
     roles.includes('System Administrator') || roles.includes('HR Director');
+  // GD-M32-1 Decision 20 (Amendment 1): Intelligence workspace nav visibility —
+  // System Administrator, HR Director, Workforce Planner, Executive User.
+  const canSeeIntelligence = roles.some((r) =>
+    ['System Administrator', 'HR Director', 'Workforce Planner', 'Executive User'].includes(r)
+  );
 
   return (
     <div
@@ -67,6 +72,14 @@ export function WorkforceShell({ activeTab, breadcrumb, children, counts }: Prop
               >
                 Dashboard
               </Link>
+              {canSeeIntelligence && (
+                <Link
+                  href="/intelligence"
+                  className="rounded-[5px] px-[13px] py-[6px] text-[13px] font-medium text-[#60a5fa] transition-all hover:bg-white/[0.08] hover:text-[#93c5fd]"
+                >
+                  Intelligence
+                </Link>
+              )}
               <Link
                 href="/workforce/employees"
                 className="rounded-[5px] px-[13px] py-[6px] text-[13px] font-medium text-white transition-all"

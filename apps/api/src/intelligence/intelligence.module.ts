@@ -14,10 +14,11 @@ import { IdentityModule } from '../identity/identity.module';
 import { IntelligenceController } from './intelligence.controller';
 import { VacancyRiskService } from './services/vacancy-risk.service';
 import { WorkforceReadinessService } from './services/workforce-readiness.service';
+import { AttritionRiskService } from './services/attrition-risk.service';
 
 @Module({
   imports: [IdentityModule],
   controllers: [IntelligenceController],
-  providers: [VacancyRiskService, WorkforceReadinessService],
+  providers: [VacancyRiskService, WorkforceReadinessService, AttritionRiskService],
 })
 export class IntelligenceModule {}

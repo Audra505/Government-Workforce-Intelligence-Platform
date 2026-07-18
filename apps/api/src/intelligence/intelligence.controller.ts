@@ -28,6 +28,8 @@ import { VacancyRiskQueryDto } from './dto/vacancy-risk-query.dto';
 import { VacancyRiskResponseDto } from './dto/vacancy-risk-response.dto';
 import { WorkforceReadinessService } from './services/workforce-readiness.service';
 import { WorkforceReadinessResponseDto } from './dto/workforce-readiness-response.dto';
+import { AttritionRiskService } from './services/attrition-risk.service';
+import { AttritionRiskResponseDto } from './dto/attrition-risk-response.dto';
 
 @ApiTags('intelligence')
 @Controller({ version: '1', path: 'intelligence' })
@@ -37,6 +39,7 @@ export class IntelligenceController {
   constructor(
     private readonly vacancyRiskService: VacancyRiskService,
     private readonly workforceReadinessService: WorkforceReadinessService,
+    private readonly attritionRiskService: AttritionRiskService,
     private readonly auditService: AuditService,
   ) {}
 
@@ -145,6 +148,64 @@ export class IntelligenceController {
         factors:        result.factors,
         computedAt:     result.computedAt,
         formulaVersion: result.formulaVersion,
+      },
+    };
+  }
+
+  // --------------------------------------------------------------------------
+  // GET /api/v1/intelligence/attrition-risk
+  // --------------------------------------------------------------------------
+
+  @Get('attrition-risk')
+  @RequireRoles('System Administrator', 'HR Director', 'Workforce Planner', 'Executive User')
+  @ApiOperation({
+    summary: 'Get deterministic aggregate attrition risk score for this tenant (FR-402)',
+    description:
+      'Returns a single tenant-wide aggregate attrition risk score composed from ' +
+      'separation rate, tenure composition, and position/vacancy recurrence over a ' +
+      'governed 365-day trailing window. Allowed roles: System Administrator, HR ' +
+      'Director, Workforce Planner, Executive User. Executive User receives the ' +
+      'identical aggregate response — this endpoint never returns individual employee ' +
+      'data, rankings, lists, or identifiers, for any role. ' +
+      'Fully deterministic and reproducible — no external AI is called.',
+  })
+  @ApiResponse({ status: 200, type: AttritionRiskResponseDto, description: 'Attrition risk score returned' })
+  @ApiResponse({ status: 401, description: 'Not authenticated' })
+  @ApiResponse({ status: 403, description: 'Insufficient role' })
+  @ApiResponse({ status: 500, description: 'Internal server error' })
+  async getAttritionRisk(
+    @CurrentUser() actor: RequestUser,
+  ): Promise<AttritionRiskResponseDto> {
+    const result = await this.attritionRiskService.score(actor.tenantId);
+
+    // GD-M32-1 Decision 9: audit every attrition risk query
+    // Metadata must be PII-safe and aggregate-only — no employee IDs, names, candidate
+    // data, vacancy IDs, department-level detail, individual scores, raw rows, factors,
+    // or reasoning.
+    await this.auditService.logEvent({
+      tenantId:   actor.tenantId,
+      userId:     actor.userId,
+      entityType: 'intelligence',
+      entityId:   undefined,
+      action:     AuditEventType.INTELLIGENCE_ATTRITION_RISK_QUERIED,
+      result:     'SUCCESS',
+      metadata: {
+        formulaVersion:     AttritionRiskService.FORMULA_VERSION,
+        attritionRiskLevel: result.riskLevel,
+        confidence:         result.confidence,
+      },
+    });
+
+    return {
+      success: true,
+      data: {
+        attritionScore:     result.riskScore,
+        attritionRiskLevel: result.riskLevel,
+        confidence:         result.confidence,
+        reasoning:          result.reasoning,
+        factors:            result.factors,
+        computedAt:         result.computedAt,
+        formulaVersion:     result.formulaVersion,
       },
     };
   }

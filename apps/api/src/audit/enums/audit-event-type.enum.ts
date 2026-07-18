@@ -168,6 +168,8 @@ export enum AuditEventType {
   INTELLIGENCE_VACANCY_RISK_QUERIED = 'INTELLIGENCE_VACANCY_RISK_QUERIED',
   // GD-M31-1 Decision 9: workforce readiness queries auditable from day one.
   INTELLIGENCE_WORKFORCE_READINESS_QUERIED = 'INTELLIGENCE_WORKFORCE_READINESS_QUERIED',
+  // GD-M32-1 Decision 9: aggregate attrition risk queries auditable from day one.
+  INTELLIGENCE_ATTRITION_RISK_QUERIED = 'INTELLIGENCE_ATTRITION_RISK_QUERIED',
 
   // -------------------------------------------------------------------------
   // AUD-900: Integration Events

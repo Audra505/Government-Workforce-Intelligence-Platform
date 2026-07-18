@@ -9,16 +9,16 @@
 
 ---
 
-Last Updated: 2026-07-16 (M31 Workforce Readiness Intelligence -- CI CONFIRMED; cbcacdb; runtime-verified + browser-verified + CI green)
-Updated By: Claude Code (M31 CI confirmed; cbcacdb green; M31 fully closed)
+Last Updated: 2026-07-18 (M32 Aggregate Attrition Risk + Intelligence Detail Workspace -- LOCALLY IMPLEMENTED, RUNTIME-VERIFIED, BROWSER-VERIFIED; ready for commit and CI confirmation)
+Updated By: Claude Code (M32 full runtime/browser verification complete after Docker Desktop restart; finalizing for a single implementation commit)
 
-Previous Update: 2026-07-16 (M30 Intelligence Foundation and Vacancy Risk Panel -- CI CONFIRMED; 407195b; runtime-verified + browser-verified + CI green)
+Previous Update: 2026-07-16 (M31 Workforce Readiness Intelligence -- CI CONFIRMED; cbcacdb; runtime-verified + browser-verified + CI green)
 
 ## Repository Status
 
-Current Phase: **Phase 4 — M31 CI-CONFIRMED (Workforce Readiness Intelligence)**
-Overall Classification: Phase 2 COMPLETE; Post-Phase-2 milestones M13/M14/M15 CI-confirmed; Pre-Phase-3 Governance Package CI-confirmed (a5c34f1); Phase 3 started — M16 CI-confirmed; M17 CI-confirmed; M18 CI-confirmed; M19 CI-confirmed; M20 CI-confirmed (6e6777b; run 28611838113); M21 CI-confirmed (1036c92 + 3c8189d + 1e33420); browser-verified by human 2026-07-03; CLOSED; M21.5 CI-confirmed (782e35e + 1a4b64f; runs #66 + #67); M22 CI-confirmed (ee8465b); browser-verified by human 2026-07-04; CLOSED; M23 CI-confirmed (5fedb81); browser-verified by human 2026-07-06; CLOSED; M24 CI-confirmed (5f5bfa6); browser-verified by human 2026-07-11; CLOSED; M25 CI-confirmed (23d46ef); browser-verified by human 2026-07-13; CLOSED; M26 CI-confirmed (a9a6943); runtime-verified 2026-07-14; CLOSED; M27 CI-confirmed (9049fd6); runtime-verified 2026-07-14; CLOSED; M28 CI-confirmed (46ffcce); runtime-verified + human browser-verified 2026-07-14; CLOSED; M29 CI-confirmed (45efe2f); seed validated 2026-07-14; CLOSED; Phase 3 COMPLETE; Phase 4 Intelligence STARTED — M30 CI-confirmed (407195b); governance GD-M30-1.md authorized (3c9366e) and amended twice (d3a2a65, 0401672); runtime-verified + browser-verified 2026-07-16; CLOSED; M31 CI-confirmed (cbcacdb); governance GD-M31-1.md authorized (051fa8f); runtime-verified + browser-verified 2026-07-16; CI run #99 (ID 29534898812) completed / success; CLOSED
-Active Sprint / Milestone: M31 CLOSED and CI-confirmed (cbcacdb; 2026-07-16)
+Current Phase: **Phase 4 — M32 RUNTIME/BROWSER-VERIFIED, READY FOR CI CONFIRMATION (Aggregate Attrition Risk + Intelligence Detail Workspace)**
+Overall Classification: Phase 2 COMPLETE; Post-Phase-2 milestones M13/M14/M15 CI-confirmed; Pre-Phase-3 Governance Package CI-confirmed (a5c34f1); Phase 3 started — M16 CI-confirmed; M17 CI-confirmed; M18 CI-confirmed; M19 CI-confirmed; M20 CI-confirmed (6e6777b; run 28611838113); M21 CI-confirmed (1036c92 + 3c8189d + 1e33420); browser-verified by human 2026-07-03; CLOSED; M21.5 CI-confirmed (782e35e + 1a4b64f; runs #66 + #67); M22 CI-confirmed (ee8465b); browser-verified by human 2026-07-04; CLOSED; M23 CI-confirmed (5fedb81); browser-verified by human 2026-07-06; CLOSED; M24 CI-confirmed (5f5bfa6); browser-verified by human 2026-07-11; CLOSED; M25 CI-confirmed (23d46ef); browser-verified by human 2026-07-13; CLOSED; M26 CI-confirmed (a9a6943); runtime-verified 2026-07-14; CLOSED; M27 CI-confirmed (9049fd6); runtime-verified 2026-07-14; CLOSED; M28 CI-confirmed (46ffcce); runtime-verified + human browser-verified 2026-07-14; CLOSED; M29 CI-confirmed (45efe2f); seed validated 2026-07-14; CLOSED; Phase 3 COMPLETE; Phase 4 Intelligence STARTED — M30 CI-confirmed (407195b); governance GD-M30-1.md authorized (3c9366e) and amended twice (d3a2a65, 0401672); runtime-verified + browser-verified 2026-07-16; CLOSED; M31 CI-confirmed (cbcacdb); governance GD-M31-1.md authorized (051fa8f); runtime-verified + browser-verified 2026-07-16; CI run #99 (ID 29534898812) completed / success; CLOSED; M32 RUNTIME/BROWSER-VERIFIED — governance GD-M32-1.md authorized (e43c700) and amended with Amendment 1 (Intelligence Detail Workspace); backend AttritionRiskService + frontend Intelligence workspace + dashboard condensation/alignment + nav reorder implemented and verified against the rebuilt Docker stack (all 7 M29 fixture users, live RBAC, audit event, dashboard/nav/workspace rendering by role, master-detail 0-network-request behavior all confirmed); type-check/lint clean both apps; full API suite 1869/1869 passing; NOT yet committed, NOT yet CI-confirmed — commit and push are the next step; OPEN pending CI
+Active Sprint / Milestone: M32 — runtime/browser-verified, staged for a single implementation commit; CI confirmation pending push
 Implementation Started: Yes (2026-06-05)
 
 ## Phase Summary
@@ -33,12 +33,12 @@ Phase 1 is formally closed. D9 (Docker Environment) and D10 (CI/CD Foundation) w
 > Its purpose is crash/session recovery: the current step state is always readable without
 > scanning Zone 5 history. It is overwritten each step — not appended.
 
-Milestone: M31 Workforce Readiness Intelligence -- CI-CONFIRMED
+Milestone: M32 Aggregate Attrition Risk + Intelligence Detail Workspace -- RUNTIME-VERIFIED, BROWSER-VERIFIED, READY FOR COMMIT
 Last Completed Milestone: M31 CI-CONFIRMED -- cbcacdb; runtime-verified + browser-verified + CI green 2026-07-16; FULLY CLOSED
-Last Completed Step: CI confirmed green (run #99, ID 29534898812 -- completed / success)
-Last Completed Step Date: 2026-07-16
-Current Step: M31 fully closed -- no active step
-Session Classification: PHASE 4 M31 IMPLEMENTED -- WorkforceReadinessService (deterministic readiness-deterministic-v1 formula: Staffing Coverage 0-30, Position Capacity 0-20, Vacancy Pressure 0-30 via governed reuse of VacancyRiskService.score(tenantId, {}), Certification Compliance 0-20); readiness levels CRITICAL/AT_RISK/DEVELOPING/READY; confidence + insufficient-data behavior; GET /api/v1/intelligence/workforce-readiness; RBAC (SA/HRD/WP/Executive User allowed, Recruiter/HM/CO forbidden); tenant isolation from JWT tenantId only; explainability response contract reused verbatim from M30; WorkforceReadinessResponseDto; INTELLIGENCE_WORKFORCE_READINESS_QUERIED audit event with PII-safe aggregate-only metadata; Executive User aggregate-only guarantee (byte-identical response to System Administrator) verified at unit-test and browser level; dashboard Workforce Readiness card added with independent per-signal RBAC gating (canSeeVacancyRisk vs canSeeWorkforceReadiness); side-by-side 1fr/2fr Workforce Intelligence layout (Readiness first, Vacancy Risk second) for roles with both signals; single-column fallback for Executive User; Workforce Intelligence section omitted entirely for forbidden roles; Days Open column removed from Vacancy Risk table; final visual polish (header divider alignment, centered content rhythm) applied per iterative user review. Governance: GD-M31-1.md (051fa8f)
+Last Completed Step: Full runtime + browser verification pass after Docker Desktop restart -- all 3 containers healthy on rebuilt images; all 7 M29 fixture users login 200 OK; attrition-risk RBAC confirmed (SA/HRD/WP/Executive User 200, Recruiter/HM/CO 403, no-JWT 401); audit event confirmed PII-safe via direct DB query; dashboard/nav/workspace role rendering confirmed via Playwright across all 7 roles; Vacancy Risk tab confirmed at exactly 5 rows; master-detail row click confirmed 0 network requests; final validation clean (API type-check/lint, web type-check/lint, targeted attrition 37/37, targeted intelligence 185/185, full API suite 1869/1869)
+Last Completed Step Date: 2026-07-18
+Current Step: Finalizing for a single M32 implementation commit -- staging the 17 M32-related files plus this PROGRESS.md update, committing, pushing once, then checking GitHub Actions CI for the pushed commit.
+Session Classification: PHASE 4 M32 RUNTIME/BROWSER-VERIFIED -- Backend: AttritionRiskService (deterministic attrition-deterministic-v1 formula: Separation Rate 0-50, Tenure Composition 0-30, Position Recurrence 0-20, per GD-M32-1 Decision 5); GET /api/v1/intelligence/attrition-risk; RBAC (SA/HRD/WP/Executive User allowed, Recruiter/HM/CO forbidden); INTELLIGENCE_ATTRITION_RISK_QUERIED audit event, PII-safe aggregate-only metadata; explainability contract reused verbatim from M30/M31 pattern. Frontend: new /intelligence route (Server Component, pre-fetch RBAC redirect) with client-state-only (useState, no URL params, no server round trip) Intelligence workspace -- Workforce Signals tab (summary strip + one integrated two-column factor-contribution panel) and Vacancy Risk tab (KPI strip + master-detail: 5-row ranked list + instant-swap selected-vacancy factor breakdown, zero network requests on row click, confirmed live); disabled "Soon" Department Gap tab placeholder; Intelligence nav item added consistently across all 4 authenticated shells (dashboard, workforce, recruiting, admin) for SA/HRD/WP/Executive User only, hidden for Recruiter/Hiring Manager/Compliance Officer, reordered to sit directly after Dashboard and styled with a distinguishing blue accent; dashboard Workforce Readiness and Attrition Risk cards condensed and stacked vertically in a shared left column (no "View all" link on any of the three intelligence cards -- the nav item is the way in); Vacancy Risk Signals widened to `1.4fr` of the row, horizontal scrollbar removed, risk score centered/uniform-width; all three card headers height-matched and the stacked column height-stretched so dividers and bottoms align across the row; outdated dashboard/loading.tsx Suspense skeleton (missing Intelligence/Admin nav, pre-M25 styling) rewritten to match current design. Governance: GD-M32-1.md authorized (e43c700) and amended with Amendment 1 -- Decisions 15-21 -- authorizing the Intelligence workspace scope/nav/route/RBAC/factor-display rules; reviewed against final implementation, no factual mismatch found, no correction needed. Validation: type-check + lint clean on both apps; full API suite 1869/1869 (51 suites) passing; full runtime + browser verification passing across all 7 roles; NOT yet committed, NOT yet CI-confirmed -- commit/push is the immediate next step.
 
 ## Milestone 10 — Approved Plan
 
@@ -11169,3 +11169,170 @@ The following were explicitly excluded from M28 scope and are NOT present in the
 | Demand Forecasting | Deferred |
 | Candidate Matching | Deferred |
 | Executive Analytics | Deferred |
+
+---
+
+# Milestone M32 — Aggregate Attrition Risk + Intelligence Detail Workspace
+
+**Date:** 2026-07-17 (implemented) — 2026-07-18 (runtime/browser-verified, finalized for commit)
+**Status:** LOCALLY IMPLEMENTED, RUNTIME-VERIFIED, BROWSER-VERIFIED — READY FOR CI CONFIRMATION. CI will be confirmed after this commit is pushed; this entry must not claim CI passed until a GitHub Actions run for the pushed commit exists and is observed green.
+**Governance:** `governance/GD-M32-1.md`
+  - Authorization: `e43c700` (`docs(governance): authorize M32 aggregate attrition risk`)
+  - Amendment 1 — Intelligence Detail Workspace (Decisions 15–21: scope/nav/route, sub-tab structure, Workforce Signals tab, Vacancy Risk tab, factor contribution display rule, RBAC, validation gate additions) — committed together with this milestone's implementation commit
+  - `governance/governance_history.md` — Amendment 1 summary appended to the existing GD-M32-1 row — committed together with this milestone's implementation commit
+  - Reviewed against the final implementation for factual accuracy before commit (nav item existence, tab structure, RBAC, factor-display rule) — no mismatch found; no governance correction was needed
+**Implementation commit:** recorded below once created
+**CI run:** not yet triggered as of this entry — will be confirmed in a follow-up PROGRESS.md update after push
+
+## Scope Completed (implementation-complete, verification-incomplete)
+
+### Phase 4 Intelligence — Continued After M31, Plus Detail Workspace Amendment
+
+- Phase 4 continued with M32 per GD-M32-1: Aggregate Attrition Risk added as the third Phase 4 signal, reusing the `IntelligenceModule` foundation from M30/M31
+- Mid-milestone, GD-M32-1 was amended (Amendment 1) to additionally authorize a dedicated `/intelligence` detail workspace, closing a governance gap identified before any workspace code was written: the original M32 authorization covered only the new attrition-risk endpoint and dashboard card, not a standalone route exposing per-factor contribution math
+
+### Backend — Attrition Risk Endpoint
+
+- `AttritionRiskService` added at `apps/api/src/intelligence/services/attrition-risk.service.ts`
+- `GET /api/v1/intelligence/attrition-risk` added (`intelligence.controller.ts`)
+- `AttritionRiskResponseDto` added at `intelligence/dto/attrition-risk-response.dto.ts`
+- Deterministic `attrition-deterministic-v1` formula — no external AI/LLM: Separation Rate (0–50 pts), Tenure Composition (0–30 pts), Position Recurrence (0–20 pts), per GD-M32-1 Decision 5
+- Explainability response contract reused verbatim from the M30/M31 pattern (`IntelligenceExplainabilityOutput` / `RiskFactor`)
+- Audit event `INTELLIGENCE_ATTRITION_RISK_QUERIED` added to `AuditEventType` enum; PII-safe aggregate-only metadata only
+- RBAC: System Administrator, HR Director, Workforce Planner, Executive User allowed (200 OK); Recruiter, Hiring Manager, Compliance Officer forbidden (403); no JWT → 401
+- Tenant isolation enforced from JWT `tenantId` only (SEC-003)
+- Aggregate-only guarantee: response contains no individual employee row, identifier, ranking, or list of any kind; Executive User response byte-identical in shape to System Administrator
+
+### Frontend — Intelligence Detail Workspace (`/intelligence`)
+
+- New Server Component page `apps/web/src/app/(dashboard)/intelligence/page.tsx` — pre-fetch RBAC redirect (`redirect('/dashboard')` before any fetch for forbidden roles), `Promise.allSettled` fetch of workforce-readiness, attrition-risk, and (role-gated) vacancy-risk (`pageSize=5` — top 5 highest-risk vacancies, matching the approved mockup and dashboard-level expectation; existing governed query param, no new endpoint behavior)
+- New Client Component `apps/web/src/features/intelligence/components/intelligence-workspace.tsx` — all interactivity is local `useState` only (active tab, selected vacancy id); no URL params, no server round trip for row selection — verified in-browser: 0 network requests fire on a vacancy row click
+- New shared types/constants `apps/web/src/features/intelligence/types.ts` — types the `factors: RiskFactor[]` field that already existed in all three API responses but was never declared or rendered on the frontend before this milestone; mirrors (does not invent) the governed per-factor point maximums from GD-M30-1/GD-M31-1/GD-M32-1 Decision 5
+- Workforce Signals tab: summary strip (2 signal tiles) + ONE integrated two-column Factor Contributions panel — explicitly not a repeated stacked-card layout (GD-M32-1 Decision 17)
+- Vacancy Risk tab: KPI strip of real derivable aggregates (high/critical count, avg days open — computed client-side from already-fetched data, not invented) + master-detail layout (5-row ranked list, click a row to swap the detail panel instantly, no network request) (GD-M32-1 Decision 18)
+- Disabled "Soon" Department Gap tab placeholder rendered but inert — authorizes nothing behind it (GD-M32-1 Decision 16)
+- Page-level advisory footer: scores are deterministic and advisory, no OpenAI/external model is used, human review is required
+- Factor-contribution math (proportion bars, point values) rendered ONLY inside this workspace — never on the dashboard (GD-M32-1 Decision 19, reaffirming GD-M30-1 Decision 10 is unrelaxed)
+- Top nav's active "Intelligence" pill uses the same blue accent as the inactive nav link elsewhere in the shell (rather than the neutral white pill other sections use when active), so the page doesn't lose its distinguishing color on arrival
+
+### Frontend — Dashboard Condensation + Nav
+
+- `apps/web/src/app/(dashboard)/dashboard/page.tsx`: Workforce Readiness and Attrition Risk cards condensed (removed factor-chip row and long formula footer; kept score, level pill, one reasoning line, short footer) and stacked vertically in a shared left column (not side-by-side) so Vacancy Risk Signals gets proportionally more width (`1fr 1.4fr` grid split) — per iterative user design feedback
+- No `View all` link on any of the three dashboard intelligence cards (Workforce Readiness, Attrition Risk, or Vacancy Risk Signals) — the Intelligence nav item is the single way into the workspace; Vacancy Risk Signals' full ranked table remains otherwise unchanged/uncondensed per direct user instruction
+- Vacancy Risk Signals table: removed a hard-coded `minWidth: 640` that forced an unwanted horizontal scrollbar at the panel's new (narrower, pre-stacking) width; narrowed `RISK_GRID_COLS` and switched the Risk badge+score to a centered, fixed-width stacked layout so text wraps/truncates instead of overflowing, and every score lands in the same horizontal position regardless of digit count
+- All three intelligence card headers (Workforce Readiness, Attrition Risk, Vacancy Risk Signals) given a matching `minHeight` so their amber divider lines land at the same vertical position regardless of one-line vs two-line title text; the stacked left column stretches to match Vacancy Risk Signals' full height (`alignItems: stretch` + `flex: 1` on each stacked card) so the bottom of Attrition Risk aligns with the bottom of Vacancy Risk Signals
+- `canSeeIntelligence` nav flag (SA/HRD/WP/Executive User) and a conditional `Intelligence` nav link added consistently across all 4 authenticated shells: `dashboard/page.tsx`, `workforce-shell.tsx`, `recruiting-shell.tsx`, `admin-shell.tsx` — nav order changed to Dashboard → Intelligence → Workforce → Recruiting → Admin (Intelligence moved directly after Dashboard) per user request; the Intelligence link is styled in a distinguishing blue accent rather than the default dimmed-white nav treatment; link never renders for Recruiter/Hiring Manager/Compliance Officer
+- `apps/web/src/app/(dashboard)/dashboard/loading.tsx` (Suspense fallback for the dashboard's ~25 parallel fetches) rewritten — the previous version predated M25/M32 and omitted the Intelligence and Admin nav items entirely, using an older plain-text nav style; it now mirrors the current header/nav exactly and skeletons the current section layout (KPI row, stacked-left/wide-right intelligence blocks, lower sections)
+
+## Files Changed (17 total — staged for the M32 implementation commit)
+
+Modified (11):
+- `apps/api/src/audit/enums/audit-event-type.enum.ts`
+- `apps/api/src/intelligence/intelligence.controller.ts`
+- `apps/api/src/intelligence/intelligence.controller.spec.ts`
+- `apps/api/src/intelligence/intelligence.module.ts`
+- `apps/web/src/app/(dashboard)/dashboard/loading.tsx`
+- `apps/web/src/app/(dashboard)/dashboard/page.tsx`
+- `apps/web/src/features/admin/components/admin-shell.tsx`
+- `apps/web/src/features/recruiting/components/recruiting-shell.tsx`
+- `apps/web/src/features/workforce/components/workforce-shell.tsx`
+- `governance/GD-M32-1.md`
+- `governance/governance_history.md`
+
+New (6):
+- `apps/api/src/intelligence/services/attrition-risk.service.ts`
+- `apps/api/src/intelligence/services/attrition-risk.service.spec.ts`
+- `apps/api/src/intelligence/dto/attrition-risk-response.dto.ts`
+- `apps/web/src/app/(dashboard)/intelligence/page.tsx`
+- `apps/web/src/features/intelligence/types.ts`
+- `apps/web/src/features/intelligence/components/intelligence-workspace.tsx`
+
+(Plus `PROGRESS.md` itself, updated separately as the ledger entry for this closeout — not counted in the 17 M32 source/governance files above.)
+
+## Validation
+
+Docker Desktop's engine failure (documented below under Known Risks / Limitations as a historical note) was resolved by a user-initiated restart on 2026-07-18. All runtime/browser verification below was performed against the rebuilt `gov_workforce_api` and `gov_workforce_web` containers (both rebuilt from current M32 source per SETUP.md's rebuild decision tree) plus the already-running `gov_workforce_postgres`.
+
+| Check | Result |
+|---|---|
+| API type-check | Passed — 0 errors |
+| API lint | Passed — 0 errors |
+| Web type-check | Passed — 0 errors |
+| Web lint | Passed — "No ESLint warnings or errors" |
+| Targeted attrition-risk service tests | Passed — 37/37 (9.0s, normal speed) |
+| Targeted intelligence tests (4 suites) | Passed — **185/185** — the RBAC timeout observed once during an earlier resource-contention window (Docker engine unhealthy) did not reproduce on isolated re-run (3096ms, well under the 5000ms threshold) and was confirmed environment flake, not a code defect; no code changes were made |
+| Full unfiltered API test suite (`npx jest`) | Passed — **1869/1869 tests, 51/51 suites**, ~79–184s depending on system load across repeated runs this session |
+| Docker runtime rebuild (SETUP.md rebuild decision tree — both `api` and `web`) | Passed — `docker compose build api`, `docker compose build web`, stop/rm/up recreate for both; all 3 containers report `(healthy)` via `docker ps` |
+| Fixture user login (7 M29 roles: SA, HR Director, Workforce Planner, Recruiter, Hiring Manager, Compliance Officer, Executive User) | Passed — all 7 return HTTP 200 from `POST /api/v1/auth/login` |
+| Live `/intelligence/attrition-risk` endpoint RBAC | Passed — SA/HRD/WP/Executive User → 200 OK; Recruiter/Hiring Manager/Compliance Officer → 403 Forbidden; no JWT → 401 Unauthorized |
+| Audit event PII-safe metadata | Passed — `INTELLIGENCE_ATTRITION_RISK_QUERIED` / `SUCCESS` rows confirmed via direct `psql` query, one per successful call, metadata limited to `{confidence, formulaVersion, attritionRiskLevel}` — no scores, factors, or employee data |
+| Dashboard role-based rendering | Passed (browser, all 7 roles) — SA/HRD/WP see all 3 condensed/full intelligence cards; Executive User sees Workforce Readiness + Attrition Risk only (Vacancy Risk Signals correctly absent); Recruiter/Hiring Manager/Compliance Officer see no Workforce Intelligence section at all; no dashboard factor-contribution math detected on any role's page (`dashboardHasFactorContributionsLeak: false` across the board) |
+| Intelligence nav/route role gating | Passed (browser) — nav item + `/intelligence` route accessible for SA/HRD/WP/Executive User; nav item absent and direct navigation server-redirects to `/dashboard` (pre-fetch, no restricted-data flash) for Recruiter/Hiring Manager/Compliance Officer |
+| Intelligence workspace behavior | Passed (browser) — Workforce Signals tab (summary strip + integrated Factor Contributions panel) and Vacancy Risk tab (KPI strip + master-detail) render correctly for SA/HRD/WP; Executive User sees Workforce Signals only, Vacancy Risk tab correctly absent; disabled "Soon" Department Gap placeholder present; advisory footer text present on every load |
+| Vacancy Risk tab count | Passed — exactly **5** scored vacancies (`vacancyRowCount: 5`), "5 ranked by computed risk — highest first" label, "X of 5 scored" KPI tile |
+| Master-detail row-click network behavior | Passed — clicking a second vacancy row updates the detail panel instantly; **0 network requests observed** during the click (measured via a Playwright request listener) |
+| No individual employee attrition detail | Passed — confirmed via response-body inspection (aggregate-only fields only) and unit tests (`no employee-shaped field, list, or identifier`) |
+| No fake data / OpenAI / LLM | Passed — confirmed via code review + dedicated unit tests (`no external HTTP dependency`, `score() completes without any HTTP or network call`) |
+| Visual acceptance vs. approved mockup | Passed (browser, screenshot-confirmed) — page structure, tabs, summary strip, factor panel, and master-detail layout match the approved design direction; header/nav/font consistency confirmed (real self-hosted IBM Plex fonts, no fallback-font gap) |
+| CI | **Not yet triggered** — will be confirmed after this commit is pushed; see CI run/status recorded separately once observed |
+
+## Explicit Exclusions (unchanged from GD-M32-1 + Amendment 1)
+
+- No OpenAI/LLM integration of any kind
+- No individual/employee-level attrition prediction, ranking, or list
+- No department or small-group breakdowns
+- No manager-facing predictions
+- No demand forecasting
+- No candidate matching
+- No compliance intelligence
+- No Prisma schema changes
+- No database migrations
+- No new BFF routes
+- No new intelligence scoring beyond what M30/M31/M32 already govern
+- No font files embedded/exported/copied into any artifact
+- Nothing staged, committed, or pushed prior to the finalization commit recorded below
+
+## Known Risks / Limitations
+
+- **Resolved historical blocker:** earlier in this milestone's session, Docker Desktop's engine was unresponsive (HTTP 500 from `dockerDesktopLinuxEngine` on every invocation), blocking all runtime/browser verification. This was an environment failure external to the repository, not a defect introduced by M32 code. The user restarted Docker Desktop on 2026-07-18 and the engine has been healthy for every rebuild/verification cycle since — no further action needed.
+- The single test flake observed during the Docker-unhealthy window (`intelligence.controller.spec.ts` RBAC timeout) did not reproduce on isolated re-run or in the final full-suite run after Docker recovered — confirmed resource-contention flake, not a code defect.
+- The Vacancy Risk tab shows the top 5 highest-risk vacancies (`pageSize=5`), not the full unfiltered set — an explicit, user-directed design choice matching the approved mockup, not a limitation of the underlying `vacancy-risk` endpoint (which supports pagination up to 50 and is unchanged).
+- No UI-level (Playwright/E2E) automated test suite exists yet for the Intelligence workspace — verification for this milestone was performed via manual/scripted browser checks (Playwright ad hoc scripts, not committed as a permanent test suite) plus screenshot review, not a repeatable CI-gated E2E suite. This is a known gap for a future milestone to close, not unique to M32.
+
+## M32 Overall Maturity
+
+| Layer | Status |
+|---|---|
+| Requirements | Defined — GD-M32-1.md; spec/01_requirements.md FR-4xx/FR-900 series |
+| Specs | Defined — GD-M32-1 (original decisions) + Amendment 1 (Decisions 15–21) + this PROGRESS.md entry |
+| Directives | GD-M32-1 authorized (`e43c700`); Amendment 1 committed together with this milestone's implementation commit; reviewed against final implementation for factual accuracy — no mismatch found |
+| Execution Plan | Complete — AttritionRiskService; GET /attrition-risk; AttritionRiskResponseDto; audit event; /intelligence route; IntelligenceWorkspace client component; dashboard condensation + alignment; nav additions/reorder across 4 shells; dashboard loading-skeleton fix |
+| State Model | Attrition score 0–100; factor contributions typed and rendered for the first time on the frontend; workspace tab state + selected-vacancy state are pure client `useState`, never persisted or URL-driven — confirmed via 0-network-request browser test on row click |
+| Test Scenarios | Validated at unit/integration level (37 attrition-risk service tests; 185 targeted intelligence tests; full 1869-test API suite green; type-check + lint clean on both apps) AND at runtime/browser level (7-role login, live RBAC, audit event, dashboard/nav/workspace rendering, master-detail behavior, visual acceptance) — no dedicated automated E2E suite exists yet (see Known Risks) |
+| System Loop | Implemented and exercised as a running system — JWT → RolesGuard → AttritionRiskService → PrismaService → AuditService → workspace `serverFetch` → client-state-driven render, all confirmed live against the rebuilt Docker stack |
+| Failure Playbook | Coded (Promise.allSettled-protected fetches, per-signal fetchFailed states, pre-fetch RBAC redirect) — not exercised under an induced real failure condition (e.g. forced DB outage), but the pattern is identical to M30/M31's already-verified failure handling |
+| Environment Model | Verified — full Docker stack (postgres + api + web) rebuilt and health-checked per SETUP.md's documented rebuild decision tree; no schema/migration/infra changes made |
+| Data Lifecycle | No schema change; scores computed live on every request; audit event persisted per query (confirmed via direct DB query) |
+| Evolution Strategy | Continues the IntelligenceExplainabilityOutput foundation contract from M30/M31; Intelligence workspace establishes the first client-state master-detail pattern in this codebase, available for reuse by future Phase 4 signals |
+| **Overall** | **Locally implemented, runtime-verified, browser-verified — ready for commit and CI confirmation. Not yet marked Verified/CLOSED: that status is reserved until a GitHub Actions run for the pushed commit is observed green.** |
+
+## Capability Maturity Summary (Phase 4, Post-M32)
+
+| Capability | Status |
+|---|---|
+| Phase 4 Intelligence | Continued |
+| Vacancy Risk Intelligence | Verified (M30) |
+| Workforce Readiness Intelligence | Verified (M31) |
+| Aggregate Attrition Risk Intelligence | Runtime-verified + browser-verified — CI confirmation pending push |
+| Intelligence Detail Workspace | Runtime-verified + browser-verified — CI confirmation pending push; no dedicated automated E2E suite yet |
+| Role-Based Intelligence Matrix | Actively implemented in stages (GD-M30-1 Decision 11) — three signals live-verified with independent per-signal gating |
+| AI/LLM integration | Deferred |
+| Demand Forecasting | Deferred |
+| Candidate Matching | Deferred |
+| Executive Analytics | Deferred |
+
+## Next Actions
+
+1. Stage the 17 M32-related files plus this PROGRESS.md update, create the implementation commit, and push once.
+2. Check GitHub Actions for the pushed commit's CI run.
+3. Once CI is observed green, update this PROGRESS.md entry's Status to CI-CONFIRMED / CLOSED with the commit hash and CI run ID — not before.
