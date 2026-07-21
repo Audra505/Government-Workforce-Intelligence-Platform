@@ -5,11 +5,16 @@
 // employmentStatus: all 5 GD-M12-1 canonical values are valid filter targets.
 //   PENDING_ONBOARDING and SEPARATED are included — HR personnel may filter for any state.
 // departmentId: optional UUID filter — scopes the list to a single department.
+// hireDateFrom/hireDateTo, terminationDateFrom/terminationDateTo: optional inclusive date-range
+//   filters over the existing hireDate/terminationDate columns — added for the dashboard
+//   Operational Snapshot "hires / separations, last 30 days" analytic. No new columns, no
+//   new endpoint; date bounds are supplied by the caller (e.g. today and 30 days ago) rather
+//   than computed server-side, matching this DTO's existing caller-supplied-filter convention.
 // tenantId: NOT a parameter — always derived from JWT context (SEC-003/EMP-002).
 
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsIn, IsInt, IsOptional, IsUUID, Max, Min } from 'class-validator';
+import { IsDateString, IsIn, IsInt, IsOptional, IsUUID, Max, Min } from 'class-validator';
 
 const EMPLOYMENT_STATUS_VALUES = [
   'PENDING_ONBOARDING',
@@ -51,4 +56,36 @@ export class ListEmployeesQueryDto {
   @IsOptional()
   @IsUUID()
   departmentId?: string;
+
+  @ApiPropertyOptional({
+    example: '2026-06-21',
+    description: 'Filter to employees with hireDate on or after this date (inclusive, ISO 8601)',
+  })
+  @IsOptional()
+  @IsDateString()
+  hireDateFrom?: string;
+
+  @ApiPropertyOptional({
+    example: '2026-07-21',
+    description: 'Filter to employees with hireDate on or before this date (inclusive, ISO 8601)',
+  })
+  @IsOptional()
+  @IsDateString()
+  hireDateTo?: string;
+
+  @ApiPropertyOptional({
+    example: '2026-06-21',
+    description: 'Filter to employees with terminationDate on or after this date (inclusive, ISO 8601)',
+  })
+  @IsOptional()
+  @IsDateString()
+  terminationDateFrom?: string;
+
+  @ApiPropertyOptional({
+    example: '2026-07-21',
+    description: 'Filter to employees with terminationDate on or before this date (inclusive, ISO 8601)',
+  })
+  @IsOptional()
+  @IsDateString()
+  terminationDateTo?: string;
 }

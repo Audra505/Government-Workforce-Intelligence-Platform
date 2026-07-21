@@ -234,6 +234,10 @@ export class EmployeeController {
       departmentId: query.departmentId,
       page: query.page,
       pageSize: query.pageSize,
+      hireDateFrom: query.hireDateFrom,
+      hireDateTo: query.hireDateTo,
+      terminationDateFrom: query.terminationDateFrom,
+      terminationDateTo: query.terminationDateTo,
     });
 
     switch (result.outcome) {

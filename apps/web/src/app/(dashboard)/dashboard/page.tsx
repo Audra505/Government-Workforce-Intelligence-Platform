@@ -33,6 +33,10 @@ type VacancyItem = {
   positionTitle: string;
   priority: string;
   departmentName?: string | null;
+  // Already returned by GET /api/v1/vacancies for every item — not previously
+  // declared here because no existing panel needed it. Used by the Operational
+  // Snapshot "oldest critical vacancy" analytic below.
+  ageInDays?: number;
 };
 type VacancyListRes  = { data: { vacancies: VacancyItem[] } };
 type CertItem = {
@@ -137,6 +141,13 @@ function fmtExecutiveMetric(metric: ExecutiveMetricValue | undefined): string {
   const formatted = metric.unit === 'COUNT' ? String(metric.value) : metric.value.toFixed(1);
   return `${formatted}${EXEC_METRIC_UNIT_SUFFIX[metric.unit]}`;
 }
+// Operational Snapshot analytics chip text — a signed net-change count over
+// the fixed 30-day window (e.g. "+5 net · 30d", "-3 net · 30d", "0 net · 30d").
+// Never a fabricated "up/down from last month" claim — the sign is the direct
+// arithmetic result of two real counts fetched for the same request.
+function formatNetChip(net: number): string {
+  return `${net > 0 ? '+' : ''}${net} net · 30d`;
+}
 
 // Shared confidence-label rule already used inline in the operational
 // dashboard's Workforce Readiness / Attrition Risk cards (confidence >= 70 →
@@ -213,6 +224,17 @@ function daysUntil(s: string): number {
   const exp = new Date(yr, mo - 1, dy);
   return Math.ceil((exp.getTime() - now.getTime()) / 86_400_000);
 }
+// Operational Snapshot analytics — "last 30 days" window, expressed as caller-
+// supplied ISO date bounds (YYYY-MM-DD) matching hireDateFrom/hireDateTo etc.'s
+// existing query-param convention. Today is the upper bound so a future-dated
+// hireDate (PENDING_ONBOARDING employees may be hired ahead of their start
+// date) is never counted as "already hired." Must be computed per-request
+// (inside the page function), not at module scope — this server process
+// stays warm across requests, so a module-level const would freeze "today"
+// at server-start time.
+function isoDate(d: Date): string {
+  return d.toISOString().slice(0, 10);
+}
 
 // ── Shared card shell ────────────────────────────────────────────────────────
 const CARD = {
@@ -246,25 +268,62 @@ function CardHead({ title, href, cta = 'View all →' }: { title: string; href?:
   );
 }
 
+// Operational Snapshot analytics chip — a single compact fact next to the
+// headline number (e.g. a 30-day net change, a coverage rate, an oldest-case
+// age). Deliberately restrained palette: 'neutral' for a directional change
+// with no inherent good/bad reading (workforce size moving either way),
+// 'amber'/'green' only where the direction is unambiguous (vacancy pressure
+// building vs. easing), 'red' reserved for the single most urgent fact
+// (oldest critical vacancy age). No chip is ever fabricated — omitted
+// entirely by the caller when the underlying data isn't available.
+const KPI_CHIP_STYLES: Record<'neutral' | 'green' | 'amber' | 'red', { bg: string; c: string; bd: string }> = {
+  neutral: { bg: '#eff6ff', c: BLUE,  bd: 'rgba(37,99,235,.2)' },
+  green:   { bg: '#f0fdf4', c: GREEN, bd: '#bbf7d0' },
+  amber:   { bg: '#fffbeb', c: AMBER, bd: '#fde68a' },
+  red:     { bg: '#fef2f2', c: RED,   bd: '#fecaca' },
+};
+
 function KpiCard({
-  label, value, note, barColor, barPct = 100,
+  label, value, chip, supportLine, note, barColor, barPct = 100,
 }: {
   label: string;
   value: string;
+  chip?: { text: string; tone: 'neutral' | 'green' | 'amber' | 'red' };
+  supportLine?: ReactNode;
   note?: ReactNode;
   barColor: string;
   barPct?: number;
 }) {
+  const chipStyle = chip ? KPI_CHIP_STYLES[chip.tone] : null;
   return (
     <div style={CARD}>
       <div style={{ padding: 20 }}>
         <p style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.1em', color: MUTED, marginBottom: 10 }}>
           {label}
         </p>
-        <p style={{ fontFamily: MONO, fontSize: 32, fontWeight: 700, color: TEXT, lineHeight: 1, letterSpacing: '-.025em', fontVariantNumeric: 'tabular-nums', marginBottom: 8 }}>
-          {value}
-        </p>
-        {note && (
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: 9, flexWrap: 'wrap', marginBottom: supportLine || note ? 10 : 8 }}>
+          <p style={{ fontFamily: MONO, fontSize: 32, fontWeight: 700, color: TEXT, lineHeight: 1, letterSpacing: '-.025em', fontVariantNumeric: 'tabular-nums', margin: 0 }}>
+            {value}
+          </p>
+          {chip && chipStyle && (
+            <span
+              style={{
+                fontSize: 10.5, fontWeight: 600, padding: '2.5px 8px', borderRadius: 9999,
+                whiteSpace: 'nowrap', lineHeight: 1.5, fontVariantNumeric: 'tabular-nums',
+                background: chipStyle.bg, color: chipStyle.c, border: `1px solid ${chipStyle.bd}`,
+              }}
+            >
+              {chip.text}
+            </span>
+          )}
+        </div>
+        {supportLine && (
+          <>
+            <div style={{ height: 1, background: '#eef1f5', marginBottom: 8 }} />
+            <p style={{ fontSize: 11.5, color: SUB, lineHeight: 1.45, fontVariantNumeric: 'tabular-nums', margin: 0 }}>{supportLine}</p>
+          </>
+        )}
+        {!supportLine && note && (
           <p style={{ fontSize: 12, color: MUTED, lineHeight: 1.4 }}>{note}</p>
         )}
         <div style={{ height: 3, borderRadius: 2, marginTop: 16, background: BORDER, overflow: 'hidden' }}>
@@ -728,7 +787,13 @@ export default async function DashboardPage() {
   // platform-header.tsx), computed from `roles` — single source of truth for
   // every page/shell rather than a duplicated boolean per file.
 
-  // 26 parallel fetches — allSettled so no single failure crashes the page
+  // Operational Snapshot analytics — "last 30 days" date window, computed
+  // once per request (see isoDate's comment above for why this can't be a
+  // module-level const).
+  const todayIso = isoDate(new Date());
+  const thirtyDaysAgoIso = isoDate(new Date(Date.now() - 30 * 86_400_000));
+
+  // 31 parallel fetches — allSettled so no single failure crashes the page
   const [
     r0, r1, r2, r3, r4,     // employee status counts
     r5,                      // active positions
@@ -744,6 +809,11 @@ export default async function DashboardPage() {
     r23,                     // intelligence: workforce readiness (only fetched for allowed roles)
     r24,                     // intelligence: aggregate attrition risk (only fetched for allowed roles)
     r25,                     // intelligence: executive metrics (only fetched for allowed roles)
+    r26,                     // Operational Snapshot analytic: hires, last 30 days
+    r27,                     // Operational Snapshot analytic: separations, last 30 days
+    r28,                     // Operational Snapshot analytic: vacancies opened, last 30 days
+    r29,                     // Operational Snapshot analytic: vacancies filled, last 30 days
+    r30,                     // Operational Snapshot analytic: oldest CRITICAL vacancy (sorted ascending, pageSize 1)
   ] = await Promise.allSettled([
     // Platform-wide dashboard content cleanup: each fetch below is gated by
     // the specific resource capability that backs its section, not a shared
@@ -828,6 +898,33 @@ export default async function DashboardPage() {
     canSeeExecutiveMetrics
       ? serverFetch<ExecutiveMetricsRes>('/api/v1/intelligence/executive-metrics')
       : Promise.resolve(null),
+    // Operational Snapshot analytics (this milestone) — reuse the existing
+    // GET /employees and GET /vacancies endpoints with new optional date-range
+    // query params; same RBAC boundary as every other canSeeEmployeeData /
+    // canSeePositionVacancyData fetch above, no new endpoint, no broadened
+    // access.
+    canSeeEmployeeData
+      ? serverFetch<Count>(`/api/v1/employees?hireDateFrom=${thirtyDaysAgoIso}&hireDateTo=${todayIso}&pageSize=1`).catch(() => null)
+      : Promise.resolve(null),
+    canSeeEmployeeData
+      ? serverFetch<Count>(`/api/v1/employees?employmentStatus=SEPARATED&terminationDateFrom=${thirtyDaysAgoIso}&terminationDateTo=${todayIso}&pageSize=1`).catch(() => null)
+      : Promise.resolve(null),
+    canSeePositionVacancyData
+      ? serverFetch<Count>(`/api/v1/vacancies?createdAfter=${thirtyDaysAgoIso}&createdBefore=${todayIso}&pageSize=1`).catch(() => null)
+      : Promise.resolve(null),
+    canSeePositionVacancyData
+      ? serverFetch<Count>(`/api/v1/vacancies?filledAfter=${thirtyDaysAgoIso}&filledBefore=${todayIso}&pageSize=1`).catch(() => null)
+      : Promise.resolve(null),
+    // Oldest CRITICAL vacancy — sortOrder=asc + pageSize=1 returns exactly the
+    // single oldest match with its ageInDays already computed server-side
+    // (same field VacancyRiskService already relies on) — correct regardless
+    // of how many CRITICAL vacancies exist, not a "first page" approximation.
+    // Deliberately matches r8's own filter (priority=CRITICAL, no status
+    // filter) so this chip's data source is always consistent with the
+    // Critical Vacancies headline count above.
+    canSeePositionVacancyData
+      ? serverFetch<VacancyListRes>('/api/v1/vacancies?priority=CRITICAL&pageSize=1&sortOrder=asc').catch(() => null)
+      : Promise.resolve(null),
   ]);
 
   // ── Extract counts ───────────────────────────────────────────────────────
@@ -861,6 +958,11 @@ export default async function DashboardPage() {
   const attritionFetchFailed   = canSeeAttritionRisk && r24.status === 'rejected';
   const executiveMetricsData        = settled<ExecutiveMetricsRes>(r25);
   const executiveMetricsFetchFailed = canSeeExecutiveMetrics && r25.status === 'rejected';
+  const hires30d              = n(r26);
+  const separations30d        = n(r27);
+  const vacanciesOpened30d    = n(r28);
+  const vacanciesFilled30d    = n(r29);
+  const oldestCriticalVacancyList = settled<VacancyListRes>(r30);
 
   // ── Derived ──────────────────────────────────────────────────────────────
   // Unfilled = OPEN + IN_RECRUITMENT; show partial sum if only one succeeded
@@ -888,6 +990,52 @@ export default async function DashboardPage() {
   const certsFetchable = certsData !== null;
   const certs          = certsData?.data?.expiringCertifications ?? [];
   const certsTotal     = certsData?.data?.total ?? 0;
+
+  // ── Operational Snapshot analytics ─────────────────────────────────────────
+  // Deterministic, plain-language-only, computed from real counts already
+  // returned by GET /employees and GET /vacancies (extended this milestone
+  // with optional date-range query params — see EmployeeService/VacancyService).
+  // Every analytic below is a direct arithmetic function of two real counts;
+  // none is a fabricated trend, forecast, or "vs last month" comparison — the
+  // window itself is a fixed 30-day lookback, not a historical baseline.
+
+  // Active Workforce: net change requires BOTH hires and separations to be
+  // meaningful — shown only when both succeeded. The support line, though,
+  // shows whichever of the two is available (partial-success display, same
+  // discipline already used for unfilledTotal above).
+  const workforceNetChange30d =
+    hires30d != null && separations30d != null ? hires30d - separations30d : null;
+  const workforceChangeParts: string[] = [];
+  if (hires30d != null) workforceChangeParts.push(`${hires30d} hired`);
+  if (separations30d != null) workforceChangeParts.push(`${separations30d} separated`);
+  const workforceChangeLine =
+    workforceChangeParts.length > 0 ? `${workforceChangeParts.join(' · ')} (last 30 days)` : null;
+
+  // Unfilled Vacancies: same partial-success pattern as above. Net > 0 means
+  // more vacancies opened than were filled in the window — a real, directly-
+  // computed signal that pressure is building, not a guess.
+  const vacancyNetChange30d =
+    vacanciesOpened30d != null && vacanciesFilled30d != null
+      ? vacanciesOpened30d - vacanciesFilled30d
+      : null;
+  const vacancyChangeParts: string[] = [];
+  if (vacanciesOpened30d != null) vacancyChangeParts.push(`${vacanciesOpened30d} opened`);
+  if (vacanciesFilled30d != null) vacancyChangeParts.push(`${vacanciesFilled30d} filled`);
+  const vacancyChangeLine =
+    vacancyChangeParts.length > 0 ? `${vacancyChangeParts.join(' · ')} (last 30 days)` : null;
+
+  // Critical Vacancies: oldest age comes from the single oldest CRITICAL
+  // vacancy (sortOrder=asc, pageSize=1) — ageInDays is computed server-side
+  // by VacancyService, the same field VacancyRiskService already relies on.
+  const oldestCriticalVacancy = oldestCriticalVacancyList?.data?.vacancies?.[0] ?? null;
+  const oldestCriticalAgeDays = oldestCriticalVacancy?.ageInDays ?? null;
+  // Share of the unfilled total — both terms already fetched for the other
+  // two cards in this row; no new query. Guarded against a zero/null
+  // denominator rather than showing a divide-by-zero artifact.
+  const criticalShare =
+    criticalVacancies != null && unfilledTotal != null && unfilledTotal > 0
+      ? Math.round((criticalVacancies / unfilledTotal) * 100)
+      : null;
 
   const pageDate = formatPageDate();
 
@@ -972,8 +1120,14 @@ export default async function DashboardPage() {
                   <KpiCard
                     label="Active Workforce"
                     value={fmt(activeEmployees)}
+                    chip={
+                      workforceNetChange30d != null
+                        ? { text: formatNetChip(workforceNetChange30d), tone: 'neutral' }
+                        : undefined
+                    }
+                    supportLine={workforceChangeLine ?? undefined}
                     note={
-                      pendingOnboarding != null
+                      !workforceChangeLine && pendingOnboarding != null
                         ? <>{pendingOnboarding} pending onboarding</>
                         : undefined
                     }
@@ -985,7 +1139,12 @@ export default async function DashboardPage() {
                   <KpiCard
                     label="Active Positions"
                     value={fmt(activePositions)}
-                    note={
+                    chip={
+                      canSeeExecutiveMetrics && executiveMetricsData?.data.coverageRate.value != null
+                        ? { text: `${executiveMetricsData.data.coverageRate.value.toFixed(0)}% coverage`, tone: 'neutral' }
+                        : undefined
+                    }
+                    supportLine={
                       activePositions != null && totalPositions != null
                         ? <>{activePositions} of {totalPositions} total positions</>
                         : undefined
@@ -998,8 +1157,14 @@ export default async function DashboardPage() {
                   <KpiCard
                     label="Unfilled Vacancies"
                     value={fmt(unfilledTotal)}
+                    chip={
+                      vacancyNetChange30d != null
+                        ? { text: formatNetChip(vacancyNetChange30d), tone: vacancyNetChange30d > 0 ? 'amber' : 'green' }
+                        : undefined
+                    }
+                    supportLine={vacancyChangeLine ?? undefined}
                     note={
-                      openVacancies != null && inRecruitment != null
+                      !vacancyChangeLine && openVacancies != null && inRecruitment != null
                         ? <>{openVacancies} open · {inRecruitment} in recruitment</>
                         : undefined
                     }
@@ -1011,9 +1176,14 @@ export default async function DashboardPage() {
                   <KpiCard
                     label="Critical Vacancies"
                     value={fmt(criticalVacancies)}
-                    note={
-                      criticalVacancies != null && criticalVacancies > 0
-                        ? <span style={{ color: RED, fontWeight: 600 }}>Requires immediate attention</span>
+                    chip={
+                      criticalVacancies != null && criticalVacancies > 0 && oldestCriticalAgeDays != null
+                        ? { text: `Oldest: ${oldestCriticalAgeDays}d`, tone: 'red' }
+                        : undefined
+                    }
+                    supportLine={
+                      criticalVacancies != null && criticalVacancies > 0 && criticalShare != null
+                        ? <>{criticalVacancies} of {unfilledTotal} unfilled vacancies ({criticalShare}%)</>
                         : criticalVacancies === 0
                         ? <span style={{ color: GREEN, fontWeight: 600 }}>None at critical priority</span>
                         : undefined

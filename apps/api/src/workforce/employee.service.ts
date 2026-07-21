@@ -67,6 +67,10 @@ export type ListEmployeesParams = {
   departmentId?: string;
   page?: number;
   pageSize?: number;
+  hireDateFrom?: string;
+  hireDateTo?: string;
+  terminationDateFrom?: string;
+  terminationDateTo?: string;
 };
 
 export type ChangeEmployeeStatusParams = {
@@ -424,6 +428,22 @@ export class EmployeeService {
       deletedAt: null,
       ...(params.employmentStatus ? { employmentStatus: params.employmentStatus } : {}),
       ...(params.departmentId ? { departmentId: params.departmentId } : {}),
+      ...(params.hireDateFrom || params.hireDateTo
+        ? {
+            hireDate: {
+              ...(params.hireDateFrom ? { gte: new Date(params.hireDateFrom) } : {}),
+              ...(params.hireDateTo ? { lte: new Date(params.hireDateTo) } : {}),
+            },
+          }
+        : {}),
+      ...(params.terminationDateFrom || params.terminationDateTo
+        ? {
+            terminationDate: {
+              ...(params.terminationDateFrom ? { gte: new Date(params.terminationDateFrom) } : {}),
+              ...(params.terminationDateTo ? { lte: new Date(params.terminationDateTo) } : {}),
+            },
+          }
+        : {}),
     };
 
     let employees: EmployeeRow[];

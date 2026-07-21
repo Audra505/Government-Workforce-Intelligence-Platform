@@ -56,6 +56,11 @@ export type ListVacanciesParams = {
   departmentId?: string;
   page?: number;
   pageSize?: number;
+  createdAfter?: string;
+  createdBefore?: string;
+  filledAfter?: string;
+  filledBefore?: string;
+  sortOrder?: 'asc' | 'desc';
 };
 
 // ---------------------------------------------------------------------------
@@ -307,6 +312,22 @@ export class VacancyService {
       ...(params.priority ? { priority: params.priority } : {}),
       // departmentId filtered via nested position relation — no extra query or JOIN needed.
       ...(params.departmentId ? { position: { departmentId: params.departmentId } } : {}),
+      ...(params.createdAfter || params.createdBefore
+        ? {
+            createdAt: {
+              ...(params.createdAfter ? { gte: new Date(params.createdAfter) } : {}),
+              ...(params.createdBefore ? { lte: new Date(params.createdBefore) } : {}),
+            },
+          }
+        : {}),
+      ...(params.filledAfter || params.filledBefore
+        ? {
+            filledAt: {
+              ...(params.filledAfter ? { gte: new Date(params.filledAfter) } : {}),
+              ...(params.filledBefore ? { lte: new Date(params.filledBefore) } : {}),
+            },
+          }
+        : {}),
     };
 
     let vacancies: VacancyRow[];
@@ -318,7 +339,7 @@ export class VacancyService {
           skip: (page - 1) * pageSize,
           take: pageSize,
           select: VACANCY_READ_SELECT,
-          orderBy: { createdAt: 'desc' },
+          orderBy: { createdAt: params.sortOrder ?? 'desc' },
         }),
         this.prisma.vacancy.count({ where }),
       ]);

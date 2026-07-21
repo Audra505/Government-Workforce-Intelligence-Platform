@@ -9,16 +9,16 @@
 
 ---
 
-Last Updated: 2026-07-21 (M34 Executive Intelligence Expansion & Workforce Snapshot Foundation -- LOCALLY IMPLEMENTED, RUNTIME-VERIFIED, BROWSER-VERIFIED; ready for commit and CI confirmation)
-Updated By: Claude Code (M34 finalization pass: re-confirmed migration/RBAC/snapshot-dedup/no-read-endpoint evidence, re-ran full validation, fixed a login/logout client-cache role-switch bug discovered during this pass, and consolidated platform navigation to one shared component; also closed the M33 record, which had been committed (466350f) and CI-confirmed (run 29658955778) but never updated in this ledger)
+Last Updated: 2026-07-21 (Post-M34 dashboard enhancement: Operational Snapshot analytics cards -- LOCALLY IMPLEMENTED, RUNTIME-VERIFIED, BROWSER-VERIFIED; staged for one local commit, not pushed)
+Updated By: Claude Code (added lightweight real-data analytics — chip + supporting line — to the dashboard's existing 4 Operational Snapshot cards, reusing existing RBAC boundaries; re-verified role consistency across all 7 fixture roles with no mismatches found, so no fixes were needed; also closed the M34 record, which had been committed (0d0ef60) and CI-confirmed (run 29803545493) but never updated in this ledger)
 
-Previous Update: 2026-07-18 (M33 Capacity & Gap Intelligence -- LOCALLY IMPLEMENTED, RUNTIME-VERIFIED, BROWSER-VERIFIED; ready for commit and CI confirmation)
+Previous Update: 2026-07-21 (M34 Executive Intelligence Expansion & Workforce Snapshot Foundation -- CI-CONFIRMED; 0d0ef60; run 29803545493 completed/success)
 
 ## Repository Status
 
-Current Phase: **Phase 4 — M34 LOCALLY IMPLEMENTED, RUNTIME-VERIFIED, BROWSER-VERIFIED, READY FOR CI CONFIRMATION (Executive Intelligence Expansion & Workforce Snapshot Foundation)**
-Overall Classification: Phase 2 COMPLETE; Post-Phase-2 milestones M13/M14/M15 CI-confirmed; Pre-Phase-3 Governance Package CI-confirmed (a5c34f1); Phase 3 started — M16 CI-confirmed; M17 CI-confirmed; M18 CI-confirmed; M19 CI-confirmed; M20 CI-confirmed (6e6777b; run 28611838113); M21 CI-confirmed (1036c92 + 3c8189d + 1e33420); browser-verified by human 2026-07-03; CLOSED; M21.5 CI-confirmed (782e35e + 1a4b64f; runs #66 + #67); M22 CI-confirmed (ee8465b); browser-verified by human 2026-07-04; CLOSED; M23 CI-confirmed (5fedb81); browser-verified by human 2026-07-06; CLOSED; M24 CI-confirmed (5f5bfa6); browser-verified by human 2026-07-11; CLOSED; M25 CI-confirmed (23d46ef); browser-verified by human 2026-07-13; CLOSED; M26 CI-confirmed (a9a6943); runtime-verified 2026-07-14; CLOSED; M27 CI-confirmed (9049fd6); runtime-verified 2026-07-14; CLOSED; M28 CI-confirmed (46ffcce); runtime-verified + human browser-verified 2026-07-14; CLOSED; M29 CI-confirmed (45efe2f); seed validated 2026-07-14; CLOSED; Phase 3 COMPLETE; Phase 4 Intelligence STARTED — M30 CI-confirmed (407195b); governance GD-M30-1.md authorized (3c9366e) and amended twice (d3a2a65, 0401672); runtime-verified + browser-verified 2026-07-16; CLOSED; M31 CI-confirmed (cbcacdb); governance GD-M31-1.md authorized (051fa8f); runtime-verified + browser-verified 2026-07-16; CI run #99 (ID 29534898812) completed / success; CLOSED; M32 CI-CONFIRMED (dad0afc; run 29654755142 completed/success); governance GD-M32-1.md authorized (e43c700) and amended with Amendment 1 (Intelligence Detail Workspace); runtime-verified + browser-verified 2026-07-18; CLOSED; M33 CI-CONFIRMED (466350f; run 29658955778 completed/success); governance GD-M33-1.md authorized (2026-07-18, pending approval, local); department-level Workforce Readiness/Attrition Risk (scoreByDepartment()) + DepartmentGapService + GET /api/v1/intelligence/department-gap + Department Gap tab; runtime-verified + browser-verified 2026-07-18; CLOSED; M34 LOCALLY IMPLEMENTED, RUNTIME-VERIFIED, BROWSER-VERIFIED — governance GD-M34-1.md authorized (2026-07-19, pending approval, local); ExecutiveMetricsService (Vacancy Rate %, Coverage Rate %, Time To Fill, Hiring Velocity) + GET /api/v1/intelligence/executive-metrics + additive-only WorkforceSignalSnapshot table with DB-enforced dedup/upsert (no read endpoint) + purpose-built Executive User dashboard + platform-wide role navigation cleanup + shared PlatformHeader consolidation + a login/logout client-router-cache role-switch bug found and fixed; type-check/lint clean both apps; full API suite 1990/1990 passing; NOT yet committed, NOT yet CI-confirmed — commit and push are the next step; OPEN pending CI
-Active Sprint / Milestone: M34 — locally implemented, runtime-verified, browser-verified, staged for a single implementation commit; CI confirmation pending push
+Current Phase: **Phase 4 — M34 CI-CONFIRMED and CLOSED; post-M34 dashboard analytics enhancement LOCALLY IMPLEMENTED, RUNTIME-VERIFIED, BROWSER-VERIFIED (not yet pushed)**
+Overall Classification: Phase 2 COMPLETE; Post-Phase-2 milestones M13/M14/M15 CI-confirmed; Pre-Phase-3 Governance Package CI-confirmed (a5c34f1); Phase 3 started — M16 CI-confirmed; M17 CI-confirmed; M18 CI-confirmed; M19 CI-confirmed; M20 CI-confirmed (6e6777b; run 28611838113); M21 CI-confirmed (1036c92 + 3c8189d + 1e33420); browser-verified by human 2026-07-03; CLOSED; M21.5 CI-confirmed (782e35e + 1a4b64f; runs #66 + #67); M22 CI-confirmed (ee8465b); browser-verified by human 2026-07-04; CLOSED; M23 CI-confirmed (5fedb81); browser-verified by human 2026-07-06; CLOSED; M24 CI-confirmed (5f5bfa6); browser-verified by human 2026-07-11; CLOSED; M25 CI-confirmed (23d46ef); browser-verified by human 2026-07-13; CLOSED; M26 CI-confirmed (a9a6943); runtime-verified 2026-07-14; CLOSED; M27 CI-confirmed (9049fd6); runtime-verified 2026-07-14; CLOSED; M28 CI-confirmed (46ffcce); runtime-verified + human browser-verified 2026-07-14; CLOSED; M29 CI-confirmed (45efe2f); seed validated 2026-07-14; CLOSED; Phase 3 COMPLETE; Phase 4 Intelligence STARTED — M30 CI-confirmed (407195b); governance GD-M30-1.md authorized (3c9366e) and amended twice (d3a2a65, 0401672); runtime-verified + browser-verified 2026-07-16; CLOSED; M31 CI-confirmed (cbcacdb); governance GD-M31-1.md authorized (051fa8f); runtime-verified + browser-verified 2026-07-16; CI run #99 (ID 29534898812) completed / success; CLOSED; M32 CI-CONFIRMED (dad0afc; run 29654755142 completed/success); governance GD-M32-1.md authorized (e43c700) and amended with Amendment 1 (Intelligence Detail Workspace); runtime-verified + browser-verified 2026-07-18; CLOSED; M33 CI-CONFIRMED (466350f; run 29658955778 completed/success); governance GD-M33-1.md authorized (2026-07-18, pending approval, local); department-level Workforce Readiness/Attrition Risk (scoreByDepartment()) + DepartmentGapService + GET /api/v1/intelligence/department-gap + Department Gap tab; runtime-verified + browser-verified 2026-07-18; CLOSED; M34 CI-CONFIRMED (0d0ef60; run 29803545493 completed/success); governance GD-M34-1.md authorized (2026-07-19, pending approval, local); ExecutiveMetricsService (Vacancy Rate %, Coverage Rate %, Time To Fill, Hiring Velocity) + GET /api/v1/intelligence/executive-metrics + additive-only WorkforceSignalSnapshot table with DB-enforced dedup/upsert (no read endpoint) + purpose-built Executive User dashboard + platform-wide role navigation cleanup + shared PlatformHeader consolidation + a login/logout client-router-cache role-switch bug found and fixed; CLOSED; Post-M34 (not a numbered milestone) — Operational Snapshot dashboard cards enhanced with lightweight, real-data-only analytics (30-day hires/separations/net change, coverage-rate context, 30-day opened/filled/net change, oldest-critical-vacancy age and share) reusing existing RBAC boundaries and existing/extended `GET /employees` and `GET /vacancies` query filters; role consistency re-verified across all 7 fixture roles with no mismatches; LOCALLY IMPLEMENTED, RUNTIME-VERIFIED, BROWSER-VERIFIED; staged for one local commit, not pushed; OPEN pending push/CI
+Active Sprint / Milestone: Post-M34 dashboard analytics enhancement — locally implemented, runtime-verified, browser-verified, staged for one local commit; not pushed, no CI run yet
 Implementation Started: Yes (2026-06-05)
 
 ## Phase Summary
@@ -33,12 +33,12 @@ Phase 1 is formally closed. D9 (Docker Environment) and D10 (CI/CD Foundation) w
 > Its purpose is crash/session recovery: the current step state is always readable without
 > scanning Zone 5 history. It is overwritten each step — not appended.
 
-Milestone: M34 Executive Intelligence Expansion & Workforce Snapshot Foundation -- LOCALLY IMPLEMENTED, RUNTIME-VERIFIED, BROWSER-VERIFIED, READY FOR COMMIT
-Last Completed Milestone: M33 CI-CONFIRMED -- 466350f; run 29658955778 completed/success; runtime-verified + browser-verified 2026-07-18; FULLY CLOSED
-Last Completed Step: Final pre-commit verification pass -- confirmed migration applied (`intelligence.workforce_signal_snapshots` present with the DB-level UNIQUE dedup constraint), confirmed 27 snapshot rows all with distinct dedup keys (zero duplicates despite dozens of scoring calls across this and prior sessions), confirmed no snapshot read endpoint exists (controller grep + a dedicated unit test), confirmed executive-metrics RBAC live (SA 200, Recruiter 403), confirmed no trend/forecast/recommendedHeadcount/OpenAI/LLM references anywhere in the M34 diff, re-ran the full platform-wide nav + dashboard-content browser suite across all 7 roles against the current build (clean), and ran full validation (API type-check/lint, web type-check/lint, targeted executive-metrics 40/40, targeted snapshot-writer 40/40 combined, targeted intelligence suite 306/306, full API suite 1990/1990)
+Milestone: Post-M34 dashboard analytics enhancement (not a numbered milestone) -- LOCALLY IMPLEMENTED, RUNTIME-VERIFIED, BROWSER-VERIFIED, READY FOR ONE LOCAL COMMIT
+Last Completed Milestone: M34 CI-CONFIRMED -- 0d0ef60; run 29803545493 completed/success; runtime-verified + browser-verified 2026-07-21; FULLY CLOSED
+Last Completed Step: Full finalization pass on the Operational Snapshot analytics enhancement -- re-verified role consistency for all 4 enhanced cards across all 7 fixture roles against the rebuilt stack (no mismatches found, so no fixes were required), re-confirmed the login/logout role-switch cache fix still holds via a chained 4-role same-tab switch, and ran full validation (API type-check/lint, web type-check/lint, targeted employee/vacancy service+controller tests 264/264, full API suite 1990/1990)
 Last Completed Step Date: 2026-07-21
-Current Step: Finalizing for a single M34 implementation commit -- staging the M34-related files plus this PROGRESS.md update, committing, pushing once, then checking GitHub Actions CI for the pushed commit. (Also closed the stale M33 record above, which had been committed as 466350f and CI-confirmed earlier but never reflected in this ledger.)
-Session Classification: PHASE 4 M34 LOCALLY IMPLEMENTED, RUNTIME-VERIFIED, BROWSER-VERIFIED -- Backend: ExecutiveMetricsService adds four deterministic aggregate metrics (Vacancy Rate %, Coverage Rate %, Time To Fill, Hiring Velocity), each with its own confidence rule and a metric-level value/unit/confidence/detail/windowDays explainability shape; GET /api/v1/intelligence/executive-metrics added, no query parameters, RBAC System Administrator/HR Director/Workforce Planner/Executive User (Recruiter/Hiring Manager/Compliance Officer forbidden -- live-verified 200/403); INTELLIGENCE_EXECUTIVE_METRICS_QUERIED audit event, formulaVersion-only metadata. Separately, a new additive-only `intelligence` Prisma schema and `WorkforceSignalSnapshot` table begin accumulating real computed history from all five Phase 4 signals (write-on-query only, no cron/scheduler/worker) via SnapshotWriterService, with a DB-level UNIQUE constraint on (tenantId, signalType, scopeType, scopeId, snapshotDate) plus an upsert write path bounding growth to one row per signal per scope per tenant per day -- confirmed live (27 rows, 27 distinct keys, zero duplicates); no read endpoint, query API, or export of snapshot data exists anywhere (confirmed by grep and a dedicated "no snapshot/trend/forecast read path" unit test). Frontend: dashboard Workforce Metrics card + /intelligence Workforce Metrics subsection for SA/HRD/WP/Executive User; a purpose-built Executive User dashboard (Strategic Risk Signals + Capacity & Throughput, ring gauges, a single descriptive posture statement synthesized only from already-governed fields, no trend/forecast/recommended-headcount/individual/department detail) replacing the operational dashboard entirely for EU; a platform-wide role navigation cleanup replacing the single canSeeOperationalDashboard bucket with four resource-specific capability booleans matching each backend @RequireRoles() list exactly, so Recruiter/Hiring Manager/Compliance Officer/Workforce Planner each see only the dashboard sections their real access supports (no dash-only cards, no false "No open vacancies" text) and the top-level nav (Dashboard/Intelligence/Workforce/Recruiting/Admin) matches the approved per-role matrix everywhere (dashboard, /intelligence, Workforce shell, Recruiting shell, Admin shell), including WorkforceShell sub-tab visibility mirroring AdminShell's existing pattern; a shared PlatformHeader component (apps/web/src/components/shared/platform-header.tsx) consolidated the header markup across all five surfaces onto one polished, consistent treatment (icon-badge wordmark, unified white active-pill convention) with nav visibility computed once, in one place, from `roles`. During this finalization pass, browser testing surfaced and fixed a real bug unrelated to RBAC: LoginForm and LogoutButton used router.push() (a Next.js client-side soft navigation), which could serve a stale Router-Cache RSC payload from a previous role's session in the same tab after a login/logout role switch (reproduced live: SA login right after an EU session showed the EU dashboard and a 2-item nav); fixed by switching both to a hard window.location navigation, verified via a repro-then-fix comparison and a chained 4-role same-tab switch, all correct. Governance: no governance changes required for M34 (GD-M34-1.md and governance_history.md already reviewed for factual accuracy against final implementation -- no mismatch found). Validation: type-check + lint clean on both apps; full API suite 1990/1990 (54 suites) passing; targeted executive-metrics + snapshot-writer 40/40, targeted intelligence suite 306/306; full runtime + browser verification passing across all 7 roles; NOT yet committed, NOT yet CI-confirmed -- commit/push is the immediate next step.
+Current Step: Updating this PROGRESS.md entry and creating one local commit ("Add operational snapshot analytics cards") for the dashboard analytics enhancement -- not pushed. (Also closed the stale M34 record above, which had been committed as 0d0ef60 and CI-confirmed as run 29803545493 in the prior turn but never reflected in this ledger.)
+Session Classification: POST-M34 DASHBOARD ANALYTICS ENHANCEMENT -- LOCALLY IMPLEMENTED, RUNTIME-VERIFIED, BROWSER-VERIFIED. The dashboard's existing 4 Operational Snapshot cards (Active Workforce, Active Positions, Unfilled Vacancies, Critical Vacancies) each gained one compact analytic chip and one short supporting line, computed from real data only, reusing the exact same RBAC boundaries and per-card capability booleans (`canSeeEmployeeData`, `canSeePositionVacancyData`) M34's platform-wide navigation cleanup already established -- no new capability logic, no broadened access. Backend: `ListEmployeesQueryDto`/`EmployeeService` gained optional `hireDateFrom/To` and `terminationDateFrom/To` filters; `ListVacanciesQueryDto`/`VacancyService` gained optional `createdAfter/Before`, `filledAfter/Before`, and `sortOrder` filters -- all additive, optional, on the same existing `GET /employees` and `GET /vacancies` endpoints, same `@RequireRoles()`, no new routes, no migrations. Frontend: `KpiCard` extended with an optional `chip` + `supportLine`; Active Workforce shows a 30-day hires/separations/net-change chip and line; Active Positions shows a coverage-rate chip (reusing the already-fetched Executive Metrics value for SA/HRD/WP, zero new fetches) with its existing "X of Y total positions" line unchanged; Unfilled Vacancies shows a 30-day opened/filled/net-change chip and line; Critical Vacancies shows an oldest-critical-vacancy-age chip and a share-of-unfilled-vacancies line. Every analytic is a direct arithmetic function of real counts already fetched or newly filterable from existing columns (`Employee.hireDate`/`terminationDate`, `Vacancy.createdAt`/`filledAt`) -- none is a trend chart, forecast, recommended headcount, fake/synthetic comparison, or unsupported "vs last month" claim; any analytic requiring data not safely/low-risk computable (raw filled-vs-uncovered position counts) was gracefully omitted rather than invented. Verified live across all 7 roles: SA/HRD/WP see all 4 enhanced cards; Recruiter sees no Operational Snapshot; Hiring Manager and Compliance Officer see only the enhanced Active Workforce card (single full-width card, not broken/crowded); Executive User's purpose-built dashboard is unchanged (no Operational Snapshot reachable). Also re-confirmed: platform-wide nav matrix unchanged and correct for all 7 roles; login/logout role-switch cache fix (`window.location` hard navigation) still holds through a chained 4-role same-tab switch; no dash-only cards; no false "No open vacancies" text; no trend/forecast/month-over-month/fake-comparison language anywhere (confirmed via live text-content scan). Governance: no changes -- GD-M34-1.md and governance_history.md already accurate; nothing in this enhancement required a new or amended governance decision. Validation: API type-check/lint clean; web type-check/lint clean; targeted `employee.service`/`vacancy.service`/`employee.controller`/`vacancy.controller` tests 264/264 passing; full API suite 1990/1990 (54 suites) passing. NOT pushed, NOT CI-confirmed -- this entry must not claim CI passed until a GitHub Actions run for a pushed commit exists and is observed green.
 
 ## Milestone 10 — Approved Plan
 
@@ -11506,15 +11506,15 @@ M33 is fully closed. See the M34 entry below for the next milestone.
 
 # Milestone M34 — Executive Intelligence Expansion & Workforce Snapshot Foundation
 
-**Date:** 2026-07-19 to 2026-07-21 (implemented across multiple session turns: backend, frontend, full runtime/browser verification, a dashboard role-rendering correction, a platform-wide role navigation audit and cleanup, a navigation visual-consistency consolidation, a login/logout cache-bug fix, and this finalization pass)
-**Status:** LOCALLY IMPLEMENTED, RUNTIME-VERIFIED, BROWSER-VERIFIED — READY FOR CI CONFIRMATION. CI will be confirmed after this commit is pushed; this entry must not claim CI passed until a GitHub Actions run for the pushed commit exists and is observed green.
+**Date:** 2026-07-19 to 2026-07-21 (implemented across multiple session turns: backend, frontend, full runtime/browser verification, a dashboard role-rendering correction, a platform-wide role navigation audit and cleanup, a navigation visual-consistency consolidation, a login/logout cache-bug fix, and a finalization pass)
+**Status:** CI-CONFIRMED — CLOSED
 **Governance:** `governance/GD-M34-1.md`
   - Authored 2026-07-19, produced by a focused M34 feasibility drilldown that evaluated Executive Intelligence Expansion, Workforce Trend Analysis (FR-412), and Demand Forecasting (FR-400), and found the first fully buildable today while the latter two share one missing prerequisite — real historical data — that does not exist anywhere in the schema
   - Combines the one ready capability (Executive Intelligence Expansion) with the minimal honest infrastructure step toward the two blocked ones (Workforce Snapshot Foundation), without claiming either blocked capability complete
   - `governance/governance_history.md` — new M34 section added, matching the existing table format
-  - Reviewed against the final implementation for factual accuracy during this finalization pass — no mismatch found; no correction made
-**Implementation commit:** recorded below once created
-**CI run:** not yet triggered as of this entry — will be confirmed in a follow-up PROGRESS.md update after push
+  - Reviewed against the final implementation for factual accuracy during the finalization pass — no mismatch found; no correction made
+**Implementation commit:** `0d0ef60` — "Implement M34 executive intelligence and snapshot foundation"
+**CI run:** [29803545493](https://github.com/Audra505/Government-Workforce-Intelligence-Platform/actions/runs/29803545493) — completed / success (this record was left at "ready for CI" at the time it was written; corrected here — an oversight, not a re-litigation of the milestone)
 
 ## Scope Completed
 
@@ -11645,7 +11645,7 @@ New (7):
 | No trend UI / forecast UI / recommended headcount | Passed — confirmed via code review and live browser text-content assertions |
 | No fake historical/synthetic data | Passed — every dashboard/workspace value traced to a real fetch result; snapshot rows are real computed history, not backfilled or synthetic |
 | No OpenAI/LLM | Passed — confirmed via code review and dedicated unit tests (no HTTP dependency in any new service) |
-| CI | Not yet triggered — nothing committed or pushed |
+| CI | Passed — run [29803545493](https://github.com/Audra505/Government-Workforce-Intelligence-Platform/actions/runs/29803545493), completed/success |
 
 ## Explicit Exclusions (per `GD-M34-1.md`)
 
@@ -11684,7 +11684,7 @@ New (7):
 | Environment Model | Verified — full Docker stack rebuilt and health-checked per `SETUP.md`'s documented rebuild decision tree across many cycles this milestone; migration confirmed applied via live `psql` |
 | Data Lifecycle | Additive-only schema change; snapshot rows accumulate write-on-query with DB-enforced dedup; no read/export path exists; audit event persisted per executive-metrics query |
 | Evolution Strategy | `WorkforceSignalSnapshot` is the explicit, disclosed first step toward a future, separately-governed FR-412/FR-400 milestone — no trend or forecast capability is claimed here; `PlatformHeader` and the four resource-capability booleans are now the reusable pattern for any future role or surface |
-| **Overall** | **Locally implemented, runtime-verified, browser-verified — ready for commit and CI confirmation. Not yet marked Verified/CLOSED: that status is reserved until a GitHub Actions run for the pushed commit is observed green.** |
+| **Overall** | **Verified — runtime-verified + browser-verified + CI-confirmed (`0d0ef60`; run 29803545493 completed/success). CLOSED.** |
 
 ## Capability Maturity Summary (Phase 4, Post-M34)
 
@@ -11695,12 +11695,12 @@ New (7):
 | Workforce Readiness Intelligence | Verified (M31) |
 | Aggregate Attrition Risk Intelligence | Verified (M32) |
 | Department-Level Capacity & Gap Intelligence | Verified (M33) |
-| Executive Intelligence Expansion (Vacancy Rate / Coverage Rate / Time To Fill / Hiring Velocity) | Runtime-verified + browser-verified — CI confirmation pending push |
-| Workforce Snapshot Foundation (additive history, dedup/upsert, no read exposure) | Runtime-verified + DB-verified — CI confirmation pending push |
-| Executive User Dashboard (purpose-built) | Runtime-verified + browser-verified — CI confirmation pending push |
-| Platform-Wide Role Navigation Matrix | Runtime-verified + browser-verified across all 7 roles — CI confirmation pending push |
-| Navigation Visual Consistency (shared `PlatformHeader`) | Runtime-verified + browser-verified — CI confirmation pending push |
-| Login/Logout Role-Switch Cache Fix | Runtime-verified (repro-then-fix + chained multi-role switch) — CI confirmation pending push |
+| Executive Intelligence Expansion (Vacancy Rate / Coverage Rate / Time To Fill / Hiring Velocity) | Verified (M34) |
+| Workforce Snapshot Foundation (additive history, dedup/upsert, no read exposure) | Verified (M34) |
+| Executive User Dashboard (purpose-built) | Verified (M34) |
+| Platform-Wide Role Navigation Matrix | Verified (M34) |
+| Navigation Visual Consistency (shared `PlatformHeader`) | Verified (M34) |
+| Login/Logout Role-Switch Cache Fix | Verified (M34) |
 | Role-Based Intelligence Matrix | Actively implemented in stages (`GD-M30-1` Decision 11) — five signals live-verified with independent per-signal gating |
 | Workforce Trend Analysis (FR-412) | **Not implemented — explicitly deferred.** Snapshot Foundation is a disclosed prerequisite step only. |
 | Demand Forecasting (FR-400) | **Not implemented — explicitly deferred.** Same prerequisite gap as FR-412. |
@@ -11708,8 +11708,98 @@ New (7):
 | Candidate Matching | Deferred — schema-blocked (`Position`/`Candidate` lack skills fields) |
 | Full Compliance Intelligence | Deferred — Phase 5 territory |
 
+## Next Actions (Historical — M34 Closure)
+
+1. ~~Stage the 29 M34-related files plus `governance/governance_history.md`, `governance/GD-M34-1.md`, and this PROGRESS.md update, create the implementation commit, and push once.~~ Done — `0d0ef60`.
+2. ~~Check GitHub Actions for the pushed commit's CI run.~~ Done — run 29803545493, completed/success.
+3. ~~Once CI is observed green, update this PROGRESS.md entry's Status to CI-CONFIRMED / CLOSED with the commit hash and CI run ID.~~ Done above (corrected during the post-M34 dashboard analytics finalization pass — this closure had been missed at the time).
+
+M34 is fully closed. See the post-M34 dashboard analytics entry below.
+
+---
+
+# Post-M34 Enhancement — Operational Snapshot Analytics Cards
+
+> This is a scoped dashboard enhancement, not a numbered milestone. It does not introduce a new
+> capability, endpoint, permission, or governance decision — it adds lightweight, real-data-only
+> analytics to a section (Operational Snapshot) that M34 already implemented and role-gated.
+
+**Date:** 2026-07-21
+**Status:** LOCALLY IMPLEMENTED, RUNTIME-VERIFIED, BROWSER-VERIFIED — staged for one local commit. NOT pushed, NOT CI-confirmed. This entry must not claim CI passed until a GitHub Actions run for a pushed commit exists and is observed green.
+**Governance:** No changes. Reviewed `GD-M34-1.md` and `governance/governance_history.md` for factual accuracy against this enhancement — no mismatch found, no correction needed. This enhancement stays entirely within what M34's Dashboard Data Fidelity Policy and role-gating decisions already authorize (real data only, role-aware visibility, no fabricated content).
+**Implementation commit:** recorded below once created (this commit is local-only, not pushed)
+
+## Scope Completed
+
+### Operational Snapshot cards now include lightweight, real-data analytics
+
+Each of the dashboard's existing 4 Operational Snapshot cards gained one compact analytic **chip** next to its headline number and one short **supporting line** beneath it — never both a chart, a table, nor more than two added lines. The primary KPI number stays the visually dominant element on every card, unchanged.
+
+- **Active Workforce** — chip: net workforce change over the last 30 days (hires minus separations, e.g. "+3 net · 30d"); supporting line: "X hired · Y separated (last 30 days)". Computed from `Employee.hireDate` and `Employee.terminationDate` via new optional date-range filters on the existing `GET /employees` endpoint.
+- **Active Positions** — chip: coverage-rate context, shown only where already authorized (SA/HRD/WP — the same roles who see this card also already have Executive Metrics access, so the value is reused from the already-fetched Coverage Rate metric with zero new fetches); supporting line unchanged ("X of Y total positions").
+- **Unfilled Vacancies** — chip: net vacancy change over the last 30 days (opened minus filled, e.g. "+3 net · 30d", amber if opening faster than filling, green if easing); supporting line: "X opened · Y filled (last 30 days)". Computed from `Vacancy.createdAt` and `Vacancy.filledAt` via new optional date-range filters on the existing `GET /vacancies` endpoint.
+- **Critical Vacancies** — chip: oldest critical vacancy's age in days (e.g. "Oldest: 33d"), shown only when at least one critical vacancy exists; supporting line: share of the unfilled total (e.g. "4 of 10 unfilled vacancies (40%)"). The age comes from a new optional `sortOrder` filter on `GET /vacancies` (ascending by `createdAt`, `pageSize=1`) so the single oldest match is read directly and correctly regardless of how many critical vacancies exist — not a "first page" approximation. The share is computed entirely from counts already fetched for the other two vacancy cards; no new query.
+
+### Role-aware visibility (unchanged gating, reused verbatim)
+
+No new capability logic was introduced. Every enhanced card is gated by the exact same `canSeeEmployeeData` / `canSeePositionVacancyData` booleans M34's platform-wide navigation cleanup already established, each mirroring one backend `@RequireRoles()` list:
+
+| Role | Enhanced cards visible |
+|---|---|
+| System Administrator | All 4 |
+| HR Director | All 4 |
+| Workforce Planner | All 4 |
+| Recruiter | None — no Operational Snapshot section at all |
+| Hiring Manager | Active Workforce only |
+| Compliance Officer | Active Workforce only |
+| Executive User | None — purpose-built Executive dashboard unchanged, Operational Snapshot never reachable |
+
+### What was deliberately not added
+
+No trend chart, no forecast, no recommended headcount, no fake or synthetic historical data, and no "vs. last month" / "increasing" / "improving" claim was added anywhere. Every number shown is a direct arithmetic result of two real counts (a difference, a ratio, or an age in days) over a fixed 30-day lookback window — never a claim about direction beyond what those counts themselves support. One candidate analytic ("filled vs. uncovered active positions" as raw counts) was considered and gracefully omitted rather than invented — it would have required a new, less-safe backend filter and risked duplicating the governed Coverage Rate metric's internal math, which M34's Decision 12 deliberately keeps off the dashboard.
+
+## Files Changed (6)
+
+- `apps/api/src/workforce/dto/list-employees-query.dto.ts` — added `hireDateFrom`, `hireDateTo`, `terminationDateFrom`, `terminationDateTo` (optional)
+- `apps/api/src/workforce/dto/list-vacancies-query.dto.ts` — added `createdAfter`, `createdBefore`, `filledAfter`, `filledBefore`, `sortOrder` (optional)
+- `apps/api/src/workforce/employee.controller.ts` — passes the 4 new params through to the service
+- `apps/api/src/workforce/employee.service.ts` — applies the new params as Prisma date-range filters
+- `apps/api/src/workforce/vacancy.service.ts` — applies the new params as Prisma date-range filters + `orderBy`
+- `apps/web/src/app/(dashboard)/dashboard/page.tsx` — 5 new fetches, `KpiCard` chip/support-line support, per-card analytics logic
+
+No migrations, no new tables, no new routes, no RBAC/`@RequireRoles()` change, no governance file changed.
+
+## Validation
+
+| Check | Result |
+|---|---|
+| API type-check | Passed — 0 errors |
+| API lint | Passed — 0 errors |
+| Web type-check | Passed — 0 errors |
+| Web lint | Passed — "No ESLint warnings or errors" |
+| Targeted `employee.service` / `vacancy.service` / `employee.controller` / `vacancy.controller` tests | Passed — 264/264 |
+| Full unfiltered API test suite | Passed — **1990/1990 tests, 54/54 suites** |
+| Live API sanity check (new query params) | Passed — hires/separations/opened/filled counts and the ascending-sort oldest-critical-vacancy query all confirmed correct against live dev-tenant data |
+| Role consistency re-verification (all 7 roles) | Passed — no mismatches found against the expected-behavior table above; **no fixes were required** |
+| Chip/line render correctness (SA, live) | Passed — e.g. 4 opened − 1 filled = "+3 net" (correct math); 4 of 10 unfilled = "40%" (correct math) |
+| No dash-only card | Passed — every visible card shows real data or the analytic is omitted entirely, never a bare "—" |
+| No false empty state | Passed — `"No open vacancies."` never renders for a role lacking access (the panel is omitted, not rendered empty) |
+| No trend/forecast/month-over-month/fake-comparison language | Passed — live text-content scan across all 7 roles found zero matches |
+| Executive User dashboard unchanged | Passed — "Executive Dashboard" heading and full content confirmed byte-consistent with the M34 baseline; no Operational Snapshot reachable |
+| Recruiter does not regain Operational Snapshot | Passed — confirmed absent |
+| Hiring Manager / Compliance Officer do not see position/vacancy analytics | Passed — coverage chip, oldest-age chip, opened/filled line, and critical-share line all confirmed absent for both roles; only the Active Workforce card's employee-data analytics show |
+| Platform-wide nav matrix (all 7 roles) | Passed — unchanged and correct |
+| Login/logout role-switch cache fix | Passed — re-confirmed via a chained 4-role same-tab switch (Executive User → Recruiter → Compliance Officer → System Administrator), correct nav/content at every step |
+| No backend RBAC/permission change | Passed — confirmed by diff review: only optional query-param filters added to already-accessible endpoints; every `@RequireRoles()` decorator unchanged |
+| CI | Not applicable — not pushed |
+
+## Known Risks / Limitations
+
+- Same known gap already noted for M30–M34: no dedicated automated E2E/Playwright suite exists yet for the dashboard; verification was performed via ad hoc Playwright scripts (not committed to the repo) plus live text-content and screenshot review.
+- The "filled vs. uncovered active positions" analytic remains unimplemented by design (see above) — a future task could revisit it with a dedicated, carefully-scoped backend filter if the project owner wants the raw counts rather than the coverage-rate percentage.
+- The Critical Vacancies card's headline count and its two new analytics (oldest age, share) all intentionally use the same `priority=CRITICAL` filter with no `status` filter, matching the pre-existing headline count's definition exactly (a pre-existing characteristic, not something introduced here) — a long-closed critical vacancy would still count toward all three numbers. Not observed to cause a visibly incorrect share on real dev-tenant data.
+
 ## Next Actions
 
-1. Stage the 29 M34-related files plus `governance/governance_history.md`, `governance/GD-M34-1.md`, and this PROGRESS.md update, create the implementation commit, and push once.
-2. Check GitHub Actions for the pushed commit's CI run.
-3. Once CI is observed green, update this PROGRESS.md entry's Status to CI-CONFIRMED / CLOSED with the commit hash and CI run ID — not before.
+1. Stage the 6 files listed above plus this PROGRESS.md update, and create one local commit: `Add operational snapshot analytics cards`. Do not push.
+2. When ready to push, follow the same push → check GitHub Actions → update this entry's Status to CI-CONFIRMED pattern used for every prior milestone — not before.

@@ -10,10 +10,18 @@
 //   Global ValidationPipe(transform: true) enables class-transformer coercion.
 // pageSize maximum 100 matches ListPositionsQueryDto and ListDepartmentsQueryDto convention.
 // tenantId: NOT a query param — derived from JWT (SEC-003).
+//
+// createdAfter/createdBefore, filledAfter/filledBefore: optional inclusive date-range
+//   filters over the existing createdAt/filledAt columns — added for the dashboard
+//   Operational Snapshot "opened / filled, last 30 days" analytic. No new columns.
+// sortOrder: optional override of the default createdAt DESC ordering. Added so a
+//   caller can request createdAt ASC (oldest first) with pageSize=1 to read the single
+//   oldest matching vacancy's ageInDays directly, rather than paging through results.
+//   Omitting it preserves today's default (DESC) exactly.
 
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsIn, IsInt, IsOptional, IsUUID, Max, Min } from 'class-validator';
+import { IsDateString, IsIn, IsInt, IsOptional, IsUUID, Max, Min } from 'class-validator';
 
 export class ListVacanciesQueryDto {
   @ApiPropertyOptional({ example: 1, default: 1, description: 'Page number (1-based)' })
@@ -54,4 +62,45 @@ export class ListVacanciesQueryDto {
   @IsOptional()
   @IsUUID()
   departmentId?: string;
+
+  @ApiPropertyOptional({
+    example: '2026-06-21',
+    description: 'Filter to vacancies with createdAt on or after this date (inclusive, ISO 8601)',
+  })
+  @IsOptional()
+  @IsDateString()
+  createdAfter?: string;
+
+  @ApiPropertyOptional({
+    example: '2026-07-21',
+    description: 'Filter to vacancies with createdAt on or before this date (inclusive, ISO 8601)',
+  })
+  @IsOptional()
+  @IsDateString()
+  createdBefore?: string;
+
+  @ApiPropertyOptional({
+    example: '2026-06-21',
+    description: 'Filter to vacancies with filledAt on or after this date (inclusive, ISO 8601)',
+  })
+  @IsOptional()
+  @IsDateString()
+  filledAfter?: string;
+
+  @ApiPropertyOptional({
+    example: '2026-07-21',
+    description: 'Filter to vacancies with filledAt on or before this date (inclusive, ISO 8601)',
+  })
+  @IsOptional()
+  @IsDateString()
+  filledBefore?: string;
+
+  @ApiPropertyOptional({
+    enum: ['asc', 'desc'],
+    default: 'desc',
+    description: 'Order by createdAt. Defaults to desc (newest first), matching existing behavior.',
+  })
+  @IsOptional()
+  @IsIn(['asc', 'desc'])
+  sortOrder?: 'asc' | 'desc';
 }
