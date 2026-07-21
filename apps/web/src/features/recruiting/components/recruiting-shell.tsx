@@ -7,10 +7,9 @@
 
 import Link from 'next/link';
 import { cookies } from 'next/headers';
-import { LogoutButton } from '@/features/auth/logout-button';
 import { SESSION_COOKIE } from '@/lib/auth';
 import { getSessionRoles } from '@/lib/session';
-import { UserIdentityChip } from '@/components/shared/user-identity-chip';
+import { PlatformHeader } from '@/components/shared/platform-header';
 
 type ActiveTab = 'candidates' | 'applications' | 'interviews' | 'offers';
 type TabCounts = Partial<Record<ActiveTab, number>>;
@@ -30,7 +29,6 @@ const TABS: { id: ActiveTab; label: string; href: string }[] = [
 ];
 
 // GD-M20-1 D16 color palette
-const NAVY   = '#0c2340';
 const CANVAS = '#f8fafc';
 const BORDER = '#e2e8f0';
 const TEXT   = '#0f172a';
@@ -40,75 +38,15 @@ const BLUE   = '#2563eb';
 export function RecruitingShell({ activeTab, breadcrumb, children, counts }: Props) {
   const token = cookies().get(SESSION_COOKIE)?.value;
   const roles = token ? getSessionRoles(token) : [];
-  const canSeeAdmin =
-    roles.includes('System Administrator') || roles.includes('HR Director');
-  // GD-M32-1 Decision 20 (Amendment 1): Intelligence workspace nav visibility —
-  // System Administrator, HR Director, Workforce Planner, Executive User.
-  const canSeeIntelligence = roles.some((r) =>
-    ['System Administrator', 'HR Director', 'Workforce Planner', 'Executive User'].includes(r)
-  );
 
   return (
     <div
       className="flex min-h-screen flex-col"
       style={{ fontFamily: "var(--font-ibm-plex-sans, 'IBM Plex Sans', system-ui, sans-serif)" }}
     >
-      {/* Navy header — GD-M20-1 D16: header background only */}
-      <header style={{ backgroundColor: NAVY }} className="pl-6 pr-10 py-3.5">
-        <div className="flex w-full items-center justify-between">
-          <div className="flex items-center gap-10">
-            {/* GWIP wordmark — final agency branding replaces at go-live (GD-M20-1 D16) */}
-            <span className="text-base font-semibold tracking-wide" style={{ color: '#ffffff' }}>
-              GWIP
-            </span>
-
-            {/* Domain nav — exactly Workforce and Recruiting (GD-M20-1 D16) */}
-            <nav className="flex items-center gap-0.5" aria-label="Domain navigation">
-              <Link
-                href="/dashboard"
-                className="rounded-[5px] px-[13px] py-[6px] text-[13px] font-medium text-white/50 transition-all hover:bg-white/[0.08] hover:text-white/[0.85]"
-              >
-                Dashboard
-              </Link>
-              {canSeeIntelligence && (
-                <Link
-                  href="/intelligence"
-                  className="rounded-[5px] px-[13px] py-[6px] text-[13px] font-medium text-[#60a5fa] transition-all hover:bg-white/[0.08] hover:text-[#93c5fd]"
-                >
-                  Intelligence
-                </Link>
-              )}
-              <Link
-                href="/workforce/employees"
-                className="rounded-[5px] px-[13px] py-[6px] text-[13px] font-medium text-white/50 transition-all hover:bg-white/[0.08] hover:text-white/[0.85]"
-              >
-                Workforce
-              </Link>
-              <Link
-                href="/recruiting/candidates"
-                className="rounded-[5px] px-[13px] py-[6px] text-[13px] font-medium text-white transition-all"
-                style={{ backgroundColor: 'rgba(255,255,255,0.12)' }}
-              >
-                Recruiting
-              </Link>
-              {canSeeAdmin && (
-                <Link
-                  href="/admin/departments"
-                  className="rounded-[5px] px-[13px] py-[6px] text-[13px] font-medium text-white/50 transition-all hover:bg-white/[0.08] hover:text-white/[0.85]"
-                >
-                  Admin
-                </Link>
-              )}
-            </nav>
-          </div>
-
-          <div className="flex items-center gap-4">
-            <UserIdentityChip />
-            <span aria-hidden="true" style={{ width: 1, height: 16, backgroundColor: 'rgba(255,255,255,0.2)', display: 'inline-block' }} />
-            <LogoutButton />
-          </div>
-        </div>
-      </header>
+      {/* Header — shared PlatformHeader (polished nav treatment), same
+          component as every other authenticated page/shell */}
+      <PlatformHeader roles={roles} activeItem="recruiting" />
 
       {/* Page canvas */}
       <main className="flex-1" style={{ backgroundColor: CANVAS }}>

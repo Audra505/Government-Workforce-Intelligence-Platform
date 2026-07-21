@@ -5,18 +5,15 @@
 // client-side only, no further navigation or fetch (GD-M32-1 Decisions 15-21).
 // No BFF route — same direct serverFetch-to-NestJS pattern the dashboard uses.
 
-import Link from 'next/link';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { serverFetch } from '@/lib/api';
 import { SESSION_COOKIE } from '@/lib/auth';
 import { getSessionRoles } from '@/lib/session';
-import { LogoutButton } from '@/features/auth/logout-button';
-import { UserIdentityChip } from '@/components/shared/user-identity-chip';
+import { PlatformHeader } from '@/components/shared/platform-header';
 import { IntelligenceWorkspace } from '@/features/intelligence/components/intelligence-workspace';
-import type { WorkforceReadinessRes, AttritionRiskRes, VacancyRiskRes, DepartmentGapRes } from '@/features/intelligence/types';
+import type { WorkforceReadinessRes, AttritionRiskRes, VacancyRiskRes, DepartmentGapRes, ExecutiveMetricsRes } from '@/features/intelligence/types';
 
-const NAVY  = '#0c2340';
 const CANVAS = '#f8fafc';
 const TEXT  = '#0f172a';
 const SUB   = '#475569';
@@ -33,7 +30,6 @@ export default async function IntelligencePage({
 }) {
   const token = cookies().get(SESSION_COOKIE)?.value;
   const roles = token ? getSessionRoles(token) : [];
-  const canSeeAdmin = roles.includes('System Administrator') || roles.includes('HR Director');
 
   // GD-M32-1 Decision 20: Workforce Signals allowed roles — reaching this
   // route at all requires at least this. Vacancy Risk is a narrower subset
@@ -50,6 +46,16 @@ export default async function IntelligencePage({
   const canSeeDepartmentGap = roles.some((r) =>
     ['System Administrator', 'HR Director', 'Workforce Planner'].includes(r),
   );
+  // GD-M34-1 Decision 4: same allowed-role list as Workforce Signals
+  // (SA/HRD/WP/Executive User) — Executive User IS allowed here (unlike
+  // Department Gap), kept as its own boolean per the established
+  // one-boolean-per-signal discipline.
+  const canSeeExecutiveMetrics = roles.some((r) =>
+    ['System Administrator', 'HR Director', 'Workforce Planner', 'Executive User'].includes(r),
+  );
+  // Top-level nav visibility (Workforce/Recruiting/Admin/Intelligence links)
+  // now lives entirely in PlatformHeader, computed from `roles` — single
+  // source of truth shared with every other authenticated page/shell.
 
   // GD-M32-1 Decision 20/21: forbidden roles (Recruiter, Hiring Manager,
   // Compliance Officer) must not reach this route, not merely have the nav
@@ -58,7 +64,7 @@ export default async function IntelligencePage({
     redirect('/dashboard');
   }
 
-  const [r0, r1, r2, r3] = await Promise.allSettled([
+  const [r0, r1, r2, r3, r4] = await Promise.allSettled([
     serverFetch<WorkforceReadinessRes>('/api/v1/intelligence/workforce-readiness'),
     serverFetch<AttritionRiskRes>('/api/v1/intelligence/attrition-risk'),
     // pageSize=5 — matches the approved mockup and dashboard-level expectation
@@ -73,6 +79,11 @@ export default async function IntelligencePage({
     canSeeDepartmentGap
       ? serverFetch<DepartmentGapRes>('/api/v1/intelligence/department-gap')
       : Promise.resolve(null),
+    // GD-M34-1 Decision 3/4: no query parameters; forbidden roles never issue
+    // this fetch at all, matching every other signal's gating pattern above.
+    canSeeExecutiveMetrics
+      ? serverFetch<ExecutiveMetricsRes>('/api/v1/intelligence/executive-metrics')
+      : Promise.resolve(null),
   ]);
 
   const readinessData        = settled<WorkforceReadinessRes>(r0);
@@ -83,6 +94,8 @@ export default async function IntelligencePage({
   const vacancyRiskFetchFailed = canSeeVacancyRisk && r2.status === 'rejected';
   const departmentGapData        = settled<DepartmentGapRes>(r3);
   const departmentGapFetchFailed = canSeeDepartmentGap && r3.status === 'rejected';
+  const executiveMetricsData        = settled<ExecutiveMetricsRes>(r4);
+  const executiveMetricsFetchFailed = canSeeExecutiveMetrics && r4.status === 'rejected';
 
   // One-time initial tab selection from a query param (e.g. a "View all →"
   // link from the dashboard's Vacancy Risk card). This is not row selection —
@@ -97,60 +110,12 @@ export default async function IntelligencePage({
   return (
     <div className="flex min-h-screen flex-col" style={{ backgroundColor: CANVAS, fontFamily: "var(--font-ibm-plex-sans,'IBM Plex Sans',system-ui,sans-serif)" }}>
 
-      {/* ── Header — identical structure to dashboard/page.tsx, Intelligence active ── */}
-      <header style={{ backgroundColor: NAVY }} className="pl-6 pr-10 py-3.5">
-        <div className="flex w-full items-center justify-between">
-          <div className="flex items-center gap-10">
-            <span className="text-base font-semibold tracking-wide text-white">GWIP</span>
-            <nav className="flex items-center gap-0.5" aria-label="Domain navigation">
-              <Link
-                href="/dashboard"
-                className="rounded-[5px] px-[13px] py-[6px] text-[13px] font-medium text-white/50 transition-all hover:bg-white/[0.08] hover:text-white/[0.85]"
-              >
-                Dashboard
-              </Link>
-              {/* Active state carries the same blue accent used for the Intelligence
-                  link elsewhere in the shell (dashboard/workforce/recruiting/admin nav),
-                  rather than the neutral white pill other sections use when active —
-                  keeps the page from losing its distinguishing color on arrival. */}
-              <span
-                className="rounded-[5px] px-[13px] py-[6px] text-[13px] font-medium text-[#93c5fd]"
-                style={{ backgroundColor: 'rgba(96,165,250,0.18)' }}
-              >
-                Intelligence
-              </span>
-              <Link
-                href="/workforce/employees"
-                className="rounded-[5px] px-[13px] py-[6px] text-[13px] font-medium text-white/50 transition-all hover:bg-white/[0.08] hover:text-white/[0.85]"
-              >
-                Workforce
-              </Link>
-              <Link
-                href="/recruiting/candidates"
-                className="rounded-[5px] px-[13px] py-[6px] text-[13px] font-medium text-white/50 transition-all hover:bg-white/[0.08] hover:text-white/[0.85]"
-              >
-                Recruiting
-              </Link>
-              {canSeeAdmin && (
-                <Link
-                  href="/admin/departments"
-                  className="rounded-[5px] px-[13px] py-[6px] text-[13px] font-medium text-white/50 transition-all hover:bg-white/[0.08] hover:text-white/[0.85]"
-                >
-                  Admin
-                </Link>
-              )}
-            </nav>
-          </div>
-          <div className="flex items-center gap-4">
-            <UserIdentityChip />
-            <span
-              aria-hidden="true"
-              style={{ width: 1, height: 16, backgroundColor: 'rgba(255,255,255,0.2)', display: 'inline-block' }}
-            />
-            <LogoutButton />
-          </div>
-        </div>
-      </header>
+      {/* ── Header — shared PlatformHeader (polished nav treatment), same
+           component as every other authenticated page/shell. Intelligence
+           renders as the single unified active pill (white, matching every
+           other section's active state) rather than the previous
+           page-specific blue active treatment. ── */}
+      <PlatformHeader roles={roles} activeItem="intelligence" />
 
       {/* ── Content ── */}
       <main className="flex-1">
@@ -182,6 +147,9 @@ export default async function IntelligencePage({
             canSeeDepartmentGap={canSeeDepartmentGap}
             departmentGapData={departmentGapData}
             departmentGapFetchFailed={departmentGapFetchFailed}
+            canSeeExecutiveMetrics={canSeeExecutiveMetrics}
+            executiveMetricsData={executiveMetricsData}
+            executiveMetricsFetchFailed={executiveMetricsFetchFailed}
           />
         </div>
       </main>

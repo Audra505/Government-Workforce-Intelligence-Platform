@@ -100,6 +100,32 @@ export type DepartmentGapRes = {
   };
 };
 
+// GD-M34-1 Decision 10 — mirrors GET /api/v1/intelligence/executive-metrics
+// exactly. Each metric is a plain rate/count, not a classified risk score —
+// value may be null (undefined-denominator or zero-sample case per Decisions
+// 5-7) and must never be rendered as a fabricated 0.
+export type ExecutiveMetricUnit = 'PERCENT' | 'DAYS' | 'COUNT';
+
+export type ExecutiveMetricValue = {
+  value: number | null;
+  unit: ExecutiveMetricUnit;
+  confidence: number;
+  detail: string;
+  windowDays: number | null;
+};
+
+export type ExecutiveMetricsRes = {
+  success: boolean;
+  data: {
+    vacancyRate: ExecutiveMetricValue;
+    coverageRate: ExecutiveMetricValue;
+    timeToFill: ExecutiveMetricValue;
+    hiringVelocity: ExecutiveMetricValue;
+    computedAt: string;
+    formulaVersion: string;
+  };
+};
+
 // GD-M31-1 Decision 5 / GD-M32-1 Decision 5 / GD-M30-1 Decision 5 governed
 // factor maximums. Mirrored here for display only (proportion bar + "x / max"
 // label) — the contribution numerator always comes from the API response;

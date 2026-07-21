@@ -16,10 +16,19 @@ import { VacancyRiskService } from './services/vacancy-risk.service';
 import { WorkforceReadinessService } from './services/workforce-readiness.service';
 import { AttritionRiskService } from './services/attrition-risk.service';
 import { DepartmentGapService } from './services/department-gap.service';
+import { ExecutiveMetricsService } from './services/executive-metrics.service';
+import { SnapshotWriterService } from './services/snapshot-writer.service';
 
 @Module({
   imports: [IdentityModule],
   controllers: [IntelligenceController],
-  providers: [VacancyRiskService, WorkforceReadinessService, AttritionRiskService, DepartmentGapService],
+  providers: [
+    VacancyRiskService,
+    WorkforceReadinessService,
+    AttritionRiskService,
+    DepartmentGapService,
+    ExecutiveMetricsService,
+    SnapshotWriterService,
+  ],
 })
 export class IntelligenceModule {}

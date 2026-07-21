@@ -26,6 +26,8 @@ import { WorkforceReadinessService } from './services/workforce-readiness.servic
 import { AttritionRiskService } from './services/attrition-risk.service';
 import { DepartmentGapService } from './services/department-gap.service';
 import type { DepartmentGapResult } from './services/department-gap.service';
+import { ExecutiveMetricsService } from './services/executive-metrics.service';
+import type { ExecutiveMetricsResult } from './services/executive-metrics.service';
 import { AuditService } from '../audit/audit.service';
 import { AuditEventType } from '../audit/enums/audit-event-type.enum';
 import type { RequestUser } from '../identity/jwt.strategy';
@@ -141,6 +143,17 @@ const mockDepartmentGapResult: DepartmentGapResult = {
   formulaVersion: 'department-gap-deterministic-v1',
 };
 
+// GD-M34-1: ExecutiveMetricsService returns four independent metric values —
+// the controller does no shaping of its own beyond passing them through.
+const mockExecutiveMetricsResult: ExecutiveMetricsResult = {
+  vacancyRate: { value: 12.0, unit: 'PERCENT', confidence: 100, detail: '6 of 50 active positions are currently vacant.', windowDays: null },
+  coverageRate: { value: 82.0, unit: 'PERCENT', confidence: 100, detail: '41 of 50 active positions are filled by an active employee.', windowDays: null },
+  timeToFill: { value: 34.2, unit: 'DAYS', confidence: 70, detail: 'Average 34.2 days to fill, based on 8 vacancies filled in the last 365 days.', windowDays: 365 },
+  hiringVelocity: { value: 7, unit: 'COUNT', confidence: 100, detail: '7 employees hired in the last 90 days.', windowDays: 90 },
+  computedAt: '2026-07-19T12:00:00.000Z',
+  formulaVersion: 'executive-metrics-deterministic-v1',
+};
+
 // ===========================================================================
 // 1. Controller unit tests — guards mocked, direct method calls
 // ===========================================================================
@@ -151,6 +164,7 @@ describe('IntelligenceController — unit', () => {
   let mockWorkforceReadinessService: { score: jest.Mock };
   let mockAttritionRiskService: { score: jest.Mock };
   let mockDepartmentGapService: { getByTenant: jest.Mock };
+  let mockExecutiveMetricsService: { getByTenant: jest.Mock };
   let mockAuditService: { logEvent: jest.Mock };
 
   beforeEach(async () => {
@@ -158,6 +172,7 @@ describe('IntelligenceController — unit', () => {
     mockWorkforceReadinessService = { score: jest.fn() };
     mockAttritionRiskService = { score: jest.fn() };
     mockDepartmentGapService = { getByTenant: jest.fn() };
+    mockExecutiveMetricsService = { getByTenant: jest.fn() };
     mockAuditService = { logEvent: jest.fn().mockResolvedValue(undefined) };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -167,6 +182,7 @@ describe('IntelligenceController — unit', () => {
         { provide: WorkforceReadinessService, useValue: mockWorkforceReadinessService },
         { provide: AttritionRiskService, useValue: mockAttritionRiskService },
         { provide: DepartmentGapService, useValue: mockDepartmentGapService },
+        { provide: ExecutiveMetricsService, useValue: mockExecutiveMetricsService },
         { provide: AuditService, useValue: mockAuditService },
       ],
     })
@@ -298,6 +314,7 @@ describe('IntelligenceController — Workforce Readiness — unit', () => {
   let mockWorkforceReadinessService: { score: jest.Mock };
   let mockAttritionRiskService: { score: jest.Mock };
   let mockDepartmentGapService: { getByTenant: jest.Mock };
+  let mockExecutiveMetricsService: { getByTenant: jest.Mock };
   let mockAuditService: { logEvent: jest.Mock };
 
   beforeEach(async () => {
@@ -305,6 +322,7 @@ describe('IntelligenceController — Workforce Readiness — unit', () => {
     mockWorkforceReadinessService = { score: jest.fn() };
     mockAttritionRiskService = { score: jest.fn() };
     mockDepartmentGapService = { getByTenant: jest.fn() };
+    mockExecutiveMetricsService = { getByTenant: jest.fn() };
     mockAuditService = { logEvent: jest.fn().mockResolvedValue(undefined) };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -314,6 +332,7 @@ describe('IntelligenceController — Workforce Readiness — unit', () => {
         { provide: WorkforceReadinessService, useValue: mockWorkforceReadinessService },
         { provide: AttritionRiskService, useValue: mockAttritionRiskService },
         { provide: DepartmentGapService, useValue: mockDepartmentGapService },
+        { provide: ExecutiveMetricsService, useValue: mockExecutiveMetricsService },
         { provide: AuditService, useValue: mockAuditService },
       ],
     })
@@ -435,6 +454,7 @@ describe('IntelligenceController — Attrition Risk — unit', () => {
   let mockWorkforceReadinessService: { score: jest.Mock };
   let mockAttritionRiskService: { score: jest.Mock };
   let mockDepartmentGapService: { getByTenant: jest.Mock };
+  let mockExecutiveMetricsService: { getByTenant: jest.Mock };
   let mockAuditService: { logEvent: jest.Mock };
 
   beforeEach(async () => {
@@ -442,6 +462,7 @@ describe('IntelligenceController — Attrition Risk — unit', () => {
     mockWorkforceReadinessService = { score: jest.fn() };
     mockAttritionRiskService = { score: jest.fn() };
     mockDepartmentGapService = { getByTenant: jest.fn() };
+    mockExecutiveMetricsService = { getByTenant: jest.fn() };
     mockAuditService = { logEvent: jest.fn().mockResolvedValue(undefined) };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -451,6 +472,7 @@ describe('IntelligenceController — Attrition Risk — unit', () => {
         { provide: WorkforceReadinessService, useValue: mockWorkforceReadinessService },
         { provide: AttritionRiskService, useValue: mockAttritionRiskService },
         { provide: DepartmentGapService, useValue: mockDepartmentGapService },
+        { provide: ExecutiveMetricsService, useValue: mockExecutiveMetricsService },
         { provide: AuditService, useValue: mockAuditService },
       ],
     })
@@ -588,6 +610,7 @@ describe('IntelligenceController — Department Gap — unit', () => {
   let mockWorkforceReadinessService: { score: jest.Mock };
   let mockAttritionRiskService: { score: jest.Mock };
   let mockDepartmentGapService: { getByTenant: jest.Mock };
+  let mockExecutiveMetricsService: { getByTenant: jest.Mock };
   let mockAuditService: { logEvent: jest.Mock };
 
   beforeEach(async () => {
@@ -595,6 +618,7 @@ describe('IntelligenceController — Department Gap — unit', () => {
     mockWorkforceReadinessService = { score: jest.fn() };
     mockAttritionRiskService = { score: jest.fn() };
     mockDepartmentGapService = { getByTenant: jest.fn() };
+    mockExecutiveMetricsService = { getByTenant: jest.fn() };
     mockAuditService = { logEvent: jest.fn().mockResolvedValue(undefined) };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -604,6 +628,7 @@ describe('IntelligenceController — Department Gap — unit', () => {
         { provide: WorkforceReadinessService, useValue: mockWorkforceReadinessService },
         { provide: AttritionRiskService, useValue: mockAttritionRiskService },
         { provide: DepartmentGapService, useValue: mockDepartmentGapService },
+        { provide: ExecutiveMetricsService, useValue: mockExecutiveMetricsService },
         { provide: AuditService, useValue: mockAuditService },
       ],
     })
@@ -693,6 +718,145 @@ describe('IntelligenceController — Department Gap — unit', () => {
 });
 
 // ===========================================================================
+// 1E. Executive Metrics — unit — GD-M34-1
+// ===========================================================================
+
+describe('IntelligenceController — Executive Metrics — unit', () => {
+  let controller: IntelligenceController;
+  let mockVacancyRiskService: { score: jest.Mock };
+  let mockWorkforceReadinessService: { score: jest.Mock };
+  let mockAttritionRiskService: { score: jest.Mock };
+  let mockDepartmentGapService: { getByTenant: jest.Mock };
+  let mockExecutiveMetricsService: { getByTenant: jest.Mock };
+  let mockAuditService: { logEvent: jest.Mock };
+
+  beforeEach(async () => {
+    mockVacancyRiskService = { score: jest.fn() };
+    mockWorkforceReadinessService = { score: jest.fn() };
+    mockAttritionRiskService = { score: jest.fn() };
+    mockDepartmentGapService = { getByTenant: jest.fn() };
+    mockExecutiveMetricsService = { getByTenant: jest.fn() };
+    mockAuditService = { logEvent: jest.fn().mockResolvedValue(undefined) };
+
+    const module: TestingModule = await Test.createTestingModule({
+      controllers: [IntelligenceController],
+      providers: [
+        { provide: VacancyRiskService, useValue: mockVacancyRiskService },
+        { provide: WorkforceReadinessService, useValue: mockWorkforceReadinessService },
+        { provide: AttritionRiskService, useValue: mockAttritionRiskService },
+        { provide: DepartmentGapService, useValue: mockDepartmentGapService },
+        { provide: ExecutiveMetricsService, useValue: mockExecutiveMetricsService },
+        { provide: AuditService, useValue: mockAuditService },
+      ],
+    })
+      .overrideGuard(JwtAuthGuard).useValue({ canActivate: () => true })
+      .overrideGuard(RolesGuard).useValue({ canActivate: () => true })
+      .compile();
+
+    controller = module.get<IntelligenceController>(IntelligenceController);
+  });
+
+  afterEach(() => jest.clearAllMocks());
+
+  it('returns success:true with vacancyRate, coverageRate, timeToFill, hiringVelocity, computedAt, formulaVersion', async () => {
+    mockExecutiveMetricsService.getByTenant.mockResolvedValue(mockExecutiveMetricsResult);
+
+    const result = await controller.getExecutiveMetrics(mockActor);
+
+    expect(result.success).toBe(true);
+    expect(result.data.vacancyRate).toEqual(mockExecutiveMetricsResult.vacancyRate);
+    expect(result.data.coverageRate).toEqual(mockExecutiveMetricsResult.coverageRate);
+    expect(result.data.timeToFill).toEqual(mockExecutiveMetricsResult.timeToFill);
+    expect(result.data.hiringVelocity).toEqual(mockExecutiveMetricsResult.hiringVelocity);
+    expect(result.data.formulaVersion).toBe('executive-metrics-deterministic-v1');
+  });
+
+  it('passes actor.tenantId (from JWT) to ExecutiveMetricsService.getByTenant — no other argument', async () => {
+    mockExecutiveMetricsService.getByTenant.mockResolvedValue(mockExecutiveMetricsResult);
+
+    await controller.getExecutiveMetrics(mockActor);
+
+    expect(mockExecutiveMetricsService.getByTenant).toHaveBeenCalledWith(TENANT_ID);
+    expect(mockExecutiveMetricsService.getByTenant).toHaveBeenCalledTimes(1);
+  });
+
+  it('creates INTELLIGENCE_EXECUTIVE_METRICS_QUERIED audit event on every successful call', async () => {
+    mockExecutiveMetricsService.getByTenant.mockResolvedValue(mockExecutiveMetricsResult);
+
+    await controller.getExecutiveMetrics(mockActor);
+
+    expect(mockAuditService.logEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: AuditEventType.INTELLIGENCE_EXECUTIVE_METRICS_QUERIED,
+        result: 'SUCCESS',
+        tenantId: TENANT_ID,
+        userId: USER_ID,
+        entityType: 'intelligence',
+      }),
+    );
+  });
+
+  it('audit metadata key-set is exactly formulaVersion — PII-safe, no metric value or count included', async () => {
+    mockExecutiveMetricsService.getByTenant.mockResolvedValue(mockExecutiveMetricsResult);
+
+    await controller.getExecutiveMetrics(mockActor);
+
+    const auditCall = mockAuditService.logEvent.mock.calls[0]![0] as { metadata: Record<string, unknown> };
+    expect(auditCall.metadata['formulaVersion']).toBe('executive-metrics-deterministic-v1');
+    expect(Object.keys(auditCall.metadata)).toEqual(['formulaVersion']);
+  });
+
+  it('response contains no individual employee, position, or vacancy identifier of any kind', async () => {
+    mockExecutiveMetricsService.getByTenant.mockResolvedValue(mockExecutiveMetricsResult);
+
+    const result = await controller.getExecutiveMetrics(mockActor);
+    const json = JSON.stringify(result);
+
+    expect(json).not.toMatch(/employeeId|employeeNumber|firstName|lastName|"email"|vacancyId|positionId/i);
+    expect(result.data).not.toHaveProperty('employees');
+    expect(result.data).not.toHaveProperty('items');
+    expect(result.data).not.toHaveProperty('rows');
+  });
+
+  it('Executive User receives a response byte-identical in shape to System Administrator (aggregate-only guarantee)', async () => {
+    mockExecutiveMetricsService.getByTenant.mockResolvedValue(mockExecutiveMetricsResult);
+
+    const saActor: RequestUser = { ...mockActor, roles: ['System Administrator'] };
+    const euActor: RequestUser = { ...mockActor, roles: ['Executive User'] };
+
+    const saResult = await controller.getExecutiveMetrics(saActor);
+    const euResult = await controller.getExecutiveMetrics(euActor);
+
+    expect(euResult).toEqual(saResult);
+  });
+});
+
+// ===========================================================================
+// 1F. No snapshot read path — GD-M34-1 Decision 18 (structural proof at the
+// routing/controller-surface level, not just by convention)
+// ===========================================================================
+
+describe('IntelligenceController — no snapshot/trend/forecast read path', () => {
+  it('exposes exactly the five governed Phase 4 handlers — no snapshot, trend, or forecast method exists', () => {
+    const methodNames = Object.getOwnPropertyNames(IntelligenceController.prototype)
+      .filter(name => name !== 'constructor');
+
+    expect(methodNames.sort()).toEqual(
+      [
+        'getVacancyRisk',
+        'getWorkforceReadiness',
+        'getAttritionRisk',
+        'getDepartmentGap',
+        'getExecutiveMetrics',
+      ].sort(),
+    );
+    for (const name of methodNames) {
+      expect(name.toLowerCase()).not.toMatch(/snapshot|trend|forecast/);
+    }
+  });
+});
+
+// ===========================================================================
 // 2. RBAC enforcement — RolesGuard live, JwtAuthGuard mocked to inject user
 // GD-M30-1 Decision 4 + 14 validation gate
 // ===========================================================================
@@ -713,6 +877,10 @@ describe('IntelligenceController — RBAC enforcement', () => {
   const DEPARTMENT_GAP_ALLOWED_ROLES = ['System Administrator', 'HR Director', 'Workforce Planner'];
   const DEPARTMENT_GAP_FORBIDDEN_ROLES = ['Recruiter', 'Hiring Manager', 'Compliance Officer', 'Executive User'];
 
+  // GD-M34-1 Decision 4: Executive User IS allowed for executive-metrics (aggregate-only)
+  const EXECUTIVE_METRICS_ALLOWED_ROLES = ['System Administrator', 'HR Director', 'Workforce Planner', 'Executive User'];
+  const EXECUTIVE_METRICS_FORBIDDEN_ROLES = ['Recruiter', 'Hiring Manager', 'Compliance Officer'];
+
   async function buildApp(roles: string[] | 'no-auth'): Promise<INestApplication> {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [IntelligenceController],
@@ -732,6 +900,10 @@ describe('IntelligenceController — RBAC enforcement', () => {
         {
           provide: DepartmentGapService,
           useValue: { getByTenant: jest.fn().mockResolvedValue(mockDepartmentGapResult) },
+        },
+        {
+          provide: ExecutiveMetricsService,
+          useValue: { getByTenant: jest.fn().mockResolvedValue(mockExecutiveMetricsResult) },
         },
         { provide: AuditService, useValue: { logEvent: jest.fn() } },
         RolesGuard,
@@ -878,6 +1050,46 @@ describe('IntelligenceController — RBAC enforcement', () => {
     expect(withQuery.body).toEqual(withoutQuery.body);
     await app.close();
   });
+
+  // GD-M34-1 Decision 4 + 21 validation gate — executive-metrics endpoint
+  it.each(EXECUTIVE_METRICS_ALLOWED_ROLES)('executive-metrics: %s → 200 OK', async (role) => {
+    const app = await buildApp([role]);
+    await request(app.getHttpServer())
+      .get('/api/v1/intelligence/executive-metrics')
+      .expect(200);
+    await app.close();
+  });
+
+  it.each(EXECUTIVE_METRICS_FORBIDDEN_ROLES)('executive-metrics: %s → 403 Forbidden', async (role) => {
+    const app = await buildApp([role]);
+    await request(app.getHttpServer())
+      .get('/api/v1/intelligence/executive-metrics')
+      .expect(403);
+    await app.close();
+  });
+
+  it('executive-metrics: no JWT → 401 Unauthorized', async () => {
+    const app = await buildApp('no-auth');
+    await request(app.getHttpServer())
+      .get('/api/v1/intelligence/executive-metrics')
+      .expect(401);
+    await app.close();
+  });
+
+  // GD-M34-1 Decision 3 — no caller-supplied parameter of any kind
+  it('executive-metrics: a query string is silently ignored — same 200 response as no query string', async () => {
+    const app = await buildApp(['System Administrator']);
+
+    const withoutQuery = await request(app.getHttpServer())
+      .get('/api/v1/intelligence/executive-metrics')
+      .expect(200);
+    const withQuery = await request(app.getHttpServer())
+      .get('/api/v1/intelligence/executive-metrics?window=30&metric=vacancyRate')
+      .expect(200);
+
+    expect(withQuery.body).toEqual(withoutQuery.body);
+    await app.close();
+  });
 });
 
 // ===========================================================================
@@ -890,12 +1102,14 @@ describe('IntelligenceController — tenant isolation', () => {
   let mockWorkforceReadinessService: { score: jest.Mock };
   let mockAttritionRiskService: { score: jest.Mock };
   let mockDepartmentGapService: { getByTenant: jest.Mock };
+  let mockExecutiveMetricsService: { getByTenant: jest.Mock };
 
   beforeEach(async () => {
     mockVacancyRiskService = { score: jest.fn().mockResolvedValue({ items: [], total: 0 }) };
     mockWorkforceReadinessService = { score: jest.fn().mockResolvedValue(mockReadinessOutput) };
     mockAttritionRiskService = { score: jest.fn().mockResolvedValue(mockAttritionOutput) };
     mockDepartmentGapService = { getByTenant: jest.fn().mockResolvedValue(mockDepartmentGapResult) };
+    mockExecutiveMetricsService = { getByTenant: jest.fn().mockResolvedValue(mockExecutiveMetricsResult) };
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [IntelligenceController],
@@ -904,6 +1118,7 @@ describe('IntelligenceController — tenant isolation', () => {
         { provide: WorkforceReadinessService, useValue: mockWorkforceReadinessService },
         { provide: AttritionRiskService, useValue: mockAttritionRiskService },
         { provide: DepartmentGapService, useValue: mockDepartmentGapService },
+        { provide: ExecutiveMetricsService, useValue: mockExecutiveMetricsService },
         { provide: AuditService, useValue: { logEvent: jest.fn() } },
       ],
     })
@@ -991,5 +1206,25 @@ describe('IntelligenceController — tenant isolation', () => {
 
     expect(mockDepartmentGapService.getByTenant).toHaveBeenNthCalledWith(1, 'tenant-a');
     expect(mockDepartmentGapService.getByTenant).toHaveBeenNthCalledWith(2, 'tenant-b');
+  });
+
+  // GD-M34-1 Decision 3 — executive-metrics endpoint
+  it('executive-metrics: tenantId for service call comes from JWT actor.tenantId, not from query string', async () => {
+    const actorTenantA: RequestUser = { ...mockActor, tenantId: 'tenant-a' };
+
+    await controller.getExecutiveMetrics(actorTenantA);
+
+    expect(mockExecutiveMetricsService.getByTenant).toHaveBeenCalledWith('tenant-a');
+  });
+
+  it('executive-metrics: two actors with different tenantIds produce separate service calls with their own tenantId', async () => {
+    const actorA: RequestUser = { ...mockActor, tenantId: 'tenant-a' };
+    const actorB: RequestUser = { ...mockActor, tenantId: 'tenant-b' };
+
+    await controller.getExecutiveMetrics(actorA);
+    await controller.getExecutiveMetrics(actorB);
+
+    expect(mockExecutiveMetricsService.getByTenant).toHaveBeenNthCalledWith(1, 'tenant-a');
+    expect(mockExecutiveMetricsService.getByTenant).toHaveBeenNthCalledWith(2, 'tenant-b');
   });
 });

@@ -23,6 +23,7 @@ import { WorkforceReadinessService } from './workforce-readiness.service';
 import { VacancyRiskService } from './vacancy-risk.service';
 import { PrismaService } from '../../database/prisma.service';
 import type { VacancyRiskItem } from './vacancy-risk.service';
+import { SnapshotWriterService } from './snapshot-writer.service';
 
 // ---------------------------------------------------------------------------
 // Test constants
@@ -63,6 +64,7 @@ describe('WorkforceReadinessService', () => {
   };
 
   const mockVacancyRiskService = { score: jest.fn() };
+  const mockSnapshotWriter = { write: jest.fn().mockResolvedValue(undefined) };
 
   // Default: fully staffed, fully compliant, zero vacancy pressure tenant
   function setFullyReadyMocks() {
@@ -84,12 +86,14 @@ describe('WorkforceReadinessService', () => {
 
   beforeEach(async () => {
     jest.clearAllMocks();
+    mockSnapshotWriter.write.mockResolvedValue(undefined);
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         WorkforceReadinessService,
         { provide: PrismaService, useValue: mockPrisma },
         { provide: VacancyRiskService, useValue: mockVacancyRiskService },
+        { provide: SnapshotWriterService, useValue: mockSnapshotWriter },
       ],
     }).compile();
 
@@ -728,6 +732,50 @@ describe('WorkforceReadinessService', () => {
       expect(serialized).not.toContain('firstname');
       expect(serialized).not.toContain('lastname');
       expect(serialized).not.toContain('email');
+    });
+  });
+
+  // ===========================================================================
+  // Snapshot write-on-query wiring — GD-M34-1 Decision 16 (score() only —
+  // scoreByDepartment() is snapshotted by DepartmentGapService, not here)
+  // ===========================================================================
+
+  describe('Snapshot write-on-query wiring', () => {
+    it('score() calls SnapshotWriterService.write() exactly once with WORKFORCE_READINESS/TENANT', async () => {
+      setFullyReadyMocks();
+
+      const result = await service.score(TENANT_ID);
+
+      expect(mockSnapshotWriter.write).toHaveBeenCalledTimes(1);
+      expect(mockSnapshotWriter.write).toHaveBeenCalledWith(
+        expect.objectContaining({
+          tenantId: TENANT_ID,
+          signalType: 'WORKFORCE_READINESS',
+          scopeType: 'TENANT',
+          score: result.riskScore,
+          level: result.riskLevel,
+          confidence: result.confidence,
+          formulaVersion: 'readiness-deterministic-v1',
+        }),
+      );
+    });
+
+    it('scoreByDepartment() does not call SnapshotWriterService directly — DepartmentGapService owns department-scoped writes', async () => {
+      mockPrisma.department.findMany.mockResolvedValue([{ id: 'dept-1', name: 'Alpha' }]);
+      setFullyReadyMocks();
+
+      await service.scoreByDepartment(TENANT_ID);
+
+      expect(mockSnapshotWriter.write).not.toHaveBeenCalled();
+    });
+
+    it('does not alter score() return shape — snapshot write is invisible to the response', async () => {
+      setFullyReadyMocks();
+      const result = await service.score(TENANT_ID);
+
+      expect(Object.keys(result).sort()).toEqual(
+        ['computedAt', 'confidence', 'factors', 'formulaVersion', 'reasoning', 'riskLevel', 'riskScore'].sort(),
+      );
     });
   });
 });

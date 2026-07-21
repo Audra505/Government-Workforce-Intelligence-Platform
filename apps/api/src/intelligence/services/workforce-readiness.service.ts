@@ -31,6 +31,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service';
 import type { RiskFactor, IntelligenceExplainabilityOutput } from '../interfaces/intelligence-explainability.interface';
 import { VacancyRiskService } from './vacancy-risk.service';
+import { SnapshotWriterService } from './snapshot-writer.service';
 
 // ---------------------------------------------------------------------------
 // Public API types — GD-M33-1 Decision 5
@@ -60,6 +61,7 @@ export class WorkforceReadinessService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly vacancyRiskService: VacancyRiskService,
+    private readonly snapshotWriter: SnapshotWriterService,
   ) {}
 
   // -------------------------------------------------------------------------
@@ -142,6 +144,19 @@ export class WorkforceReadinessService {
     );
 
     const reasoning = this.composeReasoning(readinessLevel, factors);
+
+    // GD-M34-1 Decision 16: write-on-query snapshot of this tenant-wide
+    // computation — internal, response-shape-invisible side effect.
+    await this.snapshotWriter.write({
+      tenantId,
+      signalType: 'WORKFORCE_READINESS',
+      scopeType: 'TENANT',
+      score: readinessScore,
+      level: readinessLevel,
+      confidence,
+      formulaVersion: WorkforceReadinessService.FORMULA_VERSION,
+      computedAt: now,
+    });
 
     return {
       riskScore: readinessScore,

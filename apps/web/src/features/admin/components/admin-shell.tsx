@@ -5,10 +5,9 @@
 
 import Link from 'next/link';
 import { cookies } from 'next/headers';
-import { LogoutButton } from '@/features/auth/logout-button';
 import { SESSION_COOKIE } from '@/lib/auth';
 import { getSessionRoles } from '@/lib/session';
-import { UserIdentityChip } from '@/components/shared/user-identity-chip';
+import { PlatformHeader } from '@/components/shared/platform-header';
 
 type ActiveTab = 'departments' | 'users';
 
@@ -18,7 +17,6 @@ type Props = {
   children: React.ReactNode;
 };
 
-const NAVY   = '#0c2340';
 const CANVAS = '#f8fafc';
 const BORDER = '#e2e8f0';
 const TEXT   = '#0f172a';
@@ -30,11 +28,6 @@ export function AdminShell({ activeTab, breadcrumb, children }: Props) {
   const roles = token ? getSessionRoles(token) : [];
   const canAdminRead = roles.includes('System Administrator') || roles.includes('HR Director');
   const canDeptRead  = canAdminRead || roles.includes('Workforce Planner');
-  // GD-M32-1 Decision 20 (Amendment 1): Intelligence workspace nav visibility —
-  // System Administrator, HR Director, Workforce Planner, Executive User.
-  const canSeeIntelligence = roles.some((r) =>
-    ['System Administrator', 'HR Director', 'Workforce Planner', 'Executive User'].includes(r)
-  );
 
   const TABS: { id: ActiveTab; label: string; href: string; visible: boolean }[] = [
     { id: 'users',       label: 'Users',       href: '/admin/users',       visible: canAdminRead },
@@ -48,62 +41,9 @@ export function AdminShell({ activeTab, breadcrumb, children }: Props) {
       className="flex min-h-screen flex-col"
       style={{ fontFamily: "var(--font-ibm-plex-sans, 'IBM Plex Sans', system-ui, sans-serif)" }}
     >
-      {/* Navy header — mirrors WorkforceShell / RecruitingShell (GD-M25-1 D12) */}
-      <header style={{ backgroundColor: NAVY }} className="pl-6 pr-10 py-3.5">
-        <div className="flex w-full items-center justify-between">
-          <div className="flex items-center gap-10">
-            <span className="text-base font-semibold tracking-wide" style={{ color: '#ffffff' }}>
-              GWIP
-            </span>
-
-            {/* Domain nav — Admin active */}
-            <nav className="flex items-center gap-0.5" aria-label="Domain navigation">
-              <Link
-                href="/dashboard"
-                className="rounded-[5px] px-[13px] py-[6px] text-[13px] font-medium text-white/50 transition-all hover:bg-white/[0.08] hover:text-white/[0.85]"
-              >
-                Dashboard
-              </Link>
-              {canSeeIntelligence && (
-                <Link
-                  href="/intelligence"
-                  className="rounded-[5px] px-[13px] py-[6px] text-[13px] font-medium text-[#60a5fa] transition-all hover:bg-white/[0.08] hover:text-[#93c5fd]"
-                >
-                  Intelligence
-                </Link>
-              )}
-              <Link
-                href="/workforce/employees"
-                className="rounded-[5px] px-[13px] py-[6px] text-[13px] font-medium text-white/50 transition-all hover:bg-white/[0.08] hover:text-white/[0.85]"
-              >
-                Workforce
-              </Link>
-              <Link
-                href="/recruiting/candidates"
-                className="rounded-[5px] px-[13px] py-[6px] text-[13px] font-medium text-white/50 transition-all hover:bg-white/[0.08] hover:text-white/[0.85]"
-              >
-                Recruiting
-              </Link>
-              <Link
-                href="/admin/departments"
-                className="rounded-[5px] px-[13px] py-[6px] text-[13px] font-medium text-white transition-all"
-                style={{ backgroundColor: 'rgba(255,255,255,0.12)' }}
-              >
-                Admin
-              </Link>
-            </nav>
-          </div>
-
-          <div className="flex items-center gap-4">
-            <UserIdentityChip />
-            <span
-              aria-hidden="true"
-              style={{ width: 1, height: 16, backgroundColor: 'rgba(255,255,255,0.2)', display: 'inline-block' }}
-            />
-            <LogoutButton />
-          </div>
-        </div>
-      </header>
+      {/* Header — shared PlatformHeader (polished nav treatment), same
+          component as every other authenticated page/shell */}
+      <PlatformHeader roles={roles} activeItem="admin" />
 
       {/* Page canvas */}
       <main className="flex-1" style={{ backgroundColor: CANVAS }}>

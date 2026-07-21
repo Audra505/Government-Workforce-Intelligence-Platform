@@ -19,6 +19,13 @@
 //   No query parameters accepted — every department is returned in one response, never
 //   a caller-selectable single-department filter (see GD-M33-1 Decision 3 rationale).
 //   INTELLIGENCE_DEPARTMENT_GAP_QUERIED emitted on every successful call.
+//
+// GET /executive-metrics (GD-M34-1 Decisions 3, 4, 11):
+//   RBAC: System Administrator, HR Director, Workforce Planner, Executive User —
+//   Recruiter, Hiring Manager, Compliance Officer all forbidden.
+//   No query parameters accepted, same rationale as every other Phase 4 endpoint.
+//   INTELLIGENCE_EXECUTIVE_METRICS_QUERIED emitted on every successful call; audit
+//   metadata is formulaVersion only (GD-M34-1 Decision 11).
 
 import { Controller, Get, Query, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
@@ -39,6 +46,8 @@ import { AttritionRiskService } from './services/attrition-risk.service';
 import { AttritionRiskResponseDto } from './dto/attrition-risk-response.dto';
 import { DepartmentGapService } from './services/department-gap.service';
 import { DepartmentGapResponseDto } from './dto/department-gap-response.dto';
+import { ExecutiveMetricsService } from './services/executive-metrics.service';
+import { ExecutiveMetricsResponseDto } from './dto/executive-metrics-response.dto';
 
 @ApiTags('intelligence')
 @Controller({ version: '1', path: 'intelligence' })
@@ -50,6 +59,7 @@ export class IntelligenceController {
     private readonly workforceReadinessService: WorkforceReadinessService,
     private readonly attritionRiskService: AttritionRiskService,
     private readonly departmentGapService: DepartmentGapService,
+    private readonly executiveMetricsService: ExecutiveMetricsService,
     private readonly auditService: AuditService,
   ) {}
 
@@ -270,6 +280,60 @@ export class IntelligenceController {
         minimumHeadcountThreshold: result.minimumHeadcountThreshold,
         computedAt:                result.computedAt,
         formulaVersion:            result.formulaVersion,
+      },
+    };
+  }
+
+  // --------------------------------------------------------------------------
+  // GET /api/v1/intelligence/executive-metrics
+  // --------------------------------------------------------------------------
+
+  @Get('executive-metrics')
+  @RequireRoles('System Administrator', 'HR Director', 'Workforce Planner', 'Executive User')
+  @ApiOperation({
+    summary: 'Get executive-safe aggregate workforce metrics for this tenant (FR-404)',
+    description:
+      'Returns four deterministic, tenant-wide aggregate metrics: Vacancy Rate %, ' +
+      'Coverage Rate %, Time To Fill, and Hiring Velocity. Allowed roles: System ' +
+      'Administrator, HR Director, Workforce Planner, Executive User. Every value is a ' +
+      'tenant-wide aggregate ratio or count — no individual-level data exists in this ' +
+      'endpoint for any role. Fully deterministic and reproducible — no external AI is ' +
+      'called.',
+  })
+  @ApiResponse({ status: 200, type: ExecutiveMetricsResponseDto, description: 'Executive metrics returned' })
+  @ApiResponse({ status: 401, description: 'Not authenticated' })
+  @ApiResponse({ status: 403, description: 'Insufficient role' })
+  @ApiResponse({ status: 500, description: 'Internal server error' })
+  async getExecutiveMetrics(
+    @CurrentUser() actor: RequestUser,
+  ): Promise<ExecutiveMetricsResponseDto> {
+    const result = await this.executiveMetricsService.getByTenant(actor.tenantId);
+
+    // GD-M34-1 Decision 11: audit every executive-metrics query. Metadata is
+    // formulaVersion only — no metric value, confidence, or count is PII-
+    // adjacent, but the minimal-metadata doctrine established by every prior
+    // Phase 4 endpoint is restated unchanged here.
+    await this.auditService.logEvent({
+      tenantId:   actor.tenantId,
+      userId:     actor.userId,
+      entityType: 'intelligence',
+      entityId:   undefined,
+      action:     AuditEventType.INTELLIGENCE_EXECUTIVE_METRICS_QUERIED,
+      result:     'SUCCESS',
+      metadata: {
+        formulaVersion: ExecutiveMetricsService.FORMULA_VERSION,
+      },
+    });
+
+    return {
+      success: true,
+      data: {
+        vacancyRate:     result.vacancyRate,
+        coverageRate:    result.coverageRate,
+        timeToFill:      result.timeToFill,
+        hiringVelocity:  result.hiringVelocity,
+        computedAt:      result.computedAt,
+        formulaVersion:  result.formulaVersion,
       },
     };
   }

@@ -13,6 +13,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service';
 import type { RiskFactor, IntelligenceExplainabilityOutput } from '../interfaces/intelligence-explainability.interface';
 import type { VacancyRiskQueryDto } from '../dto/vacancy-risk-query.dto';
+import { SnapshotWriterService } from './snapshot-writer.service';
 
 // ---------------------------------------------------------------------------
 // Public output types
@@ -63,7 +64,10 @@ export class VacancyRiskService {
 
   static readonly FORMULA_VERSION = 'deterministic-v1';
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly snapshotWriter: SnapshotWriterService,
+  ) {}
 
   // -------------------------------------------------------------------------
   // Public API — score()
@@ -114,6 +118,30 @@ export class VacancyRiskService {
 
     const total = pairs.length;
     const items = pairs.slice(0, effectivePageSize).map(p => p.item);
+
+    // GD-M34-1 Decision 16: write-on-query snapshot. VacancyRiskService
+    // returns a ranked LIST, not a single score — there is no "riskScore"
+    // field on VacancyRiskResult to snapshot directly. The headline value
+    // recorded here is the average riskScore across the returned items,
+    // the same derived aggregate WorkforceReadinessService already computes
+    // internally for its own Vacancy Pressure factor — this is an
+    // implementation-time interpretation of "the computed value" for a
+    // list-shaped signal, not a new scoring formula (no new weight or
+    // threshold is introduced; it is a plain arithmetic mean of already-
+    // governed per-vacancy riskScore values).
+    const avgRiskScore = items.length > 0
+      ? Math.round((items.reduce((sum, item) => sum + item.riskScore, 0) / items.length) * 10) / 10
+      : null;
+    await this.snapshotWriter.write({
+      tenantId,
+      signalType: 'VACANCY_RISK',
+      scopeType: 'TENANT',
+      score: avgRiskScore,
+      level: null,
+      confidence: items.length > 0 ? 100 : 10,
+      formulaVersion: VacancyRiskService.FORMULA_VERSION,
+      computedAt: now,
+    });
 
     return { items, total };
   }

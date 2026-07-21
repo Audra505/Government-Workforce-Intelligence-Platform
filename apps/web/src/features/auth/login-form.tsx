@@ -7,7 +7,6 @@
 // Reference: spec/09_frontend_architecture.md — Form Standards, Session Storage
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -39,7 +38,6 @@ const loginSchema = z.object({
 type LoginFormValues = z.infer<typeof loginSchema>;
 
 export function LoginForm() {
-  const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
 
@@ -72,13 +70,21 @@ export function LoginForm() {
             ? 'Invalid email or password.'
             : 'Service unavailable. Please try again.',
         );
+        setIsLoading(false);
         return;
       }
 
-      router.push('/dashboard');
+      // Hard navigation, not router.push: this is an identity transition, and
+      // Next.js's client-side Router Cache can otherwise serve a stale RSC
+      // payload rendered for whichever role/session last visited a given URL
+      // in this tab (e.g. an Executive User's cached /dashboard reappearing
+      // right after a System Administrator logs in over it). A full page load
+      // discards that cache entirely, guaranteeing the next render reflects
+      // the just-issued session cookie — isLoading intentionally stays true
+      // through the navigation, since the tab is about to unload.
+      window.location.href = '/dashboard';
     } catch {
       setServerError('An unexpected error occurred. Please try again.');
-    } finally {
       setIsLoading(false);
     }
   }

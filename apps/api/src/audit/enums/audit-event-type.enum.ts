@@ -172,6 +172,8 @@ export enum AuditEventType {
   INTELLIGENCE_ATTRITION_RISK_QUERIED = 'INTELLIGENCE_ATTRITION_RISK_QUERIED',
   // GD-M33-1 Decision 10: department-gap queries auditable from day one.
   INTELLIGENCE_DEPARTMENT_GAP_QUERIED = 'INTELLIGENCE_DEPARTMENT_GAP_QUERIED',
+  // GD-M34-1 Decision 11: executive-metrics queries auditable from day one.
+  INTELLIGENCE_EXECUTIVE_METRICS_QUERIED = 'INTELLIGENCE_EXECUTIVE_METRICS_QUERIED',
 
   // -------------------------------------------------------------------------
   // AUD-900: Integration Events

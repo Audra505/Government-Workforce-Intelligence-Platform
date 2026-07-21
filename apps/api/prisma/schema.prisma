@@ -21,7 +21,7 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
-  schemas  = ["identity", "organization", "audit", "workforce", "recruiting"]
+  schemas  = ["identity", "organization", "audit", "workforce", "recruiting", "intelligence"]
 }
 
 // ---------------------------------------------------------------------------
@@ -609,4 +609,59 @@ model AuditEvent {
   @@index([createdAt], map: "idx_audit_created")
   @@map("audit_events")
   @@schema("audit")
+}
+
+// ---------------------------------------------------------------------------
+// Schema: intelligence
+// Reference: governance/GD-M34-1.md — Decisions 14, 15, 16, 17, 18
+//
+// WorkforceSignalSnapshot is an additive, append-or-update-only historical
+// record of Phase 4 intelligence signal computations. It exists ONLY to
+// accumulate real computed history for a future, separately-governed
+// Workforce Trend Analysis (FR-412) or Demand Forecasting (FR-400)
+// milestone. No endpoint reads this table in M34 (GD-M34-1 Decision 18) —
+// it is written to and read by nothing except SnapshotWriterService.
+//
+// scopeId is NOT NULL, defaulting to the zero-UUID sentinel for
+// scopeType = 'TENANT' rather than using a nullable column as GD-M34-1
+// Decision 15's illustrative snippet showed. This is a deliberate
+// implementation-time refinement: PostgreSQL UNIQUE constraints treat every
+// NULL as distinct from every other NULL, so a nullable scopeId would
+// silently defeat the Decision 17 deduplication guarantee for every
+// TENANT-scoped row (the most common case) — concurrent requests could
+// each insert a new "unique" NULL-scopeId row instead of colliding on the
+// intended daily key. A non-null sentinel makes the compound unique
+// constraint enforce the guarantee Decision 17 actually requires.
+//
+// signalType values written by the current implementation (see
+// SnapshotWriterService and its callers): 'VACANCY_RISK',
+// 'WORKFORCE_READINESS', 'ATTRITION_RISK' (all three also written with
+// scopeType='DEPARTMENT' by DepartmentGapService, one row per non-suppressed
+// department, per Decision 16), and four distinct
+// 'EXECUTIVE_METRICS_<METRIC>' values — one per independent metric
+// (VACANCY_RATE / COVERAGE_RATE / TIME_TO_FILL / HIRING_VELOCITY) rather
+// than a single shared 'EXECUTIVE_METRICS' tag, because a shared tag would
+// collide on the same dedup key for all four metrics and each write would
+// overwrite the previous metric's value instead of preserving all four.
+// This is a necessary refinement of Decision 15's illustrative value list,
+// documented here per that decision's own instruction that any future
+// change to signalType's governed value set be recorded.
+model WorkforceSignalSnapshot {
+  id             String   @id @default(uuid()) @db.Uuid
+  tenantId       String   @map("tenant_id") @db.Uuid
+  signalType     String   @map("signal_type") @db.VarChar(50)
+  scopeType      String   @map("scope_type") @db.VarChar(20)
+  scopeId        String   @default("00000000-0000-0000-0000-000000000000") @map("scope_id") @db.Uuid
+  snapshotDate   DateTime @map("snapshot_date") @db.Date
+  score          Decimal? @db.Decimal(6, 2)
+  level          String?  @db.VarChar(50)
+  confidence     Int      @db.SmallInt
+  formulaVersion String   @map("formula_version") @db.VarChar(100)
+  computedAt     DateTime @map("computed_at") @db.Timestamptz(6)
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@unique([tenantId, signalType, scopeType, scopeId, snapshotDate], map: "idx_workforce_signal_snapshots_dedup")
+  @@index([tenantId, signalType], map: "idx_workforce_signal_snapshots_tenant_signal")
+  @@map("workforce_signal_snapshots")
+  @@schema("intelligence")
 }

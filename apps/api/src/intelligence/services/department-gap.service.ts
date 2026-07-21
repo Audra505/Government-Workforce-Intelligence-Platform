@@ -21,6 +21,7 @@ import type { RiskFactor } from '../interfaces/intelligence-explainability.inter
 import { WorkforceReadinessService } from './workforce-readiness.service';
 import { AttritionRiskService } from './attrition-risk.service';
 import { VacancyRiskService } from './vacancy-risk.service';
+import { SnapshotWriterService } from './snapshot-writer.service';
 
 // ---------------------------------------------------------------------------
 // Governed constant — GD-M33-1 Decision 6
@@ -76,6 +77,7 @@ export class DepartmentGapService {
     private readonly workforceReadinessService: WorkforceReadinessService,
     private readonly attritionRiskService: AttritionRiskService,
     private readonly vacancyRiskService: VacancyRiskService,
+    private readonly snapshotWriter: SnapshotWriterService,
   ) {}
 
   // -------------------------------------------------------------------------
@@ -170,6 +172,48 @@ export class DepartmentGapService {
     // GD-M33-1 Decisions 9 & 13: alphabetical by department name — never sorted or
     // ranked by score, which would functionally create a department leaderboard.
     entries.sort((a, b) => a.departmentName.localeCompare(b.departmentName));
+
+    // GD-M34-1 Decision 16: write-on-query snapshot, once per non-suppressed
+    // department entry, for both its readiness and attrition signal —
+    // scoped by department (scopeType: 'DEPARTMENT'), distinct from the
+    // TENANT-scoped snapshots WorkforceReadinessService.score() and
+    // AttritionRiskService.score() write on their own. Suppressed entries
+    // (GD-M33-1 Decision 6) are never snapshotted — there is no score to
+    // record, and doing so would begin accumulating a form of small-
+    // population history this decision's own non-goals do not authorize.
+    await Promise.all(
+      entries
+        .filter(e => !e.suppressed)
+        .flatMap(e => {
+          const writes: Promise<void>[] = [
+            this.snapshotWriter.write({
+              tenantId,
+              signalType: 'WORKFORCE_READINESS',
+              scopeType: 'DEPARTMENT',
+              scopeId: e.departmentId,
+              score: e.readiness!.score,
+              level: e.readiness!.level,
+              confidence: e.readiness!.confidence,
+              formulaVersion: e.readiness!.formulaVersion,
+              computedAt: now,
+            }),
+          ];
+          if (e.attrition) {
+            writes.push(this.snapshotWriter.write({
+              tenantId,
+              signalType: 'ATTRITION_RISK',
+              scopeType: 'DEPARTMENT',
+              scopeId: e.departmentId,
+              score: e.attrition.score,
+              level: e.attrition.level,
+              confidence: e.attrition.confidence,
+              formulaVersion: e.attrition.formulaVersion,
+              computedAt: now,
+            }));
+          }
+          return writes;
+        }),
+    );
 
     return {
       departments: entries,

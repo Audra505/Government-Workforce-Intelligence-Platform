@@ -36,13 +36,17 @@ import { Injectable, Logger } from '@nestjs/common';
 
 import { PrismaService } from '../../database/prisma.service';
 import type { RiskFactor, IntelligenceExplainabilityOutput } from '../interfaces/intelligence-explainability.interface';
+import { SnapshotWriterService } from './snapshot-writer.service';
 
 // ---------------------------------------------------------------------------
 // Governed constants — GD-M32-1 Decision 5
 // ---------------------------------------------------------------------------
 
 const TRAILING_WINDOW_MS = 365 * 86_400_000;
-const CURRENT_WORKFORCE_STATUSES = ['ACTIVE', 'ON_LEAVE', 'PENDING_ONBOARDING', 'SUSPENDED'];
+// Exported for reuse by ExecutiveMetricsService's Hiring Velocity formula
+// (GD-M34-1 Decision 8 — "reuses AttritionRiskService's
+// CURRENT_WORKFORCE_STATUSES constant").
+export const CURRENT_WORKFORCE_STATUSES = ['ACTIVE', 'ON_LEAVE', 'PENDING_ONBOARDING', 'SUSPENDED'];
 const SEPARATION_RATE_CEILING = 0.30;
 
 // ---------------------------------------------------------------------------
@@ -70,7 +74,10 @@ export class AttritionRiskService {
 
   static readonly FORMULA_VERSION = 'attrition-deterministic-v1';
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly snapshotWriter: SnapshotWriterService,
+  ) {}
 
   // -------------------------------------------------------------------------
   // Public API — score()
@@ -164,6 +171,19 @@ export class AttritionRiskService {
     );
 
     const reasoning = this.composeReasoning(attritionRiskLevel, factors);
+
+    // GD-M34-1 Decision 16: write-on-query snapshot of this tenant-wide
+    // computation — internal, response-shape-invisible side effect.
+    await this.snapshotWriter.write({
+      tenantId,
+      signalType: 'ATTRITION_RISK',
+      scopeType: 'TENANT',
+      score: attritionScore,
+      level: attritionRiskLevel,
+      confidence,
+      formulaVersion: AttritionRiskService.FORMULA_VERSION,
+      computedAt: now,
+    });
 
     return {
       riskScore: attritionScore,

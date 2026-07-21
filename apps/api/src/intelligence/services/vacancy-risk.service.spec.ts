@@ -22,6 +22,7 @@ import { Test, type TestingModule } from '@nestjs/testing';
 
 import { VacancyRiskService } from './vacancy-risk.service';
 import { PrismaService } from '../../database/prisma.service';
+import { SnapshotWriterService } from './snapshot-writer.service';
 
 // ---------------------------------------------------------------------------
 // Test constants
@@ -90,15 +91,18 @@ describe('VacancyRiskService', () => {
       findMany: jest.fn(),
     },
   };
+  const mockSnapshotWriter = { write: jest.fn().mockResolvedValue(undefined) };
 
   beforeEach(async () => {
     jest.clearAllMocks();
     jest.useFakeTimers().setSystemTime(NOW);
+    mockSnapshotWriter.write.mockResolvedValue(undefined);
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         VacancyRiskService,
         { provide: PrismaService, useValue: mockPrisma },
+        { provide: SnapshotWriterService, useValue: mockSnapshotWriter },
       ],
     }).compile();
 
@@ -658,6 +662,73 @@ describe('VacancyRiskService', () => {
 
       fetchSpy.mockRestore();
     });
+  });
+
+  // ===========================================================================
+  // Snapshot write-on-query wiring — GD-M34-1 Decision 16 (existing M30
+  // response shape must remain unchanged by this addition)
+  // ===========================================================================
+
+  describe('Snapshot write-on-query wiring', () => {
+    it('calls SnapshotWriterService.write() exactly once per score() call with VACANCY_RISK/TENANT', async () => {
+      mockPrisma.vacancy.findMany.mockResolvedValue([
+        makeMockVacancy({ priority: 'HIGH', createdAt: daysAgo(45), status: 'OPEN' }),
+      ]);
+
+      await service.score(TENANT_ID, {});
+
+      expect(mockSnapshotWriter.write).toHaveBeenCalledTimes(1);
+      expect(mockSnapshotWriter.write).toHaveBeenCalledWith(
+        expect.objectContaining({
+          tenantId: TENANT_ID,
+          signalType: 'VACANCY_RISK',
+          scopeType: 'TENANT',
+          formulaVersion: 'deterministic-v1',
+        }),
+      );
+    });
+
+    it('snapshot score is the average riskScore across returned items, rounded to 1 decimal', async () => {
+      mockPrisma.vacancy.findMany.mockResolvedValue([
+        // age(90+)=40 + priority(CRITICAL)=40 + fillDate(none)=0 + status(OPEN)=5 = 85
+        makeMockVacancy({ id: 'a', priority: 'CRITICAL', createdAt: daysAgo(90), status: 'OPEN' }),
+        // age(0)=0 + priority(null)=0 + fillDate(none)=0 + status(IN_RECRUITMENT)=0 = 0
+        makeMockVacancy({ id: 'b', priority: null, createdAt: daysAgo(0), status: 'IN_RECRUITMENT' }),
+      ]);
+
+      await service.score(TENANT_ID, {});
+
+      expect(mockSnapshotWriter.write).toHaveBeenCalledWith(
+        expect.objectContaining({ score: 42.5 }), // (85 + 0) / 2
+      );
+    });
+
+    it('snapshot score is null and confidence is 10 when no eligible vacancies exist', async () => {
+      mockPrisma.vacancy.findMany.mockResolvedValue([]);
+
+      await service.score(TENANT_ID, {});
+
+      expect(mockSnapshotWriter.write).toHaveBeenCalledWith(
+        expect.objectContaining({ score: null, confidence: 10 }),
+      );
+    });
+
+    it('does not alter score() return shape — items/total unchanged by the snapshot addition', async () => {
+      mockPrisma.vacancy.findMany.mockResolvedValue([
+        makeMockVacancy({ priority: 'HIGH', createdAt: daysAgo(45), status: 'OPEN' }),
+      ]);
+
+      const result = await service.score(TENANT_ID, {});
+
+      expect(Object.keys(result).sort()).toEqual(['items', 'total']);
+    });
+
+    // Note: VacancyRiskService relies entirely on SnapshotWriterService's own
+    // internal try/catch (Decision 16) to guarantee a write failure never
+    // affects the caller — it does not add a second try/catch of its own.
+    // That guarantee is proven directly against the real implementation in
+    // snapshot-writer.service.spec.ts ("write() never rejects, even when the
+    // underlying Prisma call throws").
   });
 });
 

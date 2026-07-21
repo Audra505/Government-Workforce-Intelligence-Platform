@@ -9,16 +9,16 @@
 
 ---
 
-Last Updated: 2026-07-18 (M33 Capacity & Gap Intelligence -- LOCALLY IMPLEMENTED, RUNTIME-VERIFIED, BROWSER-VERIFIED; ready for commit and CI confirmation)
-Updated By: Claude Code (M33 full runtime/browser verification complete including the Department Gap UI clarity follow-up; finalizing for a single implementation commit; also closed the M32 record, which had been committed and CI-confirmed but never updated in this ledger)
+Last Updated: 2026-07-21 (M34 Executive Intelligence Expansion & Workforce Snapshot Foundation -- LOCALLY IMPLEMENTED, RUNTIME-VERIFIED, BROWSER-VERIFIED; ready for commit and CI confirmation)
+Updated By: Claude Code (M34 finalization pass: re-confirmed migration/RBAC/snapshot-dedup/no-read-endpoint evidence, re-ran full validation, fixed a login/logout client-cache role-switch bug discovered during this pass, and consolidated platform navigation to one shared component; also closed the M33 record, which had been committed (466350f) and CI-confirmed (run 29658955778) but never updated in this ledger)
 
-Previous Update: 2026-07-16 (M31 Workforce Readiness Intelligence -- CI CONFIRMED; cbcacdb; runtime-verified + browser-verified + CI green)
+Previous Update: 2026-07-18 (M33 Capacity & Gap Intelligence -- LOCALLY IMPLEMENTED, RUNTIME-VERIFIED, BROWSER-VERIFIED; ready for commit and CI confirmation)
 
 ## Repository Status
 
-Current Phase: **Phase 4 — M33 RUNTIME/BROWSER-VERIFIED, READY FOR CI CONFIRMATION (Capacity & Gap Intelligence)**
-Overall Classification: Phase 2 COMPLETE; Post-Phase-2 milestones M13/M14/M15 CI-confirmed; Pre-Phase-3 Governance Package CI-confirmed (a5c34f1); Phase 3 started — M16 CI-confirmed; M17 CI-confirmed; M18 CI-confirmed; M19 CI-confirmed; M20 CI-confirmed (6e6777b; run 28611838113); M21 CI-confirmed (1036c92 + 3c8189d + 1e33420); browser-verified by human 2026-07-03; CLOSED; M21.5 CI-confirmed (782e35e + 1a4b64f; runs #66 + #67); M22 CI-confirmed (ee8465b); browser-verified by human 2026-07-04; CLOSED; M23 CI-confirmed (5fedb81); browser-verified by human 2026-07-06; CLOSED; M24 CI-confirmed (5f5bfa6); browser-verified by human 2026-07-11; CLOSED; M25 CI-confirmed (23d46ef); browser-verified by human 2026-07-13; CLOSED; M26 CI-confirmed (a9a6943); runtime-verified 2026-07-14; CLOSED; M27 CI-confirmed (9049fd6); runtime-verified 2026-07-14; CLOSED; M28 CI-confirmed (46ffcce); runtime-verified + human browser-verified 2026-07-14; CLOSED; M29 CI-confirmed (45efe2f); seed validated 2026-07-14; CLOSED; Phase 3 COMPLETE; Phase 4 Intelligence STARTED — M30 CI-confirmed (407195b); governance GD-M30-1.md authorized (3c9366e) and amended twice (d3a2a65, 0401672); runtime-verified + browser-verified 2026-07-16; CLOSED; M31 CI-confirmed (cbcacdb); governance GD-M31-1.md authorized (051fa8f); runtime-verified + browser-verified 2026-07-16; CI run #99 (ID 29534898812) completed / success; CLOSED; M32 CI-CONFIRMED (dad0afc; run 29654755142 completed/success); governance GD-M32-1.md authorized (e43c700) and amended with Amendment 1 (Intelligence Detail Workspace); runtime-verified + browser-verified 2026-07-18; CLOSED; M33 RUNTIME/BROWSER-VERIFIED — governance GD-M33-1.md authorized (2026-07-18, pending approval, local); department-level Workforce Readiness/Attrition Risk (scoreByDepartment(), reusing GD-M31-1/GD-M32-1 formulas verbatim) + DepartmentGapService + GET /api/v1/intelligence/department-gap + enabled Department Gap tab implemented and verified against the rebuilt Docker stack (RBAC, minimum-headcount suppression on real data, no-headcount-exposure, audit event, workspace behavior by role, UI clarity follow-up all confirmed); type-check/lint clean both apps; full API suite 1918/1918 passing; NOT yet committed, NOT yet CI-confirmed — commit and push are the next step; OPEN pending CI
-Active Sprint / Milestone: M33 — runtime/browser-verified, staged for a single implementation commit; CI confirmation pending push
+Current Phase: **Phase 4 — M34 LOCALLY IMPLEMENTED, RUNTIME-VERIFIED, BROWSER-VERIFIED, READY FOR CI CONFIRMATION (Executive Intelligence Expansion & Workforce Snapshot Foundation)**
+Overall Classification: Phase 2 COMPLETE; Post-Phase-2 milestones M13/M14/M15 CI-confirmed; Pre-Phase-3 Governance Package CI-confirmed (a5c34f1); Phase 3 started — M16 CI-confirmed; M17 CI-confirmed; M18 CI-confirmed; M19 CI-confirmed; M20 CI-confirmed (6e6777b; run 28611838113); M21 CI-confirmed (1036c92 + 3c8189d + 1e33420); browser-verified by human 2026-07-03; CLOSED; M21.5 CI-confirmed (782e35e + 1a4b64f; runs #66 + #67); M22 CI-confirmed (ee8465b); browser-verified by human 2026-07-04; CLOSED; M23 CI-confirmed (5fedb81); browser-verified by human 2026-07-06; CLOSED; M24 CI-confirmed (5f5bfa6); browser-verified by human 2026-07-11; CLOSED; M25 CI-confirmed (23d46ef); browser-verified by human 2026-07-13; CLOSED; M26 CI-confirmed (a9a6943); runtime-verified 2026-07-14; CLOSED; M27 CI-confirmed (9049fd6); runtime-verified 2026-07-14; CLOSED; M28 CI-confirmed (46ffcce); runtime-verified + human browser-verified 2026-07-14; CLOSED; M29 CI-confirmed (45efe2f); seed validated 2026-07-14; CLOSED; Phase 3 COMPLETE; Phase 4 Intelligence STARTED — M30 CI-confirmed (407195b); governance GD-M30-1.md authorized (3c9366e) and amended twice (d3a2a65, 0401672); runtime-verified + browser-verified 2026-07-16; CLOSED; M31 CI-confirmed (cbcacdb); governance GD-M31-1.md authorized (051fa8f); runtime-verified + browser-verified 2026-07-16; CI run #99 (ID 29534898812) completed / success; CLOSED; M32 CI-CONFIRMED (dad0afc; run 29654755142 completed/success); governance GD-M32-1.md authorized (e43c700) and amended with Amendment 1 (Intelligence Detail Workspace); runtime-verified + browser-verified 2026-07-18; CLOSED; M33 CI-CONFIRMED (466350f; run 29658955778 completed/success); governance GD-M33-1.md authorized (2026-07-18, pending approval, local); department-level Workforce Readiness/Attrition Risk (scoreByDepartment()) + DepartmentGapService + GET /api/v1/intelligence/department-gap + Department Gap tab; runtime-verified + browser-verified 2026-07-18; CLOSED; M34 LOCALLY IMPLEMENTED, RUNTIME-VERIFIED, BROWSER-VERIFIED — governance GD-M34-1.md authorized (2026-07-19, pending approval, local); ExecutiveMetricsService (Vacancy Rate %, Coverage Rate %, Time To Fill, Hiring Velocity) + GET /api/v1/intelligence/executive-metrics + additive-only WorkforceSignalSnapshot table with DB-enforced dedup/upsert (no read endpoint) + purpose-built Executive User dashboard + platform-wide role navigation cleanup + shared PlatformHeader consolidation + a login/logout client-router-cache role-switch bug found and fixed; type-check/lint clean both apps; full API suite 1990/1990 passing; NOT yet committed, NOT yet CI-confirmed — commit and push are the next step; OPEN pending CI
+Active Sprint / Milestone: M34 — locally implemented, runtime-verified, browser-verified, staged for a single implementation commit; CI confirmation pending push
 Implementation Started: Yes (2026-06-05)
 
 ## Phase Summary
@@ -33,12 +33,12 @@ Phase 1 is formally closed. D9 (Docker Environment) and D10 (CI/CD Foundation) w
 > Its purpose is crash/session recovery: the current step state is always readable without
 > scanning Zone 5 history. It is overwritten each step — not appended.
 
-Milestone: M33 Capacity & Gap Intelligence -- RUNTIME-VERIFIED, BROWSER-VERIFIED, READY FOR COMMIT
-Last Completed Milestone: M32 CI-CONFIRMED -- dad0afc; run 29654755142 completed/success; runtime-verified + browser-verified 2026-07-18; FULLY CLOSED
-Last Completed Step: Focused browser re-verification of the Department Gap UI clarity follow-up (rebuilt web image; tile label, helper text, grouped list sections, auto-selection of first scored department, suppressed-department messaging, dashboard-unchanged all confirmed via screenshots across all 7 roles); final validation clean (API type-check/lint, web type-check/lint, targeted department-gap 16/16, targeted intelligence 234/234, full API suite 1918/1918)
-Last Completed Step Date: 2026-07-18
-Current Step: Finalizing for a single M33 implementation commit -- staging the 16 M33-related files plus this PROGRESS.md update, committing, pushing once, then checking GitHub Actions CI for the pushed commit. (Also closed the stale M32 record above, which had been committed as dad0afc and CI-confirmed earlier this session but never reflected in this ledger.)
-Session Classification: PHASE 4 M33 RUNTIME/BROWSER-VERIFIED -- Backend: WorkforceReadinessService.scoreByDepartment() and AttritionRiskService.scoreByDepartment() added, reusing the GD-M31-1/GD-M32-1 formulas verbatim (only the query population filter changes from tenantId alone to tenantId+departmentId) -- proven via a byte-identical-output equivalence test against the existing score() methods; new DepartmentGapService orchestrates both plus vacancy-context aggregation (reusing VacancyRiskService's existing department join) and applies a governed minimum-headcount suppression rule (constant = 5, GD-M33-1 Decision 6) -- departments below threshold return suppressed:true with no score and no headcount disclosed anywhere, confirmed on real dev-tenant data (13 of 14 departments suppressed); GET /api/v1/intelligence/department-gap added, no query parameters accepted (verified: a supplied ?departmentId= is silently ignored), RBAC System Administrator/HR Director/Workforce Planner only (Executive User explicitly excluded, a deliberate GD-M33-1 Decision 4 choice, not an oversight); INTELLIGENCE_DEPARTMENT_GAP_QUERIED audit event with PII-safe aggregate-only metadata (formulaVersion, departmentCount, suppressedDepartmentCount only). Frontend: Department Gap tab in the existing /intelligence workspace enabled for SA/HRD/WP (absent, not disabled, for Executive User -- no fetch issued); department master-detail layout matching the existing Vacancy Risk tab pattern; UI clarity follow-up added a clearer tile label ("Departments Eligible for Scoring"), explanatory helper text, list grouped into "Eligible for Scoring" / "Insufficient Data -- Scores Hidden" sections (alphabetical within each, not leaderboard-sorted), default selection auto-lands on the first scored department when one exists, and suppressed-department detail shows a neutral "Insufficient data -- scores hidden" badge plus governed protection messaging with zero score/factor/headcount content. Dashboard: untouched in every M33-related turn -- confirmed byte-for-byte unchanged via screenshot comparison. Governance: GD-M33-1.md authored (7-decision-plus document; in-document amendments narrowing GD-M32-1 Decision 11's department-level attrition prohibition and un-deferring GD-M31-1's FR-411 gap, rather than editing those committed files directly); reviewed against final implementation for factual accuracy before commit -- no mismatch found, no correction needed (the later UI-clarity presentational refinements remain within what the governed decisions already authorize). Validation: type-check + lint clean on both apps; full API suite 1918/1918 (52 suites) passing; full runtime + browser verification passing across all 7 roles across three separate verification passes this session; NOT yet committed, NOT yet CI-confirmed -- commit/push is the immediate next step.
+Milestone: M34 Executive Intelligence Expansion & Workforce Snapshot Foundation -- LOCALLY IMPLEMENTED, RUNTIME-VERIFIED, BROWSER-VERIFIED, READY FOR COMMIT
+Last Completed Milestone: M33 CI-CONFIRMED -- 466350f; run 29658955778 completed/success; runtime-verified + browser-verified 2026-07-18; FULLY CLOSED
+Last Completed Step: Final pre-commit verification pass -- confirmed migration applied (`intelligence.workforce_signal_snapshots` present with the DB-level UNIQUE dedup constraint), confirmed 27 snapshot rows all with distinct dedup keys (zero duplicates despite dozens of scoring calls across this and prior sessions), confirmed no snapshot read endpoint exists (controller grep + a dedicated unit test), confirmed executive-metrics RBAC live (SA 200, Recruiter 403), confirmed no trend/forecast/recommendedHeadcount/OpenAI/LLM references anywhere in the M34 diff, re-ran the full platform-wide nav + dashboard-content browser suite across all 7 roles against the current build (clean), and ran full validation (API type-check/lint, web type-check/lint, targeted executive-metrics 40/40, targeted snapshot-writer 40/40 combined, targeted intelligence suite 306/306, full API suite 1990/1990)
+Last Completed Step Date: 2026-07-21
+Current Step: Finalizing for a single M34 implementation commit -- staging the M34-related files plus this PROGRESS.md update, committing, pushing once, then checking GitHub Actions CI for the pushed commit. (Also closed the stale M33 record above, which had been committed as 466350f and CI-confirmed earlier but never reflected in this ledger.)
+Session Classification: PHASE 4 M34 LOCALLY IMPLEMENTED, RUNTIME-VERIFIED, BROWSER-VERIFIED -- Backend: ExecutiveMetricsService adds four deterministic aggregate metrics (Vacancy Rate %, Coverage Rate %, Time To Fill, Hiring Velocity), each with its own confidence rule and a metric-level value/unit/confidence/detail/windowDays explainability shape; GET /api/v1/intelligence/executive-metrics added, no query parameters, RBAC System Administrator/HR Director/Workforce Planner/Executive User (Recruiter/Hiring Manager/Compliance Officer forbidden -- live-verified 200/403); INTELLIGENCE_EXECUTIVE_METRICS_QUERIED audit event, formulaVersion-only metadata. Separately, a new additive-only `intelligence` Prisma schema and `WorkforceSignalSnapshot` table begin accumulating real computed history from all five Phase 4 signals (write-on-query only, no cron/scheduler/worker) via SnapshotWriterService, with a DB-level UNIQUE constraint on (tenantId, signalType, scopeType, scopeId, snapshotDate) plus an upsert write path bounding growth to one row per signal per scope per tenant per day -- confirmed live (27 rows, 27 distinct keys, zero duplicates); no read endpoint, query API, or export of snapshot data exists anywhere (confirmed by grep and a dedicated "no snapshot/trend/forecast read path" unit test). Frontend: dashboard Workforce Metrics card + /intelligence Workforce Metrics subsection for SA/HRD/WP/Executive User; a purpose-built Executive User dashboard (Strategic Risk Signals + Capacity & Throughput, ring gauges, a single descriptive posture statement synthesized only from already-governed fields, no trend/forecast/recommended-headcount/individual/department detail) replacing the operational dashboard entirely for EU; a platform-wide role navigation cleanup replacing the single canSeeOperationalDashboard bucket with four resource-specific capability booleans matching each backend @RequireRoles() list exactly, so Recruiter/Hiring Manager/Compliance Officer/Workforce Planner each see only the dashboard sections their real access supports (no dash-only cards, no false "No open vacancies" text) and the top-level nav (Dashboard/Intelligence/Workforce/Recruiting/Admin) matches the approved per-role matrix everywhere (dashboard, /intelligence, Workforce shell, Recruiting shell, Admin shell), including WorkforceShell sub-tab visibility mirroring AdminShell's existing pattern; a shared PlatformHeader component (apps/web/src/components/shared/platform-header.tsx) consolidated the header markup across all five surfaces onto one polished, consistent treatment (icon-badge wordmark, unified white active-pill convention) with nav visibility computed once, in one place, from `roles`. During this finalization pass, browser testing surfaced and fixed a real bug unrelated to RBAC: LoginForm and LogoutButton used router.push() (a Next.js client-side soft navigation), which could serve a stale Router-Cache RSC payload from a previous role's session in the same tab after a login/logout role switch (reproduced live: SA login right after an EU session showed the EU dashboard and a 2-item nav); fixed by switching both to a hard window.location navigation, verified via a repro-then-fix comparison and a chained 4-role same-tab switch, all correct. Governance: no governance changes required for M34 (GD-M34-1.md and governance_history.md already reviewed for factual accuracy against final implementation -- no mismatch found). Validation: type-check + lint clean on both apps; full API suite 1990/1990 (54 suites) passing; targeted executive-metrics + snapshot-writer 40/40, targeted intelligence suite 306/306; full runtime + browser verification passing across all 7 roles; NOT yet committed, NOT yet CI-confirmed -- commit/push is the immediate next step.
 
 ## Milestone 10 — Approved Plan
 
@@ -11344,14 +11344,14 @@ M32 is fully closed. See the M33 entry below for the next milestone.
 # Milestone M33 — Capacity & Gap Intelligence
 
 **Date:** 2026-07-18 (implemented, runtime-verified, browser-verified across three passes including a UI-clarity follow-up)
-**Status:** LOCALLY IMPLEMENTED, RUNTIME-VERIFIED, BROWSER-VERIFIED — READY FOR CI CONFIRMATION. CI will be confirmed after this commit is pushed; this entry must not claim CI passed until a GitHub Actions run for the pushed commit exists and is observed green.
+**Status:** CI-CONFIRMED — CLOSED
 **Governance:** `governance/GD-M33-1.md`
   - Authored 2026-07-18, produced by a dedicated Phase 4 capability alignment audit (this session) that re-evaluated the full intended Phase 4 capability set and recommended combining department-level breakdown into one milestone rather than a standalone score
   - Contains in-document amendments narrowing `GD-M32-1` Decision 11's department-level attrition prohibition and un-deferring `GD-M31-1`'s FR-411 "Department readiness breakdown" gap — done as amendment decisions within `GD-M33-1.md` itself, not by editing the already-committed `GD-M31-1.md`/`GD-M32-1.md` files
   - `governance/governance_history.md` — new M33 section added, matching the existing table format
   - Reviewed against the final implementation for factual accuracy before commit (RBAC, suppression rule, endpoint shape, workspace behavior, and the later UI-clarity presentational refinements) — no mismatch found; no correction needed
-**Implementation commit:** recorded below once created
-**CI run:** not yet triggered as of this entry — will be confirmed in a follow-up PROGRESS.md update after push
+**Implementation commit:** `466350f` — "Implement M33 capacity and gap intelligence"
+**CI run:** [29658955778](https://github.com/Audra505/Government-Workforce-Intelligence-Platform/actions/runs/29658955778) — completed / success (confirmed during M34 finalization; this record was never updated at the time, an oversight corrected here)
 
 ## Scope Completed
 
@@ -11433,7 +11433,7 @@ New (4):
 | Dashboard unchanged | Passed — screenshot-confirmed byte-for-byte identical to the M32 baseline across all verification rounds; `dashboard/page.tsx` never modified in any M33 turn |
 | No individual employee data / no leaderboard | Passed — no employee identifiers, rows, lists, rankings, or names anywhere; department list is alphabetical/grouped by data-availability, never sorted or colored by score |
 | No fake data / OpenAI / LLM | Passed — confirmed via code review and dedicated unit tests (no HTTP dependency in any new service) |
-| CI | Not yet triggered — nothing committed or pushed |
+| CI | Passed — run [29658955778](https://github.com/Audra505/Government-Workforce-Intelligence-Platform/actions/runs/29658955778), completed/success |
 
 ## Explicit Exclusions (per `GD-M33-1.md`)
 
@@ -11475,7 +11475,7 @@ New (4):
 | Environment Model | Verified — full Docker stack rebuilt and health-checked per SETUP.md's documented rebuild decision tree across three separate rounds this session; no schema/migration/infra changes made |
 | Data Lifecycle | No schema change; department scores computed live on every request from existing data; audit event persisted per query (confirmed via direct DB query) |
 | Evolution Strategy | Establishes the `scoreByDepartment()` extension pattern any future Phase 4 signal can reuse for department-level breakdown without duplicating formula logic; the minimum-headcount suppression rule is now a reusable governed pattern for any future small-population intelligence surface |
-| **Overall** | **Locally implemented, runtime-verified, browser-verified — ready for commit and CI confirmation. Not yet marked Verified/CLOSED: that status is reserved until a GitHub Actions run for the pushed commit is observed green.** |
+| **Overall** | **Verified — runtime-verified + browser-verified + CI-confirmed (`466350f`; run 29658955778 completed/success). CLOSED.** |
 
 ## Capability Maturity Summary (Phase 4, Post-M33)
 
@@ -11485,17 +11485,231 @@ New (4):
 | Vacancy Risk Intelligence | Verified (M30) |
 | Workforce Readiness Intelligence | Verified (M31) — now also available department-scoped (M33) |
 | Aggregate Attrition Risk Intelligence | Verified (M32) — now also available department-scoped (M33) |
-| Intelligence Detail Workspace | Verified (M32); Department Gap tab runtime-verified + browser-verified — CI confirmation pending push |
-| Department-Level Capacity & Gap Intelligence | Runtime-verified + browser-verified — CI confirmation pending push; closes the FR-411 gap `GD-M31-1` deferred |
+| Intelligence Detail Workspace | Verified (M32); Department Gap tab Verified (M33) |
+| Department-Level Capacity & Gap Intelligence | Verified (M33) — closes the FR-411 gap `GD-M31-1` deferred |
 | Role-Based Intelligence Matrix | Actively implemented in stages (`GD-M30-1` Decision 11) — four signals live-verified with independent per-signal gating |
 | AI/LLM integration | Deferred |
 | Demand Forecasting | Deferred — schema-blocked (no historical snapshot mechanism) |
 | Candidate Matching | Deferred — schema-blocked (`Position`/`Candidate` lack skills fields) |
 | Full Compliance Intelligence | Deferred — Phase 5 territory |
-| Executive Analytics Expansion | Deferred to M34 per `GD-M30-1` Decision 11 |
+| Executive Analytics Expansion | Delivered (M34) — see the M34 entry below |
+
+## Next Actions (Historical — M33 Closure)
+
+1. ~~Stage the 16 M33-related files plus this PROGRESS.md update, create the implementation commit, and push once.~~ Done — `466350f`.
+2. ~~Check GitHub Actions for the pushed commit's CI run.~~ Done — run 29658955778, completed/success.
+3. ~~Once CI is observed green, update this PROGRESS.md entry's Status to CI-CONFIRMED / CLOSED with the commit hash and CI run ID.~~ Done above (corrected during M34 finalization — this closure had been missed at the time).
+
+M33 is fully closed. See the M34 entry below for the next milestone.
+
+---
+
+# Milestone M34 — Executive Intelligence Expansion & Workforce Snapshot Foundation
+
+**Date:** 2026-07-19 to 2026-07-21 (implemented across multiple session turns: backend, frontend, full runtime/browser verification, a dashboard role-rendering correction, a platform-wide role navigation audit and cleanup, a navigation visual-consistency consolidation, a login/logout cache-bug fix, and this finalization pass)
+**Status:** LOCALLY IMPLEMENTED, RUNTIME-VERIFIED, BROWSER-VERIFIED — READY FOR CI CONFIRMATION. CI will be confirmed after this commit is pushed; this entry must not claim CI passed until a GitHub Actions run for the pushed commit exists and is observed green.
+**Governance:** `governance/GD-M34-1.md`
+  - Authored 2026-07-19, produced by a focused M34 feasibility drilldown that evaluated Executive Intelligence Expansion, Workforce Trend Analysis (FR-412), and Demand Forecasting (FR-400), and found the first fully buildable today while the latter two share one missing prerequisite — real historical data — that does not exist anywhere in the schema
+  - Combines the one ready capability (Executive Intelligence Expansion) with the minimal honest infrastructure step toward the two blocked ones (Workforce Snapshot Foundation), without claiming either blocked capability complete
+  - `governance/governance_history.md` — new M34 section added, matching the existing table format
+  - Reviewed against the final implementation for factual accuracy during this finalization pass — no mismatch found; no correction made
+**Implementation commit:** recorded below once created
+**CI run:** not yet triggered as of this entry — will be confirmed in a follow-up PROGRESS.md update after push
+
+## Scope Completed
+
+### Executive Intelligence Expansion — Four New Aggregate Metrics
+
+- `ExecutiveMetricsService` (`apps/api/src/intelligence/services/executive-metrics.service.ts`) — four deterministic, tenant-wide aggregate formulas, each independently versioned (`executive-metrics-deterministic-v1`):
+  - **Vacancy Rate %** — open vacancies / active positions
+  - **Coverage Rate %** — active positions filled by an active employee / active positions
+  - **Time To Fill** — average days from position creation to fill, 365-day trailing window (reuses `GD-M32-1`'s window length)
+  - **Hiring Velocity** — count of employees hired in a 90-day trailing window
+- Each metric returns its own `{ value, unit, confidence, detail, windowDays }` shape — `value` may be `null` (undefined-denominator or zero-sample case) and is never rendered as a fabricated 0.
+- `GET /api/v1/intelligence/executive-metrics` added to `IntelligenceController` — no query parameters accepted (matching every other Phase 4 endpoint); RBAC System Administrator, HR Director, Workforce Planner, Executive User allowed; Recruiter, Hiring Manager, Compliance Officer forbidden — live-verified this session (SA → 200, Recruiter → 403).
+- `INTELLIGENCE_EXECUTIVE_METRICS_QUERIED` added to `AuditEventType`; audit metadata is `formulaVersion` only (no metric value, confidence, or count — PII-safe minimal-metadata doctrine matching every prior Phase 4 endpoint).
+- Wired into the response shape without altering M30–M33's existing formulas, thresholds, or RBAC in any way.
+
+### Workforce Snapshot Foundation — Additive History Table, No New Exposure
+
+- New additive-only `intelligence` Prisma schema and `workforce_signal_snapshots` table (`tenantId, signalType, scopeType, scopeId, snapshotDate, score, level, confidence, formulaVersion, computedAt`) — migration `20260719231144_m34_workforce_signal_snapshots` hand-authored (not `prisma migrate dev` auto-generated, due to pre-existing unrelated schema drift in the dev database) as a purely additive `CREATE SCHEMA` + `CREATE TABLE` + 2 indexes; confirmed applied via `\dt intelligence.*` and `\d intelligence.workforce_signal_snapshots` against the live Docker postgres during this finalization pass.
+- `SnapshotWriterService` (`apps/api/src/intelligence/services/snapshot-writer.service.ts`) — write-on-query only (no cron/scheduler/worker exists in this codebase), triggered from within the existing `score()`/`getByTenant()` methods of all five Phase 4 signal services as an internal, response-shape-invisible side effect. Catches all its own errors internally and never rejects — proven by dedicated unit tests that force a DB constraint violation and a DB-unavailable condition and assert the triggering request's response is unaffected either way.
+- **Deduplication rule**, the core governed safeguard: a DB-level `UNIQUE` constraint on `(tenantId, signalType, scopeType, scopeId, snapshotDate)` (`idx_workforce_signal_snapshots_dedup`) with an upsert write path — bounds growth to at most one row per signal per scope per tenant per calendar day regardless of request volume. Confirmed live during this finalization pass: 27 total rows, 27 distinct dedup keys, zero duplicates, despite dozens of scoring calls issued across this and prior sessions' verification passes.
+- `scopeId` is `NOT NULL` with a zero-UUID sentinel default (`00000000-0000-0000-0000-000000000000`) rather than nullable, as a deliberate, disclosed deviation from governance's illustrative Prisma snippet — Postgres treats every `NULL` as distinct in a unique constraint, which would have silently defeated the dedup guarantee for TENANT-scoped signals.
+- Four distinct `signalType` values for the four executive metrics (`EXECUTIVE_METRICS_VACANCY_RATE`, `_COVERAGE_RATE`, `_TIME_TO_FILL`, `_HIRING_VELOCITY`) rather than one shared tag, so each metric's snapshot write cannot overwrite another's under the same dedup key.
+- **No new exposure**: no read endpoint, query API, or export of snapshot data exists anywhere — confirmed by grep (zero matches for "snapshot" in `intelligence.controller.ts`) and by a dedicated `intelligence.controller.spec.ts` test ("exposes exactly the five governed Phase 4 handlers — no snapshot, trend, or forecast method exists") that asserts no controller method name matches `/snapshot|trend|forecast/`.
+- Suppressed Department Gap entries (M33) produce no snapshot row.
+
+### Frontend — Workforce Metrics Surface
+
+- Dashboard: "Workforce Metrics" card (labeled for the general audience it's visible to — SA/HRD/WP/Executive User — not "Executive Metrics"; the backend endpoint/DTO naming is unchanged, this is a display-label-only choice) showing condensed formatted values only, no raw formula math ("6 of 50" breakdowns).
+- `/intelligence`: a matching "Workforce Metrics" subsection inside the existing Workforce Signals tab (no new tab).
+- Both gated by the same `canSeeExecutiveMetrics` boolean (SA/HRD/WP/Executive User), independently from every other signal per the established one-boolean-per-signal discipline.
+
+### Executive User Dashboard — Purpose-Built Redesign
+
+- A dedicated `ExecutiveDashboardView` component (not the operational dashboard with sections hidden) replaces the operational dashboard entirely for Executive User, triggered by a capability check (`canSeeExecutiveMetrics && no operational data capability`) rather than a role-name check, so a hypothetical dual-role user would correctly fall through to the full operational dashboard instead.
+- Layout: sidebar with a single descriptive posture statement synthesized only from already-governed fields (`readinessLevel`, `attritionRiskLevel`, `coverageRate`, `vacancyRate` — no new score, threshold, or classification introduced) plus a "Go deeper" link to `/intelligence`; main content with Strategic Risk Signals (Workforce Readiness + Attrition Risk, ring gauges, full unmodified `reasoning` text) and Capacity & Throughput (the four Workforce Metrics, paired by the question each answers — Staffing Capacity / Hiring Throughput).
+- No trend chart, forecast score, recommended headcount, individual/candidate/department-level detail, or fabricated data anywhere on this view — confirmed by code review and by browser text-content assertions across every verification pass this session.
+- Design lineage: iterated through multiple mockup rounds (single-column → sidebar layout inspired by a user-supplied reference image, with prescriptive "Strategic Insights" recommendation cards and unlabeled trend sparklines explicitly rejected as violating the advisory-only/no-fabricated-data doctrine → a final refined version that removed a "Concept — not live" trend strip entirely, judged as reading unfinished rather than premium) before implementation.
+
+### Platform-Wide Role Navigation Cleanup
+
+- Replaced the single `canSeeOperationalDashboard` bucket in `dashboard/page.tsx` with four resource-specific capability booleans, each matching one backend `@RequireRoles()` list exactly: `canSeeEmployeeData` (SA/HRD/WP/HM/CO), `canSeePositionVacancyData` (SA/HRD/WP), `canSeeRecruitingPipelineData` (SA/HRD/Recruiter/CO), `canSeeCertsData` (SA/HRD/WP/CO). Every dashboard fetch and every dashboard section (KPI row per-card, Recruiting Pipeline, Open Vacancies, Workforce Status, Certifications) is now gated on the specific capability that backs it, with dynamic grid layouts that collapse cleanly when a role has partial access — eliminating dash-only cards and false "No open vacancies" text for Recruiter, Hiring Manager, Compliance Officer, and Workforce Planner (previously only fixed for Executive User).
+- Final approved top-level nav matrix, applied identically across `dashboard/page.tsx`, `/intelligence`, `WorkforceShell`, `RecruitingShell`, and `AdminShell`:
+  - System Administrator / HR Director: Dashboard, Intelligence, Workforce, Recruiting, Admin
+  - Workforce Planner: Dashboard, Intelligence, Workforce
+  - Recruiter: Dashboard, Recruiting
+  - Hiring Manager: Dashboard, Workforce
+  - Compliance Officer: Dashboard, Workforce, Recruiting
+  - Executive User: Dashboard, Intelligence
+- `WorkforceShell` sub-tabs now use the same `visible`-flag/filter pattern already established in `AdminShell`: Positions/Vacancies → SA/HRD/WP; Employees → SA/HRD/WP/HM/CO; Skills/Certifications → SA/HRD/WP/CO — so a role reaching the shell never sees a tab that leads to a 403. `RecruitingShell`'s 4 tabs needed no sub-tab filtering (identical RBAC across all 4 recruiting resources).
+- Verified live via a platform-wide navigation audit (backend `@RequireRoles()` cross-referenced against every frontend nav-hosting file) that found 3 previously-unknown total dead ends (Recruiter↔Workforce, Workforce Planner↔Recruiting, Hiring Manager↔Recruiting) beyond the already-fixed Executive User case, all now resolved.
+
+### Navigation Visual Consistency Consolidation
+
+- New shared `PlatformHeader` component (`apps/web/src/components/shared/platform-header.tsx`) — the polished icon-badge/wordmark/tagline treatment originally built only for the Executive User dashboard is now the single header used by all five authenticated surfaces (Dashboard, Intelligence, Workforce, Recruiting, Admin), computing nav visibility once from `roles` rather than duplicating the same four booleans in five files.
+- Unified the one real inconsistency found: `/intelligence`'s own active-nav item previously used a distinct blue pill; it now uses the same white active-pill convention every other section already used.
+- Confirmed via browser verification across all 7 roles × all reachable surfaces: identical header padding/logo/tagline, exactly one non-clickable active `<span>` per page, identical identity-chip/logout placement.
+
+### Login/Logout Role-Switch Cache Bug — Found and Fixed
+
+- Discovered while investigating a user report that logging in as System Administrator showed the Executive User dashboard. Root cause: `LoginForm` and `LogoutButton` used `router.push()` (a Next.js client-side soft navigation), which can serve a stale Router-Cache RSC payload rendered for whichever role last visited a given URL in that browser tab — not an RBAC or backend defect.
+- Reproduced precisely with an automated browser test (real login as Executive User → sign out → log in as System Administrator, same tab): showed the stale Executive Dashboard heading and a 2-item nav instead of the real SA dashboard and 5-item nav.
+- Fixed by switching both `login-form.tsx` and `logout-button.tsx` to a hard `window.location.href` navigation instead of `router.push()`, discarding the Router Cache entirely on every identity transition.
+- Verified fixed: the exact repro now shows correct SA content; a chained 4-role same-tab switch (Executive User → Recruiter → Compliance Officer → System Administrator) shows the correct nav bar at every step.
+- `apps/web/src/features/recruiting/components/recruiting-logout-button.tsx` has the same `router.push()` pattern but is confirmed dead code (zero references anywhere in the app) — left untouched, flagged for awareness if it is ever wired up.
+
+## Files Changed (29 total — all uncommitted working-tree changes)
+
+Modified (22):
+- `apps/api/prisma/schema.prisma`
+- `apps/api/src/audit/enums/audit-event-type.enum.ts`
+- `apps/api/src/intelligence/intelligence.controller.ts`
+- `apps/api/src/intelligence/intelligence.controller.spec.ts`
+- `apps/api/src/intelligence/intelligence.module.ts`
+- `apps/api/src/intelligence/services/attrition-risk.service.ts`
+- `apps/api/src/intelligence/services/attrition-risk.service.spec.ts`
+- `apps/api/src/intelligence/services/department-gap.service.ts`
+- `apps/api/src/intelligence/services/department-gap.service.spec.ts`
+- `apps/api/src/intelligence/services/vacancy-risk.service.ts`
+- `apps/api/src/intelligence/services/vacancy-risk.service.spec.ts`
+- `apps/api/src/intelligence/services/workforce-readiness.service.ts`
+- `apps/api/src/intelligence/services/workforce-readiness.service.spec.ts`
+- `apps/web/src/app/(dashboard)/dashboard/page.tsx`
+- `apps/web/src/app/(dashboard)/intelligence/page.tsx`
+- `apps/web/src/features/admin/components/admin-shell.tsx`
+- `apps/web/src/features/auth/login-form.tsx`
+- `apps/web/src/features/auth/logout-button.tsx`
+- `apps/web/src/features/intelligence/components/intelligence-workspace.tsx`
+- `apps/web/src/features/intelligence/types.ts`
+- `apps/web/src/features/recruiting/components/recruiting-shell.tsx`
+- `apps/web/src/features/workforce/components/workforce-shell.tsx`
+
+New (7):
+- `apps/api/prisma/migrations/20260719231144_m34_workforce_signal_snapshots/`
+- `apps/api/src/intelligence/dto/executive-metrics-response.dto.ts`
+- `apps/api/src/intelligence/services/executive-metrics.service.ts`
+- `apps/api/src/intelligence/services/executive-metrics.service.spec.ts`
+- `apps/api/src/intelligence/services/snapshot-writer.service.ts`
+- `apps/api/src/intelligence/services/snapshot-writer.service.spec.ts`
+- `apps/web/src/components/shared/platform-header.tsx`
+
+(Plus `governance/governance_history.md` (modified) and `governance/GD-M34-1.md` (new), and `PROGRESS.md` itself — not counted in the 29 source/governance files above.)
+
+## Validation
+
+| Check | Result |
+|---|---|
+| API type-check | Passed — 0 errors |
+| API lint | Passed — 0 errors |
+| Web type-check | Passed — 0 errors |
+| Web lint | Passed — "No ESLint warnings or errors" |
+| Targeted `executive-metrics.service.spec.ts` + `snapshot-writer.service.spec.ts` | Passed — 40/40 |
+| Targeted intelligence suite (7 files) | Passed — 306/306 |
+| Full unfiltered API test suite | Passed — **1990/1990 tests, 54/54 suites** |
+| Migration applied | Passed — `intelligence.workforce_signal_snapshots` present with `idx_workforce_signal_snapshots_dedup` UNIQUE constraint, confirmed via live `psql` |
+| Snapshot dedup/upsert on real usage | Passed — 27 rows, 27 distinct `(tenantId, signalType, scopeType, scopeId, snapshotDate)` keys, zero duplicates |
+| No snapshot read endpoint | Passed — zero matches for "snapshot" in `intelligence.controller.ts`; dedicated unit test asserts no controller method name matches `/snapshot\|trend\|forecast/` |
+| Executive-metrics RBAC (live) | Passed — SA → 200, Recruiter → 403 |
+| No trend/forecast/recommendedHeadcount/OpenAI/LLM in the M34 diff | Passed — every code match is a negative-assertion test or comment confirming absence, not an implementation; zero matches for "recommended headcount" anywhere |
+| Dashboard Workforce Metrics (SA/HRD/WP/Executive User) | Passed — present; absent for Recruiter/Hiring Manager/Compliance Officer |
+| `/intelligence` Workforce Metrics | Passed — present in the Workforce Signals tab for SA/HRD/WP/Executive User |
+| Executive User purpose-built dashboard | Passed — "Executive Dashboard" heading + Strategic Risk Signals + Capacity & Throughput render; no operational KPI cards |
+| Executive User nav (Dashboard + Intelligence only) | Passed — confirmed on every surface Executive User can reach |
+| Platform-wide role navigation matrix (all 7 roles) | Passed — exact match on every reachable surface (dashboard, `/intelligence`, Workforce shell, Recruiting shell, Admin shell) |
+| No dead-end nav links from normal top navigation | Passed — 13 direct-URL probes across 5 roles: forbidden `/intelligence` routes redirect to `/dashboard`; forbidden Workforce/Recruiting/Admin routes show a permission-denied boundary, never a broken/empty shell |
+| No misleading dash-only or false-empty dashboard sections | Passed — `hasFalseNoOpenVacanciesMsg: false` for every role; every KPI card/panel either shows real data or is omitted entirely, never dashed |
+| Login/logout role-switch cache issue | Passed — fixed (`window.location` hard navigation replacing `router.push()`); repro-then-fix comparison confirmed |
+| Same-tab role switching, including EU → SA and chained switches | Passed — EU→SA single switch and a chained EU→Recruiter→CO→SA 4-role switch both show correct nav/content at every step |
+| No trend UI / forecast UI / recommended headcount | Passed — confirmed via code review and live browser text-content assertions |
+| No fake historical/synthetic data | Passed — every dashboard/workspace value traced to a real fetch result; snapshot rows are real computed history, not backfilled or synthetic |
+| No OpenAI/LLM | Passed — confirmed via code review and dedicated unit tests (no HTTP dependency in any new service) |
+| CI | Not yet triggered — nothing committed or pushed |
+
+## Explicit Exclusions (per `GD-M34-1.md`)
+
+- **Does not implement FR-412 Workforce Trend Analysis** — no trend chart, historical comparison view, or time-series UI of any kind. The snapshot table begins accumulating the real data a future, separately-governed milestone would need, but no trend capability is claimed complete here.
+- **Does not implement FR-400 Demand Forecasting** — no forecast score, `Forecast` entity, projection, or approval workflow of any kind.
+- No recommended headcount, staffing recommendation, or prescriptive action of any kind on any surface.
+- No read endpoint, query API, or export of `WorkforceSignalSnapshot` data.
+- No OpenAI/LLM integration of any kind.
+- No new scoring formulas, weights, or thresholds for M30–M33's existing signals — unchanged.
+- No Certification Compliance Risk, Compliance Officer intelligence, or candidate/skill matching.
+- No department-level breakdown of the four new executive metrics.
+- No fake, placeholder, or synthetic historical data anywhere.
+- No new BFF routes, no new top-level routes.
+- No backend permission or RBAC change as part of the navigation cleanup — UI-hiding only, verified via direct-URL probes that backend enforcement is unchanged.
+- Nothing staged, committed, or pushed prior to the finalization commit recorded below.
+
+## Known Risks / Limitations
+
+- No dedicated automated E2E/Playwright suite exists yet for the Intelligence workspace, the Executive User dashboard, or the platform-wide navigation matrix — verification across every round this milestone was performed via ad hoc Playwright scripts (not committed to the repo) plus screenshot/text-content review, not a repeatable CI-gated E2E suite. Same known gap already noted for M32/M33; not unique to M34.
+- `apps/web/src/features/recruiting/components/recruiting-logout-button.tsx` retains the same `router.push()` staleness pattern the login/logout fix addressed elsewhere, but is confirmed unused anywhere in the app — a latent landmine if it is ever wired up, not an active defect today.
+- Real dev-tenant data yields a Time To Fill value of 0.1 days for at least one verification run — a real computed result from live data (not a display bug or fabricated value), but small enough to look unusual; not investigated further as it is outside M34's scope (the formula itself is unchanged from what governance authorized).
+- The Next.js client-side Router Cache staleness pattern found and fixed for login/logout may exist in other places `router.push()` is used for state-changing transitions elsewhere in the app; only the two auth-transition components were audited and fixed as part of this milestone, since that was the reported symptom's actual location.
+
+## M34 Overall Maturity
+
+| Layer | Status |
+|---|---|
+| Requirements | Defined — `GD-M34-1.md`; `spec/01_requirements.md` FR-404 (Executive Intelligence), FR-412/FR-400 explicitly deferred |
+| Specs | Defined — `GD-M34-1` (21 decisions) + this PROGRESS.md entry |
+| Directives | `GD-M34-1` authored and applied; reviewed against final implementation during this finalization pass — no mismatch found |
+| Execution Plan | Complete — `ExecutiveMetricsService`; `GET /executive-metrics`; `SnapshotWriterService`; additive `intelligence` schema/migration; audit event; dashboard + `/intelligence` Workforce Metrics surfaces; Executive User dashboard redesign; platform-wide nav cleanup; shared `PlatformHeader`; login/logout cache fix |
+| State Model | Snapshot dedup key `(tenantId, signalType, scopeType, scopeId, snapshotDate)` enforced at the DB level; four independent resource-capability booleans replace the single operational-dashboard bucket; nav visibility computed once in `PlatformHeader` from `roles` |
+| Test Scenarios | Validated at unit/integration level (40 targeted executive-metrics/snapshot-writer tests, 306 targeted intelligence tests, full 1990-test API suite green, type-check + lint clean on both apps) AND at runtime/browser level (7-role login, live RBAC, DB-verified snapshot dedup, dashboard/nav rendering by role, direct-URL forbidden-route probes, login/logout role-switch repro-then-fix) |
+| System Loop | Implemented and exercised as a running system — JWT → RolesGuard → ExecutiveMetricsService/SnapshotWriterService → PrismaService → AuditService → dashboard/`/intelligence` `serverFetch` → role-gated render, all confirmed live against the rebuilt Docker stack across multiple rebuild cycles this milestone |
+| Failure Playbook | Coded and tested — `SnapshotWriterService` catches all its own errors and never rejects (proven under forced DB-constraint-violation and DB-unavailable conditions); dashboard fetches remain `Promise.allSettled`-protected |
+| Environment Model | Verified — full Docker stack rebuilt and health-checked per `SETUP.md`'s documented rebuild decision tree across many cycles this milestone; migration confirmed applied via live `psql` |
+| Data Lifecycle | Additive-only schema change; snapshot rows accumulate write-on-query with DB-enforced dedup; no read/export path exists; audit event persisted per executive-metrics query |
+| Evolution Strategy | `WorkforceSignalSnapshot` is the explicit, disclosed first step toward a future, separately-governed FR-412/FR-400 milestone — no trend or forecast capability is claimed here; `PlatformHeader` and the four resource-capability booleans are now the reusable pattern for any future role or surface |
+| **Overall** | **Locally implemented, runtime-verified, browser-verified — ready for commit and CI confirmation. Not yet marked Verified/CLOSED: that status is reserved until a GitHub Actions run for the pushed commit is observed green.** |
+
+## Capability Maturity Summary (Phase 4, Post-M34)
+
+| Capability | Status |
+|---|---|
+| Phase 4 Intelligence | Continued |
+| Vacancy Risk Intelligence | Verified (M30) |
+| Workforce Readiness Intelligence | Verified (M31) |
+| Aggregate Attrition Risk Intelligence | Verified (M32) |
+| Department-Level Capacity & Gap Intelligence | Verified (M33) |
+| Executive Intelligence Expansion (Vacancy Rate / Coverage Rate / Time To Fill / Hiring Velocity) | Runtime-verified + browser-verified — CI confirmation pending push |
+| Workforce Snapshot Foundation (additive history, dedup/upsert, no read exposure) | Runtime-verified + DB-verified — CI confirmation pending push |
+| Executive User Dashboard (purpose-built) | Runtime-verified + browser-verified — CI confirmation pending push |
+| Platform-Wide Role Navigation Matrix | Runtime-verified + browser-verified across all 7 roles — CI confirmation pending push |
+| Navigation Visual Consistency (shared `PlatformHeader`) | Runtime-verified + browser-verified — CI confirmation pending push |
+| Login/Logout Role-Switch Cache Fix | Runtime-verified (repro-then-fix + chained multi-role switch) — CI confirmation pending push |
+| Role-Based Intelligence Matrix | Actively implemented in stages (`GD-M30-1` Decision 11) — five signals live-verified with independent per-signal gating |
+| Workforce Trend Analysis (FR-412) | **Not implemented — explicitly deferred.** Snapshot Foundation is a disclosed prerequisite step only. |
+| Demand Forecasting (FR-400) | **Not implemented — explicitly deferred.** Same prerequisite gap as FR-412. |
+| AI/LLM integration | Deferred — confirmed absent from every M34 service by code review and unit test |
+| Candidate Matching | Deferred — schema-blocked (`Position`/`Candidate` lack skills fields) |
+| Full Compliance Intelligence | Deferred — Phase 5 territory |
 
 ## Next Actions
 
-1. Stage the 16 M33-related files plus this PROGRESS.md update, create the implementation commit, and push once.
+1. Stage the 29 M34-related files plus `governance/governance_history.md`, `governance/GD-M34-1.md`, and this PROGRESS.md update, create the implementation commit, and push once.
 2. Check GitHub Actions for the pushed commit's CI run.
 3. Once CI is observed green, update this PROGRESS.md entry's Status to CI-CONFIRMED / CLOSED with the commit hash and CI run ID — not before.

@@ -26,6 +26,7 @@ import { AttritionRiskService } from './attrition-risk.service';
 import type { DepartmentAttritionResult } from './attrition-risk.service';
 import { VacancyRiskService } from './vacancy-risk.service';
 import type { VacancyRiskItem } from './vacancy-risk.service';
+import { SnapshotWriterService } from './snapshot-writer.service';
 
 // ---------------------------------------------------------------------------
 // Test constants / helpers
@@ -105,9 +106,11 @@ describe('DepartmentGapService', () => {
   const mockWorkforceReadinessService = { scoreByDepartment: jest.fn() };
   const mockAttritionRiskService = { scoreByDepartment: jest.fn() };
   const mockVacancyRiskService = { score: jest.fn() };
+  const mockSnapshotWriter = { write: jest.fn().mockResolvedValue(undefined) };
 
   beforeEach(async () => {
     jest.clearAllMocks();
+    mockSnapshotWriter.write.mockResolvedValue(undefined);
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -115,6 +118,7 @@ describe('DepartmentGapService', () => {
         { provide: WorkforceReadinessService, useValue: mockWorkforceReadinessService },
         { provide: AttritionRiskService, useValue: mockAttritionRiskService },
         { provide: VacancyRiskService, useValue: mockVacancyRiskService },
+        { provide: SnapshotWriterService, useValue: mockSnapshotWriter },
       ],
     }).compile();
 
@@ -422,6 +426,88 @@ describe('DepartmentGapService', () => {
 
       const result = await service.getByTenant(TENANT_ID);
       expect(result.departments).toEqual([]);
+    });
+  });
+
+  // ===========================================================================
+  // Snapshot write-on-query wiring — GD-M34-1 Decision 16
+  // ===========================================================================
+
+  describe('Snapshot write-on-query wiring', () => {
+    it('writes two DEPARTMENT-scoped snapshots (WORKFORCE_READINESS + ATTRITION_RISK) per non-suppressed department', async () => {
+      mockWorkforceReadinessService.scoreByDepartment.mockResolvedValue([
+        makeReadinessResult('dept-1', 'Field Operations', 10, 68),
+      ]);
+      mockAttritionRiskService.scoreByDepartment.mockResolvedValue([
+        makeAttritionResult('dept-1', 'Field Operations', 10, 30),
+      ]);
+      mockVacancyRiskService.score.mockResolvedValue({ items: [], total: 0 });
+
+      await service.getByTenant(TENANT_ID);
+
+      expect(mockSnapshotWriter.write).toHaveBeenCalledTimes(2);
+      expect(mockSnapshotWriter.write).toHaveBeenCalledWith(
+        expect.objectContaining({
+          tenantId: TENANT_ID, signalType: 'WORKFORCE_READINESS', scopeType: 'DEPARTMENT',
+          scopeId: 'dept-1', score: 68,
+        }),
+      );
+      expect(mockSnapshotWriter.write).toHaveBeenCalledWith(
+        expect.objectContaining({
+          tenantId: TENANT_ID, signalType: 'ATTRITION_RISK', scopeType: 'DEPARTMENT',
+          scopeId: 'dept-1', score: 30,
+        }),
+      );
+    });
+
+    it('writes zero snapshots for a suppressed department', async () => {
+      mockWorkforceReadinessService.scoreByDepartment.mockResolvedValue([
+        makeReadinessResult('dept-1', 'Tiny Dept', 2),
+      ]);
+      mockAttritionRiskService.scoreByDepartment.mockResolvedValue([
+        makeAttritionResult('dept-1', 'Tiny Dept', 2),
+      ]);
+      mockVacancyRiskService.score.mockResolvedValue({ items: [], total: 0 });
+
+      await service.getByTenant(TENANT_ID);
+
+      expect(mockSnapshotWriter.write).not.toHaveBeenCalled();
+    });
+
+    it('mixed tenant: only the non-suppressed department produces snapshots', async () => {
+      mockWorkforceReadinessService.scoreByDepartment.mockResolvedValue([
+        makeReadinessResult('dept-big', 'Big Dept', 10, 70),
+        makeReadinessResult('dept-small', 'Small Dept', 2, 50),
+      ]);
+      mockAttritionRiskService.scoreByDepartment.mockResolvedValue([
+        makeAttritionResult('dept-big', 'Big Dept', 10, 20),
+        makeAttritionResult('dept-small', 'Small Dept', 2, 20),
+      ]);
+      mockVacancyRiskService.score.mockResolvedValue({ items: [], total: 0 });
+
+      await service.getByTenant(TENANT_ID);
+
+      expect(mockSnapshotWriter.write).toHaveBeenCalledTimes(2);
+      const calledScopeIds = mockSnapshotWriter.write.mock.calls.map(
+        (call: [{ scopeId: string }]) => call[0].scopeId,
+      );
+      expect(calledScopeIds).toEqual(['dept-big', 'dept-big']);
+    });
+
+    it('does not alter getByTenant() return shape — snapshot writes are invisible to the response', async () => {
+      mockWorkforceReadinessService.scoreByDepartment.mockResolvedValue([
+        makeReadinessResult('dept-1', 'Field Operations', 10),
+      ]);
+      mockAttritionRiskService.scoreByDepartment.mockResolvedValue([
+        makeAttritionResult('dept-1', 'Field Operations', 10),
+      ]);
+      mockVacancyRiskService.score.mockResolvedValue({ items: [], total: 0 });
+
+      const result = await service.getByTenant(TENANT_ID);
+
+      expect(Object.keys(result).sort()).toEqual(
+        ['computedAt', 'departments', 'formulaVersion', 'minimumHeadcountThreshold'].sort(),
+      );
     });
   });
 });

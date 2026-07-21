@@ -15,6 +15,7 @@ import { useState } from 'react';
 import type {
   RiskFactor, VacancyRiskItem, VacancyRiskRes, WorkforceReadinessRes, AttritionRiskRes,
   DepartmentGapRes, DepartmentGapEntry, DepartmentGapSignal, DepartmentVacancyContext,
+  ExecutiveMetricsRes, ExecutiveMetricValue,
 } from '../types';
 import { FACTOR_MAX, FACTOR_LABEL, confidenceLabel } from '../types';
 
@@ -65,6 +66,9 @@ type Props = {
   canSeeDepartmentGap: boolean;
   departmentGapData: DepartmentGapRes | null;
   departmentGapFetchFailed: boolean;
+  canSeeExecutiveMetrics: boolean;
+  executiveMetricsData: ExecutiveMetricsRes | null;
+  executiveMetricsFetchFailed: boolean;
 };
 
 export function IntelligenceWorkspace({
@@ -79,6 +83,9 @@ export function IntelligenceWorkspace({
   canSeeDepartmentGap,
   departmentGapData,
   departmentGapFetchFailed,
+  canSeeExecutiveMetrics,
+  executiveMetricsData,
+  executiveMetricsFetchFailed,
 }: Props) {
   const initialTabClamped =
     initialTab === 'vacancy-risk' && !canSeeVacancyRisk ? 'workforce-signals'
@@ -130,6 +137,9 @@ export function IntelligenceWorkspace({
           readinessFetchFailed={readinessFetchFailed}
           attritionData={attritionData}
           attritionFetchFailed={attritionFetchFailed}
+          canSeeExecutiveMetrics={canSeeExecutiveMetrics}
+          executiveMetricsData={executiveMetricsData}
+          executiveMetricsFetchFailed={executiveMetricsFetchFailed}
         />
       ) : activeTab === 'vacancy-risk' ? (
         <VacancyRiskTab
@@ -267,11 +277,15 @@ function SignalTile({
 
 function WorkforceSignalsTab({
   readinessData, readinessFetchFailed, attritionData, attritionFetchFailed,
+  canSeeExecutiveMetrics, executiveMetricsData, executiveMetricsFetchFailed,
 }: {
   readinessData: WorkforceReadinessRes | null;
   readinessFetchFailed: boolean;
   attritionData: AttritionRiskRes | null;
   attritionFetchFailed: boolean;
+  canSeeExecutiveMetrics: boolean;
+  executiveMetricsData: ExecutiveMetricsRes | null;
+  executiveMetricsFetchFailed: boolean;
 }) {
   const rc = readinessData ? (READINESS_CFG[readinessData.data.readinessLevel] ?? READINESS_CFG.AT_RISK!) : undefined;
   const ac = attritionData ? (RISK_CFG[attritionData.data.attritionRiskLevel] ?? RISK_CFG.MEDIUM!) : undefined;
@@ -337,6 +351,112 @@ function WorkforceSignalsTab({
           </div>
         </div>
       )}
+
+      {/* GD-M34-1 Decisions 10, 13: Executive Metrics subsection, inside the
+          existing Workforce Signals tab — no new tab. Not rendered at all for
+          roles without access (Recruiter/HM/CO never reach this workspace;
+          Department Gap-forbidden-but-still-Workforce-Signals roles do not
+          apply here since every role allowed on this tab is also allowed for
+          executive metrics, GD-M34-1 Decision 4). */}
+      {canSeeExecutiveMetrics && (
+        <ExecutiveMetricsSection data={executiveMetricsData} fetchFailed={executiveMetricsFetchFailed} />
+      )}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Executive Metrics subsection — GD-M34-1 Decisions 10, 13
+// Four plain rate/count metrics, not classified risk scores — no level pill,
+// no factor table (there are no factors to show; each metric's own `detail`
+// string from the API IS its explanation). Shown only inside /intelligence,
+// never on the dashboard (Decision 12).
+// ---------------------------------------------------------------------------
+
+const METRIC_UNIT_SUFFIX: Record<ExecutiveMetricValue['unit'], string> = {
+  PERCENT: '%',
+  DAYS: ' days',
+  COUNT: '',
+};
+
+function formatMetricValue(metric: ExecutiveMetricValue): string {
+  if (metric.value === null) return '—';
+  const formatted = metric.unit === 'COUNT' ? String(metric.value) : metric.value.toFixed(1);
+  return `${formatted}${METRIC_UNIT_SUFFIX[metric.unit]}`;
+}
+
+function ExecutiveMetricsSection({
+  data, fetchFailed,
+}: {
+  data: ExecutiveMetricsRes | null;
+  fetchFailed: boolean;
+}) {
+  return (
+    <div style={{ ...CARD, marginTop: 20 }}>
+      <div style={{ padding: '16px 24px', borderBottom: `1px solid ${BORDER}` }}>
+        {/* Labeled "Workforce Metrics", not "Executive Metrics" — this
+            subsection is visible to SA/HRD/WP too, not Executive-User-
+            exclusive (M34 dashboard role-rendering correction, applied here
+            for label consistency with the dashboard card). Backend
+            endpoint/DTO naming is unchanged. */}
+        <div style={{ fontSize: 13, fontWeight: 600, color: TEXT }}>Workforce Metrics</div>
+        <div style={{ fontSize: 11.5, color: MUTED, marginTop: 2 }}>
+          Tenant-wide aggregate rates — vacancy rate, coverage rate, time to fill, hiring velocity
+        </div>
+      </div>
+
+      {fetchFailed ? (
+        <p style={{ padding: '20px 24px', fontSize: 13, color: SUB }}>
+          Workforce metrics unavailable. Reload to try again.
+        </p>
+      ) : data === null ? (
+        <p style={{ padding: '20px 24px', fontSize: 13, color: MUTED }}>
+          Workforce metrics not available at this time.
+        </p>
+      ) : (
+        <>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr' }}>
+            <ExecutiveMetricTile label="Vacancy Rate" metric={data.data.vacancyRate} />
+            <ExecutiveMetricTile label="Coverage Rate" metric={data.data.coverageRate} borderLeft />
+            <ExecutiveMetricTile label="Time To Fill" metric={data.data.timeToFill} borderLeft />
+            <ExecutiveMetricTile label="Hiring Velocity" metric={data.data.hiringVelocity} borderLeft />
+          </div>
+          <div style={{ padding: '12px 24px', borderTop: `1px solid ${BORDER}`, display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12, background: CANVAS }}>
+            <span style={{ fontFamily: MONO, fontSize: 10.5, color: MUTED }}>{data.data.formulaVersion}</span>
+            <span style={{ fontFamily: MONO, fontSize: 10.5, color: MUTED }}>
+              Computed {new Date(data.data.computedAt).toLocaleString()}
+            </span>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+function ExecutiveMetricTile({
+  label, metric, borderLeft = false,
+}: {
+  label: string;
+  metric: ExecutiveMetricValue;
+  borderLeft?: boolean;
+}) {
+  return (
+    <div style={{ padding: '20px 24px', borderLeft: borderLeft ? `1px solid ${BORDER}` : 'none' }}>
+      <p style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.1em', color: MUTED, marginBottom: 10 }}>
+        {label}
+      </p>
+      <p style={{ fontFamily: MONO, fontSize: 22, fontWeight: 700, color: TEXT, letterSpacing: '-.02em', marginBottom: 8 }}>
+        {formatMetricValue(metric)}
+      </p>
+      {/* detail — the exact explanation string returned by the API; never
+          composed on the frontend (same discipline as reasoning elsewhere
+          in this file). This is the "formula/detail information" the
+          workspace is authorized to show that the dashboard is not. */}
+      <p style={{ fontSize: 11.5, color: SUB, lineHeight: 1.5, marginBottom: 10 }}>{metric.detail}</p>
+      <p style={{ fontSize: 10.5, color: MUTED, margin: 0 }}>
+        Confidence: {confidenceLabel(metric.confidence)}
+        {metric.windowDays !== null && ` · ${metric.windowDays}-day window`}
+      </p>
     </div>
   );
 }

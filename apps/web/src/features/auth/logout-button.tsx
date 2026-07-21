@@ -5,10 +5,8 @@
 // Replaces the previous shadcn ghost-button variant which was styled for light headers.
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 
 export function LogoutButton() {
-  const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
 
   async function handleLogout() {
@@ -16,7 +14,11 @@ export function LogoutButton() {
     try {
       await fetch('/api/auth/logout', { method: 'POST' });
     } finally {
-      router.push('/login');
+      // Hard navigation, not router.push — see login-form.tsx for why:
+      // Next.js's client-side Router Cache can otherwise serve a stale RSC
+      // payload for the next person to log in on this tab. A full page load
+      // discards it entirely.
+      window.location.href = '/login';
     }
   }
 
