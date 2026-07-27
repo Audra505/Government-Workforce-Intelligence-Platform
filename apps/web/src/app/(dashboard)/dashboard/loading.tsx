@@ -1,9 +1,25 @@
 // Suspense fallback shown while the Dashboard Server Component's ~25 parallel
-// fetches resolve. Mirrors the current header/nav and page shell exactly so it
-// never reads as a different, older version of the app — this file previously
+// fetches resolve. Mirrors the current header/page shell exactly so it never
+// reads as a different, older version of the app — this file previously
 // carried a pre-M25/M32 nav (no Intelligence, no Admin) and an old-style plain
 // text nav, which is what produced a visible "old design, then current design"
 // flash on every dashboard load slow enough to trigger it.
+//
+// The nav area renders empty here — no labels, no placeholder bars — this
+// fallback has no session/cookie access (Suspense fallbacks render before any
+// server data fetch resolves), so it cannot know the caller's role or how
+// many nav items they have. Earlier this rendered every role's nav item
+// (Dashboard/Intelligence/Workforce/Recruiting/Admin) unconditionally, which
+// meant an Executive User — whose real nav is Dashboard + Intelligence only —
+// briefly saw Workforce, Recruiting, and Admin flash on every navigation back
+// to /dashboard slow enough to trigger this fallback. A later revision
+// swapped the labels for 5 neutral skeleton bars, which fixed the wrong-
+// label leak but still visibly shifted (5 bars collapsing down to however
+// many items the real nav has — 2 for Executive User), reading as "trying to
+// render something else." Rendering nothing in the nav slot avoids both: the
+// header keeps its exact height/layout (no shift elsewhere on the page), and
+// the real nav — whatever role it belongs to — simply appears once ready,
+// with nothing incorrect ever having been guessed in that slot.
 
 import type { CSSProperties } from 'react';
 
@@ -36,34 +52,17 @@ export default function DashboardLoading() {
       style={{ backgroundColor: CANVAS, fontFamily: "var(--font-ibm-plex-sans,'IBM Plex Sans',system-ui,sans-serif)" }}
     >
       {/* Header — identical structure/classNames to dashboard/page.tsx so there is
-          no visible swap when the real page replaces this fallback. Nav items are
-          role-blind here (this fallback has no session/cookie access), so all of
-          Intelligence/Workforce/Recruiting/Admin are shown; a role without access
-          to one of them sees it for a single transient frame at most. */}
+          no visible swap when the real page replaces this fallback. The nav
+          slot itself renders empty (no bars, no labels) — this fallback
+          cannot know the caller's role or nav-item count, so it asserts
+          nothing about either; the real nav pops in, fully correct, once
+          the page is ready, without any preceding placeholder to shift
+          away from. */}
       <header style={{ backgroundColor: NAVY }} className="pl-6 pr-10 py-3.5">
         <div className="flex w-full items-center justify-between">
           <div className="flex items-center gap-10">
             <span className="text-base font-semibold tracking-wide text-white">GWIP</span>
-            <nav className="flex items-center gap-0.5" aria-label="Domain navigation">
-              <span
-                className="rounded-[5px] px-[13px] py-[6px] text-[13px] font-medium text-white"
-                style={{ backgroundColor: 'rgba(255,255,255,0.12)' }}
-              >
-                Dashboard
-              </span>
-              <span className="rounded-[5px] px-[13px] py-[6px] text-[13px] font-medium text-[#60a5fa]">
-                Intelligence
-              </span>
-              <span className="rounded-[5px] px-[13px] py-[6px] text-[13px] font-medium text-white/50">
-                Workforce
-              </span>
-              <span className="rounded-[5px] px-[13px] py-[6px] text-[13px] font-medium text-white/50">
-                Recruiting
-              </span>
-              <span className="rounded-[5px] px-[13px] py-[6px] text-[13px] font-medium text-white/50">
-                Admin
-              </span>
-            </nav>
+            <nav aria-label="Domain navigation" />
           </div>
         </div>
       </header>

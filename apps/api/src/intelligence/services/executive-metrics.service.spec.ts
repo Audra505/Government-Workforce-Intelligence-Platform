@@ -340,6 +340,133 @@ describe('ExecutiveMetricsService', () => {
   });
 
   // ===========================================================================
+  // Workforce Snapshot & Last 30 Days Activity — GD-M34-2 Decision 2
+  // ===========================================================================
+
+  describe('Workforce Snapshot & Last 30 Days Activity (GD-M34-2)', () => {
+    // Discriminates each employee.count()/vacancy.count() call by its where
+    // clause shape, the same technique the existing Hiring Velocity test
+    // above uses — necessary because both services now issue several
+    // distinct count() calls against the same Prisma model.
+    function setDistinguishingMocks(counts: {
+      activeWorkforce: number;
+      employeesWithActivePosition: number;
+      hiringVelocity: number;
+      hires: number;
+      separations: number;
+      openVacancies: number;
+      criticalVacancies: number;
+      vacanciesOpened: number;
+      vacanciesFilled: number;
+    }) {
+      mockPrisma.employee.count.mockImplementation(({ where }: { where: Record<string, unknown> }) => {
+        if (where['positionId']) return Promise.resolve(counts.employeesWithActivePosition);
+        if (where['employmentStatus'] && typeof where['employmentStatus'] === 'object') {
+          return Promise.resolve(counts.hiringVelocity); // CURRENT_WORKFORCE_STATUSES.in + hireDate
+        }
+        if (where['employmentStatus'] === 'SEPARATED') return Promise.resolve(counts.separations);
+        if (where['employmentStatus'] === 'ACTIVE') return Promise.resolve(counts.activeWorkforce);
+        if (where['hireDate']) return Promise.resolve(counts.hires);
+        throw new Error(`Unexpected employee.count where clause: ${JSON.stringify(where)}`);
+      });
+      mockPrisma.vacancy.count.mockImplementation(({ where }: { where: Record<string, unknown> }) => {
+        if (where['status']) return Promise.resolve(counts.openVacancies);
+        if (where['priority'] === 'CRITICAL') return Promise.resolve(counts.criticalVacancies);
+        if (where['createdAt']) return Promise.resolve(counts.vacanciesOpened);
+        if (where['filledAt']) return Promise.resolve(counts.vacanciesFilled);
+        throw new Error(`Unexpected vacancy.count where clause: ${JSON.stringify(where)}`);
+      });
+      mockPrisma.position.count.mockResolvedValue(50);
+      mockPrisma.vacancy.findMany.mockResolvedValue([]);
+    }
+
+    it('computes all eight counts correctly, reusing the vacancy-rate/coverage-rate denominators for activePositions/unfilledVacancies', async () => {
+      setDistinguishingMocks({
+        activeWorkforce: 1248, employeesWithActivePosition: 41, hiringVelocity: 7,
+        hires: 48, separations: 32, openVacancies: 388, criticalVacancies: 87,
+        vacanciesOpened: 76, vacanciesFilled: 54,
+      });
+
+      const result = await service.getByTenant(TENANT_ID);
+
+      expect(result.workforceSnapshot).toEqual({
+        activeWorkforce: 1248, activePositions: 50,
+        unfilledVacancies: 388, criticalVacancies: 87,
+      });
+      expect(result.last30DaysActivity).toEqual({
+        hires: 48, separations: 32, vacanciesOpened: 76, vacanciesFilled: 54, windowDays: 30,
+      });
+    });
+
+    it('a count of zero is a valid, non-null result for every new field', async () => {
+      setDistinguishingMocks({
+        activeWorkforce: 0, employeesWithActivePosition: 0, hiringVelocity: 0,
+        hires: 0, separations: 0, openVacancies: 0, criticalVacancies: 0,
+        vacanciesOpened: 0, vacanciesFilled: 0,
+      });
+      mockPrisma.position.count.mockResolvedValue(0);
+
+      const result = await service.getByTenant(TENANT_ID);
+
+      for (const v of Object.values(result.workforceSnapshot)) expect(v).toBe(0);
+      expect(result.last30DaysActivity.hires).toBe(0);
+      expect(result.last30DaysActivity.separations).toBe(0);
+      expect(result.last30DaysActivity.vacanciesOpened).toBe(0);
+      expect(result.last30DaysActivity.vacanciesFilled).toBe(0);
+    });
+
+    it('the Last 30 Days Activity window is exactly 30 days trailing from now', async () => {
+      setDistinguishingMocks({
+        activeWorkforce: 1, employeesWithActivePosition: 1, hiringVelocity: 1,
+        hires: 1, separations: 1, openVacancies: 1, criticalVacancies: 1,
+        vacanciesOpened: 1, vacanciesFilled: 1,
+      });
+
+      await service.getByTenant(TENANT_ID);
+
+      const hiresCall = (mockPrisma.employee.count.mock.calls as Array<[{ where: Record<string, unknown> }]>)
+        .find(([{ where }]) => where['hireDate'] && !(typeof where['employmentStatus'] === 'object'))!;
+      const where = hiresCall[0].where as { hireDate: { gte: Date; lte: Date } };
+      expect(where.hireDate.gte.getTime()).toBe(NOW.getTime() - 30 * 86_400_000);
+      expect(where.hireDate.lte.getTime()).toBe(NOW.getTime());
+    });
+
+    it('workforceSnapshot has exactly the four governed keys; last30DaysActivity has exactly the five governed keys', async () => {
+      setDistinguishingMocks({
+        activeWorkforce: 1, employeesWithActivePosition: 1, hiringVelocity: 1,
+        hires: 1, separations: 1, openVacancies: 1, criticalVacancies: 1,
+        vacanciesOpened: 1, vacanciesFilled: 1,
+      });
+
+      const result = await service.getByTenant(TENANT_ID);
+
+      expect(Object.keys(result.workforceSnapshot).sort()).toEqual(
+        ['activePositions', 'activeWorkforce', 'criticalVacancies', 'unfilledVacancies'].sort(),
+      );
+      expect(Object.keys(result.last30DaysActivity).sort()).toEqual(
+        ['hires', 'separations', 'vacanciesFilled', 'vacanciesOpened', 'windowDays'].sort(),
+      );
+    });
+
+    it('GD-M34-2 Decision 5: none of the eight new counts triggers a snapshot write — still exactly 4 writes total', async () => {
+      setDistinguishingMocks({
+        activeWorkforce: 1, employeesWithActivePosition: 1, hiringVelocity: 1,
+        hires: 1, separations: 1, openVacancies: 1, criticalVacancies: 1,
+        vacanciesOpened: 1, vacanciesFilled: 1,
+      });
+
+      await service.getByTenant(TENANT_ID);
+
+      expect(mockSnapshotWriter.write).toHaveBeenCalledTimes(4);
+      const signalTypes = mockSnapshotWriter.write.mock.calls.map(
+        (call: [{ signalType: string }]) => call[0].signalType,
+      );
+      expect(signalTypes).not.toContain('WORKFORCE_SNAPSHOT');
+      expect(signalTypes).not.toContain('LAST_30_DAYS_ACTIVITY');
+    });
+  });
+
+  // ===========================================================================
   // Tenant isolation
   // ===========================================================================
 

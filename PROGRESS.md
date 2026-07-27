@@ -11803,3 +11803,107 @@ No migrations, no new tables, no new routes, no RBAC/`@RequireRoles()` change, n
 
 1. Stage the 6 files listed above plus this PROGRESS.md update, and create one local commit: `Add operational snapshot analytics cards`. Do not push.
 2. When ready to push, follow the same push → check GitHub Actions → update this entry's Status to CI-CONFIRMED pattern used for every prior milestone — not before.
+
+---
+
+# Post-M34 Enhancement — Executive Dashboard Aggregate Expansion & Presentation Cleanup
+
+> This is a scoped enhancement, not a numbered milestone (**this is not M35**). It extends the
+> existing Executive Metrics endpoint with aggregate-only counts, rebuilds the Executive User
+> dashboard against an approved mockup, and removes a duplicated card from the operational
+> dashboard for System Administrator/HR Director/Workforce Planner. No new endpoint, no schema
+> change, no RBAC change beyond what `GD-M34-2` itself documents.
+
+**Date:** 2026-07-27
+**Status:** LOCALLY IMPLEMENTED, VALIDATED, BROWSER-VERIFIED — locally committed only. NOT pushed, NOT CI-confirmed. This entry must not claim CI passed until a GitHub Actions run for a pushed commit exists and is observed green.
+**Governance:** `governance/GD-M34-2.md` created (10 decisions) — authorizes the aggregate-only executive metrics expansion and the EU dashboard's non-trend visual constraints (Decisions 1-9), and formally supersedes `GD-M34-1` Decision 12's operational-dashboard placement of the Workforce Metrics card (Decision 10, appended in this closeout pass). `governance/governance_history.md` updated with the corresponding index entry. `GD-M34-1` itself was not edited — it remains the accurate historical record of what M34 originally shipped.
+**Implementation commit:** recorded below once created (this commit is local-only, not pushed)
+
+## Scope Completed
+
+### 1. Executive Metrics endpoint — aggregate-only expansion (`GD-M34-2` Decisions 1-9)
+
+`GET /api/v1/intelligence/executive-metrics` now returns two additional tenant-wide aggregate groups, computed via dedicated `count()` queries inside `ExecutiveMetricsService` — never via the Employee/Position/Vacancy list endpoints, so Executive User gains zero new list access:
+
+- **Workforce Snapshot** (point-in-time counts): Active Workforce, Active Positions, Unfilled Vacancies, Critical Vacancies. Active Positions and Unfilled Vacancies reuse `GD-M34-1`'s existing `totalActivePositionCount`/`openVacancyCount` queries verbatim, at zero marginal query cost.
+- **Last 30 Days Activity** (fixed 30-day trailing window, a new governed constant distinct from Time To Fill's 365-day and Hiring Velocity's 90-day windows): Hires, Separations, Vacancies Opened, Vacancies Filled.
+
+Neither group is written to `WorkforceSignalSnapshot` — these are fixed current-period facts, not accumulated history (`GD-M34-2` Decision 5). No suppression mechanism was added — every count is tenant-wide, not department-scoped, so `GD-M33-1`'s small-population suppression risk does not apply (`GD-M34-2` Decision 6). RBAC, `formulaVersion`, and audit metadata are all unchanged from `GD-M34-1`.
+
+### 2. Executive User dashboard — redesigned against the approved mockup
+
+`ExecutiveDashboardView` (in `apps/web/.../dashboard/page.tsx`) was rebuilt end-to-end to match the product-owner-approved mockup artifact: single-column shell (no left rail), Executive Briefing card (posture headline + Readiness/Attrition/Coverage/Vacancy Rate chips + Open Intelligence CTA), Strategic Risk Signals (unchanged ring-gauge cards), Workforce Snapshot (4 tiles), Capacity & Throughput (4 tiles, real bars for Coverage/Vacancy Rate, decorative rhythm bars for Time To Fill/Hiring Velocity), a Last 30 Days Activity rail, and a Data Governance footer. Executive User continues to see **Dashboard and Intelligence navigation only** — Workforce, Recruiting, and Admin remain unreachable (confirmed via direct-URL probes returning permission-denied states, not row-level data).
+
+Top/bottom alignment between the Activity rail and the Strategic Risk Signals / Workforce Snapshot cards is achieved via CSS Grid row-spanning plus a measured, typography-driven constant (`ACTIVITY_TOP_OFFSET`) — not a hardcoded height tied to today's data, so it stays correct regardless of a given tenant's readiness/attrition reasoning-text length.
+
+No trend lines, sparklines, prior-period deltas, forecasting, recommended headcount, alerts/watchlist, AI/LLM predictions, fake historical data, or new snapshot read path were added anywhere in this work — confirmed by live text-content scan across all 7 roles (zero matches for prohibited-language patterns) and by governance review (`GD-M34-2` Decision 7's explicit prohibition list, restated from `GD-M34-1`).
+
+### 3. Duplicate Workforce Metrics card removed from the operational dashboard
+
+The "Workforce Metrics" card (the same four `GD-M34-1` metrics — Vacancy Rate %, Coverage Rate %, Time To Fill, Hiring Velocity) previously appeared on **both** the SA/HRD/WP operational dashboard and the `/intelligence` Workforce Signals tab. It is now removed from the operational dashboard only:
+
+- **Removed:** System Administrator, HR Director, Workforce Planner dashboard.
+- **Retained, unchanged:** `/intelligence` Workforce Signals tab for SA/HRD/WP/Executive User; the Executive User dashboard's own Capacity & Throughput section (a different rendering of the same underlying data, not affected by this removal).
+
+Rationale (`GD-M34-2` Decision 10): the card duplicated detail already available in `/intelligence` with fuller explainability, crowding a dashboard surface meant to stay a quick operational overview (Operational Snapshot, Workforce Intelligence signals, Vacancy Risk Signals, Recruiting, open-vacancy context). No RBAC, formula, endpoint, or DTO field was removed — this is a display-placement-only change, and `canSeeExecutiveMetrics`/`executiveMetricsData` remain fully wired for the Active Positions coverage-% chip and the Executive User dashboard.
+
+### 4. Platform navigation / cache fixes — preserved
+
+Investigated and fixed during Executive Dashboard review: Executive User briefly saw System Administrator/HR Director nav items and dashboard content when navigating between Dashboard and Intelligence in the same browser tab after an earlier SA/HRD session. Root-caused to two compounding issues, both fixed:
+
+- Next.js's client-side Router Cache serving a stale RSC payload for a URL a different role had rendered earlier in the tab — fixed by converting `PlatformHeader`'s top-nav links from `next/link` to plain `<a>` tags (same hard-navigation pattern already used for login/logout), plus `experimental.staleTimes.dynamic = 0` in `next.config.mjs` as a second layer covering any other in-app client-side navigation.
+- `dashboard/loading.tsx`'s Suspense fallback hardcoding all 5 nav labels (later, neutral skeleton bars) before the real, role-correct nav could render — fixed by rendering the nav slot empty during loading; the real nav pops in fully-formed once ready, with nothing incorrect ever guessed in that slot.
+
+These are preserved because they prevent stale role navigation/content during same-tab role switching — verified via 3x reproduction of the original repro scenario (System Administrator session → sign out → Executive User login → Intelligence → Dashboard, same tab) with zero leaked content at any point, and via frame-by-frame capture of the transition.
+
+### 5. Local timestamp formatting — preserved
+
+The Executive Dashboard's "Data as of" line previously formatted its timestamp server-side, inside the Docker container (which runs UTC) — showing the container's clock, not the viewer's. Fixed with a small Client Component (`LocalTimestamp`, in `apps/web/src/components/shared/local-timestamp.tsx`) that defers formatting to the browser via `toLocaleTimeString()`, mounting client-only to avoid a React hydration mismatch. Verified against the host machine's actual clock (4:24:37 PM CDT vs. rendered "4:24 PM" — exact match).
+
+## Files Changed (12 total — all uncommitted working-tree changes prior to this closeout's commit)
+
+- `governance/GD-M34-2.md` — new governance decision (10 decisions)
+- `governance/governance_history.md` — index entry for `GD-M34-2`
+- `apps/api/src/intelligence/services/executive-metrics.service.ts` — Workforce Snapshot + Last 30 Days Activity aggregate fields
+- `apps/api/src/intelligence/dto/executive-metrics-response.dto.ts` — matching DTO shapes
+- `apps/api/src/intelligence/intelligence.controller.ts` — response mapping + doc comments (no RBAC change)
+- `apps/api/src/intelligence/services/executive-metrics.service.spec.ts` — new tests for the 8 fields
+- `apps/api/src/intelligence/intelligence.controller.spec.ts` — fixture extension + 2 new tests
+- `apps/web/src/app/(dashboard)/dashboard/page.tsx` — Executive Dashboard rebuild, alignment fixes, LocalTimestamp wiring, Workforce Metrics card removal
+- `apps/web/src/components/shared/local-timestamp.tsx` — new Client Component
+- `apps/web/src/components/shared/platform-header.tsx` — top-nav hard-navigation fix
+- `apps/web/next.config.mjs` — `staleTimes.dynamic = 0`
+- `apps/web/src/app/(dashboard)/dashboard/loading.tsx` — empty nav slot during loading
+
+No migrations, no new tables, no new routes, no `@RequireRoles()` change anywhere.
+
+## Validation
+
+| Check | Result |
+|---|---|
+| API type-check | Passed — 0 errors |
+| API lint | Passed — 0 errors |
+| Full API test suite | Passed — **1997/1997 tests, 54/54 suites** |
+| Web type-check | Passed — 0 errors |
+| Web lint | Passed — "No ESLint warnings or errors" |
+| Executive User dashboard renders correctly | Passed — Executive Briefing, Strategic Risk Signals, Workforce Snapshot, Capacity & Throughput, Last 30 Days Activity, Data Governance footer all present; pixel-measured top/bottom alignment against Strategic Risk Signals / Workforce Snapshot confirmed 0px gap both edges |
+| Executive User nav is Dashboard + Intelligence only | Passed — confirmed for all navigation entry points, including post-loading-skeleton state |
+| Executive User `/intelligence` remains aggregate-only | Passed — Workforce Signals tab only; Vacancy Risk/Department Gap tabs confirmed still absent |
+| SA/HRD/WP no longer show the duplicate Workforce Metrics card | Passed — confirmed absent for all three roles |
+| SA/HRD/WP still see Workforce Metrics in `/intelligence` | Passed — confirmed present for all three roles |
+| Recruiter/Hiring Manager/Compliance Officer do not gain executive metrics | Passed — confirmed absent for all three (unchanged from before this work) |
+| Stale role navigation/content during same-tab role switching | Passed — 3x reproduction of System Administrator → Executive User same-tab switch, zero leaked nav/content at any captured point (including mid-navigation frame capture) |
+| No dead-end navigation paths | Passed — all 7 roles' nav items resolve to a rendering page or a correct permission-denied state, never a blank/broken route |
+| No prohibited analytics/features | Passed — live text-content scan across all 7 roles found zero matches for trend/sparkline/forecast/recommended-headcount/watchlist/AI-prediction language |
+| Manual diff review — `platform-header.tsx`, `next.config.mjs`, `dashboard/loading.tsx`, `local-timestamp.tsx` | Passed — all four reviewed in full; changes are minimal, scoped, and match their stated rationale exactly |
+
+## Known Risks / Limitations
+
+- Same known gap as every prior M30-M34 entry: no dedicated automated E2E/Playwright suite exists in-repo yet; verification was performed via ad hoc Playwright scripts (not committed) plus live text-content, pixel-measurement, and screenshot review.
+- `GD-M34-1` Decision 12 (operational-dashboard placement) is now superseded in practice by `GD-M34-2` Decision 10 but is left unedited in its own file, by design, as the historical record of what M34 originally shipped — a future reader must consult `GD-M34-2` Decision 10 to know the current placement is different.
+- The `platform-header.tsx`/`next.config.mjs`/`dashboard/loading.tsx` fixes are platform-wide (not Executive-Dashboard-scoped) — flagged explicitly in the pre-commit reconciliation pass and approved for inclusion in this same closeout, rather than being split into a separate commit.
+
+## Next Actions
+
+1. Stage the 12 files listed above plus this PROGRESS.md update, and create one local commit: `Enhance executive dashboard aggregate analytics and navigation consistency`. Do not push.
+2. When ready to push, follow the same push → check GitHub Actions → update this entry's Status to CI-CONFIRMED pattern used for every prior milestone — not before.

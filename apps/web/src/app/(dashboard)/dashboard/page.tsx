@@ -12,6 +12,7 @@ import { serverFetch } from '@/lib/api';
 import { SESSION_COOKIE } from '@/lib/auth';
 import { getSessionRoles } from '@/lib/session';
 import { PlatformHeader } from '@/components/shared/platform-header';
+import { LocalTimestamp } from '@/components/shared/local-timestamp';
 
 // ── Design tokens — match Dashboard mockup exactly ──────────────────────────
 const CANVAS = '#f8fafc';
@@ -105,6 +106,21 @@ type ExecutiveMetricValue = {
   detail: string;
   windowDays: number | null;
 };
+// GD-M34-2 Decision 2 — plain tenant-wide counts, never null, no confidence
+// field (no formula uncertainty exists for a plain count).
+type ExecutiveWorkforceSnapshot = {
+  activeWorkforce: number;
+  activePositions: number;
+  unfilledVacancies: number;
+  criticalVacancies: number;
+};
+type ExecutiveLast30DaysActivity = {
+  hires: number;
+  separations: number;
+  vacanciesOpened: number;
+  vacanciesFilled: number;
+  windowDays: number;
+};
 type ExecutiveMetricsRes = {
   success: boolean;
   data: {
@@ -112,6 +128,8 @@ type ExecutiveMetricsRes = {
     coverageRate: ExecutiveMetricValue;
     timeToFill: ExecutiveMetricValue;
     hiringVelocity: ExecutiveMetricValue;
+    workforceSnapshot: ExecutiveWorkforceSnapshot;
+    last30DaysActivity: ExecutiveLast30DaysActivity;
     computedAt: string;
     formulaVersion: string;
   };
@@ -387,14 +405,18 @@ function SectionEyebrow({ label, accentColor = MUTED, badges }: { label: string;
   );
 }
 
-// ── Executive User dashboard (M34 approved mockup) ────────────────────────────
+// ── Executive User dashboard (GD-M34-2 approved mockup) ─────────────────────
 // A purpose-built executive view, not the operational dashboard with rows
-// hidden. Uses only the three signals Executive User is authorized for
-// (Workforce Readiness, Attrition Risk, Workforce Metrics) — same data already
-// fetched by DashboardPage above, passed down as props; no new fetch, no new
-// endpoint. See the deviation notes on confidenceLabel/composePostureStatement/
-// RingGauge above and in the reasoning/caption rendering below for the three
-// points where this cannot literally match the approved mockup and why.
+// hidden. Rebuilt to match the approved mockup artifact
+// (eu-dashboard-final-mockup.html) exactly: single-column shell (no left
+// rail), Executive Briefing card, Strategic Risk Signals, Workforce
+// Snapshot, Capacity & Throughput, and a Last 30 Days Activity rail — all
+// sourced from one executive-metrics fetch (readiness/attrition remain
+// their own independently-gated fetches, unchanged from GD-M34-1/GD-M32-1).
+// Uses only the data Executive User is authorized for — same data already
+// fetched by DashboardPage above, passed down as props; no new fetch beyond
+// what GD-M34-2 added to the existing executive-metrics response, no new
+// endpoint.
 const READINESS_LEVEL_COLOR: Record<string, string> = {
   READY: GREEN, DEVELOPING: BLUE, AT_RISK: AMBER, CRITICAL: RED,
 };
@@ -413,6 +435,68 @@ const ATTRITION_LEVEL_PILL: Record<string, { bg: string; c: string; bd: string }
   HIGH:     { bg: '#fffbeb', c: AMBER, bd: '#fde68a' },
   CRITICAL: { bg: '#fef2f2', c: RED,   bd: '#fecaca' },
 };
+// Measured (headless browser, getBoundingClientRect) height of the
+// "Strategic Risk Signals" title + caption block above the risk cards —
+// static typography (fixed font-size/line-height/margin), not tenant data,
+// so this offset is a genuine constant. Pushes the Last 30 Days Activity
+// card down so its box-top lines up with the risk cards' box-top, without
+// moving its own title outside the card (see the render comment below).
+const ACTIVITY_TOP_OFFSET = 50.5;
+
+// Executive Briefing pill — a compact chip inside the briefing card. Only
+// ever rendered when its underlying data is real (readinessData !== null /
+// coverage defined, etc.) — never a placeholder pill for missing data.
+function BriefingPill({
+  icon, label, value, tone,
+}: {
+  icon: ReactNode;
+  label: string;
+  value: string;
+  tone: { bg: string; c: string; bd: string };
+}) {
+  return (
+    <span
+      style={{
+        display: 'inline-flex', alignItems: 'center', gap: 7, fontSize: 12, fontWeight: 600,
+        padding: '8px 13px', borderRadius: 8, border: `1px solid ${tone.bd}`, whiteSpace: 'nowrap',
+        background: tone.bg, color: tone.c,
+      }}
+    >
+      <span style={{ width: 14, height: 14, flexShrink: 0, display: 'flex' }} aria-hidden="true">{icon}</span>
+      <span style={{ fontWeight: 500, opacity: .78 }}>{label}</span>
+      {value}
+    </span>
+  );
+}
+const NEUTRAL_PILL_TONE = { bg: CANVAS, c: SUB, bd: BORDER };
+
+// Workforce Snapshot / Last 30 Days Activity tile — the flat, single-value,
+// no-bar tile shape the approved mockup uses for both sections (GD-M34-2
+// Decision 7: no chart, no gauge, no comparison value — a label, a number,
+// and one plain-language note).
+function StatTile({
+  icon, iconBg, iconColor, label, value, note,
+}: {
+  icon: ReactNode;
+  iconBg: string;
+  iconColor: string;
+  label: string;
+  value: string;
+  note: string;
+}) {
+  return (
+    <div style={{ ...CARD, borderRadius: 12, padding: '18px 19px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 13 }}>
+        <span style={{ width: 28, height: 28, borderRadius: 7, background: iconBg, color: iconColor, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }} aria-hidden="true">
+          {icon}
+        </span>
+        <span style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '.05em', textTransform: 'uppercase' as const, color: SUB }}>{label}</span>
+      </div>
+      <div style={{ fontFamily: MONO, fontSize: 24, fontWeight: 700, letterSpacing: '-.015em', color: TEXT, marginBottom: 8, fontVariantNumeric: 'tabular-nums' }}>{value}</div>
+      <p style={{ fontSize: 11, color: MUTED, lineHeight: 1.45, margin: 0 }}>{note}</p>
+    </div>
+  );
+}
 
 function ExecutiveDashboardView({
   roles,
@@ -434,6 +518,11 @@ function ExecutiveDashboardView({
   const vacancy = executiveMetricsData?.data.vacancyRate;
   const timeToFill = executiveMetricsData?.data.timeToFill;
   const hiringVelocity = executiveMetricsData?.data.hiringVelocity;
+  // GD-M34-2 Decision 2 — Workforce Snapshot / Last 30 Days Activity, part
+  // of the same executive-metrics response as the four metrics above, so
+  // they share the same fetch-failed/null gating below.
+  const snapshot = executiveMetricsData?.data.workforceSnapshot;
+  const activity = executiveMetricsData?.data.last30DaysActivity;
 
   const postureStatement = composePostureStatement(
     readinessData?.data.readinessLevel ?? null,
@@ -449,6 +538,17 @@ function ExecutiveDashboardView({
   const vacancyBarPct = vacancy?.value != null ? Math.max(0, Math.min(100, (vacancy.value / 150) * 100)) : 0;
   const coverageBarPct = coverage?.value != null ? Math.max(0, Math.min(100, coverage.value)) : 0;
 
+  // "Data as of" reflects the API's own computedAt — the real instant the
+  // figures were computed, not page-render time. Rendered via
+  // LocalTimestamp (a Client Component) so the clock face matches the
+  // viewer's own timezone rather than the server container's (UTC).
+  const computedAt = executiveMetricsData?.data.computedAt ?? null;
+
+  const readinessLevel = readinessData?.data.readinessLevel ?? null;
+  const readinessPill = readinessLevel ? (READINESS_LEVEL_PILL[readinessLevel] ?? READINESS_LEVEL_PILL.AT_RISK!) : null;
+  const attritionLevel = attritionData?.data.attritionRiskLevel ?? null;
+  const attritionPill = attritionLevel ? (ATTRITION_LEVEL_PILL[attritionLevel] ?? ATTRITION_LEVEL_PILL.MEDIUM!) : null;
+
   return (
     <div className="flex min-h-screen flex-col" style={{ backgroundColor: CANVAS, fontFamily: "var(--font-ibm-plex-sans,'IBM Plex Sans',system-ui,sans-serif)" }}>
 
@@ -460,256 +560,388 @@ function ExecutiveDashboardView({
            PlatformHeader computes that visibility from `roles` itself. */}
       <PlatformHeader roles={roles} activeItem="dashboard" />
 
-      {/* ── Shell: sidebar + main ── */}
-      <div className="flex flex-1" style={{ maxWidth: 1360, margin: '0 auto', width: '100%' }}>
+      {/* ── Shell — single column, matching the approved mockup (no left
+           rail; GD-M34-2 Decision 7). ── */}
+      <div style={{ maxWidth: 1360, margin: '0 auto', width: '100%', padding: '32px 28px 72px' }}>
 
-        {/* ── Sidebar ── */}
-        <aside style={{ width: 288, flexShrink: 0, padding: '40px 24px 40px 28px' }}>
-          <p style={{ fontSize: 11.5, color: MUTED, margin: '0 0 14px' }}>Welcome back</p>
+        {/* ── Page head ── */}
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 22, gap: 16, flexWrap: 'wrap' }}>
+          <div>
+            <h1 style={{ fontSize: 25, fontWeight: 700, letterSpacing: '-.01em', margin: 0, color: TEXT }}>Executive Dashboard</h1>
+            <p style={{ fontSize: 13, color: SUB, margin: '4px 0 0' }}>Executive workforce intelligence overview</p>
+          </div>
+          <div style={{ textAlign: 'right' }}>
+            <div style={{ fontSize: 13.5, fontWeight: 700, color: TEXT }}>{pageDate}</div>
+            {computedAt && (
+              <div style={{ fontSize: 11.5, color: MUTED, marginTop: 3, fontFamily: MONO, fontVariantNumeric: 'tabular-nums' }}>
+                Data as of <LocalTimestamp iso={computedAt} />
+              </div>
+            )}
+          </div>
+        </div>
 
-          {postureStatement ? (
-            <h2 style={{ fontSize: 19, fontWeight: 600, letterSpacing: '-.01em', lineHeight: 1.45, margin: '0 0 12px', color: TEXT }}>
-              {postureStatement}
-            </h2>
-          ) : (
-            <h2 style={{ fontSize: 15, fontWeight: 500, lineHeight: 1.5, margin: '0 0 12px', color: MUTED }}>
-              Workforce intelligence summary is not available at this time.
-            </h2>
-          )}
-          <p style={{ fontSize: 11, color: MUTED, lineHeight: 1.55, margin: '0 0 28px' }}>
-            Synthesized from Workforce Readiness, Attrition Risk, and Workforce Metrics.
-          </p>
-
-          <div aria-hidden="true" style={{ height: 1, background: BORDER, margin: '0 0 24px' }} />
-
-          <div style={{ background: '#eff6ff', border: '1px solid rgba(37,99,235,.2)', borderRadius: 10, padding: 18, marginBottom: 24 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 12.5, fontWeight: 700, color: TEXT, marginBottom: 6 }}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={BLUE} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M13 2 3 14h7l-1 8 10-12h-7l1-8z" /></svg>
-              Go deeper
+        {/* ── Executive Briefing ── */}
+        <div style={{ ...CARD, borderRadius: 10, padding: '28px 30px', marginBottom: 28, display: 'grid', gridTemplateColumns: '1.7fr 1fr', gap: 34, alignItems: 'center' }}>
+          <div>
+            <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.12em', textTransform: 'uppercase' as const, color: BLUE, margin: '0 0 11px' }}>Executive Briefing</p>
+            {postureStatement ? (
+              <h2 style={{ fontSize: 22.5, fontWeight: 700, lineHeight: 1.42, letterSpacing: '-.01em', color: TEXT, margin: '0 0 20px' }}>
+                {postureStatement}
+              </h2>
+            ) : (
+              <h2 style={{ fontSize: 16, fontWeight: 500, lineHeight: 1.5, color: MUTED, margin: '0 0 20px' }}>
+                Workforce intelligence summary is not available at this time.
+              </h2>
+            )}
+            <div style={{ display: 'flex', gap: 9, flexWrap: 'wrap' }}>
+              {readinessPill && readinessLevel && (
+                <BriefingPill
+                  tone={readinessPill}
+                  label="Readiness"
+                  value={readinessLevel.charAt(0) + readinessLevel.slice(1).toLowerCase().replace('_', ' ')}
+                  icon={<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2" /></svg>}
+                />
+              )}
+              {attritionPill && attritionLevel && (
+                <BriefingPill
+                  tone={attritionPill}
+                  label="Attrition"
+                  value={attritionLevel.charAt(0) + attritionLevel.slice(1).toLowerCase()}
+                  icon={<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><polyline points="23 18 13.5 8.5 8.5 13.5 1 6" /><polyline points="17 18 23 18 23 12" /></svg>}
+                />
+              )}
+              {coverage && (
+                <BriefingPill
+                  tone={NEUTRAL_PILL_TONE}
+                  label="Coverage"
+                  value={fmtExecutiveMetric(coverage)}
+                  icon={<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" /><path d="M9 3v18M3 9h6" /></svg>}
+                />
+              )}
+              {vacancy && (
+                <BriefingPill
+                  tone={NEUTRAL_PILL_TONE}
+                  label="Vacancy Rate"
+                  value={fmtExecutiveMetric(vacancy)}
+                  icon={<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M9 11l3 3L22 4" /><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" /></svg>}
+                />
+              )}
             </div>
-            <p style={{ fontSize: 11.5, color: SUB, lineHeight: 1.55, margin: '0 0 14px' }}>
-              See the full factor-level breakdown behind Workforce Readiness and Attrition Risk.
+          </div>
+          <div style={{ borderLeft: '1px solid #eef1f5', paddingLeft: 30 }}>
+            <p style={{ fontSize: 12.5, color: SUB, lineHeight: 1.65, margin: '0 0 16px' }}>
+              This is your tenant-wide workforce intelligence summary — designed to help you lead with clarity and focus executive attention where it matters most.
             </p>
             <Link
               href="/intelligence"
-              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, fontSize: 12.5, fontWeight: 600, color: '#fff', background: BLUE, padding: '9px 14px', borderRadius: 6, textDecoration: 'none' }}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 7, fontSize: 12.5, fontWeight: 600, color: '#fff', background: BLUE, padding: '10px 17px', borderRadius: 7, textDecoration: 'none', whiteSpace: 'nowrap' }}
             >
-              Open Intelligence →
+              Open Intelligence <span aria-hidden="true">→</span>
             </Link>
           </div>
+        </div>
 
-          <p style={{ fontSize: 10.5, color: MUTED, lineHeight: 1.65, margin: 0 }}>
-            All scores are deterministic and advisory — no OpenAI or external model is used. No individual, candidate, or department-level detail is shown. Human review and leadership judgment should guide all decisions.
+        {/* ── Body: left column (Strategic Risk Signals, Workforce Snapshot,
+             Capacity & Throughput) + right rail (Last 30 Days Activity).
+             Three explicit grid rows so the Activity rail can span exactly
+             rows 1-2 (gridRow: '1 / 3') and stretch (grid default) to match
+             their COMBINED real rendered height — not a hardcoded pixel
+             value, so it stays correctly aligned regardless of how long a
+             given tenant's readiness/attrition reasoning text is. Capacity &
+             Throughput (row 3) is unpaired — same visual position as
+             before, just now an explicit grid row instead of implicit
+             stacking inside a wrapper div. ── */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 300px', gridTemplateRows: 'auto auto auto', gap: 22, marginBottom: 26 }}>
+
+            {/* ── Strategic Risk Signals — the two governed, thresholded
+                 scores. Reasoning is rendered as the FULL, unmodified string
+                 the API returns — never trimmed or recomposed on the
+                 frontend, matching the same rule already enforced for
+                 SA/HRD/WP on the operational dashboard above. ── */}
+            <div style={{ gridColumn: 1, gridRow: 1, marginBottom: 0 }}>
+              <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase' as const, color: SUB, margin: '0 0 3px' }}>Strategic Risk Signals</p>
+              <p style={{ fontSize: 12, color: MUTED, margin: '0 0 13px' }}>Governed, thresholded signals requiring leadership attention</p>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 18 }}>
+
+                {/* Workforce Readiness */}
+                <div style={{ ...CARD, borderRadius: 12, position: 'relative', overflow: 'hidden' }}>
+                  <div aria-hidden="true" style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: BLUE }} />
+                  <div style={{ padding: '24px 24px 20px' }}>
+                    {readinessFetchFailed ? (
+                      <p style={{ fontSize: 13, color: SUB, margin: 0 }}>Workforce readiness unavailable. Reload the dashboard to try again.</p>
+                    ) : readinessData !== null ? (() => {
+                      const level = readinessData.data.readinessLevel;
+                      const pill = READINESS_LEVEL_PILL[level] ?? READINESS_LEVEL_PILL.AT_RISK!;
+                      const gaugeColor = READINESS_LEVEL_COLOR[level] ?? AMBER;
+                      return (
+                        <>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                              <span style={{ width: 30, height: 30, borderRadius: 8, background: '#eff6ff', color: BLUE, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }} aria-hidden="true">
+                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2" /></svg>
+                              </span>
+                              <span style={{ fontSize: 13.5, fontWeight: 600, color: TEXT }}>Workforce Readiness</span>
+                            </div>
+                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 11.5, fontWeight: 600, padding: '4px 10px', borderRadius: 9999, background: pill.bg, color: pill.c, border: `1px solid ${pill.bd}` }}>
+                              <span style={{ width: 5, height: 5, borderRadius: '50%', background: pill.c }} />
+                              {level.charAt(0) + level.slice(1).toLowerCase().replace('_', ' ')}
+                            </span>
+                          </div>
+                          <div style={{ display: 'flex', gap: 20, alignItems: 'flex-start' }}>
+                            <RingGauge pct={readinessData.data.readinessScore} color={gaugeColor}>
+                              <span style={{ fontFamily: MONO, fontSize: 25, fontWeight: 700, color: TEXT, letterSpacing: '-.02em', lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>
+                                {readinessData.data.readinessScore}
+                              </span>
+                              <span style={{ fontSize: 10, color: MUTED, marginTop: 2 }}>/ 100</span>
+                            </RingGauge>
+                            <div style={{ minWidth: 0, flex: 1 }}>
+                              {/* Full, unmodified reasoning string — never trimmed on the frontend. */}
+                              <p style={{ fontSize: 13, color: SUB, lineHeight: 1.6, margin: '0 0 13px' }}>{readinessData.data.reasoning}</p>
+                              <div style={{ borderTop: `1px solid ${BORDER}`, paddingTop: 10, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                                <span style={{ fontSize: 10.5, color: MUTED }}>Human review required before action.</span>
+                                <span style={{ fontSize: 10.5, color: MUTED, fontFamily: MONO }}>Confidence: {confidenceLabel(readinessData.data.confidence)}</span>
+                              </div>
+                            </div>
+                          </div>
+                        </>
+                      );
+                    })() : (
+                      <p style={{ fontSize: 13, color: MUTED, margin: 0 }}>Workforce readiness not available at this time.</p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Attrition Risk */}
+                <div style={{ ...CARD, borderRadius: 12, position: 'relative', overflow: 'hidden' }}>
+                  <div aria-hidden="true" style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: AMBER }} />
+                  <div style={{ padding: '24px 24px 20px' }}>
+                    {attritionFetchFailed ? (
+                      <p style={{ fontSize: 13, color: SUB, margin: 0 }}>Attrition risk unavailable. Reload the dashboard to try again.</p>
+                    ) : attritionData !== null ? (() => {
+                      const level = attritionData.data.attritionRiskLevel;
+                      const pill = ATTRITION_LEVEL_PILL[level] ?? ATTRITION_LEVEL_PILL.MEDIUM!;
+                      const gaugeColor = ATTRITION_LEVEL_COLOR[level] ?? AMBER;
+                      return (
+                        <>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                              <span style={{ width: 30, height: 30, borderRadius: 8, background: '#fffbeb', color: AMBER, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }} aria-hidden="true">
+                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><polyline points="23 18 13.5 8.5 8.5 13.5 1 6" /><polyline points="17 18 23 18 23 12" /></svg>
+                              </span>
+                              <span style={{ fontSize: 13.5, fontWeight: 600, color: TEXT }}>Attrition Risk</span>
+                            </div>
+                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 11.5, fontWeight: 600, padding: '4px 10px', borderRadius: 9999, background: pill.bg, color: pill.c, border: `1px solid ${pill.bd}` }}>
+                              <span style={{ width: 5, height: 5, borderRadius: '50%', background: pill.c }} />
+                              {level.charAt(0) + level.slice(1).toLowerCase()}
+                            </span>
+                          </div>
+                          <div style={{ display: 'flex', gap: 20, alignItems: 'flex-start' }}>
+                            <RingGauge pct={attritionData.data.attritionScore} color={gaugeColor}>
+                              <span style={{ fontFamily: MONO, fontSize: 25, fontWeight: 700, color: TEXT, letterSpacing: '-.02em', lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>
+                                {attritionData.data.attritionScore}
+                              </span>
+                              <span style={{ fontSize: 10, color: MUTED, marginTop: 2 }}>/ 100</span>
+                            </RingGauge>
+                            <div style={{ minWidth: 0, flex: 1 }}>
+                              <p style={{ fontSize: 13, color: SUB, lineHeight: 1.6, margin: '0 0 13px' }}>{attritionData.data.reasoning}</p>
+                              <div style={{ borderTop: `1px solid ${BORDER}`, paddingTop: 10, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                                <span style={{ fontSize: 10.5, color: MUTED }}>Human review required before action.</span>
+                                <span style={{ fontSize: 10.5, color: MUTED, fontFamily: MONO }}>Confidence: {confidenceLabel(attritionData.data.confidence)}</span>
+                              </div>
+                            </div>
+                          </div>
+                        </>
+                      );
+                    })() : (
+                      <p style={{ fontSize: 13, color: MUTED, margin: 0 }}>Attrition risk not available at this time.</p>
+                    )}
+                  </div>
+                </div>
+
+              </div>
+            </div>
+
+            {/* ── Workforce Snapshot — GD-M34-2 Decision 2 ── */}
+            <div style={{ gridColumn: 1, gridRow: 2, marginBottom: 0 }}>
+              <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase' as const, color: SUB, margin: '0 0 3px' }}>Workforce Snapshot</p>
+              <p style={{ fontSize: 12, color: MUTED, margin: '0 0 13px' }}>Current tenant-wide aggregate position</p>
+              {executiveMetricsFetchFailed ? (
+                <p style={{ fontSize: 13, color: SUB, margin: 0 }}>Workforce snapshot unavailable. Reload the dashboard to try again.</p>
+              ) : !snapshot ? (
+                <p style={{ fontSize: 13, color: MUTED, margin: 0 }}>Workforce snapshot not available at this time.</p>
+              ) : (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14 }}>
+                  <StatTile
+                    label="Active Workforce" value={String(snapshot.activeWorkforce)} note="Current active employee count."
+                    iconBg="#eff6ff" iconColor={BLUE}
+                    icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>}
+                  />
+                  <StatTile
+                    label="Active Positions" value={String(snapshot.activePositions)} note="Established positions currently active."
+                    iconBg="#eff6ff" iconColor={BLUE}
+                    icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" /><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" /></svg>}
+                  />
+                  <StatTile
+                    label="Unfilled Vacancies" value={String(snapshot.unfilledVacancies)} note="Open and in-recruitment vacancies."
+                    iconBg="#fffbeb" iconColor={AMBER}
+                    icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>}
+                  />
+                  <StatTile
+                    label="Critical Vacancies" value={String(snapshot.criticalVacancies)} note="Vacancies flagged critical priority."
+                    iconBg="#fef2f2" iconColor={RED}
+                    icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M12 9v4M12 17h.01M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z" /></svg>}
+                  />
+                </div>
+              )}
+            </div>
+
+            {/* ── Capacity & Throughput — the four ungoverned operating
+                 metrics. No color judgment applied to Coverage/Time-to-Fill/
+                 Hiring-Velocity — no governed threshold exists for them.
+                 Coverage Rate / Vacancy Rate bars encode the real current
+                 value only (GD-M34-2 Decision 7); Time To Fill / Hiring
+                 Velocity bars are purely decorative rhythm elements, not a
+                 percentage of anything — matching the approved mockup. ── */}
+            <div style={{ gridColumn: 1, gridRow: 3, marginBottom: 0 }}>
+              <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase' as const, color: SUB, margin: '0 0 3px' }}>Capacity &amp; Throughput</p>
+              <p style={{ fontSize: 12, color: MUTED, margin: '0 0 13px' }}>Are current staffing and hiring levels keeping up with demand?</p>
+              {executiveMetricsFetchFailed ? (
+                <p style={{ fontSize: 13, color: SUB, margin: 0 }}>Workforce metrics unavailable. Reload the dashboard to try again.</p>
+              ) : executiveMetricsData === null ? (
+                <p style={{ fontSize: 13, color: MUTED, margin: 0 }}>Workforce metrics not available at this time.</p>
+              ) : (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14 }}>
+
+                  <div style={{ ...CARD, borderRadius: 12, padding: '18px 19px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 13 }}>
+                      <span style={{ width: 28, height: 28, borderRadius: 7, background: '#eff6ff', color: BLUE, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }} aria-hidden="true">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" /><path d="M9 3v18M3 9h6" /></svg>
+                      </span>
+                      <span style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '.05em', textTransform: 'uppercase' as const, color: SUB }}>Coverage Rate</span>
+                    </div>
+                    <div style={{ fontFamily: MONO, fontSize: 24, fontWeight: 700, letterSpacing: '-.015em', color: TEXT, marginBottom: 10, fontVariantNumeric: 'tabular-nums' }}>{fmtExecutiveMetric(coverage)}</div>
+                    <div style={{ height: 4, borderRadius: 3, background: BORDER, overflow: 'hidden', marginBottom: 10 }}>
+                      <div style={{ height: '100%', borderRadius: 3, background: BLUE, width: `${coverageBarPct}%` }} />
+                    </div>
+                    <p style={{ fontSize: 11, color: MUTED, lineHeight: 1.45, margin: 0 }}>Active positions filled by an employee.</p>
+                  </div>
+
+                  <div style={{ ...CARD, borderRadius: 12, padding: '18px 19px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 13 }}>
+                      <span style={{ width: 28, height: 28, borderRadius: 7, background: '#fffbeb', color: AMBER, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }} aria-hidden="true">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M9 11l3 3L22 4" /><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" /></svg>
+                      </span>
+                      <span style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '.05em', textTransform: 'uppercase' as const, color: SUB }}>Vacancy Rate</span>
+                    </div>
+                    <div style={{ fontFamily: MONO, fontSize: 24, fontWeight: 700, letterSpacing: '-.015em', color: TEXT, marginBottom: 10, fontVariantNumeric: 'tabular-nums' }}>{fmtExecutiveMetric(vacancy)}</div>
+                    <div style={{ height: 4, borderRadius: 3, background: BORDER, overflow: 'hidden', marginBottom: 10 }}>
+                      <div style={{ height: '100%', borderRadius: 3, background: AMBER, width: `${vacancyBarPct}%` }} />
+                    </div>
+                    <p style={{ fontSize: 11, color: MUTED, lineHeight: 1.45, margin: 0 }}>Open vacancies relative to positions.</p>
+                  </div>
+
+                  <div style={{ ...CARD, borderRadius: 12, padding: '18px 19px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 13 }}>
+                      <span style={{ width: 28, height: 28, borderRadius: 7, background: CANVAS, border: `1px solid ${BORDER}`, color: SUB, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }} aria-hidden="true">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3.5 2" /></svg>
+                      </span>
+                      <span style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '.05em', textTransform: 'uppercase' as const, color: SUB }}>Time To Fill</span>
+                    </div>
+                    <div style={{ fontFamily: MONO, fontSize: 24, fontWeight: 700, letterSpacing: '-.015em', color: TEXT, marginBottom: 10, fontVariantNumeric: 'tabular-nums' }}>{fmtExecutiveMetric(timeToFill)}</div>
+                    <div style={{ height: 4, borderRadius: 3, background: BORDER, overflow: 'hidden', marginBottom: 10 }}>
+                      <div style={{ height: '100%', borderRadius: 3, background: '#cbd5e1', width: '100%' }} />
+                    </div>
+                    <p style={{ fontSize: 11, color: MUTED, lineHeight: 1.45, margin: 0 }}>
+                      {timeToFill ? `Confidence: ${confidenceLabel(timeToFill.confidence)}${timeToFill.windowDays ? ` · ${timeToFill.windowDays}-day window` : ''}` : '—'}
+                    </p>
+                  </div>
+
+                  <div style={{ ...CARD, borderRadius: 12, padding: '18px 19px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 13 }}>
+                      <span style={{ width: 28, height: 28, borderRadius: 7, background: CANVAS, border: `1px solid ${BORDER}`, color: SUB, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }} aria-hidden="true">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M19 8v6M22 11h-6" /></svg>
+                      </span>
+                      <span style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '.05em', textTransform: 'uppercase' as const, color: SUB }}>Hiring Velocity</span>
+                    </div>
+                    <div style={{ fontFamily: MONO, fontSize: 24, fontWeight: 700, letterSpacing: '-.015em', color: TEXT, marginBottom: 10, fontVariantNumeric: 'tabular-nums' }}>{fmtExecutiveMetric(hiringVelocity)}</div>
+                    <div style={{ height: 4, borderRadius: 3, background: BORDER, overflow: 'hidden', marginBottom: 10 }}>
+                      <div style={{ height: '100%', borderRadius: 3, background: '#cbd5e1', width: '100%' }} />
+                    </div>
+                    <p style={{ fontSize: 11, color: MUTED, lineHeight: 1.45, margin: 0 }}>
+                      {hiringVelocity ? `Confidence: ${confidenceLabel(hiringVelocity.confidence)}${hiringVelocity.windowDays ? ` · ${hiringVelocity.windowDays}-day window` : ''}` : '—'}
+                    </p>
+                  </div>
+
+                </div>
+              )}
+            </div>
+
+          {/* ── Last 30 Days Activity (rail) — GD-M34-2 Decision 2. Title
+               lives INSIDE the card, matching the approved mockup exactly
+               (mockup: eu-dashboard-final-mockup.html). ACTIVITY_TOP_OFFSET
+               pushes the card down so its box-top lines up with the risk
+               cards' box-top — the same fix already applied to the mockup
+               itself (there: a 47px margin-top), because the gap has the
+               same cause here: "Strategic Risk Signals" has its title
+               OUTSIDE its cards, so the risk cards' box starts below that
+               title+caption text, while this card's box would otherwise
+               start at the very top of the grid row. That offset is pure,
+               static typography (a title + caption block at a fixed font-
+               size/line-height/margin) — not tenant data — so it is a
+               genuine constant, not a magic number tied to today's content.
+               gridRow: '1 / 3' + the default grid stretch still handles the
+               BOTTOM alignment against Workforce Snapshot, which — unlike
+               the top gap — depends on variable reasoning-text length and
+               must stay dynamic. ── */}
+          <div style={{ ...CARD, borderRadius: 12, padding: '17px 17px 16px', gridColumn: 2, gridRow: '1 / 3', marginTop: ACTIVITY_TOP_OFFSET, display: 'flex', flexDirection: 'column' }}>
+            <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase' as const, color: SUB, margin: '0 0 3px' }}>Last 30 Days Activity</p>
+            <p style={{ fontSize: 11, color: MUTED, margin: '0 0 12px' }}>Fixed current-period counts</p>
+            {executiveMetricsFetchFailed ? (
+              <p style={{ fontSize: 12.5, color: SUB, margin: 0 }}>Activity summary unavailable. Reload the dashboard to try again.</p>
+            ) : !activity ? (
+              <p style={{ fontSize: 12.5, color: MUTED, margin: 0 }}>Activity summary not available at this time.</p>
+            ) : (
+              <>
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                {[
+                  { label: 'Hires', value: activity.hires, color: BLUE, iconBg: '#eff6ff', iconColor: BLUE, border: false,
+                    icon: <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M19 8v6M22 11h-6" /></svg> },
+                  { label: 'Separations', value: activity.separations, color: SUB, iconBg: CANVAS, iconColor: SUB, border: true,
+                    icon: <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="8.5" cy="7" r="4" /><line x1="18" y1="8" x2="23" y2="13" /><line x1="23" y1="8" x2="18" y2="13" /></svg> },
+                  { label: 'Vacancies Opened', value: activity.vacanciesOpened, color: '#b45309', iconBg: '#fffbeb', iconColor: AMBER, border: false,
+                    icon: <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg> },
+                  { label: 'Vacancies Filled', value: activity.vacanciesFilled, color: GREEN, iconBg: '#f0fdf4', iconColor: GREEN, border: false,
+                    icon: <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" /></svg> },
+                ].map((row, i) => (
+                  <div key={row.label} style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '12px 0', borderTop: i === 0 ? 'none' : `1px solid #eef1f5` }}>
+                    <span style={{ width: 32, height: 32, borderRadius: 8, background: row.iconBg, color: row.iconColor, border: row.border ? `1px solid ${BORDER}` : undefined, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }} aria-hidden="true">
+                      {row.icon}
+                    </span>
+                    <div>
+                      <div style={{ fontSize: 12, fontWeight: 600, color: TEXT }}>{row.label}</div>
+                      <div style={{ fontSize: 10, color: MUTED, marginTop: 1 }}>Last {activity.windowDays} days</div>
+                    </div>
+                    <span style={{ marginLeft: 'auto', fontSize: 18, fontWeight: 700, letterSpacing: '-.01em', fontFamily: MONO, color: row.color, fontVariantNumeric: 'tabular-nums' }}>{row.value}</span>
+                  </div>
+                ))}
+                </div>
+                <p style={{ marginTop: 14, paddingTop: 13, borderTop: '1px solid #eef1f5', fontSize: 10.5, color: MUTED, lineHeight: 1.5 }}>
+                  All counts are tenant-wide and aggregate-only.
+                </p>
+              </>
+            )}
+          </div>
+
+        </div>
+
+        {/* ── Data Governance footer ── */}
+        <div style={{ ...CARD, borderRadius: 10, display: 'flex', gap: 11, alignItems: 'flex-start', padding: '18px 22px' }}>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={MUTED} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: 2 }}><rect x="3" y="11" width="18" height="10" rx="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>
+          <p style={{ fontSize: 11, color: MUTED, lineHeight: 1.7, margin: 0 }}>
+            <strong style={{ color: SUB }}>Data governance.</strong> This Executive Dashboard shows tenant-wide aggregate metrics only. It does not expose individual employee, candidate, vacancy-row, recruiting, or department-level detail. All figures are deterministic, current as of the timestamp above, and require human review before action. Department-level and per-vacancy views remain reserved for System Administrator, HR Director, and Workforce Planner roles by design.
           </p>
-        </aside>
+        </div>
 
-        {/* ── Main ── */}
-        <main style={{ flex: 1, minWidth: 0, padding: '40px 32px 80px 28px' }}>
-
-          <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 34 }}>
-            <div>
-              <h1 style={{ fontSize: 22, fontWeight: 700, letterSpacing: '-.01em', margin: 0, color: TEXT }}>Executive Dashboard</h1>
-              <p style={{ fontSize: 12.5, color: SUB, margin: '4px 0 0' }}>Aggregate workforce intelligence overview</p>
-            </div>
-            <span style={{ fontSize: 11.5, color: MUTED, fontFamily: MONO, fontVariantNumeric: 'tabular-nums' }}>{pageDate}</span>
-          </div>
-
-          {/* ── Strategic Risk Signals — the two governed, thresholded scores.
-               Reasoning is rendered as the FULL, unmodified string the API
-               returns (see file-level deviation note above) — never trimmed
-               or recomposed on the frontend, matching the same rule already
-               enforced for SA/HRD/WP on the operational dashboard above. */}
-          <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 16 }}>
-            <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', color: SUB }}>Strategic Risk Signals</span>
-            <span style={{ fontSize: 11, color: MUTED }}>Governed, thresholded scores</span>
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginBottom: 44 }}>
-
-            {/* Workforce Readiness */}
-            <div style={{ ...CARD, borderRadius: 12, position: 'relative', overflow: 'hidden' }}>
-              <div aria-hidden="true" style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: BLUE }} />
-              <div style={{ padding: '26px 26px 22px' }}>
-                {readinessFetchFailed ? (
-                  <p style={{ fontSize: 13, color: SUB, margin: 0 }}>Workforce readiness unavailable. Reload the dashboard to try again.</p>
-                ) : readinessData !== null ? (() => {
-                  const level = readinessData.data.readinessLevel;
-                  const pill = READINESS_LEVEL_PILL[level] ?? READINESS_LEVEL_PILL.AT_RISK!;
-                  const gaugeColor = READINESS_LEVEL_COLOR[level] ?? AMBER;
-                  return (
-                    <>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 22 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                          <span style={{ width: 30, height: 30, borderRadius: 8, background: '#eff6ff', color: BLUE, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }} aria-hidden="true">
-                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2" /></svg>
-                          </span>
-                          <span style={{ fontSize: 13.5, fontWeight: 600, color: TEXT }}>Workforce Readiness</span>
-                        </div>
-                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 11.5, fontWeight: 600, padding: '4px 10px', borderRadius: 9999, background: pill.bg, color: pill.c, border: `1px solid ${pill.bd}` }}>
-                          <span style={{ width: 5, height: 5, borderRadius: '50%', background: pill.c }} />
-                          {level.charAt(0) + level.slice(1).toLowerCase().replace('_', ' ')}
-                        </span>
-                      </div>
-                      <div style={{ display: 'flex', gap: 20, alignItems: 'flex-start' }}>
-                        <RingGauge pct={readinessData.data.readinessScore} color={gaugeColor}>
-                          <span style={{ fontFamily: MONO, fontSize: 25, fontWeight: 700, color: TEXT, letterSpacing: '-.02em', lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>
-                            {readinessData.data.readinessScore}
-                          </span>
-                          <span style={{ fontSize: 10, color: MUTED, marginTop: 2 }}>/ 100</span>
-                        </RingGauge>
-                        <div style={{ minWidth: 0, flex: 1 }}>
-                          {/* Full, unmodified reasoning string — never trimmed on the frontend. */}
-                          <p style={{ fontSize: 13, color: SUB, lineHeight: 1.6, margin: '0 0 14px' }}>{readinessData.data.reasoning}</p>
-                          <div style={{ borderTop: `1px solid ${BORDER}`, paddingTop: 10, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                            <span style={{ fontSize: 10.5, color: MUTED }}>Human review required before action.</span>
-                            <span style={{ fontSize: 10.5, color: MUTED, fontFamily: MONO }}>Confidence: {confidenceLabel(readinessData.data.confidence)}</span>
-                          </div>
-                        </div>
-                      </div>
-                    </>
-                  );
-                })() : (
-                  <p style={{ fontSize: 13, color: MUTED, margin: 0 }}>Workforce readiness not available at this time.</p>
-                )}
-              </div>
-            </div>
-
-            {/* Attrition Risk */}
-            <div style={{ ...CARD, borderRadius: 12, position: 'relative', overflow: 'hidden' }}>
-              <div aria-hidden="true" style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: AMBER }} />
-              <div style={{ padding: '26px 26px 22px' }}>
-                {attritionFetchFailed ? (
-                  <p style={{ fontSize: 13, color: SUB, margin: 0 }}>Attrition risk unavailable. Reload the dashboard to try again.</p>
-                ) : attritionData !== null ? (() => {
-                  const level = attritionData.data.attritionRiskLevel;
-                  const pill = ATTRITION_LEVEL_PILL[level] ?? ATTRITION_LEVEL_PILL.MEDIUM!;
-                  const gaugeColor = ATTRITION_LEVEL_COLOR[level] ?? AMBER;
-                  return (
-                    <>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 22 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                          <span style={{ width: 30, height: 30, borderRadius: 8, background: '#fffbeb', color: AMBER, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }} aria-hidden="true">
-                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><polyline points="23 18 13.5 8.5 8.5 13.5 1 6" /><polyline points="17 18 23 18 23 12" /></svg>
-                          </span>
-                          <span style={{ fontSize: 13.5, fontWeight: 600, color: TEXT }}>Attrition Risk</span>
-                        </div>
-                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 11.5, fontWeight: 600, padding: '4px 10px', borderRadius: 9999, background: pill.bg, color: pill.c, border: `1px solid ${pill.bd}` }}>
-                          <span style={{ width: 5, height: 5, borderRadius: '50%', background: pill.c }} />
-                          {level.charAt(0) + level.slice(1).toLowerCase()}
-                        </span>
-                      </div>
-                      <div style={{ display: 'flex', gap: 20, alignItems: 'flex-start' }}>
-                        <RingGauge pct={attritionData.data.attritionScore} color={gaugeColor}>
-                          <span style={{ fontFamily: MONO, fontSize: 25, fontWeight: 700, color: TEXT, letterSpacing: '-.02em', lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>
-                            {attritionData.data.attritionScore}
-                          </span>
-                          <span style={{ fontSize: 10, color: MUTED, marginTop: 2 }}>/ 100</span>
-                        </RingGauge>
-                        <div style={{ minWidth: 0, flex: 1 }}>
-                          <p style={{ fontSize: 13, color: SUB, lineHeight: 1.6, margin: '0 0 14px' }}>{attritionData.data.reasoning}</p>
-                          <div style={{ borderTop: `1px solid ${BORDER}`, paddingTop: 10, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                            <span style={{ fontSize: 10.5, color: MUTED }}>Human review required before action.</span>
-                            <span style={{ fontSize: 10.5, color: MUTED, fontFamily: MONO }}>Confidence: {confidenceLabel(attritionData.data.confidence)}</span>
-                          </div>
-                        </div>
-                      </div>
-                    </>
-                  );
-                })() : (
-                  <p style={{ fontSize: 13, color: MUTED, margin: 0 }}>Attrition risk not available at this time.</p>
-                )}
-              </div>
-            </div>
-
-          </div>
-
-          {/* ── Capacity & Throughput — the four ungoverned operating metrics,
-               grouped by the question each pair answers rather than listed
-               flat. No color judgment applied to Coverage/Time-to-Fill/
-               Hiring-Velocity — no governed threshold exists for them.
-               Vacancy Rate's bar is amber purely to echo the number visually
-               being the larger of the pair, not a risk classification. */}
-          <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 16 }}>
-            <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', color: SUB }}>Capacity &amp; Throughput</span>
-            <span style={{ fontSize: 11, color: MUTED }}>Operating metrics, no threshold applied</span>
-          </div>
-          {executiveMetricsFetchFailed ? (
-            <p style={{ fontSize: 13, color: SUB, marginBottom: 20 }}>Workforce metrics unavailable. Reload the dashboard to try again.</p>
-          ) : executiveMetricsData === null ? (
-            <p style={{ fontSize: 13, color: MUTED, marginBottom: 20 }}>Workforce metrics not available at this time.</p>
-          ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginBottom: 38 }}>
-
-            {/* Staffing Capacity */}
-            <div style={{ ...CARD, borderRadius: 12 }}>
-              <div style={{ padding: '16px 24px', borderBottom: `1px solid ${BORDER}`, display: 'flex', alignItems: 'center', gap: 12 }}>
-                <span style={{ width: 30, height: 30, borderRadius: 8, background: CANVAS, border: `1px solid ${BORDER}`, color: SUB, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }} aria-hidden="true">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" /><path d="M9 3v18M3 9h6" /></svg>
-                </span>
-                <div>
-                  <div style={{ fontSize: 13, fontWeight: 600, color: TEXT }}>Staffing Capacity</div>
-                  <div style={{ fontSize: 11, color: MUTED, marginTop: 1 }}>How full is the structure right now</div>
-                </div>
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr' }}>
-                <div style={{ padding: '22px 24px' }}>
-                  <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase', color: MUTED, marginBottom: 10 }}>Coverage Rate</div>
-                  <div style={{ fontFamily: MONO, fontSize: 25, fontWeight: 700, letterSpacing: '-.02em', color: TEXT, marginBottom: 10, fontVariantNumeric: 'tabular-nums' }}>{fmtExecutiveMetric(coverage)}</div>
-                  <div style={{ height: 4, borderRadius: 3, background: BORDER, overflow: 'hidden', marginBottom: 10 }}>
-                    <div style={{ height: '100%', borderRadius: 3, background: BLUE, width: `${coverageBarPct}%` }} />
-                  </div>
-                  <p style={{ fontSize: 11, color: MUTED, lineHeight: 1.5, margin: 0 }}>Active positions filled by an active employee.</p>
-                </div>
-                <div style={{ padding: '22px 24px', borderLeft: `1px solid ${BORDER}` }}>
-                  <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase', color: MUTED, marginBottom: 10 }}>Vacancy Rate</div>
-                  <div style={{ fontFamily: MONO, fontSize: 25, fontWeight: 700, letterSpacing: '-.02em', color: TEXT, marginBottom: 10, fontVariantNumeric: 'tabular-nums' }}>{fmtExecutiveMetric(vacancy)}</div>
-                  <div style={{ height: 4, borderRadius: 3, background: BORDER, overflow: 'hidden', marginBottom: 10 }}>
-                    <div style={{ height: '100%', borderRadius: 3, background: AMBER, width: `${vacancyBarPct}%` }} />
-                  </div>
-                  <p style={{ fontSize: 11, color: MUTED, lineHeight: 1.5, margin: 0 }}>Open vacancies relative to active positions.</p>
-                </div>
-              </div>
-            </div>
-
-            {/* Hiring Throughput */}
-            <div style={{ ...CARD, borderRadius: 12 }}>
-              <div style={{ padding: '16px 24px', borderBottom: `1px solid ${BORDER}`, display: 'flex', alignItems: 'center', gap: 12 }}>
-                <span style={{ width: 30, height: 30, borderRadius: 8, background: CANVAS, border: `1px solid ${BORDER}`, color: SUB, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }} aria-hidden="true">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3.5 2" /></svg>
-                </span>
-                <div>
-                  <div style={{ fontSize: 13, fontWeight: 600, color: TEXT }}>Hiring Throughput</div>
-                  <div style={{ fontSize: 11, color: MUTED, marginTop: 1 }}>How fast the pipeline is moving</div>
-                </div>
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr' }}>
-                <div style={{ padding: '22px 24px' }}>
-                  <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase', color: MUTED, marginBottom: 10 }}>Time To Fill</div>
-                  <div style={{ fontFamily: MONO, fontSize: 25, fontWeight: 700, letterSpacing: '-.02em', color: TEXT, marginBottom: 10, fontVariantNumeric: 'tabular-nums' }}>{fmtExecutiveMetric(timeToFill)}</div>
-                  <p style={{ fontSize: 11, color: MUTED, lineHeight: 1.5, margin: 0 }}>
-                    {timeToFill ? `Confidence: ${confidenceLabel(timeToFill.confidence)}${timeToFill.windowDays ? ` · ${timeToFill.windowDays}-day window` : ''}` : '—'}
-                  </p>
-                </div>
-                <div style={{ padding: '22px 24px', borderLeft: `1px solid ${BORDER}` }}>
-                  <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase', color: MUTED, marginBottom: 10 }}>Hiring Velocity</div>
-                  <div style={{ fontFamily: MONO, fontSize: 25, fontWeight: 700, letterSpacing: '-.02em', color: TEXT, marginBottom: 10, fontVariantNumeric: 'tabular-nums' }}>{fmtExecutiveMetric(hiringVelocity)}</div>
-                  <p style={{ fontSize: 11, color: MUTED, lineHeight: 1.5, margin: 0 }}>
-                    {hiringVelocity ? `Confidence: ${confidenceLabel(hiringVelocity.confidence)}${hiringVelocity.windowDays ? ` · ${hiringVelocity.windowDays}-day window` : ''}` : '—'}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-          </div>
-          )}
-
-          <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start', fontSize: 11, color: MUTED, lineHeight: 1.65, borderTop: `1px solid ${BORDER}`, paddingTop: 20 }}>
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: 1 }}><rect x="3" y="11" width="18" height="10" rx="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>
-            <p style={{ margin: 0 }}>
-              <strong style={{ color: SUB }}>Data governance.</strong> All metrics shown are tenant-wide aggregates, deterministic, and computed from authorized workforce data. No individual employee, candidate, or department-level detail exists on this page. Department-level and per-vacancy views are reserved for System Administrator, HR Director, and Workforce Planner roles by design.
-            </p>
-          </div>
-
-        </main>
       </div>
     </div>
   );
@@ -1551,68 +1783,6 @@ export default async function DashboardPage() {
             </div>
             );
           })()}
-
-          {/* ── WORKFORCE METRICS — GD-M34-1 Decisions 12, 21. Own row below the
-               three-signal grid above (not interleaved into its column template)
-               so the existing Workforce Readiness / Attrition Risk / Vacancy Risk
-               Signals layout is byte-for-byte unchanged. Role-gated (SA, HRD, WP,
-               Executive User) — same allowed-role list as Workforce Readiness/
-               Attrition Risk. Condensed values only — no raw formula math ("6 of
-               50" breakdowns); that detail lives on /intelligence only.
-               Labeled "Workforce Metrics", not "Executive Metrics" — this card is
-               visible to SA/HRD/WP too, not Executive-User-exclusive, and the
-               "Executive" framing was confusing on an HR Director's or Workforce
-               Planner's own dashboard (M34 dashboard role-rendering correction).
-               Backend endpoint/DTO naming (executive-metrics, ExecutiveMetricsRes)
-               is unchanged — this is a display-label-only rename. */}
-          {canSeeExecutiveMetrics && (
-            <div style={{ marginBottom: 16 }}>
-              <div style={CARD}>
-                <div style={{ background: '#fffbeb', borderBottom: '1px solid #fde68a', padding: '14px 20px', minHeight: 64, boxSizing: 'border-box', display: 'flex', alignItems: 'center', gap: 12 }}>
-                  <span
-                    aria-hidden="true"
-                    style={{ width: 32, height: 32, borderRadius: 8, flexShrink: 0, background: '#ffffff', border: '1px solid #fde68a', display: 'flex', alignItems: 'center', justifyContent: 'center', color: AMBER }}
-                  >
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-                      <line x1="12" y1="20" x2="12" y2="10" />
-                      <line x1="18" y1="20" x2="18" y2="4" />
-                      <line x1="6" y1="20" x2="6" y2="16" />
-                    </svg>
-                  </span>
-                  <span style={{ fontSize: 13, fontWeight: 600, color: TEXT }}>Workforce Metrics</span>
-                </div>
-                <div aria-hidden="true" style={{ height: 1, background: 'rgba(217,119,6,.25)' }} />
-
-                {executiveMetricsFetchFailed ? (
-                  <p style={{ padding: '20px', fontSize: 13, color: SUB, margin: 0 }}>
-                    Workforce metrics unavailable. Reload the dashboard to try again.
-                  </p>
-                ) : executiveMetricsData !== null ? (
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)' }}>
-                    {([
-                      { label: 'Vacancy Rate', metric: executiveMetricsData.data.vacancyRate },
-                      { label: 'Coverage Rate', metric: executiveMetricsData.data.coverageRate },
-                      { label: 'Time To Fill', metric: executiveMetricsData.data.timeToFill },
-                      { label: 'Hiring Velocity', metric: executiveMetricsData.data.hiringVelocity },
-                    ] as const).map(({ label, metric }, i) => (
-                      <div key={label} style={{ padding: '16px 20px', borderLeft: i > 0 ? `1px solid ${BORDER}` : 'none' }}>
-                        <p style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.1em', color: MUTED, marginBottom: 8 }}>
-                          {label}
-                        </p>
-                        <p style={{ fontFamily: MONO, fontSize: 20, fontWeight: 700, color: TEXT, letterSpacing: '-.02em', fontVariantNumeric: 'tabular-nums', margin: 0 }}>
-                          {fmtExecutiveMetric(metric)}
-                        </p>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p style={{ padding: '20px', fontSize: 13, color: MUTED, margin: 0 }}>
-                    Workforce metrics not available at this time.
-                  </p>
-                )}
-              </div>
-            </div>
-          )}
 
           {/* ── PIPELINE + OPEN VACANCIES — 2/3 + 1/3, independently gated ────
                Platform-wide dashboard content cleanup: Recruiting Pipeline

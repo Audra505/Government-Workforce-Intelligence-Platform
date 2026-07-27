@@ -16,6 +16,14 @@
 //
 // Any change to factor formulas, trailing windows, or confidence rules
 // requires a new governance decision.
+//
+// GD-M34-2 Decisions 2, 3, 5, 8 extend this service with two additional
+// aggregate groups — workforceSnapshot and last30DaysActivity — computed
+// via dedicated count() queries here, never via the Employee/Position/
+// Vacancy list endpoints (GD-M34-2 Decision 3: Executive User gains zero
+// new list access). Neither group is written to WorkforceSignalSnapshot
+// (GD-M34-2 Decision 5) — these are fixed current-period counts, not
+// accumulated history.
 
 import { Injectable } from '@nestjs/common';
 
@@ -29,6 +37,12 @@ import { SnapshotWriterService } from './snapshot-writer.service';
 
 const TIME_TO_FILL_WINDOW_DAYS = 365;
 const HIRING_VELOCITY_WINDOW_DAYS = 90;
+// GD-M34-2 Decision 2: a new, independently-governed 30-day window for
+// Last 30 Days Activity — deliberately distinct from both windows above,
+// same rationale GD-M34-1 Decision 8 gave for Hiring Velocity's 90-day
+// window being shorter than Time To Fill's 365-day window: this is a
+// "recent activity" window, not a long-run average.
+const SNAPSHOT_ACTIVITY_WINDOW_DAYS = 30;
 
 // ---------------------------------------------------------------------------
 // Public output types — GD-M34-1 Decision 10
@@ -44,11 +58,33 @@ export interface ExecutiveMetricValue {
   windowDays: number | null;
 }
 
+// GD-M34-2 Decision 2 — tenant-wide, point-in-time counts. Never null (no
+// undefined-denominator case exists for a plain count), no confidence field
+// (no formula uncertainty to express — see GD-M34-2 Decision 2 rationale).
+export interface ExecutiveWorkforceSnapshot {
+  activeWorkforce: number;
+  activePositions: number;
+  unfilledVacancies: number;
+  criticalVacancies: number;
+}
+
+// GD-M34-2 Decision 2 — tenant-wide counts over the fixed
+// SNAPSHOT_ACTIVITY_WINDOW_DAYS trailing window.
+export interface ExecutiveLast30DaysActivity {
+  hires: number;
+  separations: number;
+  vacanciesOpened: number;
+  vacanciesFilled: number;
+  windowDays: number;
+}
+
 export interface ExecutiveMetricsResult {
   vacancyRate: ExecutiveMetricValue;
   coverageRate: ExecutiveMetricValue;
   timeToFill: ExecutiveMetricValue;
   hiringVelocity: ExecutiveMetricValue;
+  workforceSnapshot: ExecutiveWorkforceSnapshot;
+  last30DaysActivity: ExecutiveLast30DaysActivity;
   computedAt: string;
   formulaVersion: string;
 }
@@ -74,6 +110,8 @@ export class ExecutiveMetricsService {
     const now = new Date();
     const timeToFillWindowStart = new Date(now.getTime() - TIME_TO_FILL_WINDOW_DAYS * 86_400_000);
     const hiringVelocityWindowStart = new Date(now.getTime() - HIRING_VELOCITY_WINDOW_DAYS * 86_400_000);
+    // GD-M34-2 Decision 2: Last 30 Days Activity window
+    const activityWindowStart = new Date(now.getTime() - SNAPSHOT_ACTIVITY_WINDOW_DAYS * 86_400_000);
 
     const [
       openVacancyCount,
@@ -81,6 +119,16 @@ export class ExecutiveMetricsService {
       employeesWithActivePosition,
       filledVacancies,
       hiringVelocityCount,
+      // GD-M34-2 Decision 2 — Workforce Snapshot (activePositions and
+      // unfilledVacancies reuse totalActivePositionCount/openVacancyCount
+      // above verbatim, at zero marginal query cost — not repeated here)
+      activeWorkforceCount,
+      criticalVacancyCount,
+      // GD-M34-2 Decision 2 — Last 30 Days Activity
+      hiresCount,
+      separationsCount,
+      vacanciesOpenedCount,
+      vacanciesFilledCount,
     ] = await Promise.all([
       // GD-M34-1 Decision 5: identical status-value convention VacancyRiskService uses
       this.prisma.vacancy.count({
@@ -106,12 +154,51 @@ export class ExecutiveMetricsService {
           hireDate: { gte: hiringVelocityWindowStart },
         },
       }),
+      // GD-M34-2 Decision 2: identical filter the dashboard's existing
+      // "Active Workforce" KPI card uses for SA/HRD/WP
+      this.prisma.employee.count({
+        where: { tenantId, deletedAt: null, employmentStatus: 'ACTIVE' },
+      }),
+      // GD-M34-2 Decision 2: identical filter the dashboard's existing
+      // "Critical Vacancies" KPI card uses for SA/HRD/WP
+      this.prisma.vacancy.count({
+        where: { tenantId, deletedAt: null, priority: 'CRITICAL' },
+      }),
+      this.prisma.employee.count({
+        where: { tenantId, deletedAt: null, hireDate: { gte: activityWindowStart, lte: now } },
+      }),
+      this.prisma.employee.count({
+        where: {
+          tenantId, deletedAt: null, employmentStatus: 'SEPARATED',
+          terminationDate: { gte: activityWindowStart, lte: now },
+        },
+      }),
+      this.prisma.vacancy.count({
+        where: { tenantId, deletedAt: null, createdAt: { gte: activityWindowStart, lte: now } },
+      }),
+      this.prisma.vacancy.count({
+        where: { tenantId, deletedAt: null, filledAt: { gte: activityWindowStart, lte: now } },
+      }),
     ]);
 
     const vacancyRate = this.computeVacancyRate(openVacancyCount, totalActivePositionCount);
     const coverageRate = this.computeCoverageRate(employeesWithActivePosition, totalActivePositionCount);
     const timeToFill = this.computeTimeToFill(filledVacancies as { createdAt: Date; filledAt: Date | null }[]);
     const hiringVelocity = this.computeHiringVelocity(hiringVelocityCount);
+    // GD-M34-2 Decision 2 — plain counts, never null, no confidence field.
+    const workforceSnapshot: ExecutiveWorkforceSnapshot = {
+      activeWorkforce: activeWorkforceCount,
+      activePositions: totalActivePositionCount,
+      unfilledVacancies: openVacancyCount,
+      criticalVacancies: criticalVacancyCount,
+    };
+    const last30DaysActivity: ExecutiveLast30DaysActivity = {
+      hires: hiresCount,
+      separations: separationsCount,
+      vacanciesOpened: vacanciesOpenedCount,
+      vacanciesFilled: vacanciesFilledCount,
+      windowDays: SNAPSHOT_ACTIVITY_WINDOW_DAYS,
+    };
 
     // GD-M34-1 Decision 16: write-on-query snapshot, once per metric — four
     // distinct signalType values, not one shared tag (see schema.prisma
@@ -139,12 +226,16 @@ export class ExecutiveMetricsService {
         formulaVersion: ExecutiveMetricsService.FORMULA_VERSION, computedAt: now,
       }),
     ]);
+    // GD-M34-2 Decision 5: the eight new counts above are NOT snapshotted —
+    // still exactly four snapshot writes, unchanged from GD-M34-1.
 
     return {
       vacancyRate,
       coverageRate,
       timeToFill,
       hiringVelocity,
+      workforceSnapshot,
+      last30DaysActivity,
       computedAt: now.toISOString(),
       formulaVersion: ExecutiveMetricsService.FORMULA_VERSION,
     };

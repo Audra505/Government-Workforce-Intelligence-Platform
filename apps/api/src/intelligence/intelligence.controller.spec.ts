@@ -145,11 +145,15 @@ const mockDepartmentGapResult: DepartmentGapResult = {
 
 // GD-M34-1: ExecutiveMetricsService returns four independent metric values —
 // the controller does no shaping of its own beyond passing them through.
+// GD-M34-2 Decision 2 extends the result with workforceSnapshot and
+// last30DaysActivity — same pass-through-only controller behavior.
 const mockExecutiveMetricsResult: ExecutiveMetricsResult = {
   vacancyRate: { value: 12.0, unit: 'PERCENT', confidence: 100, detail: '6 of 50 active positions are currently vacant.', windowDays: null },
   coverageRate: { value: 82.0, unit: 'PERCENT', confidence: 100, detail: '41 of 50 active positions are filled by an active employee.', windowDays: null },
   timeToFill: { value: 34.2, unit: 'DAYS', confidence: 70, detail: 'Average 34.2 days to fill, based on 8 vacancies filled in the last 365 days.', windowDays: 365 },
   hiringVelocity: { value: 7, unit: 'COUNT', confidence: 100, detail: '7 employees hired in the last 90 days.', windowDays: 90 },
+  workforceSnapshot: { activeWorkforce: 1248, activePositions: 892, unfilledVacancies: 388, criticalVacancies: 87 },
+  last30DaysActivity: { hires: 48, separations: 32, vacanciesOpened: 76, vacanciesFilled: 54, windowDays: 30 },
   computedAt: '2026-07-19T12:00:00.000Z',
   formulaVersion: 'executive-metrics-deterministic-v1',
 };
@@ -803,6 +807,25 @@ describe('IntelligenceController — Executive Metrics — unit', () => {
 
     const auditCall = mockAuditService.logEvent.mock.calls[0]![0] as { metadata: Record<string, unknown> };
     expect(auditCall.metadata['formulaVersion']).toBe('executive-metrics-deterministic-v1');
+    expect(Object.keys(auditCall.metadata)).toEqual(['formulaVersion']);
+  });
+
+  // GD-M34-2 Decision 2, 8 — response contract extension
+  it('response includes workforceSnapshot and last30DaysActivity, passed through unmodified', async () => {
+    mockExecutiveMetricsService.getByTenant.mockResolvedValue(mockExecutiveMetricsResult);
+
+    const result = await controller.getExecutiveMetrics(mockActor);
+
+    expect(result.data.workforceSnapshot).toEqual(mockExecutiveMetricsResult.workforceSnapshot);
+    expect(result.data.last30DaysActivity).toEqual(mockExecutiveMetricsResult.last30DaysActivity);
+  });
+
+  it('audit metadata key-set remains exactly formulaVersion — GD-M34-2\'s new counts are never added to audit metadata', async () => {
+    mockExecutiveMetricsService.getByTenant.mockResolvedValue(mockExecutiveMetricsResult);
+
+    await controller.getExecutiveMetrics(mockActor);
+
+    const auditCall = mockAuditService.logEvent.mock.calls[0]![0] as { metadata: Record<string, unknown> };
     expect(Object.keys(auditCall.metadata)).toEqual(['formulaVersion']);
   });
 

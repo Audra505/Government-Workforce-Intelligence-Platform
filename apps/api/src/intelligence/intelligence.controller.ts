@@ -20,12 +20,16 @@
 //   a caller-selectable single-department filter (see GD-M33-1 Decision 3 rationale).
 //   INTELLIGENCE_DEPARTMENT_GAP_QUERIED emitted on every successful call.
 //
-// GET /executive-metrics (GD-M34-1 Decisions 3, 4, 11):
+// GET /executive-metrics (GD-M34-1 Decisions 3, 4, 11; GD-M34-2 Decisions 2, 4, 8):
 //   RBAC: System Administrator, HR Director, Workforce Planner, Executive User —
-//   Recruiter, Hiring Manager, Compliance Officer all forbidden.
+//   Recruiter, Hiring Manager, Compliance Officer all forbidden. Unchanged by
+//   GD-M34-2 (Decision 4).
 //   No query parameters accepted, same rationale as every other Phase 4 endpoint.
 //   INTELLIGENCE_EXECUTIVE_METRICS_QUERIED emitted on every successful call; audit
-//   metadata is formulaVersion only (GD-M34-1 Decision 11).
+//   metadata is formulaVersion only (GD-M34-1 Decision 11), unchanged by GD-M34-2.
+//   Response body additionally includes workforceSnapshot and last30DaysActivity
+//   (GD-M34-2 Decision 2) — tenant-wide aggregate counts, not written to
+//   WorkforceSignalSnapshot (GD-M34-2 Decision 5).
 
 import { Controller, Get, Query, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
@@ -294,7 +298,10 @@ export class IntelligenceController {
     summary: 'Get executive-safe aggregate workforce metrics for this tenant (FR-404)',
     description:
       'Returns four deterministic, tenant-wide aggregate metrics: Vacancy Rate %, ' +
-      'Coverage Rate %, Time To Fill, and Hiring Velocity. Allowed roles: System ' +
+      'Coverage Rate %, Time To Fill, and Hiring Velocity — plus (GD-M34-2) a ' +
+      'Workforce Snapshot (Active Workforce, Active Positions, Unfilled Vacancies, ' +
+      'Critical Vacancies) and a Last 30 Days Activity summary (Hires, Separations, ' +
+      'Vacancies Opened, Vacancies Filled). Allowed roles: System ' +
       'Administrator, HR Director, Workforce Planner, Executive User. Every value is a ' +
       'tenant-wide aggregate ratio or count — no individual-level data exists in this ' +
       'endpoint for any role. Fully deterministic and reproducible — no external AI is ' +
@@ -328,12 +335,15 @@ export class IntelligenceController {
     return {
       success: true,
       data: {
-        vacancyRate:     result.vacancyRate,
-        coverageRate:    result.coverageRate,
-        timeToFill:      result.timeToFill,
-        hiringVelocity:  result.hiringVelocity,
-        computedAt:      result.computedAt,
-        formulaVersion:  result.formulaVersion,
+        vacancyRate:         result.vacancyRate,
+        coverageRate:        result.coverageRate,
+        timeToFill:          result.timeToFill,
+        hiringVelocity:      result.hiringVelocity,
+        // GD-M34-2 Decision 2
+        workforceSnapshot:   result.workforceSnapshot,
+        last30DaysActivity:  result.last30DaysActivity,
+        computedAt:          result.computedAt,
+        formulaVersion:      result.formulaVersion,
       },
     };
   }

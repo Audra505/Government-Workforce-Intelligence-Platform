@@ -13,8 +13,20 @@
 //   Executive User:                     Dashboard, Intelligence
 // Server Component — no hooks, no client state; every caller is itself a
 // Server Component that already resolves `roles` from the session cookie.
+//
+// Nav items are plain <a> tags, not next/link — a deliberate, proven
+// pattern already used for login/logout (see login-form.tsx / logout-
+// button.tsx) to defeat Next.js's client-side Router Cache. That cache
+// keys a rendered RSC payload by URL only; a role-dependent page like
+// /dashboard or /intelligence can be soft-navigated back to after a
+// different role rendered it earlier in the same tab (e.g. an admin
+// session before a subsequent Executive User login), showing that other
+// role's nav/content until the cache is invalidated. A plain <a> forces a
+// full document reload on every top-level nav click, which starts a fresh
+// Router Cache each time — the same trade-off (a full-page transition
+// instead of an SPA-style one) already accepted for login/logout, now
+// applied to in-app top nav for the same correctness reason.
 
-import Link from 'next/link';
 import { LogoutButton } from '@/features/auth/logout-button';
 import { UserIdentityChip } from '@/components/shared/user-identity-chip';
 
@@ -75,7 +87,7 @@ export function PlatformHeader({ roles, activeItem }: { roles: string[]; activeI
                   {item.label}
                 </span>
               ) : (
-                <Link
+                <a
                   key={item.id}
                   href={item.href}
                   className={
@@ -85,7 +97,7 @@ export function PlatformHeader({ roles, activeItem }: { roles: string[]; activeI
                   }
                 >
                   {item.label}
-                </Link>
+                </a>
               )
             )}
           </nav>
