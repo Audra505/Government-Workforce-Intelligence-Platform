@@ -9,16 +9,16 @@
 
 ---
 
-Last Updated: 2026-07-21 (Post-M34 dashboard enhancement: Operational Snapshot analytics cards -- LOCALLY IMPLEMENTED, RUNTIME-VERIFIED, BROWSER-VERIFIED; staged for one local commit, not pushed)
-Updated By: Claude Code (added lightweight real-data analytics — chip + supporting line — to the dashboard's existing 4 Operational Snapshot cards, reusing existing RBAC boundaries; re-verified role consistency across all 7 fixture roles with no mismatches found, so no fixes were needed; also closed the M34 record, which had been committed (0d0ef60) and CI-confirmed (run 29803545493) but never updated in this ledger)
+Last Updated: 2026-08-26 (M35 — Human-in-the-Loop Command Center Blueprint: GOVERNANCE/DOCUMENTATION COMPLETE; no code, schema, migration, seed data, test change, UI, or runtime AI exists as a result of M35; not implemented, not validated, not CI-applicable; not production-ready; M36 requires its own separate, explicit implementation authorization before work begins)
+Updated By: Claude Code (drafted governance/GD-M35-1.md and the companion governance/M35-COMMAND-CENTER-BLUEPRINT.md per the accepted redesign synthesis and alignment corrections; indexed GD-M35-1 in governance_history.md as a completed blueprint/governance milestone; this PROGRESS.md entry records blueprint/documentation completion only — no implementation milestone has begun or is authorized)
 
-Previous Update: 2026-07-21 (M34 Executive Intelligence Expansion & Workforce Snapshot Foundation -- CI-CONFIRMED; 0d0ef60; run 29803545493 completed/success)
+Previous Update: 2026-07-21 (Post-M34 dashboard enhancement: Operational Snapshot analytics cards -- LOCALLY IMPLEMENTED, RUNTIME-VERIFIED, BROWSER-VERIFIED; staged for one local commit, not pushed)
 
 ## Repository Status
 
-Current Phase: **Phase 4 — M34 CI-CONFIRMED and CLOSED; post-M34 dashboard analytics enhancement LOCALLY IMPLEMENTED, RUNTIME-VERIFIED, BROWSER-VERIFIED (not yet pushed)**
-Overall Classification: Phase 2 COMPLETE; Post-Phase-2 milestones M13/M14/M15 CI-confirmed; Pre-Phase-3 Governance Package CI-confirmed (a5c34f1); Phase 3 started — M16 CI-confirmed; M17 CI-confirmed; M18 CI-confirmed; M19 CI-confirmed; M20 CI-confirmed (6e6777b; run 28611838113); M21 CI-confirmed (1036c92 + 3c8189d + 1e33420); browser-verified by human 2026-07-03; CLOSED; M21.5 CI-confirmed (782e35e + 1a4b64f; runs #66 + #67); M22 CI-confirmed (ee8465b); browser-verified by human 2026-07-04; CLOSED; M23 CI-confirmed (5fedb81); browser-verified by human 2026-07-06; CLOSED; M24 CI-confirmed (5f5bfa6); browser-verified by human 2026-07-11; CLOSED; M25 CI-confirmed (23d46ef); browser-verified by human 2026-07-13; CLOSED; M26 CI-confirmed (a9a6943); runtime-verified 2026-07-14; CLOSED; M27 CI-confirmed (9049fd6); runtime-verified 2026-07-14; CLOSED; M28 CI-confirmed (46ffcce); runtime-verified + human browser-verified 2026-07-14; CLOSED; M29 CI-confirmed (45efe2f); seed validated 2026-07-14; CLOSED; Phase 3 COMPLETE; Phase 4 Intelligence STARTED — M30 CI-confirmed (407195b); governance GD-M30-1.md authorized (3c9366e) and amended twice (d3a2a65, 0401672); runtime-verified + browser-verified 2026-07-16; CLOSED; M31 CI-confirmed (cbcacdb); governance GD-M31-1.md authorized (051fa8f); runtime-verified + browser-verified 2026-07-16; CI run #99 (ID 29534898812) completed / success; CLOSED; M32 CI-CONFIRMED (dad0afc; run 29654755142 completed/success); governance GD-M32-1.md authorized (e43c700) and amended with Amendment 1 (Intelligence Detail Workspace); runtime-verified + browser-verified 2026-07-18; CLOSED; M33 CI-CONFIRMED (466350f; run 29658955778 completed/success); governance GD-M33-1.md authorized (2026-07-18, pending approval, local); department-level Workforce Readiness/Attrition Risk (scoreByDepartment()) + DepartmentGapService + GET /api/v1/intelligence/department-gap + Department Gap tab; runtime-verified + browser-verified 2026-07-18; CLOSED; M34 CI-CONFIRMED (0d0ef60; run 29803545493 completed/success); governance GD-M34-1.md authorized (2026-07-19, pending approval, local); ExecutiveMetricsService (Vacancy Rate %, Coverage Rate %, Time To Fill, Hiring Velocity) + GET /api/v1/intelligence/executive-metrics + additive-only WorkforceSignalSnapshot table with DB-enforced dedup/upsert (no read endpoint) + purpose-built Executive User dashboard + platform-wide role navigation cleanup + shared PlatformHeader consolidation + a login/logout client-router-cache role-switch bug found and fixed; CLOSED; Post-M34 (not a numbered milestone) — Operational Snapshot dashboard cards enhanced with lightweight, real-data-only analytics (30-day hires/separations/net change, coverage-rate context, 30-day opened/filled/net change, oldest-critical-vacancy age and share) reusing existing RBAC boundaries and existing/extended `GET /employees` and `GET /vacancies` query filters; role consistency re-verified across all 7 fixture roles with no mismatches; LOCALLY IMPLEMENTED, RUNTIME-VERIFIED, BROWSER-VERIFIED; staged for one local commit, not pushed; OPEN pending push/CI
-Active Sprint / Milestone: Post-M34 dashboard analytics enhancement — locally implemented, runtime-verified, browser-verified, staged for one local commit; not pushed, no CI run yet
+Current Phase: **Phase 4 — M34 CI-CONFIRMED and CLOSED; post-M34 dashboard analytics enhancement LOCALLY IMPLEMENTED, RUNTIME-VERIFIED, BROWSER-VERIFIED (not yet pushed); M35 Human-in-the-Loop Command Center Blueprint COMPLETE (governance/documentation only — not implemented, not validated; the target platform redesign and all M36+ implementation remain Planned; M36 requires its own separate, explicit implementation authorization before work begins)**
+Overall Classification: Phase 2 COMPLETE; Post-Phase-2 milestones M13/M14/M15 CI-confirmed; Pre-Phase-3 Governance Package CI-confirmed (a5c34f1); Phase 3 started — M16 CI-confirmed; M17 CI-confirmed; M18 CI-confirmed; M19 CI-confirmed; M20 CI-confirmed (6e6777b; run 28611838113); M21 CI-confirmed (1036c92 + 3c8189d + 1e33420); browser-verified by human 2026-07-03; CLOSED; M21.5 CI-confirmed (782e35e + 1a4b64f; runs #66 + #67); M22 CI-confirmed (ee8465b); browser-verified by human 2026-07-04; CLOSED; M23 CI-confirmed (5fedb81); browser-verified by human 2026-07-06; CLOSED; M24 CI-confirmed (5f5bfa6); browser-verified by human 2026-07-11; CLOSED; M25 CI-confirmed (23d46ef); browser-verified by human 2026-07-13; CLOSED; M26 CI-confirmed (a9a6943); runtime-verified 2026-07-14; CLOSED; M27 CI-confirmed (9049fd6); runtime-verified 2026-07-14; CLOSED; M28 CI-confirmed (46ffcce); runtime-verified + human browser-verified 2026-07-14; CLOSED; M29 CI-confirmed (45efe2f); seed validated 2026-07-14; CLOSED; Phase 3 COMPLETE; Phase 4 Intelligence STARTED — M30 CI-confirmed (407195b); governance GD-M30-1.md authorized (3c9366e) and amended twice (d3a2a65, 0401672); runtime-verified + browser-verified 2026-07-16; CLOSED; M31 CI-confirmed (cbcacdb); governance GD-M31-1.md authorized (051fa8f); runtime-verified + browser-verified 2026-07-16; CI run #99 (ID 29534898812) completed / success; CLOSED; M32 CI-CONFIRMED (dad0afc; run 29654755142 completed/success); governance GD-M32-1.md authorized (e43c700) and amended with Amendment 1 (Intelligence Detail Workspace); runtime-verified + browser-verified 2026-07-18; CLOSED; M33 CI-CONFIRMED (466350f; run 29658955778 completed/success); governance GD-M33-1.md authorized (2026-07-18, pending approval, local); department-level Workforce Readiness/Attrition Risk (scoreByDepartment()) + DepartmentGapService + GET /api/v1/intelligence/department-gap + Department Gap tab; runtime-verified + browser-verified 2026-07-18; CLOSED; M34 CI-CONFIRMED (0d0ef60; run 29803545493 completed/success); governance GD-M34-1.md authorized (2026-07-19, pending approval, local); ExecutiveMetricsService (Vacancy Rate %, Coverage Rate %, Time To Fill, Hiring Velocity) + GET /api/v1/intelligence/executive-metrics + additive-only WorkforceSignalSnapshot table with DB-enforced dedup/upsert (no read endpoint) + purpose-built Executive User dashboard + platform-wide role navigation cleanup + shared PlatformHeader consolidation + a login/logout client-router-cache role-switch bug found and fixed; CLOSED; Post-M34 (not a numbered milestone) — Operational Snapshot dashboard cards enhanced with lightweight, real-data-only analytics (30-day hires/separations/net change, coverage-rate context, 30-day opened/filled/net change, oldest-critical-vacancy age and share) reusing existing RBAC boundaries and existing/extended `GET /employees` and `GET /vacancies` query filters; role consistency re-verified across all 7 fixture roles with no mismatches; LOCALLY IMPLEMENTED, RUNTIME-VERIFIED, BROWSER-VERIFIED; staged for one local commit, not pushed; OPEN pending push/CI; M35 (Human-in-the-Loop Command Center Blueprint) — GOVERNANCE/DOCUMENTATION COMPLETE (governance/GD-M35-1.md + governance/M35-COMMAND-CENTER-BLUEPRINT.md; governance_history.md indexed); no code, schema, migration, seed data, test, UI, or runtime AI change of any kind; no capability implemented, no capability validated; the target platform redesign remains Planned maturity; M36 (Capability-Based Authorization Foundation) requires its own separate, explicit implementation authorization — its own governance decision — before any implementation work begins; CLOSED as a blueprint/governance milestone
+Active Sprint / Milestone: M35 Human-in-the-Loop Command Center Blueprint — governance/documentation drafting complete; no implementation milestone has begun; M36 requires separate, explicit implementation authorization before starting; the pre-existing post-M34 dashboard analytics enhancement remains staged for one local commit, not pushed, unaffected by M35
 Implementation Started: Yes (2026-06-05)
 
 ## Phase Summary
@@ -11907,3 +11907,142 @@ No migrations, no new tables, no new routes, no `@RequireRoles()` change anywher
 
 1. Stage the 12 files listed above plus this PROGRESS.md update, and create one local commit: `Enhance executive dashboard aggregate analytics and navigation consistency`. Do not push.
 2. When ready to push, follow the same push → check GitHub Actions → update this entry's Status to CI-CONFIRMED pattern used for every prior milestone — not before.
+
+---
+
+# M35 — Human-in-the-Loop Command Center Blueprint
+
+> **Repository Status Classification: BLUEPRINT / GOVERNANCE DOCUMENTATION COMPLETE.**
+> This entry records the drafting of governance and design documents. It does NOT record any
+> implementation, any code change, any schema change, any test change, any UI, any runtime AI
+> integration, or any validation of running behavior. No milestone in the roadmap this blueprint
+> defines (M36 through M46) has begun. This entry must not be read, cited, or summarized as
+> evidence that any part of the Human-in-the-Loop Command Center redesign is implemented.
+
+**Date:** 2026-08-26
+
+**Status:** GOVERNANCE/DOCUMENTATION COMPLETE. Not implemented. Not validated. Not
+CI-applicable (no code exists for CI to build, lint, or test). Not production-ready. The target
+platform redesign and every implementation milestone (M36 onward) remain Planned maturity. M36
+(Capability-Based Authorization Foundation) requires its own separate, explicit implementation
+authorization — its own governance decision — before any implementation work begins; M35's
+completion does not authorize, start, or imply the start of M36 or any other implementation
+milestone.
+
+## Capability / Deliverable Alignment
+
+- **Capability:** Human-in-the-Loop Workforce Command Center redesign (governance foundation)
+- **Deliverable relevance:** Approved future-direction initiative per project-owner decision;
+  not a requirement of the current `spec/01_requirements.md` deliverable baseline in its own
+  right — it extends that baseline (new FRs are anticipated, not yet written) rather than
+  closing an existing FR gap
+- **Current maturity classification:** **Planned** (per CLAUDE.md's Repository Maturity
+  Classification) — governance and blueprint documentation exist; no Specs-as-structural-
+  definition, Execution Plan-as-code, State Model-as-schema, Test Scenarios, System Loop,
+  Failure Playbook, Environment Model, Data Lifecycle, or Evolution Strategy layer has any
+  implementation evidence yet. Requirements and Directives layers are drafted (this blueprint
+  and GD-M35-1) but not yet formally merged into `spec/01_requirements.md` or
+  `directives/10_role_based_access_rules.md` — that merge is itself a future, separately
+  authorized action, not part of M35.
+- **Relevant production blueprint layers covered:** Requirements (drafted, in
+  `GD-M35-1.md`/blueprint doc, not yet in `spec/01`), Directives (drafted, not yet merged into
+  `directives/10`), Execution Plan (roadmap M36–M46 defined, zero steps executed)
+- **Relevant production blueprint layers still missing or incomplete:** Specs (structural
+  Prisma/API definition — none exists), State Model (no `DecisionCase`/`ApprovalRequest`/
+  `ElevationSession` schema), Test Scenarios (none — no code to test), System Loop (none),
+  Failure Playbook (none — the audit-failure-handling redesign this blueprint calls for is
+  itself unbuilt), Environment Model (none), Data Lifecycle (none), Evolution Strategy (the
+  seven-role migration plan is drafted narratively but not encoded anywhere)
+
+## What Changed
+
+**Files created:**
+- `governance/GD-M35-1.md` — governance decision: blueprint/governance milestone only; target
+  operating model, two human authority profiles, temporary SA elevation, seven-legacy-role
+  migration posture, AI job functions as logical Intelligence-module responsibilities, restated
+  LLM prohibition, deterministic-Search-vs-conversational-AI distinction, audit prerequisite
+  requirement, case-scoped/PII-minimized evidence principle, no-autonomous-execution principle,
+  three-tier approval model, Independent Oversight Reviewer trigger list, hire-endpoint RBAC
+  inconsistency acknowledgment (resolution deferred to M40), post-M35 roadmap (M36–M46),
+  explicit non-scope, documentation-only validation gate
+- `governance/M35-COMMAND-CENTER-BLUEPRINT.md` — companion design document: current-state
+  summary, target operating model diagram, two-profile model detail, temporary admin elevation
+  field design, seven-role migration plan (phased, parity-gated), capability matrix draft,
+  tiered approval model detail, decision packet definition, decision lifecycle table,
+  AI/HIL boundary, deterministic Search scope, audit prerequisite specification, hire-endpoint
+  RBAC inconsistency resolution design, roadmap summary, explicit non-scope, preserved-
+  capabilities list, implementation authorization gate
+
+**Files modified:**
+- `governance/governance_history.md` — added the "M35 — Human-in-the-Loop Command Center
+  Blueprint" section indexing GD-M35-1, following the established chronological index format
+- `PROGRESS.md` — this entry, plus updated header lines (Last Updated, Updated By, Previous
+  Update, Current Phase, Overall Classification, Active Sprint) recording blueprint-drafting
+  completion
+
+**Architectural changes:** None. No schema, endpoint, service, or UI was created, modified, or
+planned-in-code. All changes are documentation/governance text.
+
+**New integrations:** None.
+
+**Behavioral changes:** None. Every existing endpoint, RBAC list, formula, and UI surface
+behaves identically to before this entry. The hire-endpoint RBAC inconsistency identified in
+`GD-M35-1` Decision 13 is acknowledged in writing only — the endpoint's actual behavior is
+unchanged, and its resolution is explicitly deferred to a future milestone (M40) under its own
+future governance decision.
+
+## Validation
+
+- **Tests added or updated:** None. No test file was created, modified, or deleted.
+- **Verification steps performed:** Documentation-completeness review only — confirmed both
+  documents cover every section required by the drafting task (current-state summary, target
+  operating model, two-profile model, seven-role migration plan, capability matrix draft,
+  three-tier approval model, decision packet definition, decision lifecycle, AI/HIL boundary,
+  deterministic Search scope, audit prerequisite specification, temporary admin elevation
+  model, hire-endpoint RBAC resolution design, post-M35 roadmap, explicit non-scope,
+  implementation authorization gate); confirmed `governance_history.md`'s new entry follows the
+  established table format; confirmed this PROGRESS.md entry makes no implementation or
+  validation claim.
+- **Deterministic validation evidence:** Not applicable — no code exists to validate
+  deterministically. Type-check, lint, and test suite runs were not performed and are not
+  applicable to this milestone.
+- **Integration validation status:** Not applicable — no integration exists.
+- **Known unverified areas:** The capability matrix (Section 6 of the blueprint) and the
+  audit-prerequisite tamper-detection mechanism (Section 12) are both explicitly marked
+  "draft"/"design decision deferred to implementation" within the blueprint document itself —
+  they require further definition during M36 and M39 respectively, not before M36 (or M39,
+  respectively) begins.
+
+## Risks / Limitations
+
+- This entry and its underlying documents describe a **target design**, not running behavior.
+  Any future reader (human or agent) must not treat GD-M35-1 or the blueprint document as
+  authorizing code, schema, migration, seed data, test change, UI, or runtime AI — each
+  requires its own separate, future governance decision per `GD-M35-1` Decision 1 and Decision
+  15.
+- The hire-endpoint RBAC inconsistency between the implemented `hire.controller.ts` (SA + HR
+  Director) and `directives/10` RBAC-701 (Hiring Manager + HR Director) remains unresolved in
+  the running system — it is documented, not fixed. `directives/10` itself has not been edited;
+  the conflict persists until M40.
+- No new FR has yet been added to `spec/01_requirements.md`, and no new RBAC section has yet
+  been merged into `directives/10_role_based_access_rules.md` — the blueprint's content lives
+  in `governance/` only for now. Formal merger into the authoritative spec/directive documents
+  is a future, separately authorized action, not performed here.
+- The seven-role migration plan, capability matrix, and tiered approval model are all narrative
+  designs at this stage; none has been encoded as a schema, a test, or an enforcement
+  mechanism. They remain subject to refinement during M36–M40 without requiring a new M35
+  revision, provided any material change is itself governed at the milestone where it is made.
+
+## Next Actions
+
+1. M36 (Capability-Based Authorization Foundation) requires its own separate, explicit
+   implementation authorization — a dedicated governance decision — before any implementation
+   work begins. That authorization is not granted by M35's completion and has not yet occurred.
+2. Draft that separate governance decision for M36 when implementation work is ready to begin.
+   M36 is the first milestone permitted to touch any source file, Prisma schema, or seed data.
+3. No implementation work of any kind begins before M36's own governance decision exists and is
+   itself authorized.
+4. This PROGRESS.md entry's Status remains "GOVERNANCE/DOCUMENTATION COMPLETE" until a future,
+   separate entry records M36 (or any other implementation milestone) with real implementation
+   and validation evidence — this entry must never be silently upgraded to imply implementation,
+   validation, CI confirmation, or production readiness occurred.
