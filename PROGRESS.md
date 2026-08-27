@@ -9,16 +9,16 @@
 
 ---
 
-Last Updated: 2026-08-26 (M35 — Human-in-the-Loop Command Center Blueprint: GOVERNANCE/DOCUMENTATION COMPLETE; no code, schema, migration, seed data, test change, UI, or runtime AI exists as a result of M35; not implemented, not validated, not CI-applicable; not production-ready; M36 requires its own separate, explicit implementation authorization before work begins)
-Updated By: Claude Code (drafted governance/GD-M35-1.md and the companion governance/M35-COMMAND-CENTER-BLUEPRINT.md per the accepted redesign synthesis and alignment corrections; indexed GD-M35-1 in governance_history.md as a completed blueprint/governance milestone; this PROGRESS.md entry records blueprint/documentation completion only — no implementation milestone has begun or is authorized)
+Last Updated: 2026-08-27 (M36 — Capability-Based Authorization Foundation: GOVERNANCE DECISION COMPLETE; GD-M36-1 authorizes a defined M36 implementation scope for a later, separately instructed task; M36 implementation has NOT started; no application, schema, seed, migration, test, configuration, or UI file changed; no runtime authorization behavior changed; not validated, not CI-applicable, not production-ready)
+Updated By: Claude Code (drafted governance/GD-M36-1.md per the corrected M36 implementation-readiness assessment and its two alignment-correction passes; indexed GD-M36-1 in governance_history.md as a completed governance decision; this PROGRESS.md entry records governance completion only — no M36 implementation has begun or occurred)
 
-Previous Update: 2026-07-21 (Post-M34 dashboard enhancement: Operational Snapshot analytics cards -- LOCALLY IMPLEMENTED, RUNTIME-VERIFIED, BROWSER-VERIFIED; staged for one local commit, not pushed)
+Previous Update: 2026-08-26 (M35 — Human-in-the-Loop Command Center Blueprint: GOVERNANCE/DOCUMENTATION COMPLETE; no code, schema, migration, seed data, test change, UI, or runtime AI exists as a result of M35; not implemented, not validated, not CI-applicable; not production-ready; M36 requires its own separate, explicit implementation authorization before work begins)
 
 ## Repository Status
 
-Current Phase: **Phase 4 — M34 CI-CONFIRMED and CLOSED; post-M34 dashboard analytics enhancement LOCALLY IMPLEMENTED, RUNTIME-VERIFIED, BROWSER-VERIFIED (not yet pushed); M35 Human-in-the-Loop Command Center Blueprint COMPLETE (governance/documentation only — not implemented, not validated; the target platform redesign and all M36+ implementation remain Planned; M36 requires its own separate, explicit implementation authorization before work begins)**
-Overall Classification: Phase 2 COMPLETE; Post-Phase-2 milestones M13/M14/M15 CI-confirmed; Pre-Phase-3 Governance Package CI-confirmed (a5c34f1); Phase 3 started — M16 CI-confirmed; M17 CI-confirmed; M18 CI-confirmed; M19 CI-confirmed; M20 CI-confirmed (6e6777b; run 28611838113); M21 CI-confirmed (1036c92 + 3c8189d + 1e33420); browser-verified by human 2026-07-03; CLOSED; M21.5 CI-confirmed (782e35e + 1a4b64f; runs #66 + #67); M22 CI-confirmed (ee8465b); browser-verified by human 2026-07-04; CLOSED; M23 CI-confirmed (5fedb81); browser-verified by human 2026-07-06; CLOSED; M24 CI-confirmed (5f5bfa6); browser-verified by human 2026-07-11; CLOSED; M25 CI-confirmed (23d46ef); browser-verified by human 2026-07-13; CLOSED; M26 CI-confirmed (a9a6943); runtime-verified 2026-07-14; CLOSED; M27 CI-confirmed (9049fd6); runtime-verified 2026-07-14; CLOSED; M28 CI-confirmed (46ffcce); runtime-verified + human browser-verified 2026-07-14; CLOSED; M29 CI-confirmed (45efe2f); seed validated 2026-07-14; CLOSED; Phase 3 COMPLETE; Phase 4 Intelligence STARTED — M30 CI-confirmed (407195b); governance GD-M30-1.md authorized (3c9366e) and amended twice (d3a2a65, 0401672); runtime-verified + browser-verified 2026-07-16; CLOSED; M31 CI-confirmed (cbcacdb); governance GD-M31-1.md authorized (051fa8f); runtime-verified + browser-verified 2026-07-16; CI run #99 (ID 29534898812) completed / success; CLOSED; M32 CI-CONFIRMED (dad0afc; run 29654755142 completed/success); governance GD-M32-1.md authorized (e43c700) and amended with Amendment 1 (Intelligence Detail Workspace); runtime-verified + browser-verified 2026-07-18; CLOSED; M33 CI-CONFIRMED (466350f; run 29658955778 completed/success); governance GD-M33-1.md authorized (2026-07-18, pending approval, local); department-level Workforce Readiness/Attrition Risk (scoreByDepartment()) + DepartmentGapService + GET /api/v1/intelligence/department-gap + Department Gap tab; runtime-verified + browser-verified 2026-07-18; CLOSED; M34 CI-CONFIRMED (0d0ef60; run 29803545493 completed/success); governance GD-M34-1.md authorized (2026-07-19, pending approval, local); ExecutiveMetricsService (Vacancy Rate %, Coverage Rate %, Time To Fill, Hiring Velocity) + GET /api/v1/intelligence/executive-metrics + additive-only WorkforceSignalSnapshot table with DB-enforced dedup/upsert (no read endpoint) + purpose-built Executive User dashboard + platform-wide role navigation cleanup + shared PlatformHeader consolidation + a login/logout client-router-cache role-switch bug found and fixed; CLOSED; Post-M34 (not a numbered milestone) — Operational Snapshot dashboard cards enhanced with lightweight, real-data-only analytics (30-day hires/separations/net change, coverage-rate context, 30-day opened/filled/net change, oldest-critical-vacancy age and share) reusing existing RBAC boundaries and existing/extended `GET /employees` and `GET /vacancies` query filters; role consistency re-verified across all 7 fixture roles with no mismatches; LOCALLY IMPLEMENTED, RUNTIME-VERIFIED, BROWSER-VERIFIED; staged for one local commit, not pushed; OPEN pending push/CI; M35 (Human-in-the-Loop Command Center Blueprint) — GOVERNANCE/DOCUMENTATION COMPLETE (governance/GD-M35-1.md + governance/M35-COMMAND-CENTER-BLUEPRINT.md; governance_history.md indexed); no code, schema, migration, seed data, test, UI, or runtime AI change of any kind; no capability implemented, no capability validated; the target platform redesign remains Planned maturity; M36 (Capability-Based Authorization Foundation) requires its own separate, explicit implementation authorization — its own governance decision — before any implementation work begins; CLOSED as a blueprint/governance milestone
-Active Sprint / Milestone: M35 Human-in-the-Loop Command Center Blueprint — governance/documentation drafting complete; no implementation milestone has begun; M36 requires separate, explicit implementation authorization before starting; the pre-existing post-M34 dashboard analytics enhancement remains staged for one local commit, not pushed, unaffected by M35
+Current Phase: **Phase 4 — M34 CI-CONFIRMED and CLOSED; post-M34 dashboard analytics enhancement LOCALLY IMPLEMENTED, RUNTIME-VERIFIED, BROWSER-VERIFIED (not yet pushed); M35 Human-in-the-Loop Command Center Blueprint COMPLETE (governance/documentation only); M36 Capability-Based Authorization Foundation GOVERNANCE DECISION COMPLETE (GD-M36-1 authorizes a defined implementation scope for a later, separately instructed task — implementation has NOT started; the target platform redesign and all M36+ implementation remain Planned)**
+Overall Classification: Phase 2 COMPLETE; Post-Phase-2 milestones M13/M14/M15 CI-confirmed; Pre-Phase-3 Governance Package CI-confirmed (a5c34f1); Phase 3 started — M16 CI-confirmed; M17 CI-confirmed; M18 CI-confirmed; M19 CI-confirmed; M20 CI-confirmed (6e6777b; run 28611838113); M21 CI-confirmed (1036c92 + 3c8189d + 1e33420); browser-verified by human 2026-07-03; CLOSED; M21.5 CI-confirmed (782e35e + 1a4b64f; runs #66 + #67); M22 CI-confirmed (ee8465b); browser-verified by human 2026-07-04; CLOSED; M23 CI-confirmed (5fedb81); browser-verified by human 2026-07-06; CLOSED; M24 CI-confirmed (5f5bfa6); browser-verified by human 2026-07-11; CLOSED; M25 CI-confirmed (23d46ef); browser-verified by human 2026-07-13; CLOSED; M26 CI-confirmed (a9a6943); runtime-verified 2026-07-14; CLOSED; M27 CI-confirmed (9049fd6); runtime-verified 2026-07-14; CLOSED; M28 CI-confirmed (46ffcce); runtime-verified + human browser-verified 2026-07-14; CLOSED; M29 CI-confirmed (45efe2f); seed validated 2026-07-14; CLOSED; Phase 3 COMPLETE; Phase 4 Intelligence STARTED — M30 CI-confirmed (407195b); governance GD-M30-1.md authorized (3c9366e) and amended twice (d3a2a65, 0401672); runtime-verified + browser-verified 2026-07-16; CLOSED; M31 CI-confirmed (cbcacdb); governance GD-M31-1.md authorized (051fa8f); runtime-verified + browser-verified 2026-07-16; CI run #99 (ID 29534898812) completed / success; CLOSED; M32 CI-CONFIRMED (dad0afc; run 29654755142 completed/success); governance GD-M32-1.md authorized (e43c700) and amended with Amendment 1 (Intelligence Detail Workspace); runtime-verified + browser-verified 2026-07-18; CLOSED; M33 CI-CONFIRMED (466350f; run 29658955778 completed/success); governance GD-M33-1.md authorized (2026-07-18, pending approval, local); department-level Workforce Readiness/Attrition Risk (scoreByDepartment()) + DepartmentGapService + GET /api/v1/intelligence/department-gap + Department Gap tab; runtime-verified + browser-verified 2026-07-18; CLOSED; M34 CI-CONFIRMED (0d0ef60; run 29803545493 completed/success); governance GD-M34-1.md authorized (2026-07-19, pending approval, local); ExecutiveMetricsService (Vacancy Rate %, Coverage Rate %, Time To Fill, Hiring Velocity) + GET /api/v1/intelligence/executive-metrics + additive-only WorkforceSignalSnapshot table with DB-enforced dedup/upsert (no read endpoint) + purpose-built Executive User dashboard + platform-wide role navigation cleanup + shared PlatformHeader consolidation + a login/logout client-router-cache role-switch bug found and fixed; CLOSED; Post-M34 (not a numbered milestone) — Operational Snapshot dashboard cards enhanced with lightweight, real-data-only analytics (30-day hires/separations/net change, coverage-rate context, 30-day opened/filled/net change, oldest-critical-vacancy age and share) reusing existing RBAC boundaries and existing/extended `GET /employees` and `GET /vacancies` query filters; role consistency re-verified across all 7 fixture roles with no mismatches; LOCALLY IMPLEMENTED, RUNTIME-VERIFIED, BROWSER-VERIFIED; staged for one local commit, not pushed; OPEN pending push/CI; M35 (Human-in-the-Loop Command Center Blueprint) — GOVERNANCE/DOCUMENTATION COMPLETE (governance/GD-M35-1.md + governance/M35-COMMAND-CENTER-BLUEPRINT.md; governance_history.md indexed); no code, schema, migration, seed data, test, UI, or runtime AI change of any kind; no capability implemented, no capability validated; the target platform redesign remains Planned maturity; CLOSED as a blueprint/governance milestone; M36 (Capability-Based Authorization Foundation) — GOVERNANCE DECISION COMPLETE (governance/GD-M36-1.md; governance_history.md indexed); GD-M36-1 authorizes seeding the dormant Permission/RolePermission tables, a 73-endpoint/62-unique-permission capability catalog, a PermissionsService, method-level @RequireCapability metadata on all 73 protected handlers, and a non-registered CapabilityGuard, proven by a deterministic parity-test design, for a LATER separately instructed implementation task; RolesGuard remains the sole runtime authorization authority; no capability enforcement is activated; no currently authorized or forbidden endpoint outcome changes; no application, schema, seed, migration, test, configuration, or UI file has been modified; M36 implementation has NOT started; OPEN pending a separate, explicit implementation instruction
+Active Sprint / Milestone: M36 Capability-Based Authorization Foundation — governance decision (GD-M36-1) complete; M36 implementation has not started and is not authorized to start except by a later, separately instructed implementation task operating within GD-M36-1's scope; the pre-existing post-M34 dashboard analytics enhancement remains staged for one local commit, not pushed, unaffected by M35 or M36
 Implementation Started: Yes (2026-06-05)
 
 ## Phase Summary
@@ -12035,14 +12035,147 @@ future governance decision.
 
 ## Next Actions
 
-1. M36 (Capability-Based Authorization Foundation) requires its own separate, explicit
+1. ~~M36 (Capability-Based Authorization Foundation) requires its own separate, explicit
    implementation authorization — a dedicated governance decision — before any implementation
-   work begins. That authorization is not granted by M35's completion and has not yet occurred.
-2. Draft that separate governance decision for M36 when implementation work is ready to begin.
-   M36 is the first milestone permitted to touch any source file, Prisma schema, or seed data.
+   work begins. That authorization is not granted by M35's completion and has not yet occurred.~~
+   **Superseded** — `GD-M36-1` has since been drafted and completed as a governance decision.
+   See the "M36 — Capability-Based Authorization Foundation (Governance Decision)" section below.
+   M36 implementation still has not started.
+2. ~~Draft that separate governance decision for M36 when implementation work is ready to begin.
+   M36 is the first milestone permitted to touch any source file, Prisma schema, or seed data.~~
+   **Superseded** — that governance decision (`GD-M36-1`) is now drafted and completed; see the
+   M36 section below. M36 remains the first milestone permitted to touch any source file, Prisma
+   schema, or seed data, but only once a later, separately instructed implementation task invokes
+   `GD-M36-1`'s authorized scope — implementation has not begun.
 3. No implementation work of any kind begins before M36's own governance decision exists and is
    itself authorized.
 4. This PROGRESS.md entry's Status remains "GOVERNANCE/DOCUMENTATION COMPLETE" until a future,
    separate entry records M36 (or any other implementation milestone) with real implementation
    and validation evidence — this entry must never be silently upgraded to imply implementation,
    validation, CI confirmation, or production readiness occurred.
+
+---
+
+# M36 — Capability-Based Authorization Foundation (Governance Decision)
+
+> **Repository Status Classification: GOVERNANCE DECISION COMPLETE. IMPLEMENTATION NOT STARTED.**
+> This entry records the completion of `GD-M36-1`, the governance decision authorizing a
+> defined M36 implementation scope. It does NOT record any code, schema, seed, migration, test,
+> configuration, or UI change, and does NOT record any change to runtime authorization behavior.
+> M36 implementation begins only through a later, separately instructed implementation task
+> operating within `GD-M36-1`'s authorized scope. This entry must not be read, cited, or
+> summarized as evidence that any part of M36's implementation has occurred.
+
+**Date:** 2026-08-27
+
+**Status:** GOVERNANCE DECISION COMPLETE. M36 implementation has NOT started. M36 remains
+unimplemented, unvalidated, not CI-confirmed, and not production-ready. No runtime authorization
+behavior has changed. No application, schema, seed, migration, test, configuration, or UI file
+has been created or modified. The next action is a separately instructed M36 implementation task
+governed by `GD-M36-1`.
+
+## Capability / Deliverable Alignment
+
+- **Capability:** Capability-Based Authorization Foundation (governance authorization only)
+- **Deliverable relevance:** First implementation milestone in the `GD-M35-1` post-M35 roadmap;
+  extends the platform's existing, previously-dormant `Permission`/`RolePermission` schema
+  toward the capability-based authorization model M35 targets
+- **Current maturity classification:** **Planned** (per CLAUDE.md's Repository Maturity
+  Classification) — a governance decision exists; no Execution Plan-as-code, State Model-as-
+  seeded-data, Test Scenarios, System Loop, Failure Playbook, Environment Model, Data Lifecycle,
+  or Evolution Strategy layer has any implementation evidence yet
+- **Relevant production blueprint layers covered:** Requirements and Directives (drafted, in
+  `GD-M36-1.md`, including its full endpoint-to-capability catalog in Appendix A); Execution Plan
+  (authorized scope defined, zero steps executed)
+- **Relevant production blueprint layers still missing or incomplete:** Specs (no `Permission`/
+  `RolePermission` seed data exists), State Model (no `PermissionsService`, no
+  `@RequireCapability`, no `CapabilityGuard` exists), Test Scenarios (no parity-test suite
+  exists), System Loop (none), Failure Playbook (fail-closed behavior is specified in governance
+  only, not implemented), Environment Model (none), Data Lifecycle (none), Evolution Strategy
+  (the M37/M38/M40/M46 roadmap ownership is documented, not built)
+
+## What Changed
+
+**Files created:**
+- `governance/GD-M36-1.md` — governance decision: reconciled authorization-footprint inventory
+  (70 `@RequireRoles()` occurrences, 73 protected endpoints, 7 unique role-set combinations);
+  seven-legacy-role and fixture preservation; `RolesGuard` as sole runtime authority with no
+  enforcement activation in M36; canonical `resource:action` capability naming; a full
+  endpoint-to-capability catalog (Appendix A — 73 mappings, 62 unique `Permission` rows, 11
+  list/detail pairs sharing one capability each); four reserved conditional/service-level
+  capabilities (`employees:terminate`, `users:deactivate`, `users:assign-role`,
+  `offers:rescind`) explicitly not seeded or parity-tested; `PermissionsService` and
+  `CapabilityGuard` design (implemented but never registered on any controller); a deterministic,
+  real-metadata-reflection-based parity-proof design (73 endpoints × 127 non-empty role subsets =
+  9,271 comparisons) replacing an earlier, architecturally unsound runtime "shadow guard"
+  proposal; a permanent CI metadata-drift requirement effective until M46; a JWT/freshness
+  boundary (no JWT change in M36; existing one-hour staleness documented as a known limitation,
+  not target design); roadmap ownership for M37 (elevation/scoped-grant core), M38 (department/
+  decision-case/approval scope extension), M40 (hire RBAC resolution), and M46 (two-profile
+  cutover and capability-enforcement activation) — documentation only, no cross-authorization;
+  full validation gate for the future implementation task
+
+**Files modified:**
+- `governance/governance_history.md` — added the "M36 — Capability-Based Authorization
+  Foundation" section indexing `GD-M36-1`, following the established chronological index format
+- `PROGRESS.md` — this entry, plus updated header lines (Last Updated, Updated By, Previous
+  Update, Current Phase, Overall Classification, Active Sprint) recording governance-decision
+  completion
+
+**Architectural changes:** None. No schema, endpoint, service, guard, or UI file was created,
+modified, or executed. All changes are governance/documentation text.
+
+**New integrations:** None.
+
+**Behavioral changes:** None. Every existing endpoint's currently authorized and currently
+forbidden role set is unchanged. `RolesGuard`, `require-roles.decorator.ts`, every one of the 15
+controller files carrying `@RequireRoles(...)`, `jwt.strategy.ts`, `auth.service.ts`, and every
+frontend role-consuming file remain byte-for-byte unchanged.
+
+## Validation
+
+- **Tests added or updated:** None. No test file was created, modified, or deleted.
+- **Verification steps performed:** Documentation-completeness and internal-consistency review —
+  confirmed `GD-M36-1.md`'s Appendix A endpoint count (73) and unique-permission count (62)
+  arithmetically reconcile (73 mappings − 11 shared list/detail pairs = 62); confirmed the
+  70/73/7 inventory figures are stated consistently across `GD-M36-1.md`, `governance_history.md`,
+  and this entry; confirmed no implementation-authorizing language appears anywhere that would
+  suggest M36 code exists.
+- **Deterministic validation evidence:** Not applicable — no code exists to validate
+  deterministically. Type-check, lint, and test suite runs were not performed and are not
+  applicable to this governance-only milestone step.
+- **Integration validation status:** Not applicable — no integration exists.
+- **Known unverified areas:** The candidate audit item noted in `GD-M36-1.md` Decision 12 (whether
+  `applications:advance` exhibits the same one-route/multiple-semantic-outcomes pattern as the
+  employee-status and user-update endpoints) is explicitly flagged as unresolved and deferred to
+  the implementation task, not resolved by this governance decision.
+
+## Risks / Limitations
+
+- This entry and `GD-M36-1.md` describe an **authorized scope**, not running behavior. Any future
+  reader (human or agent) must not treat `GD-M36-1` as having implemented capability-based
+  authorization — it authorizes a defined implementation task that has not yet been instructed.
+- The hire-endpoint RBAC inconsistency (`hire.controller.ts:57` vs. `directives/10` RBAC-701)
+  remains unresolved in the running system, unchanged by this decision, and explicitly assigned
+  to M40 — not part of M36's scope.
+- The scoped-grant model (tenant/department/expiration/second-approval/self-approval) required by
+  the eventual two-profile cutover does not exist yet; this decision records that M37 and M38
+  jointly own building it, but neither has been authorized to implement it by this decision.
+- The four reserved conditional capabilities and the `applications:advance` audit candidate
+  remain unseeded and unenforceable at the route level until a future, separately governed
+  decision extends the model with payload-aware or service-level checks.
+
+## Next Actions
+
+1. A separate, explicit implementation instruction is required before any M36 implementation
+   work begins. That instruction must operate within `GD-M36-1`'s authorized scope (Appendix A's
+   catalog, the seed/resolver/decorator/guard design, and the validation gate) and must not
+   diverge from it without its own governance amendment.
+2. When that instruction is given, implementation proceeds per `GD-M36-1`'s sequence: seed
+   extension → `PermissionsService` → `@RequireCapability`/`CapabilityGuard` (never registered) →
+   deterministic parity-test suite → validation gate → PROGRESS.md update recording real
+   implementation and validation evidence → commit → push → CI.
+3. This PROGRESS.md entry's Status remains "GOVERNANCE DECISION COMPLETE. IMPLEMENTATION NOT
+   STARTED." until that future, separate entry exists — this entry must never be silently
+   upgraded to imply implementation, validation, CI confirmation, or production readiness
+   occurred.
