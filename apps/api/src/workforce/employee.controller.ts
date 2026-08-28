@@ -67,6 +67,8 @@ import {
 import { JwtAuthGuard } from '../identity/jwt-auth.guard';
 import { RolesGuard } from '../identity/roles.guard';
 import { RequireRoles } from '../identity/decorators/require-roles.decorator';
+import { RequireCapability } from '../identity/decorators/require-capability.decorator';
+import { CAPABILITIES } from '../identity/permissions.catalog';
 import { CurrentUser } from '../identity/decorators/current-user.decorator';
 import { RequestUser } from '../identity/jwt.strategy';
 import { EmployeeService, EmployeeRecord } from './employee.service';
@@ -98,6 +100,7 @@ export class EmployeeController {
   @Post('employees')
   @HttpCode(201)
   @RequireRoles('System Administrator', 'HR Director')
+  @RequireCapability(CAPABILITIES.EMPLOYEES_CREATE)
   @ApiOperation({ summary: 'Create a new employee record (EMP-AUTH-001) — defaults to PENDING_ONBOARDING (GD-M12-1)' })
   @ApiResponse({ status: 201, description: 'Employee created — employmentStatus = PENDING_ONBOARDING' })
   @ApiResponse({ status: 400, description: 'Validation error — missing or invalid fields' })
@@ -219,6 +222,7 @@ export class EmployeeController {
 
   @Get('employees')
   @RequireRoles('System Administrator', 'HR Director', 'Workforce Planner', 'Hiring Manager', 'Compliance Officer')
+  @RequireCapability(CAPABILITIES.EMPLOYEES_READ)
   @ApiOperation({ summary: 'List employees within the authenticated tenant (EMP-AUTH-002) — Executive Users forbidden (RBAC-952)' })
   @ApiResponse({ status: 200, description: 'Paginated employee list' })
   @ApiResponse({ status: 400, description: 'Invalid query parameters' })
@@ -269,6 +273,7 @@ export class EmployeeController {
 
   @Get('employees/:id')
   @RequireRoles('System Administrator', 'HR Director', 'Workforce Planner', 'Hiring Manager', 'Compliance Officer')
+  @RequireCapability(CAPABILITIES.EMPLOYEES_READ)
   @ApiOperation({ summary: 'Get an employee by ID (EMP-AUTH-003) — Executive Users forbidden (RBAC-952); cross-tenant returns 404 (SEC-003)' })
   @ApiParam({ name: 'id', description: 'Employee UUID v4', type: 'string' })
   @ApiResponse({ status: 200, description: 'Employee found' })
@@ -306,6 +311,7 @@ export class EmployeeController {
 
   @Put('employees/:id')
   @RequireRoles('System Administrator', 'HR Director')
+  @RequireCapability(CAPABILITIES.EMPLOYEES_UPDATE)
   @ApiOperation({ summary: 'Update employee profile fields (EMP-AUTH-004) — SEPARATED employees are read-only (EMP-302); employeeNumber immutable (GD-M12-6)' })
   @ApiParam({ name: 'id', description: 'Employee UUID v4', type: 'string' })
   @ApiResponse({ status: 200, description: 'Employee updated' })
@@ -396,6 +402,7 @@ export class EmployeeController {
   @Post('employees/:id/status')
   @HttpCode(200)
   @RequireRoles('System Administrator', 'HR Director')
+  @RequireCapability(CAPABILITIES.EMPLOYEES_STATUS_TRANSITION)
   @ApiOperation({ summary: 'Change employee lifecycle status (EMP-AUTH-005) — enforces GD-M12-1 transition rules (EMP-801)' })
   @ApiParam({ name: 'id', description: 'Employee UUID v4', type: 'string' })
   @ApiResponse({ status: 200, description: 'Status changed — audit event emitted (EMP-700)' })
@@ -460,6 +467,7 @@ export class EmployeeController {
   @Post('employees/:id/assign-position')
   @HttpCode(200)
   @RequireRoles('System Administrator', 'HR Director')
+  @RequireCapability(CAPABILITIES.EMPLOYEES_ASSIGN_POSITION)
   @ApiOperation({
     summary:
       'Assign, reassign, or clear employee position (GD-M15-1 D5/D6) — ' +
@@ -558,6 +566,7 @@ export class EmployeeController {
 
   @Post('employees/:id/skills')
   @RequireRoles('System Administrator', 'HR Director')
+  @RequireCapability(CAPABILITIES.EMPLOYEES_SKILLS_ASSIGN)
   @ApiOperation({
     summary: 'Assign or update a skill for an employee (SKL-200/SKL-203) — ' +
              'first assignment returns 201 (GD-M13-2 D15); repeat returns 200; ' +
@@ -656,6 +665,7 @@ export class EmployeeController {
 
   @Get('employees/:id/skills')
   @RequireRoles('System Administrator', 'HR Director', 'Workforce Planner', 'Compliance Officer')
+  @RequireCapability(CAPABILITIES.EMPLOYEES_SKILLS_READ)
   @ApiOperation({
     summary: 'List skill assignments for an employee (SKL-200) — ' +
              'returns complete set (GD-M13-2 D14); cross-tenant returns 404 (SEC-003); ' +
@@ -700,6 +710,7 @@ export class EmployeeController {
 
   @Post('employees/:id/certifications')
   @RequireRoles('System Administrator', 'HR Director')
+  @RequireCapability(CAPABILITIES.EMPLOYEES_CERTIFICATIONS_ASSIGN)
   @ApiOperation({
     summary: 'Assign or update a certification for an employee (CRT-200/CRT-203) — ' +
              'first assignment returns 201 (GD-M13-2 D15); repeat returns 200; ' +
@@ -816,6 +827,7 @@ export class EmployeeController {
 
   @Get('employees/:id/certifications')
   @RequireRoles('System Administrator', 'HR Director', 'Workforce Planner', 'Compliance Officer')
+  @RequireCapability(CAPABILITIES.EMPLOYEES_CERTIFICATIONS_READ)
   @ApiOperation({
     summary: 'List certification assignments for an employee (CRT-200) — ' +
              'returns complete set (GD-M13-2 D16); cross-tenant returns 404 (SEC-003); ' +

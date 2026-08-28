@@ -37,6 +37,8 @@ import {
 import { JwtAuthGuard } from '../identity/jwt-auth.guard';
 import { RolesGuard } from '../identity/roles.guard';
 import { RequireRoles } from '../identity/decorators/require-roles.decorator';
+import { RequireCapability } from '../identity/decorators/require-capability.decorator';
+import { CAPABILITIES } from '../identity/permissions.catalog';
 import { CurrentUser } from '../identity/decorators/current-user.decorator';
 import { RequestUser } from '../identity/jwt.strategy';
 import { HireService, HireEmployeeRecord } from './hire.service';
@@ -55,6 +57,7 @@ export class HireController {
   @Post('applications/:id/hire')
   @HttpCode(201)
   @RequireRoles('System Administrator', 'HR Director')
+  @RequireCapability(CAPABILITIES.HIRE_AUTHORIZE)
   @ApiOperation({
     summary: 'Hire a candidate — creates an employee record from an accepted-offer application (GD-M19-1 D3)',
   })

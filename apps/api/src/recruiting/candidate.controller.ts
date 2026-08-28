@@ -48,6 +48,8 @@ import {
 import { JwtAuthGuard } from '../identity/jwt-auth.guard';
 import { RolesGuard } from '../identity/roles.guard';
 import { RequireRoles } from '../identity/decorators/require-roles.decorator';
+import { RequireCapability } from '../identity/decorators/require-capability.decorator';
+import { CAPABILITIES } from '../identity/permissions.catalog';
 import { CurrentUser } from '../identity/decorators/current-user.decorator';
 import { RequestUser } from '../identity/jwt.strategy';
 import { CandidateService, CandidateRecord } from './candidate.service';
@@ -69,6 +71,7 @@ export class CandidateController {
   @Post('candidates')
   @HttpCode(201)
   @RequireRoles('System Administrator', 'HR Director', 'Recruiter')
+  @RequireCapability(CAPABILITIES.CANDIDATES_CREATE)
   @ApiOperation({ summary: 'Create a new candidate record (GD-M16-1 D9) — status set to ACTIVE by service (GD-PRE-PHASE3-002 D2)' })
   @ApiResponse({ status: 201, description: 'Candidate created — status = ACTIVE' })
   @ApiResponse({ status: 400, description: 'Validation error — missing or invalid fields' })
@@ -120,6 +123,7 @@ export class CandidateController {
 
   @Get('candidates')
   @RequireRoles('System Administrator', 'HR Director', 'Recruiter', 'Compliance Officer')
+  @RequireCapability(CAPABILITIES.CANDIDATES_READ)
   @ApiOperation({ summary: 'List candidates within the authenticated tenant (GD-M16-1 D9) — defaults to ACTIVE-only; absent status defaults in service' })
   @ApiResponse({ status: 200, description: 'Paginated candidate list' })
   @ApiResponse({ status: 400, description: 'Invalid query parameters' })
@@ -168,6 +172,7 @@ export class CandidateController {
 
   @Get('candidates/:id')
   @RequireRoles('System Administrator', 'HR Director', 'Recruiter', 'Compliance Officer')
+  @RequireCapability(CAPABILITIES.CANDIDATES_READ)
   @ApiOperation({ summary: 'Get a candidate by ID (GD-M16-1 D9) — cross-tenant and archived candidates return 404 (SEC-003)' })
   @ApiParam({ name: 'id', description: 'Candidate UUID v4', type: 'string' })
   @ApiResponse({ status: 200, description: 'Candidate found' })
@@ -205,6 +210,7 @@ export class CandidateController {
 
   @Put('candidates/:id')
   @RequireRoles('System Administrator', 'HR Director', 'Recruiter')
+  @RequireCapability(CAPABILITIES.CANDIDATES_UPDATE)
   @ApiOperation({ summary: 'Update candidate profile fields (GD-M16-1 D9) — status not updatable here; use archive endpoint for ACTIVE→ARCHIVED' })
   @ApiParam({ name: 'id', description: 'Candidate UUID v4', type: 'string' })
   @ApiResponse({ status: 200, description: 'Candidate updated' })
@@ -267,6 +273,7 @@ export class CandidateController {
   @Post('candidates/:id/archive')
   @HttpCode(204)
   @RequireRoles('System Administrator', 'HR Director', 'Recruiter')
+  @RequireCapability(CAPABILITIES.CANDIDATES_ARCHIVE)
   @ApiOperation({ summary: 'Archive a candidate (GD-M16-1 D9) — sets status=ARCHIVED and deletedAt; CANDIDATE_HAS_ACTIVE_APPLICATIONS guard is M17 stub' })
   @ApiParam({ name: 'id', description: 'Candidate UUID v4', type: 'string' })
   @ApiResponse({ status: 204, description: 'Candidate archived — no response body' })

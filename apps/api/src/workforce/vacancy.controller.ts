@@ -51,6 +51,8 @@ import {
 import { JwtAuthGuard } from '../identity/jwt-auth.guard';
 import { RolesGuard } from '../identity/roles.guard';
 import { RequireRoles } from '../identity/decorators/require-roles.decorator';
+import { RequireCapability } from '../identity/decorators/require-capability.decorator';
+import { CAPABILITIES } from '../identity/permissions.catalog';
 import { CurrentUser } from '../identity/decorators/current-user.decorator';
 import { RequestUser } from '../identity/jwt.strategy';
 import { VacancyService, VacancyRecord } from './vacancy.service';
@@ -74,6 +76,7 @@ export class VacancyController {
   @Post('vacancies')
   @HttpCode(201)
   @RequireRoles('System Administrator', 'HR Director')
+  @RequireCapability(CAPABILITIES.VACANCIES_CREATE)
   @ApiOperation({ summary: 'Create a new vacancy for an active position (VAC-100, VAC-102)' })
   @ApiResponse({ status: 201, type: VacancyResponseDto, description: 'Vacancy created in DRAFT status' })
   @ApiResponse({ status: 400, description: 'Validation error — missing or invalid fields' })
@@ -123,6 +126,7 @@ export class VacancyController {
 
   @Get('vacancies')
   @RequireRoles('System Administrator', 'HR Director', 'Workforce Planner')
+  @RequireCapability(CAPABILITIES.VACANCIES_READ)
   @ApiOperation({ summary: 'List vacancies within the authenticated tenant' })
   @ApiResponse({ status: 200, description: 'Paginated vacancy list with aging metrics' })
   @ApiResponse({ status: 400, description: 'Invalid query parameters' })
@@ -164,6 +168,7 @@ export class VacancyController {
 
   @Get('vacancies/:id')
   @RequireRoles('System Administrator', 'HR Director', 'Workforce Planner')
+  @RequireCapability(CAPABILITIES.VACANCIES_READ)
   @ApiOperation({ summary: 'Get a vacancy by ID within the authenticated tenant' })
   @ApiParam({ name: 'id', description: 'Vacancy UUID v4', type: 'string' })
   @ApiResponse({ status: 200, type: VacancyResponseDto, description: 'Vacancy found' })
@@ -202,6 +207,7 @@ export class VacancyController {
 
   @Put('vacancies/:id')
   @RequireRoles('System Administrator', 'HR Director')
+  @RequireCapability(CAPABILITIES.VACANCIES_UPDATE)
   @ApiOperation({ summary: 'Update vacancy fields or transition DRAFT→OPEN (send status:"OPEN")' })
   @ApiParam({ name: 'id', description: 'Vacancy UUID v4', type: 'string' })
   @ApiResponse({ status: 200, type: VacancyResponseDto, description: 'Vacancy updated or transitioned to OPEN' })
@@ -275,6 +281,7 @@ export class VacancyController {
   @Post('vacancies/:id/close')
   @HttpCode(200)
   @RequireRoles('System Administrator', 'HR Director')
+  @RequireCapability(CAPABILITIES.VACANCIES_CLOSE)
   @ApiOperation({ summary: 'Close a vacancy as FILLED or CANCELLED (VAC-500, VAC-502)' })
   @ApiParam({ name: 'id', description: 'Vacancy UUID v4', type: 'string' })
   @ApiResponse({ status: 200, type: VacancyResponseDto, description: 'Vacancy closed — status=CLOSED, filledAt set if FILLED' })

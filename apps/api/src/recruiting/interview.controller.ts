@@ -50,6 +50,8 @@ import {
 import { JwtAuthGuard } from '../identity/jwt-auth.guard';
 import { RolesGuard } from '../identity/roles.guard';
 import { RequireRoles } from '../identity/decorators/require-roles.decorator';
+import { RequireCapability } from '../identity/decorators/require-capability.decorator';
+import { CAPABILITIES } from '../identity/permissions.catalog';
 import { CurrentUser } from '../identity/decorators/current-user.decorator';
 import { RequestUser } from '../identity/jwt.strategy';
 import { InterviewService, InterviewRecord } from './interview.service';
@@ -72,6 +74,7 @@ export class InterviewController {
   @Post('interviews')
   @HttpCode(201)
   @RequireRoles('System Administrator', 'HR Director', 'Recruiter')
+  @RequireCapability(CAPABILITIES.INTERVIEWS_CREATE)
   @ApiOperation({ summary: 'Schedule a new interview for an application (GD-M18-1 D5)' })
   @ApiResponse({ status: 201, description: 'Interview created — status = SCHEDULED' })
   @ApiResponse({ status: 400, description: 'Validation error — missing or invalid fields' })
@@ -144,6 +147,7 @@ export class InterviewController {
 
   @Get('interviews')
   @RequireRoles('System Administrator', 'HR Director', 'Recruiter', 'Compliance Officer')
+  @RequireCapability(CAPABILITIES.INTERVIEWS_READ)
   @ApiOperation({ summary: 'List interviews within the authenticated tenant (GD-M18-1 D16) — paginated with optional filters' })
   @ApiResponse({ status: 200, description: 'Paginated interview list' })
   @ApiResponse({ status: 400, description: 'Invalid query parameters' })
@@ -194,6 +198,7 @@ export class InterviewController {
 
   @Get('interviews/:id')
   @RequireRoles('System Administrator', 'HR Director', 'Recruiter', 'Compliance Officer')
+  @RequireCapability(CAPABILITIES.INTERVIEWS_READ)
   @ApiOperation({ summary: 'Get an interview by ID — cross-tenant and soft-deleted interviews return 404 (SEC-003)' })
   @ApiParam({ name: 'id', description: 'Interview UUID v4', type: 'string' })
   @ApiResponse({ status: 200, description: 'Interview found' })
@@ -231,6 +236,7 @@ export class InterviewController {
 
   @Put('interviews/:id')
   @RequireRoles('System Administrator', 'HR Director', 'Recruiter')
+  @RequireCapability(CAPABILITIES.INTERVIEWS_UPDATE)
   @ApiOperation({ summary: 'Update interview scheduledAt, interviewerName, or interviewerUserId — status not updatable here; use action endpoints (GD-M18-1 D5)' })
   @ApiParam({ name: 'id', description: 'Interview UUID v4', type: 'string' })
   @ApiResponse({ status: 200, description: 'Interview updated' })
@@ -305,6 +311,7 @@ export class InterviewController {
   @Post('interviews/:id/complete')
   @HttpCode(200)
   @RequireRoles('System Administrator', 'HR Director', 'Recruiter')
+  @RequireCapability(CAPABILITIES.INTERVIEWS_COMPLETE)
   @ApiOperation({ summary: 'Mark an interview as COMPLETED — terminal state, cannot be undone (GD-M18-1 D5)' })
   @ApiParam({ name: 'id', description: 'Interview UUID v4', type: 'string' })
   @ApiResponse({ status: 200, description: 'Interview marked as COMPLETED' })
@@ -353,6 +360,7 @@ export class InterviewController {
   @Post('interviews/:id/feedback')
   @HttpCode(200)
   @RequireRoles('System Administrator', 'HR Director', 'Recruiter')
+  @RequireCapability(CAPABILITIES.INTERVIEWS_FEEDBACK)
   @ApiOperation({ summary: 'Record feedback for an interview — allowed on SCHEDULED or COMPLETED; blocked on CANCELLED and NO_SHOW (GD-M18-1 D5)' })
   @ApiParam({ name: 'id', description: 'Interview UUID v4', type: 'string' })
   @ApiResponse({ status: 200, description: 'Feedback recorded' })
@@ -408,6 +416,7 @@ export class InterviewController {
   @Post('interviews/:id/cancel')
   @HttpCode(200)
   @RequireRoles('System Administrator', 'HR Director', 'Recruiter')
+  @RequireCapability(CAPABILITIES.INTERVIEWS_CANCEL)
   @ApiOperation({ summary: 'Cancel an interview — sets status to CANCELLED (terminal); cannot be undone (GD-M18-1 D5)' })
   @ApiParam({ name: 'id', description: 'Interview UUID v4', type: 'string' })
   @ApiResponse({ status: 200, description: 'Interview cancelled' })
@@ -456,6 +465,7 @@ export class InterviewController {
   @Post('interviews/:id/no-show')
   @HttpCode(200)
   @RequireRoles('System Administrator', 'HR Director', 'Recruiter')
+  @RequireCapability(CAPABILITIES.INTERVIEWS_NO_SHOW)
   @ApiOperation({ summary: 'Mark an interview as NO_SHOW — terminal state; candidate did not attend (GD-M18-1 D5)' })
   @ApiParam({ name: 'id', description: 'Interview UUID v4', type: 'string' })
   @ApiResponse({ status: 200, description: 'Interview marked as NO_SHOW' })

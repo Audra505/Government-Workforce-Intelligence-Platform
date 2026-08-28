@@ -41,6 +41,8 @@ import {
 import { JwtAuthGuard } from '../identity/jwt-auth.guard';
 import { RolesGuard } from '../identity/roles.guard';
 import { RequireRoles } from '../identity/decorators/require-roles.decorator';
+import { RequireCapability } from '../identity/decorators/require-capability.decorator';
+import { CAPABILITIES } from '../identity/permissions.catalog';
 import { CurrentUser } from '../identity/decorators/current-user.decorator';
 import { RequestUser } from '../identity/jwt.strategy';
 import { EmployeeCertificationService, ExpiringCertificationRecord } from './employee-certification.service';
@@ -61,6 +63,7 @@ export class EmployeeCertificationsController {
 
   @Get('employee-certifications/expiring')
   @RequireRoles('System Administrator', 'HR Director', 'Workforce Planner', 'Compliance Officer')
+  @RequireCapability(CAPABILITIES.EMPLOYEE_CERTIFICATIONS_EXPIRING_READ)
   @ApiOperation({
     summary:
       'List ACTIVE certifications expiring within the caller-supplied window across all employees ' +

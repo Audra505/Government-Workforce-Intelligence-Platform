@@ -47,6 +47,8 @@ import {
 import { JwtAuthGuard } from '../identity/jwt-auth.guard';
 import { RolesGuard } from '../identity/roles.guard';
 import { RequireRoles } from '../identity/decorators/require-roles.decorator';
+import { RequireCapability } from '../identity/decorators/require-capability.decorator';
+import { CAPABILITIES } from '../identity/permissions.catalog';
 import { CurrentUser } from '../identity/decorators/current-user.decorator';
 import { RequestUser } from '../identity/jwt.strategy';
 import { DepartmentService, DepartmentRecord } from './department.service';
@@ -74,6 +76,7 @@ export class OrganizationController {
   @Post('departments')
   @HttpCode(201)
   @RequireRoles('System Administrator', 'HR Director')
+  @RequireCapability(CAPABILITIES.DEPARTMENTS_CREATE)
   @ApiOperation({ summary: 'Create a new department within the authenticated tenant' })
   @ApiResponse({ status: 201, type: DepartmentResponseDto, description: 'Department created successfully' })
   @ApiResponse({ status: 400, description: 'Validation error — missing or invalid fields' })
@@ -114,6 +117,7 @@ export class OrganizationController {
 
   @Get('departments')
   @RequireRoles('System Administrator', 'HR Director', 'Workforce Planner')
+  @RequireCapability(CAPABILITIES.DEPARTMENTS_READ)
   @ApiOperation({ summary: 'List departments within the authenticated tenant' })
   @ApiResponse({ status: 200, description: 'Paginated department list' })
   @ApiResponse({ status: 400, description: 'Invalid query parameters' })
@@ -151,6 +155,7 @@ export class OrganizationController {
 
   @Get('departments/:id')
   @RequireRoles('System Administrator', 'HR Director', 'Workforce Planner')
+  @RequireCapability(CAPABILITIES.DEPARTMENTS_READ)
   @ApiOperation({ summary: 'Get a department by ID within the authenticated tenant' })
   @ApiParam({ name: 'id', description: 'Department UUID v4', type: 'string' })
   @ApiResponse({ status: 200, type: DepartmentResponseDto, description: 'Department found' })
@@ -184,6 +189,7 @@ export class OrganizationController {
 
   @Patch('departments/:id')
   @RequireRoles('System Administrator', 'HR Director')
+  @RequireCapability(CAPABILITIES.DEPARTMENTS_UPDATE)
   @ApiOperation({ summary: 'Update a department within the authenticated tenant' })
   @ApiParam({ name: 'id', description: 'Department UUID v4', type: 'string' })
   @ApiResponse({ status: 200, type: DepartmentResponseDto, description: 'Department updated successfully' })

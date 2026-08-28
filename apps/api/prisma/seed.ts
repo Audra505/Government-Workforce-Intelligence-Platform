@@ -23,6 +23,11 @@
 import * as bcrypt from 'bcrypt';
 import { PrismaClient } from '@prisma/client';
 
+// M36 (GD-M36-1): idempotent Permission/RolePermission seeding, implemented
+// once in src/identity/permissions.seed.ts (shared with that module's own
+// idempotency unit test — no duplicated seeding logic between the two).
+import { seedPermissionsAndRolePermissions } from '../src/identity/permissions.seed';
+
 const prisma = new PrismaClient();
 
 // Dev-only fixture constants — not used outside NODE_ENV=development
@@ -205,6 +210,18 @@ async function main(): Promise<void> {
   console.log(`\nSeed complete. ${count} roles in identity.roles.`);
 
   await seedDevUser();
+
+  // M36 (GD-M36-1 Decision 11): idempotent Permission/RolePermission seeding.
+  // Runs in every environment (not gated by NODE_ENV) — Permission/RolePermission
+  // are tenant-agnostic reference data, exactly like the PLATFORM_ROLES loop
+  // above, not development-only fixtures. Additive only: never deletes,
+  // truncates, or replaces any existing Role, User, or UserRole row.
+  console.log('\nSeeding M36 capability catalog...');
+  const permissionsResult = await seedPermissionsAndRolePermissions(prisma);
+  console.log(
+    `  [OK] ${permissionsResult.permissionsUpserted} permissions, ` +
+      `${permissionsResult.rolePermissionsUpserted} role-permission mappings upserted.`,
+  );
 }
 
 main()

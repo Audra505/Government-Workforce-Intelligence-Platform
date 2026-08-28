@@ -48,6 +48,8 @@ import {
 import { JwtAuthGuard } from '../identity/jwt-auth.guard';
 import { RolesGuard } from '../identity/roles.guard';
 import { RequireRoles } from '../identity/decorators/require-roles.decorator';
+import { RequireCapability } from '../identity/decorators/require-capability.decorator';
+import { CAPABILITIES } from '../identity/permissions.catalog';
 import { CurrentUser } from '../identity/decorators/current-user.decorator';
 import { RequestUser } from '../identity/jwt.strategy';
 import { CertificationService, CertificationRecord } from './certification.service';
@@ -85,6 +87,7 @@ export class CertificationController {
   @Post('certifications')
   @HttpCode(HttpStatus.CREATED)
   @RequireRoles('System Administrator', 'HR Director')
+  @RequireCapability(CAPABILITIES.CERTIFICATIONS_CREATE)
   @ApiOperation({ summary: 'Create a new certification in the tenant catalog (CRT-100, GD-M13-2 Decision 5)' })
   @ApiResponse({ status: 201, description: 'Certification created' })
   @ApiResponse({ status: 400, description: 'Validation error' })
@@ -133,6 +136,7 @@ export class CertificationController {
 
   @Get('certifications')
   @RequireRoles('System Administrator', 'HR Director', 'Workforce Planner', 'Compliance Officer')
+  @RequireCapability(CAPABILITIES.CERTIFICATIONS_READ)
   @ApiOperation({ summary: 'List all certifications in the tenant catalog (CRT-100, GD-M13-2 Decision 2)' })
   @ApiResponse({ status: 200, description: 'Paginated certification list' })
   @ApiResponse({ status: 400, description: 'Invalid query parameters' })
@@ -177,6 +181,7 @@ export class CertificationController {
 
   @Get('certifications/:id')
   @RequireRoles('System Administrator', 'HR Director', 'Workforce Planner', 'Compliance Officer')
+  @RequireCapability(CAPABILITIES.CERTIFICATIONS_READ)
   @ApiOperation({ summary: 'Get a single certification by ID (tenant-scoped — SEC-003, CRT-002)' })
   @ApiParam({ name: 'id', type: 'string', format: 'uuid' })
   @ApiResponse({ status: 200, description: 'Certification found' })
@@ -214,6 +219,7 @@ export class CertificationController {
 
   @Patch('certifications/:id')
   @RequireRoles('System Administrator', 'HR Director')
+  @RequireCapability(CAPABILITIES.CERTIFICATIONS_UPDATE)
   @ApiOperation({ summary: 'Partially update a certification in the tenant catalog (CRT-102)' })
   @ApiParam({ name: 'id', type: 'string', format: 'uuid' })
   @ApiResponse({ status: 200, description: 'Certification updated' })

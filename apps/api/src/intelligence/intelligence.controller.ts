@@ -37,6 +37,8 @@ import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagg
 import { JwtAuthGuard } from '../identity/jwt-auth.guard';
 import { RolesGuard } from '../identity/roles.guard';
 import { RequireRoles } from '../identity/decorators/require-roles.decorator';
+import { RequireCapability } from '../identity/decorators/require-capability.decorator';
+import { CAPABILITIES } from '../identity/permissions.catalog';
 import { CurrentUser } from '../identity/decorators/current-user.decorator';
 import { RequestUser } from '../identity/jwt.strategy';
 import { AuditService } from '../audit/audit.service';
@@ -73,6 +75,7 @@ export class IntelligenceController {
 
   @Get('vacancy-risk')
   @RequireRoles('System Administrator', 'HR Director', 'Workforce Planner')
+  @RequireCapability(CAPABILITIES.INTELLIGENCE_VACANCY_RISK_READ)
   @ApiOperation({
     summary: 'Get deterministic vacancy risk scores for this tenant (FR-401)',
     description:
@@ -127,6 +130,7 @@ export class IntelligenceController {
 
   @Get('workforce-readiness')
   @RequireRoles('System Administrator', 'HR Director', 'Workforce Planner', 'Executive User')
+  @RequireCapability(CAPABILITIES.INTELLIGENCE_WORKFORCE_READINESS_READ)
   @ApiOperation({
     summary: 'Get deterministic workforce readiness score for this tenant (FR-410)',
     description:
@@ -182,6 +186,7 @@ export class IntelligenceController {
 
   @Get('attrition-risk')
   @RequireRoles('System Administrator', 'HR Director', 'Workforce Planner', 'Executive User')
+  @RequireCapability(CAPABILITIES.INTELLIGENCE_ATTRITION_RISK_READ)
   @ApiOperation({
     summary: 'Get deterministic aggregate attrition risk score for this tenant (FR-402)',
     description:
@@ -240,6 +245,7 @@ export class IntelligenceController {
 
   @Get('department-gap')
   @RequireRoles('System Administrator', 'HR Director', 'Workforce Planner')
+  @RequireCapability(CAPABILITIES.INTELLIGENCE_DEPARTMENT_GAP_READ)
   @ApiOperation({
     summary: 'Get department-level workforce readiness, attrition risk, and vacancy context for this tenant (FR-411)',
     description:
@@ -294,6 +300,7 @@ export class IntelligenceController {
 
   @Get('executive-metrics')
   @RequireRoles('System Administrator', 'HR Director', 'Workforce Planner', 'Executive User')
+  @RequireCapability(CAPABILITIES.INTELLIGENCE_EXECUTIVE_METRICS_READ)
   @ApiOperation({
     summary: 'Get executive-safe aggregate workforce metrics for this tenant (FR-404)',
     description:

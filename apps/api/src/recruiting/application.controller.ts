@@ -50,6 +50,8 @@ import {
 import { JwtAuthGuard } from '../identity/jwt-auth.guard';
 import { RolesGuard } from '../identity/roles.guard';
 import { RequireRoles } from '../identity/decorators/require-roles.decorator';
+import { RequireCapability } from '../identity/decorators/require-capability.decorator';
+import { CAPABILITIES } from '../identity/permissions.catalog';
 import { CurrentUser } from '../identity/decorators/current-user.decorator';
 import { RequestUser } from '../identity/jwt.strategy';
 import { ApplicationService, ApplicationRecord } from './application.service';
@@ -72,6 +74,7 @@ export class ApplicationController {
   @Post('applications')
   @HttpCode(201)
   @RequireRoles('System Administrator', 'HR Director', 'Recruiter')
+  @RequireCapability(CAPABILITIES.APPLICATIONS_CREATE)
   @ApiOperation({ summary: 'Submit a new application for a candidate to a vacancy (GD-M17-1 D6)' })
   @ApiResponse({ status: 201, description: 'Application created — status = APPLIED' })
   @ApiResponse({ status: 400, description: 'Validation error — missing or invalid fields' })
@@ -147,6 +150,7 @@ export class ApplicationController {
 
   @Get('applications')
   @RequireRoles('System Administrator', 'HR Director', 'Recruiter', 'Compliance Officer')
+  @RequireCapability(CAPABILITIES.APPLICATIONS_READ)
   @ApiOperation({ summary: 'List applications within the authenticated tenant (GD-M17-1 D13) — paginated with optional filters' })
   @ApiResponse({ status: 200, description: 'Paginated application list' })
   @ApiResponse({ status: 400, description: 'Invalid query parameters' })
@@ -197,6 +201,7 @@ export class ApplicationController {
 
   @Get('applications/:id')
   @RequireRoles('System Administrator', 'HR Director', 'Recruiter', 'Compliance Officer')
+  @RequireCapability(CAPABILITIES.APPLICATIONS_READ)
   @ApiOperation({ summary: 'Get an application by ID — cross-tenant and deleted applications return 404 (SEC-003)' })
   @ApiParam({ name: 'id', description: 'Application UUID v4', type: 'string' })
   @ApiResponse({ status: 200, description: 'Application found' })
@@ -234,6 +239,7 @@ export class ApplicationController {
 
   @Put('applications/:id')
   @RequireRoles('System Administrator', 'HR Director', 'Recruiter')
+  @RequireCapability(CAPABILITIES.APPLICATIONS_UPDATE)
   @ApiOperation({ summary: 'Update application notes and currentStage — status not updatable here; use advance/reject/withdraw endpoints (GD-M17-1 D15)' })
   @ApiParam({ name: 'id', description: 'Application UUID v4', type: 'string' })
   @ApiResponse({ status: 200, description: 'Application updated' })
@@ -292,6 +298,7 @@ export class ApplicationController {
   @Post('applications/:id/advance')
   @HttpCode(200)
   @RequireRoles('System Administrator', 'HR Director', 'Recruiter')
+  @RequireCapability(CAPABILITIES.APPLICATIONS_ADVANCE)
   @ApiOperation({ summary: 'Advance application to the next status stage (GD-M17-1 D10 Option B — explicit targetStatus required)' })
   @ApiParam({ name: 'id', description: 'Application UUID v4', type: 'string' })
   @ApiResponse({ status: 200, description: 'Application advanced to targetStatus' })
@@ -365,6 +372,7 @@ export class ApplicationController {
   @Post('applications/:id/reject')
   @HttpCode(200)
   @RequireRoles('System Administrator', 'HR Director', 'Recruiter')
+  @RequireCapability(CAPABILITIES.APPLICATIONS_REJECT)
   @ApiOperation({ summary: 'Reject an application — sets status to REJECTED (terminal); cannot be undone (GD-M17-1 D11)' })
   @ApiParam({ name: 'id', description: 'Application UUID v4', type: 'string' })
   @ApiResponse({ status: 200, description: 'Application rejected' })
@@ -413,6 +421,7 @@ export class ApplicationController {
   @Post('applications/:id/withdraw')
   @HttpCode(200)
   @RequireRoles('System Administrator', 'HR Director', 'Recruiter')
+  @RequireCapability(CAPABILITIES.APPLICATIONS_WITHDRAW)
   @ApiOperation({ summary: 'Withdraw an application — sets status to WITHDRAWN (terminal); cannot be undone (GD-M17-1 D12)' })
   @ApiParam({ name: 'id', description: 'Application UUID v4', type: 'string' })
   @ApiResponse({ status: 200, description: 'Application withdrawn' })

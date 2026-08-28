@@ -52,6 +52,8 @@ import {
 import { JwtAuthGuard } from '../identity/jwt-auth.guard';
 import { RolesGuard } from '../identity/roles.guard';
 import { RequireRoles } from '../identity/decorators/require-roles.decorator';
+import { RequireCapability } from '../identity/decorators/require-capability.decorator';
+import { CAPABILITIES } from '../identity/permissions.catalog';
 import { CurrentUser } from '../identity/decorators/current-user.decorator';
 import { RequestUser } from '../identity/jwt.strategy';
 import { OfferService, OfferRecord } from './offer.service';
@@ -74,6 +76,7 @@ export class OfferController {
   @Post('offers')
   @HttpCode(201)
   @RequireRoles('System Administrator', 'HR Director', 'Recruiter')
+  @RequireCapability(CAPABILITIES.OFFERS_CREATE)
   @ApiOperation({ summary: 'Create a new offer in DRAFT status for an application at OFFER stage (GD-M18-1 D7)' })
   @ApiResponse({ status: 201, description: 'Offer created — status = DRAFT' })
   @ApiResponse({ status: 400, description: 'Validation error — missing or invalid fields' })
@@ -139,6 +142,7 @@ export class OfferController {
 
   @Get('offers')
   @RequireRoles('System Administrator', 'HR Director', 'Recruiter', 'Compliance Officer')
+  @RequireCapability(CAPABILITIES.OFFERS_READ)
   @ApiOperation({ summary: 'List offers within the authenticated tenant (GD-M18-1 D16) — paginated with optional filters' })
   @ApiResponse({ status: 200, description: 'Paginated offer list' })
   @ApiResponse({ status: 400, description: 'Invalid query parameters' })
@@ -188,6 +192,7 @@ export class OfferController {
 
   @Get('offers/:id')
   @RequireRoles('System Administrator', 'HR Director', 'Recruiter', 'Compliance Officer')
+  @RequireCapability(CAPABILITIES.OFFERS_READ)
   @ApiOperation({ summary: 'Get an offer by ID — cross-tenant and soft-deleted offers return 404 (SEC-003)' })
   @ApiParam({ name: 'id', description: 'Offer UUID v4', type: 'string' })
   @ApiResponse({ status: 200, description: 'Offer found' })
@@ -225,6 +230,7 @@ export class OfferController {
 
   @Put('offers/:id')
   @RequireRoles('System Administrator', 'HR Director', 'Recruiter')
+  @RequireCapability(CAPABILITIES.OFFERS_UPDATE)
   @ApiOperation({ summary: 'Update offer fields — only permitted in DRAFT status; status not editable here (GD-M18-1 D7, D13)' })
   @ApiParam({ name: 'id', description: 'Offer UUID v4', type: 'string' })
   @ApiResponse({ status: 200, description: 'Offer updated' })
@@ -292,6 +298,7 @@ export class OfferController {
   @Post('offers/:id/submit')
   @HttpCode(200)
   @RequireRoles('System Administrator', 'HR Director', 'Recruiter')
+  @RequireCapability(CAPABILITIES.OFFERS_SUBMIT)
   @ApiOperation({ summary: 'Submit a DRAFT offer for approval — transitions status to PENDING_APPROVAL (GD-M18-1 D7)' })
   @ApiParam({ name: 'id', description: 'Offer UUID v4', type: 'string' })
   @ApiResponse({ status: 200, description: 'Offer submitted — status = PENDING_APPROVAL' })
@@ -350,6 +357,7 @@ export class OfferController {
   @Post('offers/:id/approve')
   @HttpCode(200)
   @RequireRoles('System Administrator', 'HR Director')
+  @RequireCapability(CAPABILITIES.OFFERS_APPROVE)
   @ApiOperation({ summary: 'Approve a PENDING_APPROVAL offer — transitions status to APPROVED (GD-M18-1 D7); Recruiter excluded' })
   @ApiParam({ name: 'id', description: 'Offer UUID v4', type: 'string' })
   @ApiResponse({ status: 200, description: 'Offer approved — status = APPROVED' })
@@ -408,6 +416,7 @@ export class OfferController {
   @Post('offers/:id/send')
   @HttpCode(200)
   @RequireRoles('System Administrator', 'HR Director')
+  @RequireCapability(CAPABILITIES.OFFERS_ISSUE)
   @ApiOperation({ summary: 'Send an APPROVED offer to the candidate — transitions status to SENT (GD-M18-1 D7); Recruiter excluded' })
   @ApiParam({ name: 'id', description: 'Offer UUID v4', type: 'string' })
   @ApiResponse({ status: 200, description: 'Offer sent — status = SENT' })
@@ -465,6 +474,7 @@ export class OfferController {
   @Post('offers/:id/record-response')
   @HttpCode(200)
   @RequireRoles('System Administrator', 'HR Director', 'Recruiter')
+  @RequireCapability(CAPABILITIES.OFFERS_RECORD_RESPONSE)
   @ApiOperation({ summary: 'Record candidate response (ACCEPTED or DECLINED) for a SENT offer (GD-M18-1 D7); does not create employee record (D3, D9)' })
   @ApiParam({ name: 'id', description: 'Offer UUID v4', type: 'string' })
   @ApiResponse({ status: 200, description: 'Response recorded — status = ACCEPTED or DECLINED' })
@@ -529,6 +539,7 @@ export class OfferController {
   @Post('offers/:id/withdraw')
   @HttpCode(200)
   @RequireRoles('System Administrator', 'HR Director', 'Recruiter')
+  @RequireCapability(CAPABILITIES.OFFERS_WITHDRAW)
   @ApiOperation({ summary: 'Withdraw any non-terminal offer — transitions status to WITHDRAWN (terminal) (GD-M18-1 D7)' })
   @ApiParam({ name: 'id', description: 'Offer UUID v4', type: 'string' })
   @ApiResponse({ status: 200, description: 'Offer withdrawn — status = WITHDRAWN' })

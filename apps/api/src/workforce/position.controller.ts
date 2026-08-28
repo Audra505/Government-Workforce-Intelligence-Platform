@@ -43,6 +43,8 @@ import {
 import { JwtAuthGuard } from '../identity/jwt-auth.guard';
 import { RolesGuard } from '../identity/roles.guard';
 import { RequireRoles } from '../identity/decorators/require-roles.decorator';
+import { RequireCapability } from '../identity/decorators/require-capability.decorator';
+import { CAPABILITIES } from '../identity/permissions.catalog';
 import { CurrentUser } from '../identity/decorators/current-user.decorator';
 import { RequestUser } from '../identity/jwt.strategy';
 import { PositionService, PositionRecord, PositionDetailRecord } from './position.service';
@@ -61,6 +63,7 @@ export class PositionController {
   @Post('positions')
   @HttpCode(201)
   @RequireRoles('System Administrator', 'HR Director')
+  @RequireCapability(CAPABILITIES.POSITIONS_CREATE)
   @ApiOperation({ summary: 'Create a new position within the authenticated tenant' })
   @ApiResponse({ status: 201, type: PositionResponseDto, description: 'Position created successfully' })
   @ApiResponse({ status: 400, description: 'Validation error — missing or invalid fields' })
@@ -98,6 +101,7 @@ export class PositionController {
 
   @Get('positions')
   @RequireRoles('System Administrator', 'HR Director', 'Workforce Planner')
+  @RequireCapability(CAPABILITIES.POSITIONS_READ)
   @ApiOperation({ summary: 'List positions within the authenticated tenant' })
   @ApiResponse({ status: 200, description: 'Paginated position list' })
   @ApiResponse({ status: 400, description: 'Invalid query parameters' })
@@ -135,6 +139,7 @@ export class PositionController {
 
   @Get('positions/:id')
   @RequireRoles('System Administrator', 'HR Director', 'Workforce Planner')
+  @RequireCapability(CAPABILITIES.POSITIONS_READ)
   @ApiOperation({ summary: 'Get a position by ID within the authenticated tenant' })
   @ApiParam({ name: 'id', description: 'Position UUID v4', type: 'string' })
   @ApiResponse({ status: 200, type: PositionResponseDto, description: 'Position found — includes occupant field (GD-M15-1 D7)' })
@@ -168,6 +173,7 @@ export class PositionController {
 
   @Put('positions/:id')
   @RequireRoles('System Administrator', 'HR Director')
+  @RequireCapability(CAPABILITIES.POSITIONS_UPDATE)
   @ApiOperation({ summary: 'Update a position within the authenticated tenant' })
   @ApiParam({ name: 'id', description: 'Position UUID v4', type: 'string' })
   @ApiResponse({ status: 200, type: PositionResponseDto, description: 'Position updated successfully' })
@@ -219,6 +225,7 @@ export class PositionController {
   @Post('positions/:id/close')
   @HttpCode(200)
   @RequireRoles('System Administrator', 'HR Director')
+  @RequireCapability(CAPABILITIES.POSITIONS_CLOSE)
   @ApiOperation({ summary: 'Close a position — irreversible lifecycle transition (POS-AUTH-005)' })
   @ApiParam({ name: 'id', description: 'Position UUID v4', type: 'string' })
   @ApiResponse({ status: 200, type: PositionResponseDto, description: 'Position closed successfully' })

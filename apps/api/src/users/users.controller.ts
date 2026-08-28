@@ -41,6 +41,8 @@ import {
 import { JwtAuthGuard } from '../identity/jwt-auth.guard';
 import { RolesGuard } from '../identity/roles.guard';
 import { RequireRoles } from '../identity/decorators/require-roles.decorator';
+import { RequireCapability } from '../identity/decorators/require-capability.decorator';
+import { CAPABILITIES } from '../identity/permissions.catalog';
 import { CurrentUser } from '../identity/decorators/current-user.decorator';
 import { RequestUser } from '../identity/jwt.strategy';
 import { UsersService, UserRecord } from './users.service';
@@ -59,6 +61,7 @@ export class UsersController {
 
   @Post()
   @HttpCode(201)
+  @RequireCapability(CAPABILITIES.USERS_CREATE)
   @ApiOperation({ summary: 'Create a new user account' })
   @ApiResponse({ status: 201, type: UserResponseDto, description: 'User created successfully' })
   @ApiResponse({ status: 400, description: 'Validation error — invalid fields or role not found' })
@@ -109,6 +112,7 @@ export class UsersController {
   }
 
   @Get()
+  @RequireCapability(CAPABILITIES.USERS_READ)
   @ApiOperation({ summary: 'List users within the authenticated tenant' })
   @ApiResponse({ status: 200, description: 'Paginated user list' })
   @ApiResponse({ status: 400, description: 'Invalid query parameters' })
@@ -145,6 +149,7 @@ export class UsersController {
   }
 
   @Patch(':id')
+  @RequireCapability(CAPABILITIES.USERS_UPDATE)
   @ApiOperation({ summary: 'Update user fields, status, and/or role assignments' })
   @ApiParam({ name: 'id', description: 'User UUID v4', type: 'string' })
   @ApiResponse({ status: 200, type: UserResponseDto, description: 'User updated successfully' })
@@ -240,6 +245,7 @@ export class UsersController {
   }
 
   @Get(':id')
+  @RequireCapability(CAPABILITIES.USERS_READ)
   @ApiOperation({ summary: 'Get a user by ID within the authenticated tenant' })
   @ApiParam({ name: 'id', description: 'User UUID v4', type: 'string' })
   @ApiResponse({ status: 200, type: UserResponseDto, description: 'User found' })

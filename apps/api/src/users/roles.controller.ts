@@ -24,6 +24,8 @@ import {
 import { JwtAuthGuard } from '../identity/jwt-auth.guard';
 import { RolesGuard } from '../identity/roles.guard';
 import { RequireRoles } from '../identity/decorators/require-roles.decorator';
+import { RequireCapability } from '../identity/decorators/require-capability.decorator';
+import { CAPABILITIES } from '../identity/permissions.catalog';
 import { CurrentUser } from '../identity/decorators/current-user.decorator';
 import { RequestUser } from '../identity/jwt.strategy';
 import { UsersService } from './users.service';
@@ -37,6 +39,7 @@ export class RolesController {
   constructor(private readonly usersService: UsersService) {}
 
   @Get()
+  @RequireCapability(CAPABILITIES.ROLES_ASSIGNABLE_READ)
   @ApiOperation({ summary: 'List platform roles available for assignment filtered by actor authorization level' })
   @ApiResponse({ status: 200, description: 'Role list — SA: all 7 roles; HRD: 6 roles (System Administrator excluded)' })
   @ApiResponse({ status: 401, description: 'Not authenticated' })

@@ -49,6 +49,8 @@ import {
 import { JwtAuthGuard } from '../identity/jwt-auth.guard';
 import { RolesGuard } from '../identity/roles.guard';
 import { RequireRoles } from '../identity/decorators/require-roles.decorator';
+import { RequireCapability } from '../identity/decorators/require-capability.decorator';
+import { CAPABILITIES } from '../identity/permissions.catalog';
 import { CurrentUser } from '../identity/decorators/current-user.decorator';
 import { RequestUser } from '../identity/jwt.strategy';
 import { SkillService, SkillRecord } from './skill.service';
@@ -86,6 +88,7 @@ export class SkillController {
   @Post('skills')
   @HttpCode(HttpStatus.CREATED)
   @RequireRoles('System Administrator', 'HR Director')
+  @RequireCapability(CAPABILITIES.SKILLS_CREATE)
   @ApiOperation({ summary: 'Create a new skill in the tenant catalog (SKL-100, GD-M13-2 Decision 4)' })
   @ApiResponse({ status: 201, description: 'Skill created' })
   @ApiResponse({ status: 400, description: 'Validation error' })
@@ -134,6 +137,7 @@ export class SkillController {
 
   @Get('skills')
   @RequireRoles('System Administrator', 'HR Director', 'Workforce Planner', 'Compliance Officer')
+  @RequireCapability(CAPABILITIES.SKILLS_READ)
   @ApiOperation({ summary: 'List all skills in the tenant catalog (SKL-100, GD-M13-2 Decision 2)' })
   @ApiResponse({ status: 200, description: 'Paginated skill list' })
   @ApiResponse({ status: 400, description: 'Invalid query parameters' })
@@ -179,6 +183,7 @@ export class SkillController {
 
   @Get('skills/:id')
   @RequireRoles('System Administrator', 'HR Director', 'Workforce Planner', 'Compliance Officer')
+  @RequireCapability(CAPABILITIES.SKILLS_READ)
   @ApiOperation({ summary: 'Get a single skill by ID (tenant-scoped — SEC-003)' })
   @ApiParam({ name: 'id', type: 'string', format: 'uuid' })
   @ApiResponse({ status: 200, description: 'Skill found' })
@@ -216,6 +221,7 @@ export class SkillController {
 
   @Patch('skills/:id')
   @RequireRoles('System Administrator', 'HR Director')
+  @RequireCapability(CAPABILITIES.SKILLS_UPDATE)
   @ApiOperation({ summary: 'Partially update a skill in the tenant catalog (SKL-102)' })
   @ApiParam({ name: 'id', type: 'string', format: 'uuid' })
   @ApiResponse({ status: 200, description: 'Skill updated' })
