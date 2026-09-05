@@ -9,16 +9,16 @@
 
 ---
 
-Last Updated: 2026-08-28 (M36 — Capability-Based Authorization Foundation: IMPLEMENTATION COMPLETE AND CI-CONFIRMED; implementation commit c4d44f98f75137ae1d18b20ef2c7a2e20e983be2 (`feat(auth): implement M36 capability foundation`); GitHub Actions CI run 33136786479 (exact head_sha match) concluded success — Lint, Build, Unit tests, Migrate, Seed, E2E all green; 62 unique Permission rows and 175 RolePermission mappings seeded (idempotency proven across two local runs); 73 protected endpoints carry inert @RequireCapability metadata; all 70 pre-existing @RequireRoles(...) occurrences unchanged; 9,271/9,271 endpoint/subset parity comparisons passed; 58/58 unit suites (11,403 tests) and 13/13 E2E suites (740 tests) passed; RolesGuard remains the sole runtime authorization authority — CapabilityGuard is implemented and unit-tested but registered on zero controllers, so no runtime authorization behavior changed; seven legacy roles and fixture identities unchanged; JWT/session contract unchanged; frontend untouched; M37 and later milestones remain unauthorized and not started)
-Updated By: Claude Code (implemented the M36 capability catalog, seed extension, PermissionsService, @RequireCapability decorator, and non-registered CapabilityGuard per GD-M36-1's authorized scope; validated against Decision 16's full validation gate; committed and pushed the implementation, confirmed exact-SHA CI success; updated governance/GD-M36-1.md's status and Implementation Completion Record, governance/governance_history.md's existing GD-M36-1 entry, and this PROGRESS.md entry to record real implementation and validation evidence — this is not a governance-only entry)
+Last Updated: 2026-09-05 (M37 — Elevation Sessions Foundation: GOVERNANCE DECISION COMPLETE; GD-M37-1 authorizes a defined M37 implementation scope — an internal, dormant, tenant-scoped ElevationSession/ElevationSessionCapability data model and lifecycle, a 4-capability grantable allowlist copied verbatim from the live M36 catalog, requester/approver separation with no self-approval exception, a narrow strict-audit-write exception for elevation transitions only, and nullable never-populated step-up-evidence fields — for a later, separately instructed implementation task; M37 implementation has NOT started; no application, schema, seed, migration, test, configuration, or UI file changed; no runtime authorization behavior changed; CapabilityGuard remains unregistered and RolesGuard remains the sole runtime authority, unaffected by this decision; not validated, not CI-applicable, not production-ready)
+Updated By: Claude Code (drafted governance/GD-M37-1.md per the M37 implementation-readiness assessment and a set of binding project-owner alignment decisions that revised several of that assessment's recommendations — internal-service-only boundary, normalized capability-item model instead of a string array, tenant-only scope, an explicit 4-capability allowlist, and a narrow strict-audit-write exception; independently re-verified the live M36 catalog at authorization time (62 capabilities, 175 role-permission pairs, zero discrepancy) before selecting the allowlist; added the GD-M37-1 entry to governance_history.md; this PROGRESS.md entry records governance completion only — no M37 implementation has begun or occurred)
 
-Previous Update: 2026-08-27 (M36 — Capability-Based Authorization Foundation: GOVERNANCE DECISION COMPLETE; GD-M36-1 authorized a defined M36 implementation scope for a later, separately instructed task; implementation had not yet started at that time)
+Previous Update: 2026-08-28 (M36 — Capability-Based Authorization Foundation: IMPLEMENTATION COMPLETE AND CI-CONFIRMED; implementation commit c4d44f98f75137ae1d18b20ef2c7a2e20e983be2; GitHub Actions CI run 33136786479 concluded success; see the M36 section below for full detail)
 
 ## Repository Status
 
-Current Phase: **Phase 4 — M34 CI-CONFIRMED and CLOSED; post-M34 dashboard analytics enhancement LOCALLY IMPLEMENTED, RUNTIME-VERIFIED, BROWSER-VERIFIED (not yet pushed); M35 Human-in-the-Loop Command Center Blueprint COMPLETE (governance/documentation only); M36 Capability-Based Authorization Foundation IMPLEMENTATION COMPLETE AND CI-CONFIRMED (c4d44f98f75137ae1d18b20ef2c7a2e20e983be2; CI run 33136786479 success) — capability catalog and endpoint-parity safeguards exist and are validated; RolesGuard remains the sole runtime authorization authority; no capability enforcement is active; the seven-role user experience is unchanged; M37 and later milestones remain Planned and unauthorized**
-Overall Classification: Phase 2 COMPLETE; Post-Phase-2 milestones M13/M14/M15 CI-confirmed; Pre-Phase-3 Governance Package CI-confirmed (a5c34f1); Phase 3 started — M16 CI-confirmed; M17 CI-confirmed; M18 CI-confirmed; M19 CI-confirmed; M20 CI-confirmed (6e6777b; run 28611838113); M21 CI-confirmed (1036c92 + 3c8189d + 1e33420); browser-verified by human 2026-07-03; CLOSED; M21.5 CI-confirmed (782e35e + 1a4b64f; runs #66 + #67); M22 CI-confirmed (ee8465b); browser-verified by human 2026-07-04; CLOSED; M23 CI-confirmed (5fedb81); browser-verified by human 2026-07-06; CLOSED; M24 CI-confirmed (5f5bfa6); browser-verified by human 2026-07-11; CLOSED; M25 CI-confirmed (23d46ef); browser-verified by human 2026-07-13; CLOSED; M26 CI-confirmed (a9a6943); runtime-verified 2026-07-14; CLOSED; M27 CI-confirmed (9049fd6); runtime-verified 2026-07-14; CLOSED; M28 CI-confirmed (46ffcce); runtime-verified + human browser-verified 2026-07-14; CLOSED; M29 CI-confirmed (45efe2f); seed validated 2026-07-14; CLOSED; Phase 3 COMPLETE; Phase 4 Intelligence STARTED — M30 CI-confirmed (407195b); governance GD-M30-1.md authorized (3c9366e) and amended twice (d3a2a65, 0401672); runtime-verified + browser-verified 2026-07-16; CLOSED; M31 CI-confirmed (cbcacdb); governance GD-M31-1.md authorized (051fa8f); runtime-verified + browser-verified 2026-07-16; CI run #99 (ID 29534898812) completed / success; CLOSED; M32 CI-CONFIRMED (dad0afc; run 29654755142 completed/success); governance GD-M32-1.md authorized (e43c700) and amended with Amendment 1 (Intelligence Detail Workspace); runtime-verified + browser-verified 2026-07-18; CLOSED; M33 CI-CONFIRMED (466350f; run 29658955778 completed/success); governance GD-M33-1.md authorized (2026-07-18, pending approval, local); department-level Workforce Readiness/Attrition Risk (scoreByDepartment()) + DepartmentGapService + GET /api/v1/intelligence/department-gap + Department Gap tab; runtime-verified + browser-verified 2026-07-18; CLOSED; M34 CI-CONFIRMED (0d0ef60; run 29803545493 completed/success); governance GD-M34-1.md authorized (2026-07-19, pending approval, local); ExecutiveMetricsService (Vacancy Rate %, Coverage Rate %, Time To Fill, Hiring Velocity) + GET /api/v1/intelligence/executive-metrics + additive-only WorkforceSignalSnapshot table with DB-enforced dedup/upsert (no read endpoint) + purpose-built Executive User dashboard + platform-wide role navigation cleanup + shared PlatformHeader consolidation + a login/logout client-router-cache role-switch bug found and fixed; CLOSED; Post-M34 (not a numbered milestone) — Operational Snapshot dashboard cards enhanced with lightweight, real-data-only analytics (30-day hires/separations/net change, coverage-rate context, 30-day opened/filled/net change, oldest-critical-vacancy age and share) reusing existing RBAC boundaries and existing/extended `GET /employees` and `GET /vacancies` query filters; role consistency re-verified across all 7 fixture roles with no mismatches; LOCALLY IMPLEMENTED, RUNTIME-VERIFIED, BROWSER-VERIFIED; staged for one local commit, not pushed; OPEN pending push/CI; M35 (Human-in-the-Loop Command Center Blueprint) — GOVERNANCE/DOCUMENTATION COMPLETE (governance/GD-M35-1.md + governance/M35-COMMAND-CENTER-BLUEPRINT.md; governance_history.md indexed); no code, schema, migration, seed data, test, UI, or runtime AI change of any kind; no capability implemented, no capability validated; the target platform redesign remains Planned maturity; CLOSED as a blueprint/governance milestone; M36 (Capability-Based Authorization Foundation) — IMPLEMENTATION COMPLETE AND CI-CONFIRMED (governance/GD-M36-1.md's Implementation Completion Record; governance_history.md's GD-M36-1 entry updated in place); implementation commit c4d44f98f75137ae1d18b20ef2c7a2e20e983be2 seeds the dormant Permission/RolePermission tables with the 73-endpoint/62-unique-permission/175-RolePermission-mapping capability catalog, adds a PermissionsService, method-level @RequireCapability metadata on all 73 protected handlers, and a non-registered CapabilityGuard, proven by 9,271/9,271 deterministic parity comparisons; GitHub Actions CI run 33136786479 (exact head_sha match) concluded success across Lint/Build/Unit/Migrate/Seed/E2E; RolesGuard remains the sole runtime authorization authority; no capability enforcement is activated; no currently authorized or forbidden endpoint outcome changed; all 70 pre-existing @RequireRoles(...) occurrences, all seven legacy roles, and all existing fixture identities are unchanged; JWT/session contract and frontend are unchanged; CLOSED
-Active Sprint / Milestone: M37 — Elevation Sessions is the next governed milestone; it remains Planned and is not authorized to start except by its own separate, explicit governance decision and implementation instruction, per GD-M35-1 Decision 1 and GD-M36-1 Decision 19; the pre-existing post-M34 dashboard analytics enhancement remains staged for one local commit, not pushed, unaffected by M35 or M36
+Current Phase: **Phase 4 — M34 CI-CONFIRMED and CLOSED; post-M34 dashboard analytics enhancement LOCALLY IMPLEMENTED, RUNTIME-VERIFIED, BROWSER-VERIFIED (not yet pushed); M35 Human-in-the-Loop Command Center Blueprint COMPLETE (governance/documentation only); M36 Capability-Based Authorization Foundation IMPLEMENTATION COMPLETE AND CI-CONFIRMED (c4d44f98f75137ae1d18b20ef2c7a2e20e983be2; CI run 33136786479 success) — capability catalog and endpoint-parity safeguards exist and are validated; M37 Elevation Sessions Foundation GOVERNANCE DECISION COMPLETE (GD-M37-1 authorizes a defined, internal-service-only, dormant elevation-session foundation for a later, separately instructed implementation task — implementation has NOT started; target elevation capability remains Planned); RolesGuard remains the sole runtime authorization authority; CapabilityGuard remains unregistered; no capability enforcement is active; the seven-role user experience is unchanged; M37 implementation and all later milestones remain Planned and unauthorized**
+Overall Classification: Phase 2 COMPLETE; Post-Phase-2 milestones M13/M14/M15 CI-confirmed; Pre-Phase-3 Governance Package CI-confirmed (a5c34f1); Phase 3 started — M16 CI-confirmed; M17 CI-confirmed; M18 CI-confirmed; M19 CI-confirmed; M20 CI-confirmed (6e6777b; run 28611838113); M21 CI-confirmed (1036c92 + 3c8189d + 1e33420); browser-verified by human 2026-07-03; CLOSED; M21.5 CI-confirmed (782e35e + 1a4b64f; runs #66 + #67); M22 CI-confirmed (ee8465b); browser-verified by human 2026-07-04; CLOSED; M23 CI-confirmed (5fedb81); browser-verified by human 2026-07-06; CLOSED; M24 CI-confirmed (5f5bfa6); browser-verified by human 2026-07-11; CLOSED; M25 CI-confirmed (23d46ef); browser-verified by human 2026-07-13; CLOSED; M26 CI-confirmed (a9a6943); runtime-verified 2026-07-14; CLOSED; M27 CI-confirmed (9049fd6); runtime-verified 2026-07-14; CLOSED; M28 CI-confirmed (46ffcce); runtime-verified + human browser-verified 2026-07-14; CLOSED; M29 CI-confirmed (45efe2f); seed validated 2026-07-14; CLOSED; Phase 3 COMPLETE; Phase 4 Intelligence STARTED — M30 CI-confirmed (407195b); governance GD-M30-1.md authorized (3c9366e) and amended twice (d3a2a65, 0401672); runtime-verified + browser-verified 2026-07-16; CLOSED; M31 CI-confirmed (cbcacdb); governance GD-M31-1.md authorized (051fa8f); runtime-verified + browser-verified 2026-07-16; CI run #99 (ID 29534898812) completed / success; CLOSED; M32 CI-CONFIRMED (dad0afc; run 29654755142 completed/success); governance GD-M32-1.md authorized (e43c700) and amended with Amendment 1 (Intelligence Detail Workspace); runtime-verified + browser-verified 2026-07-18; CLOSED; M33 CI-CONFIRMED (466350f; run 29658955778 completed/success); governance GD-M33-1.md authorized (2026-07-18, pending approval, local); department-level Workforce Readiness/Attrition Risk (scoreByDepartment()) + DepartmentGapService + GET /api/v1/intelligence/department-gap + Department Gap tab; runtime-verified + browser-verified 2026-07-18; CLOSED; M34 CI-CONFIRMED (0d0ef60; run 29803545493 completed/success); governance GD-M34-1.md authorized (2026-07-19, pending approval, local); ExecutiveMetricsService (Vacancy Rate %, Coverage Rate %, Time To Fill, Hiring Velocity) + GET /api/v1/intelligence/executive-metrics + additive-only WorkforceSignalSnapshot table with DB-enforced dedup/upsert (no read endpoint) + purpose-built Executive User dashboard + platform-wide role navigation cleanup + shared PlatformHeader consolidation + a login/logout client-router-cache role-switch bug found and fixed; CLOSED; Post-M34 (not a numbered milestone) — Operational Snapshot dashboard cards enhanced with lightweight, real-data-only analytics (30-day hires/separations/net change, coverage-rate context, 30-day opened/filled/net change, oldest-critical-vacancy age and share) reusing existing RBAC boundaries and existing/extended `GET /employees` and `GET /vacancies` query filters; role consistency re-verified across all 7 fixture roles with no mismatches; LOCALLY IMPLEMENTED, RUNTIME-VERIFIED, BROWSER-VERIFIED; staged for one local commit, not pushed; OPEN pending push/CI; M35 (Human-in-the-Loop Command Center Blueprint) — GOVERNANCE/DOCUMENTATION COMPLETE (governance/GD-M35-1.md + governance/M35-COMMAND-CENTER-BLUEPRINT.md; governance_history.md indexed); no code, schema, migration, seed data, test, UI, or runtime AI change of any kind; no capability implemented, no capability validated; the target platform redesign remains Planned maturity; CLOSED as a blueprint/governance milestone; M36 (Capability-Based Authorization Foundation) — IMPLEMENTATION COMPLETE AND CI-CONFIRMED (governance/GD-M36-1.md's Implementation Completion Record; governance_history.md's GD-M36-1 entry updated in place); implementation commit c4d44f98f75137ae1d18b20ef2c7a2e20e983be2 seeds the dormant Permission/RolePermission tables with the 73-endpoint/62-unique-permission/175-RolePermission-mapping capability catalog, adds a PermissionsService, method-level @RequireCapability metadata on all 73 protected handlers, and a non-registered CapabilityGuard, proven by 9,271/9,271 deterministic parity comparisons; GitHub Actions CI run 33136786479 (exact head_sha match) concluded success across Lint/Build/Unit/Migrate/Seed/E2E; RolesGuard remains the sole runtime authorization authority; no capability enforcement is activated; no currently authorized or forbidden endpoint outcome changed; all 70 pre-existing @RequireRoles(...) occurrences, all seven legacy roles, and all existing fixture identities are unchanged; JWT/session contract and frontend are unchanged; CLOSED; M37 (Elevation Sessions Foundation) — GOVERNANCE DECISION COMPLETE (governance/GD-M37-1.md; governance_history.md indexed); GD-M37-1 authorizes an internal, dormant, tenant-scoped ElevationSession/ElevationSessionCapability data model and lifecycle (no HTTP controller, route, API, frontend interface, feature flag, CapabilityGuard registration, RolesGuard change, or JWT claim of any kind), a 4-capability grantable allowlist (users:create, users:read, users:update, roles:assignable:read) copied verbatim from the live, independently re-verified M36 catalog — three of the four operate on sensitive User account identity data (name, email, role assignment) while none exposes Employee or Candidate PII — requester may equal grantee (self-requested elevation permitted) but the approver must always differ from both with no self-approval exception in M37, while the revoker need not be distinct from the other actors, a narrow strict-audit-write exception scoped to elevation transitions only (does not alter AuditService.logEvent()'s existing behavior or satisfy any part of M39), and nullable step-up-evidence fields required to remain null throughout M37 (no genuine MFA/step-up mechanism exists in this repository); no application, schema, seed, migration, test, configuration, or UI file has been modified; M37 implementation has NOT started; OPEN pending a separate, explicit implementation instruction
+Active Sprint / Milestone: M37 — Elevation Sessions Foundation governance decision (GD-M37-1) complete; M37 implementation has not started and is not authorized to start except by a later, separately instructed implementation task operating within GD-M37-1's scope; the pre-existing post-M34 dashboard analytics enhancement remains staged for one local commit, not pushed, unaffected by M35, M36, or M37
 Implementation Started: Yes (2026-06-05)
 
 ## Phase Summary
@@ -12252,3 +12252,162 @@ implementation.
 3. This PROGRESS.md entry's Status is "IMPLEMENTATION COMPLETE AND CI-CONFIRMED. CLOSED." and
    must not be silently upgraded to imply capability enforcement is active, that any role was
    retired, that a two-profile cutover occurred, or that M37 has been authorized or started.
+
+---
+
+# M37 — Elevation Sessions Foundation (Governance Decision)
+
+> **Repository Status Classification: GOVERNANCE DECISION COMPLETE. IMPLEMENTATION NOT STARTED.**
+> This entry records the completion of `GD-M37-1`, the governance decision authorizing a
+> defined M37 implementation scope. It does NOT record any code, schema, seed, migration, test,
+> configuration, or UI change, and does NOT record any change to runtime authorization behavior.
+> M37 implementation begins only through a later, separately instructed implementation task
+> operating within `GD-M37-1`'s authorized scope. This entry must not be read, cited, or
+> summarized as evidence that any part of M37's implementation has occurred, that elevated
+> access is or will automatically become active, or that M39 has been satisfied.
+
+**Date:** 2026-09-05
+
+**Status:** GOVERNANCE DECISION COMPLETE. M37 implementation has NOT started. M37 remains
+unimplemented, unvalidated, not CI-confirmed, and not production-ready. No runtime authorization
+behavior has changed. No application, schema, seed, migration, test, configuration, or UI file
+has been created or modified. The next action is a separately instructed M37 implementation task
+governed by `GD-M37-1`.
+
+## Capability / Deliverable Alignment
+
+- **Capability:** Elevation Sessions Foundation (governance authorization only)
+- **Deliverable relevance:** Second implementation milestone in the `GD-M35-1` post-M35 roadmap;
+  builds the reusable elevation/scoped-grant core `GD-M36-1` Decision 19 already named (documentation
+  only) as M37's job, replacing (once a later, separately governed activation milestone completes)
+  the permanent standing System Administrator persona with temporary, approved, time-boxed elevation
+- **Current maturity classification:** **Planned** (per CLAUDE.md's Repository Maturity
+  Classification) — a governance decision exists; no Execution Plan-as-code, State Model-as-
+  seeded-data, Test Scenarios, System Loop, Failure Playbook, Environment Model, Data Lifecycle,
+  or Evolution Strategy layer has any implementation evidence yet
+- **Relevant production blueprint layers covered:** Requirements and Directives (drafted, in
+  `GD-M37-1.md`, including its full grantable-capability allowlist in Appendix A); Execution Plan
+  (authorized scope defined, zero steps executed)
+- **Relevant production blueprint layers still missing or incomplete:** Specs (no `ElevationSession`
+  or `ElevationSessionCapability` table exists), State Model (no `ElevationSessionService` exists),
+  Test Scenarios (no elevation-session test suite exists), System Loop (none), Failure Playbook
+  (fail-closed/non-effect behavior is specified in governance only, not implemented), Environment
+  Model (none), Data Lifecycle (none), Evolution Strategy (M38's department/decision-case/
+  self-approval-exception extension, and the eventual M39-gated activation milestone, are both
+  documented as future dependencies, not built)
+
+## What Changed
+
+**Files created:**
+- `governance/GD-M37-1.md` — governance decision: verified current-state facts (0 existing
+  elevation-session implementation, live M36 catalog independently re-confirmed at 62 capabilities/
+  175 role-permission pairs with zero discrepancy, `CapabilityGuard` confirmed still unregistered,
+  no MFA/step-up/scheduler infrastructure exists, no `User` hard-delete path found in the inspected
+  user-management application logic); an internal-service-only implementation boundary (no controller, route, API, frontend,
+  feature flag, capability-management endpoint, `CapabilityGuard` registration, `RolesGuard` change,
+  or JWT claim of any kind); a normalized `ElevationSession` + `ElevationSessionCapability` data
+  model referencing the existing `Permission` table by foreign key (no uncontrolled `String[]`
+  capability column), with Prisma lifecycle enums rather than free-form status strings; a full
+  lifecycle with five immutable terminal states, capability-item decisions immutable once the
+  session leaves REQUESTED, and explicit all-items-decided/at-least-one-granted preconditions for
+  APPROVED (all-decided/none-granted for DENIED); a precise actor model — requester may equal
+  grantee (self-requested elevation permitted), approver always differs from both with no
+  self-approval exception, revoker not required to be distinct from the other actors; tenant-only
+  scope (no `scopeResourceId`,
+  department, employee, candidate, resource, or Decision Case scope — deferred to M38); an
+  explicitly enumerated 4-capability grantable allowlist in Appendix A (`users:create`,
+  `users:read`, `users:update`, `roles:assignable:read`), each copied verbatim from and re-verified
+  against the live M36 catalog — three operate on sensitive User account identity data (name,
+  email, role assignment), none exposes Employee or Candidate PII, none reserved-but-unseeded; a narrow strict,
+  transaction-aware audit-write exception for elevation-session transitions only, explicitly not
+  altering `AuditService.logEvent()`'s existing platform-wide behavior and explicitly not
+  satisfying any part of M39; nullable, service-owned, never-client-input step-up-evidence fields
+  required to remain null throughout M37, since no genuine MFA/step-up mechanism exists in this
+  repository; actor-reference design grounded in the verified, non-invented finding that no `User`
+  hard-delete path exists in the inspected application logic (no cascading-delete FK permitted on any actor-reference column); an
+  expiration-validity predicate any future authorization consumer must fully evaluate at check
+  time, explicitly not dependent on any scheduler; a binding terminology rule distinguishing a
+  "lifecycle-active" record from an "authorization-effective" grant; a restated, unweakened M39
+  activation-gate requirement naming trustworthy step-up authentication, M39 completion, and a
+  separate future governance decision as three co-requirements; a full implementation validation
+  gate; 23 governance decisions
+
+**Files modified:**
+- `governance/governance_history.md` — added the "M37 — Elevation Sessions Foundation" section
+  indexing `GD-M37-1`, following the established chronological index format; no existing entry
+  was duplicated or edited
+- `PROGRESS.md` — this entry, plus updated header lines (Last Updated, Updated By, Previous
+  Update, Current Phase, Active Sprint) recording governance-decision completion
+
+**Architectural changes:** None. No schema, endpoint, service, guard, or UI file was created,
+modified, or executed. All changes are governance/documentation text.
+
+**New integrations:** None.
+
+**Behavioral changes:** None. `RolesGuard`, `CapabilityGuard`'s registration status,
+`require-roles.decorator.ts`, `require-capability.decorator.ts`, every one of the 15 controller
+files, `jwt.strategy.ts`, `auth.service.ts`, `permissions.catalog.ts`, and every frontend
+role-consuming file remain byte-for-byte unchanged.
+
+## Validation
+
+- **Tests added or updated:** None. No test file was created, modified, or deleted.
+- **Verification steps performed:** Documentation-completeness and internal-consistency review —
+  independently re-counted the live `apps/api/src/identity/permissions.catalog.ts` at authorization
+  time and confirmed exactly 62 unique capabilities and 175 total role-permission pairs (zero
+  discrepancy from `GD-M36-1`'s own figures); confirmed each of the four Appendix A allowlist
+  capabilities is present in `CAPABILITY_ROLE_MAPPINGS` and is not among the four M36
+  reserved-but-unseeded capabilities; confirmed `CapabilityGuard` appears only in its own file and
+  `identity.module.ts`'s DI arrays, with zero matches for `APP_GUARD`, `useGlobalGuards`, or
+  `UseGuards(...CapabilityGuard...)`; confirmed zero matches for MFA/TOTP/OTP/step-up/
+  reauthentication/scheduler-related terms across `schema.prisma` and `apps/api/src`; confirmed no
+  `prisma.user.delete(...)` call exists in the inspected user-management application logic
+  (`UsersService`/`UsersController`) and the schema's one FK to `User` carries no
+  cascading-delete clause; confirmed no prior M37 entry existed in `governance_history.md` before
+  this one was added; confirmed no implementation-authorizing language appears anywhere that would
+  suggest M37 code exists.
+- **Deterministic validation evidence:** Not applicable — no code exists to validate
+  deterministically. Type-check, lint, and test suite runs were not performed and are not
+  applicable to this governance-only milestone step.
+- **Integration validation status:** Not applicable — no integration exists.
+- **Known unverified areas:** None within M37 governance's own scope. The eventual implementation
+  task's structural "unreachable from any runtime authorization path" proof (`GD-M37-1` Decision 17)
+  is specified but not yet written or run — that is implementation-time work, not governance work.
+
+## Risks / Limitations
+
+- This entry and `GD-M37-1.md` describe an **authorized scope**, not running behavior. Any future
+  reader (human or agent) must not treat `GD-M37-1` as having implemented elevation sessions, and
+  must not read the presence of an `ACTIVE` lifecycle state anywhere in this design as implying any
+  user has, or will automatically, receive additional runtime access — `GD-M37-1` Decision 20 binds
+  this distinction explicitly.
+- M37's own activation remains gated on M39 (audit read API, viewer, filtering, tamper detection,
+  retention enforcement, and failed-write observability/recovery), none of which exists today —
+  `GD-M37-1`'s narrow strict-audit-write exception for elevation transitions is scoped to that one
+  write path only and does not satisfy, replace, or partially credit any part of M39.
+- No genuine MFA or step-up authentication mechanism exists anywhere in this repository. `GD-M37-1`
+  models step-up-evidence fields as nullable placeholders that must remain null throughout M37; a
+  future, separately governed authentication milestone must provide trustworthy verification before
+  those fields carry real meaning.
+- Department, employee, candidate, resource, and Decision Case scoping — along with risk-tier
+  variation and any self-approval exception for a defined low-risk case — are explicitly deferred to
+  M38, which has not been authorized or started by this decision.
+- The hire-endpoint RBAC inconsistency (`hire.controller.ts:57` vs. `directives/10` RBAC-701)
+  remains unresolved in the running system, unchanged by this decision, and explicitly assigned to
+  M40 — not part of M37's scope.
+
+## Next Actions
+
+1. A separate, explicit implementation instruction is required before any M37 implementation
+   work begins. That instruction must operate within `GD-M37-1`'s authorized scope (Appendix A's
+   allowlist, the normalized data model, the lifecycle, and the validation gate) and must not
+   diverge from it without its own governance amendment.
+2. When that instruction is given, implementation proceeds per `GD-M37-1`'s sequence: normalized
+   `ElevationSession`/`ElevationSessionCapability` schema and migration → `ElevationSessionService`
+   → additive `AuditEventType` values and strict audit-write path → structural non-reachability
+   proof → full validation gate → PROGRESS.md update recording real implementation and validation
+   evidence → commit → push → CI.
+3. This PROGRESS.md entry's Status remains "GOVERNANCE DECISION COMPLETE. IMPLEMENTATION NOT
+   STARTED." until that future, separate entry exists — this entry must never be silently
+   upgraded to imply implementation, validation, CI confirmation, production readiness, or
+   elevated-access activation occurred.
