@@ -367,7 +367,12 @@ model Permission {
   description String?  @db.Text
   createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
 
-  rolePermissions RolePermission[]
+  rolePermissions              RolePermission[]
+  // GD-M37-1 Decision 8: ElevationSessionCapability.permissionId is a real FK
+  // into this table (referential integrity against the live M36 catalog), not
+  // an uncontrolled string. Additive back-relation only — no other field on
+  // this model is touched.
+  elevationSessionCapabilities ElevationSessionCapability[]
 
   @@unique([resource, action])
   @@map("permissions")
@@ -397,6 +402,141 @@ model UserRole {
 
   @@id([userId, roleId])
   @@map("user_roles")
+  @@schema("identity")
+}
+
+// ---------------------------------------------------------------------------
+// Governance authority: governance/GD-M37-1.md (M37 — Elevation Sessions
+// Foundation). Internal-service-only data model for time-bounded,
+// per-capability access elevation requests. No HTTP surface, no runtime
+// authorization effect — RolesGuard remains the sole runtime authorization
+// authority; nothing in this schema is read by any guard, strategy, or
+// controller (GD-M37-1 Decision 17).
+//
+// "Lifecycle-active" vs "authorization-effective" (GD-M37-1 Decision 20): an
+// ACTIVE ElevationSession row is a modeled data fact only. It never grants
+// real access by itself — no reader/consumer of these tables exists in M37.
+//
+// These are the FIRST native Postgres enums in this schema (every other
+// "status"-like field in this file uses String @db.VarChar(50) governed at
+// the service layer). GD-M37-1 Decision 5 explicitly and deliberately
+// departs from that convention for elevation lifecycle/decision states —
+// this is a governance-authorized exception, not an inconsistency to fix.
+// ---------------------------------------------------------------------------
+
+// GD-M37-1 Decision 6 — exact permitted transitions (see ElevationSession
+// below); every other transition must be rejected by the service layer.
+enum ElevationSessionStatus {
+  REQUESTED
+  APPROVED
+  DENIED
+  CANCELLED
+  ACTIVE
+  EXPIRED
+  REVOKED
+  ACTIVATION_FAILED
+
+  @@schema("identity")
+}
+
+// GD-M37-1 Decision 8 — starts PENDING at request-submission time; becomes
+// immutable once the parent ElevationSession leaves REQUESTED.
+enum ElevationCapabilityDecision {
+  PENDING
+  GRANTED
+  DENIED
+
+  @@schema("identity")
+}
+
+// GD-M37-1 Decision 8 — normalized elevation-request data model.
+//
+// tenantId is a bare scalar with NO Prisma relation to Tenant (matching the
+// dominant convention used by Position/Vacancy/Employee/Candidate/Application/
+// Interview/Offer/Skill/Certification — isolation enforced at query level,
+// SEC-003 — rather than User/Department's minority relation pattern), so that
+// no cascade path from Tenant can ever reach this security-relevant table.
+//
+// requestedByUserId / granteeUserId / approvedByUserId / revokedByUserId are
+// plain UUID columns with NO Prisma relation to User at all (GD-M37-1
+// Decision 15), mirroring AuditEvent's own documented precedent above:
+// "tenantId/userId are plain UUID columns with no Prisma relations —
+// cascading deletes must never affect audit records." No implementation may
+// add onDelete: Cascade on any actor-reference column, under any
+// circumstance.
+//
+// Approver-separation (approvedByUserId must differ from both
+// requestedByUserId and granteeUserId) and grantee/requester equality
+// (permitted — self-request is the ordinary case) are enforced at the
+// service layer (GD-M37-1 Decision 9); a defense-in-depth DB CHECK
+// constraint is added in the migration SQL.
+model ElevationSession {
+  id                String                 @id @default(uuid()) @db.Uuid
+  tenantId          String                 @map("tenant_id") @db.Uuid
+  requestedByUserId String                 @map("requested_by_user_id") @db.Uuid
+  granteeUserId     String                 @map("grantee_user_id") @db.Uuid
+  approvedByUserId  String?                @map("approved_by_user_id") @db.Uuid
+  revokedByUserId   String?                @map("revoked_by_user_id") @db.Uuid
+  status            ElevationSessionStatus @default(REQUESTED)
+  purpose           String                 @db.Text
+  requestedAt       DateTime               @default(now()) @map("requested_at") @db.Timestamptz(6)
+  decidedAt         DateTime?              @map("decided_at") @db.Timestamptz(6)
+  activatedAt       DateTime?              @map("activated_at") @db.Timestamptz(6)
+  // Mandatory once ACTIVE, never indefinite (GD-M37-1 Decision 8 / 11).
+  // Nullable here only because it is unset before activation.
+  expiresAt         DateTime?              @map("expires_at") @db.Timestamptz(6)
+  revokedAt         DateTime?              @map("revoked_at") @db.Timestamptz(6)
+  revokedReason     String?                @map("revoked_reason") @db.Text
+  denialReason      String?                @map("denial_reason") @db.Text
+  // Must remain null throughout M37 (GD-M37-1 Decision 16) — no genuine
+  // step-up mechanism exists yet. Never accepted as client input.
+  stepUpAuthMethod  String?                @map("step_up_auth_method") @db.VarChar(50)
+  stepUpVerifiedAt  DateTime?              @map("step_up_verified_at") @db.Timestamptz(6)
+  // Reserved for future correlation; unconsumed by any code in M37.
+  correlationId     String?                @map("correlation_id") @db.Uuid
+  // Unique WITHIN tenantId only (compound constraint below) — never globally
+  // unique (GD-M37-1 Decision 13).
+  idempotencyKey    String                 @map("idempotency_key") @db.VarChar(255)
+  createdAt         DateTime               @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime               @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  capabilities ElevationSessionCapability[]
+
+  @@unique([tenantId, idempotencyKey], map: "idx_elevation_sessions_tenant_idempotency")
+  @@index([tenantId, granteeUserId], map: "idx_elevation_sessions_tenant_grantee")
+  @@index([tenantId, status], map: "idx_elevation_sessions_tenant_status")
+  // GD-M37-1 Decision 13 — "at most one non-terminal session (REQUESTED /
+  // APPROVED / ACTIVE) per (tenantId, granteeUserId)" is a PARTIAL UNIQUE
+  // INDEX with a WHERE clause, which Prisma's @@unique cannot express.
+  // DO NOT add @@unique([tenantId, granteeUserId]) here — it lives in
+  // migration SQL only. See the m37_elevation_sessions migration (follows
+  // the same idiom as Offer's "one active offer per application" partial
+  // index at apps/api/prisma/migrations/20260630100000_m18b_offers).
+  @@map("elevation_sessions")
+  @@schema("identity")
+}
+
+// GD-M37-1 Decision 8 — one row per requested capability item. All rows for
+// a session are created together at request-submission time, all starting
+// PENDING; no row is ever created afterward, and no row's decision may
+// remain PENDING once the parent session leaves REQUESTED. The "granted
+// capability set" is always DERIVED (the distinct Permission set where
+// decision = GRANTED) — never a separate writable field.
+model ElevationSessionCapability {
+  id                 String                      @id @default(uuid()) @db.Uuid
+  elevationSessionId String                      @map("elevation_session_id") @db.Uuid
+  permissionId       String                      @map("permission_id") @db.Uuid
+  decision           ElevationCapabilityDecision @default(PENDING)
+  createdAt          DateTime                    @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt          DateTime                    @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  elevationSession ElevationSession @relation(fields: [elevationSessionId], references: [id])
+  permission       Permission       @relation(fields: [permissionId], references: [id])
+
+  // Each Permission may appear at most once per session (GD-M37-1 Decision 8).
+  @@unique([elevationSessionId, permissionId], map: "idx_elevation_session_capabilities_session_permission")
+  @@index([elevationSessionId], map: "idx_elevation_session_capabilities_session")
+  @@map("elevation_session_capabilities")
   @@schema("identity")
 }
 

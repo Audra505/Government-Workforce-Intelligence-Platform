@@ -183,4 +183,23 @@ export enum AuditEventType {
   INTEGRATION_SYNC_FAILED = 'INTEGRATION_SYNC_FAILED',
   INTEGRATION_CONNECTOR_ADDED = 'INTEGRATION_CONNECTOR_ADDED',
   INTEGRATION_CONNECTOR_UPDATED = 'INTEGRATION_CONNECTOR_UPDATED',
+
+  // -------------------------------------------------------------------------
+  // Elevation Session Events — Milestone 37 (governance/GD-M37-1.md Decision 18)
+  // Written only via ElevationSessionService's strict, transaction-aware audit
+  // write path (GD-M37-1 Decision 14) — a narrow exception to this platform's
+  // otherwise write-only/best-effort AuditService.logEvent() (AUD-1300).
+  // "ACTIVATED" records only the lifecycle-active data fact (APPROVED →
+  // ACTIVE); it never implies real, authorization-effective access was
+  // granted (GD-M37-1 Decision 20).
+  // -------------------------------------------------------------------------
+  ELEVATION_SESSION_REQUESTED         = 'ELEVATION_SESSION_REQUESTED',
+  ELEVATION_SESSION_CAPABILITY_DECIDED = 'ELEVATION_SESSION_CAPABILITY_DECIDED',
+  ELEVATION_SESSION_APPROVED          = 'ELEVATION_SESSION_APPROVED',
+  ELEVATION_SESSION_DENIED            = 'ELEVATION_SESSION_DENIED',
+  ELEVATION_SESSION_CANCELLED         = 'ELEVATION_SESSION_CANCELLED',
+  ELEVATION_SESSION_ACTIVATED         = 'ELEVATION_SESSION_ACTIVATED',
+  ELEVATION_SESSION_ACTIVATION_FAILED = 'ELEVATION_SESSION_ACTIVATION_FAILED',
+  ELEVATION_SESSION_EXPIRED           = 'ELEVATION_SESSION_EXPIRED',
+  ELEVATION_SESSION_REVOKED           = 'ELEVATION_SESSION_REVOKED',
 }

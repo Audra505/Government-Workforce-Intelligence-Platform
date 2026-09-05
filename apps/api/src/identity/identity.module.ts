@@ -6,6 +6,7 @@ import { PassportModule } from '@nestjs/passport';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { CapabilityGuard } from './capability.guard';
+import { ElevationSessionService } from './elevation-session.service';
 import { JWT_ACCESS_EXPIRES_IN_SECONDS } from './identity.constants';
 import { IdentityService } from './identity.service';
 import { JwtAuthGuard } from './jwt-auth.guard';
@@ -30,6 +31,14 @@ import { RolesGuard } from './roles.guard';
 //     dependency injection and future use only. Neither is attached to any
 //     @UseGuards(...) list, global guard, or bootstrap path. RolesGuard
 //     remains the sole runtime authorization authority (GD-M36-1 Decision 7).
+//   M37 (GD-M37-1): ElevationSessionService — internal-service-only. No
+//     controller, route, DTO, or Swagger surface exists for it (GD-M37-1
+//     Decision 4). Registered here (rather than a dedicated module) because
+//     it depends on IdentityModule's own PrismaService/AuditService-adjacent
+//     wiring and shares its exact "registered for DI only, no runtime
+//     authorization effect" posture with PermissionsService/CapabilityGuard
+//     above — a separate module would add indirection without a
+//     corresponding architectural benefit at this milestone's scope.
 
 @Module({
   imports: [
@@ -54,6 +63,7 @@ import { RolesGuard } from './roles.guard';
     RolesGuard,
     PermissionsService,
     CapabilityGuard,
+    ElevationSessionService,
   ],
   exports: [
     IdentityService,
@@ -62,6 +72,7 @@ import { RolesGuard } from './roles.guard';
     RolesGuard,
     PermissionsService,
     CapabilityGuard,
+    ElevationSessionService,
   ],
 })
 export class IdentityModule {}

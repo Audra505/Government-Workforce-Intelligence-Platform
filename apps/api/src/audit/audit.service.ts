@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 
 import { PrismaService } from '../database/prisma.service';
 import { CreateAuditEventDto } from './dto/create-audit-event.dto';
@@ -49,5 +50,29 @@ export class AuditService {
         error instanceof Error ? error.stack : String(error),
       );
     }
+  }
+
+  // GD-M37-1 Decision 14 — narrow, named exception for ElevationSession
+  // lifecycle transitions ONLY. Unlike logEvent() above, this method does
+  // NOT swallow its own errors: it must be called from within the same
+  // $transaction as the state mutation it records (see
+  // ElevationSessionService), so that the transition and its audit event
+  // both succeed or both fail together. This does not change logEvent()'s
+  // signature, behavior, or any of its existing call sites, and does not
+  // satisfy any part of the M39 audit-subsystem milestone (reads, viewer,
+  // filtering, correlation, tamper-detection, and retention remain M39
+  // prerequisites in full).
+  async logEventStrict(tx: Prisma.TransactionClient, dto: CreateAuditEventDto): Promise<void> {
+    await tx.auditEvent.create({
+      data: {
+        tenantId: dto.tenantId,
+        userId: dto.userId,
+        entityType: dto.entityType,
+        entityId: dto.entityId,
+        action: dto.action,
+        result: dto.result,
+        metadata: dto.metadata as object | undefined,
+      },
+    });
   }
 }
