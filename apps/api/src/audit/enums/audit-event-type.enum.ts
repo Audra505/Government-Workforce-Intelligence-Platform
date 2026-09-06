@@ -202,4 +202,29 @@ export enum AuditEventType {
   ELEVATION_SESSION_ACTIVATION_FAILED = 'ELEVATION_SESSION_ACTIVATION_FAILED',
   ELEVATION_SESSION_EXPIRED           = 'ELEVATION_SESSION_EXPIRED',
   ELEVATION_SESSION_REVOKED           = 'ELEVATION_SESSION_REVOKED',
+
+  // -------------------------------------------------------------------------
+  // Decision Case and Approval Foundation Events — Milestone 38
+  // (governance/GD-M38-1.md Decision 17)
+  // Written only via DecisionCaseService/ApprovalService's strict,
+  // transaction-aware audit write path (AuditService.logEventStrict()),
+  // reusing the exact write path GD-M37-1 Decision 14 established — a
+  // narrow exception to this platform's otherwise write-only/best-effort
+  // AuditService.logEvent() (AUD-1300). An "APPROVED" DecisionCase record
+  // is a modeled fact only; it never implies a real business action was
+  // executed or authorized (GD-M38-1 Decision 4).
+  // -------------------------------------------------------------------------
+  DECISION_CASE_CREATED               = 'DECISION_CASE_CREATED',
+  DECISION_CASE_EVIDENCE_ATTACHED     = 'DECISION_CASE_EVIDENCE_ATTACHED',
+  DECISION_CASE_RISK_TRIGGER_CREATED  = 'DECISION_CASE_RISK_TRIGGER_CREATED',
+  APPROVAL_REQUEST_SUBMITTED          = 'APPROVAL_REQUEST_SUBMITTED',
+  APPROVAL_REQUEST_SUPERSEDED         = 'APPROVAL_REQUEST_SUPERSEDED',
+  APPROVAL_DECISION_GRANTED           = 'APPROVAL_DECISION_GRANTED',
+  APPROVAL_DECISION_REJECTED          = 'APPROVAL_DECISION_REJECTED',
+  APPROVAL_DECISION_NEEDS_INFORMATION = 'APPROVAL_DECISION_NEEDS_INFORMATION',
+  DECISION_CASE_NEEDS_INFORMATION     = 'DECISION_CASE_NEEDS_INFORMATION',
+  DECISION_CASE_RESUBMITTED           = 'DECISION_CASE_RESUBMITTED',
+  DECISION_CASE_APPROVED              = 'DECISION_CASE_APPROVED',
+  DECISION_CASE_REJECTED              = 'DECISION_CASE_REJECTED',
+  DECISION_CASE_CANCELLED             = 'DECISION_CASE_CANCELLED',
 }

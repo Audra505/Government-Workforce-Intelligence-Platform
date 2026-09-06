@@ -19,13 +19,16 @@
 // constraint actually rejects a direct write that bypasses the service.
 
 import 'reflect-metadata';
-import { PrismaClient, ElevationSessionStatus } from '@prisma/client';
+import { PrismaClient, ElevationSessionStatus, ElevationSessionScopeType } from '@prisma/client';
 
 import type { PrismaService } from '../src/database/prisma.service';
 import { AuditService } from '../src/audit/audit.service';
 import { AuditEventType } from '../src/audit/enums/audit-event-type.enum';
 import { CAPABILITIES } from '../src/identity/permissions.catalog';
-import { ElevationSessionService } from '../src/identity/elevation-session.service';
+import {
+  ElevationSessionService,
+  isElevationLifecycleCapabilityValidAt,
+} from '../src/identity/elevation-session.service';
 
 const FIXTURE_PASSWORD_HASH = '$2b$12$e2eFixtureHashNotARealBcryptHash1234567';
 const SUFFIX = Date.now();
@@ -46,6 +49,10 @@ describe('ElevationSessionService (real database)', () => {
   let crossTenantUserId: string;
   let usersCreatePermissionId: string;
   let usersReadPermissionId: string;
+  // GD-M38-1 Decision 15 — real fixtures for the M37 scope extension.
+  let scopeDepartmentId: string;
+  let scopeDecisionCaseId: string;
+  let crossTenantDepartmentId: string;
 
   const createdSessionIds: string[] = [];
   const extraUserIds: string[] = [];
@@ -112,6 +119,35 @@ describe('ElevationSessionService (real database)', () => {
       where: { resource: 'users', action: 'read' },
     });
     usersReadPermissionId = usersReadPermission.id;
+
+    // GD-M38-1 Decision 15 — real, tenant-owned scope-target fixtures.
+    const scopeDepartment = await prisma.department.create({
+      data: { tenantId, name: 'E2E Scope Department', code: `E2E-SCOPE-DEPT-${SUFFIX}`, status: 'ACTIVE' },
+    });
+    scopeDepartmentId = scopeDepartment.id;
+
+    const crossTenantDepartment = await prisma.department.create({
+      data: {
+        tenantId: crossTenantId,
+        name: 'E2E Cross-Tenant Department',
+        code: `E2E-CROSS-DEPT-${SUFFIX}`,
+        status: 'ACTIVE',
+      },
+    });
+    crossTenantDepartmentId = crossTenantDepartment.id;
+
+    const scopeDecisionCase = await prisma.decisionCase.create({
+      data: {
+        tenantId,
+        subjectType: 'GENERAL',
+        subjectId: null,
+        initiatedByUserId: requesterId,
+        preparedByUserId: granteeId,
+        purpose: 'E2E: M37 scope-extension fixture',
+        status: 'OPEN',
+      },
+    });
+    scopeDecisionCaseId = scopeDecisionCase.id;
   });
 
   afterAll(async () => {
@@ -130,6 +166,18 @@ describe('ElevationSessionService (real database)', () => {
       await prisma.elevationSession
         .deleteMany({ where: { tenantId: { in: [tenantId, crossTenantId] } } })
         .catch(() => {});
+
+      // GD-M38-1 Decision 15 fixtures — deleted only after every referencing
+      // ElevationSession row is gone (restrictive FK, no ON DELETE clause).
+      if (scopeDecisionCaseId) {
+        await prisma.decisionCase.delete({ where: { id: scopeDecisionCaseId } }).catch(() => {});
+      }
+      if (scopeDepartmentId) {
+        await prisma.department.delete({ where: { id: scopeDepartmentId } }).catch(() => {});
+      }
+      if (crossTenantDepartmentId) {
+        await prisma.department.delete({ where: { id: crossTenantDepartmentId } }).catch(() => {});
+      }
 
       const actorIds = [requesterId, granteeId, approverId, revokerId, crossTenantUserId, ...extraUserIds].filter(
         Boolean,
@@ -480,6 +528,198 @@ describe('ElevationSessionService (real database)', () => {
       expect(actionSet.has(AuditEventType.ELEVATION_SESSION_APPROVED)).toBe(true);
       expect(actionSet.has(AuditEventType.ELEVATION_SESSION_ACTIVATED)).toBe(true);
       expect(actionSet.has(AuditEventType.ELEVATION_SESSION_REVOKED)).toBe(true);
+    });
+  });
+
+  // --------------------------------------------------------------------------
+  // GD-M38-1 Decision 15 — M37 scope extension against the real database.
+  // Proves backward compatibility (existing TENANT-scope behavior unchanged)
+  // and the new dormant DEPARTMENT/DECISION_CASE scope paths, including the
+  // migration-SQL CHECK constraints a direct write cannot bypass.
+  // --------------------------------------------------------------------------
+
+  describe('M37 scope extension (GD-M38-1 Decision 15)', () => {
+    it('BACKWARD COMPATIBILITY: a session created with no scope fields persists as TENANT scope with null targets', async () => {
+      const freshGrantee = await makeFreshGrantee();
+      const created = await service.requestElevation({
+        tenantId,
+        requestedByUserId: requesterId,
+        granteeUserId: freshGrantee,
+        purpose: 'E2E: scope backward compatibility',
+        capabilities: [CAPABILITIES.USERS_READ],
+        idempotencyKey: `e2e-scope-backcompat-${SUFFIX}`,
+      });
+      expect(created.outcome).toBe('SUCCESS');
+      const sessionId = (created as { outcome: 'SUCCESS'; session: { id: string } }).session.id;
+      createdSessionIds.push(sessionId);
+
+      const row = await prisma.elevationSession.findUnique({ where: { id: sessionId } });
+      expect(row!.scopeType).toBe(ElevationSessionScopeType.TENANT);
+      expect(row!.scopeDepartmentId).toBeNull();
+      expect(row!.scopeDecisionCaseId).toBeNull();
+      expect(row!.decisionCaseId).toBeNull();
+    });
+
+    it('SUCCESS: DEPARTMENT-scoped session persists the real, tenant-owned department reference', async () => {
+      const freshGrantee = await makeFreshGrantee();
+      const created = await service.requestElevation({
+        tenantId,
+        requestedByUserId: requesterId,
+        granteeUserId: freshGrantee,
+        purpose: 'E2E: DEPARTMENT scope',
+        capabilities: [CAPABILITIES.USERS_READ],
+        idempotencyKey: `e2e-scope-department-${SUFFIX}`,
+        scopeType: ElevationSessionScopeType.DEPARTMENT,
+        scopeDepartmentId,
+      });
+      expect(created.outcome).toBe('SUCCESS');
+      const sessionId = (created as { outcome: 'SUCCESS'; session: { id: string } }).session.id;
+      createdSessionIds.push(sessionId);
+
+      const row = await prisma.elevationSession.findUnique({ where: { id: sessionId } });
+      expect(row!.scopeType).toBe(ElevationSessionScopeType.DEPARTMENT);
+      expect(row!.scopeDepartmentId).toBe(scopeDepartmentId);
+      expect(row!.scopeDecisionCaseId).toBeNull();
+    });
+
+    it('SCOPE_DEPARTMENT_NOT_FOUND: a cross-tenant department reference is rejected (no cross-tenant scope reference)', async () => {
+      const freshGrantee = await makeFreshGrantee();
+      const result = await service.requestElevation({
+        tenantId,
+        requestedByUserId: requesterId,
+        granteeUserId: freshGrantee,
+        purpose: 'E2E: cross-tenant department rejected',
+        capabilities: [CAPABILITIES.USERS_READ],
+        idempotencyKey: `e2e-scope-cross-department-${SUFFIX}`,
+        scopeType: ElevationSessionScopeType.DEPARTMENT,
+        scopeDepartmentId: crossTenantDepartmentId,
+      });
+      expect(result.outcome).toBe('SCOPE_DEPARTMENT_NOT_FOUND');
+      const row = await prisma.elevationSession.findFirst({
+        where: { tenantId, idempotencyKey: `e2e-scope-cross-department-${SUFFIX}` },
+      });
+      expect(row).toBeNull();
+    });
+
+    it('SUCCESS: DECISION_CASE-scoped session sets decisionCaseId and scopeDecisionCaseId to the same real case', async () => {
+      const freshGrantee = await makeFreshGrantee();
+      const created = await service.requestElevation({
+        tenantId,
+        requestedByUserId: requesterId,
+        granteeUserId: freshGrantee,
+        purpose: 'E2E: DECISION_CASE scope',
+        capabilities: [CAPABILITIES.USERS_READ],
+        idempotencyKey: `e2e-scope-decision-case-${SUFFIX}`,
+        scopeType: ElevationSessionScopeType.DECISION_CASE,
+        decisionCaseId: scopeDecisionCaseId,
+      });
+      expect(created.outcome).toBe('SUCCESS');
+      const sessionId = (created as { outcome: 'SUCCESS'; session: { id: string } }).session.id;
+      createdSessionIds.push(sessionId);
+
+      const row = await prisma.elevationSession.findUnique({ where: { id: sessionId } });
+      expect(row!.scopeType).toBe(ElevationSessionScopeType.DECISION_CASE);
+      expect(row!.scopeDecisionCaseId).toBe(scopeDecisionCaseId);
+      expect(row!.decisionCaseId).toBe(scopeDecisionCaseId);
+      expect(row!.scopeDepartmentId).toBeNull();
+    });
+
+    it('CHECK CONSTRAINT: a direct write with scopeType=DEPARTMENT and scopeDepartmentId=null bypassing the service is rejected by the database', async () => {
+      await expect(
+        prisma.elevationSession.create({
+          data: {
+            tenantId,
+            requestedByUserId: requesterId,
+            granteeUserId: granteeId,
+            purpose: 'Direct write bypassing service-layer scope validation',
+            idempotencyKey: `e2e-scope-check-constraint-${SUFFIX}`,
+            scopeType: ElevationSessionScopeType.DEPARTMENT, // scopeDepartmentId deliberately omitted
+          },
+        }),
+      ).rejects.toBeTruthy(); // chk_elevation_sessions_scope_consistency
+    });
+
+    it('CHECK CONSTRAINT: DECISION_CASE scope whose scopeDecisionCaseId does not match decisionCaseId is rejected by the database', async () => {
+      const otherCase = await prisma.decisionCase.create({
+        data: {
+          tenantId,
+          subjectType: 'GENERAL',
+          subjectId: null,
+          initiatedByUserId: requesterId,
+          preparedByUserId: granteeId,
+          purpose: 'E2E: mismatched correlation case',
+          status: 'OPEN',
+        },
+      });
+      try {
+        await expect(
+          prisma.elevationSession.create({
+            data: {
+              tenantId,
+              requestedByUserId: requesterId,
+              granteeUserId: granteeId,
+              purpose: 'Direct write with mismatched decisionCaseId/scopeDecisionCaseId',
+              idempotencyKey: `e2e-scope-mismatch-${SUFFIX}`,
+              scopeType: ElevationSessionScopeType.DECISION_CASE,
+              decisionCaseId: otherCase.id,
+              scopeDecisionCaseId: scopeDecisionCaseId, // deliberately different from decisionCaseId
+            },
+          }),
+        ).rejects.toBeTruthy(); // chk_elevation_sessions_scope_case_matches_correlation
+      } finally {
+        await prisma.decisionCase.delete({ where: { id: otherCase.id } }).catch(() => {});
+      }
+    });
+
+    it('AUTHORIZATION-INERT: isElevationLifecycleCapabilityValidAt() ignores scope entirely — a DEPARTMENT-scoped, otherwise-valid ACTIVE session is still evaluated identically to a TENANT-scoped one', async () => {
+      const freshGrantee = await makeFreshGrantee();
+      const created = await service.requestElevation({
+        tenantId,
+        requestedByUserId: requesterId,
+        granteeUserId: freshGrantee,
+        purpose: 'E2E: scope is authorization-inert',
+        capabilities: [CAPABILITIES.USERS_READ],
+        idempotencyKey: `e2e-scope-inert-${SUFFIX}`,
+        scopeType: ElevationSessionScopeType.DEPARTMENT,
+        scopeDepartmentId,
+      });
+      expect(created.outcome).toBe('SUCCESS');
+      const sessionId = (created as { outcome: 'SUCCESS'; session: { id: string } }).session.id;
+      createdSessionIds.push(sessionId);
+
+      const approved = await service.decideElevationCapabilities({
+        sessionId,
+        tenantId,
+        approverUserId: approverId,
+        decisions: [{ permissionId: usersReadPermissionId, decision: 'GRANTED' }],
+      });
+      expect(approved.outcome).toBe('SUCCESS_APPROVED');
+
+      const activated = await service.markElevationSessionLifecycleActive({
+        sessionId,
+        tenantId,
+        expiresAt: new Date(Date.now() + 10 * 60 * 1000),
+      });
+      expect(activated.outcome).toBe('SUCCESS');
+
+      const row = await prisma.elevationSession.findUniqueOrThrow({ where: { id: sessionId } });
+      const capability = await prisma.elevationSessionCapability.findFirstOrThrow({
+        where: { elevationSessionId: sessionId, permissionId: usersReadPermissionId },
+      });
+
+      const validity = isElevationLifecycleCapabilityValidAt({
+        session: {
+          status: row.status,
+          tenantId: row.tenantId,
+          activatedAt: row.activatedAt,
+          expiresAt: row.expiresAt,
+          revokedAt: row.revokedAt,
+        },
+        capabilityDecision: capability.decision,
+        requestingTenantId: tenantId,
+        now: new Date(),
+      });
+      expect(validity).toBe(true); // identical outcome to a TENANT-scoped session — scope never consulted
     });
   });
 });

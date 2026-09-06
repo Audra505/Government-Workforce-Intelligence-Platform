@@ -12,6 +12,7 @@ import { OrganizationModule } from './organization/organization.module';
 import { WorkforceModule } from './workforce/workforce.module';
 import { RecruitingModule } from './recruiting/recruiting.module';
 import { IntelligenceModule } from './intelligence/intelligence.module';
+import { DecisionsModule } from './decisions/decisions.module';
 
 // Reference: execution/02_phase_1_foundation.md — Deliverable 3 (Backend Foundation)
 // Reference: spec/10_backend_architecture.md — Module Organization
@@ -25,6 +26,9 @@ import { IntelligenceModule } from './intelligence/intelligence.module';
 //   Milestone 8: WorkforceModule (Position Management — FR-100)
 //   Milestone 16+: RecruitingModule (Phase 3 Recruiting Domain — FR-300+)
 //   M30+: IntelligenceModule (Phase 4 Intelligence — FR-401+; GD-M30-1)
+//   M38: DecisionsModule (Decision Case and Approval Foundation; GD-M38-1).
+//     Internal-service-only — declares no controllers, so registering it
+//     here adds zero new HTTP surface (GD-M38-1 Decision 18).
 
 @Module({
   imports: [
@@ -42,6 +46,7 @@ import { IntelligenceModule } from './intelligence/intelligence.module';
     WorkforceModule,
     RecruitingModule,
     IntelligenceModule,
+    DecisionsModule,
   ],
   controllers: [],
   providers: [],

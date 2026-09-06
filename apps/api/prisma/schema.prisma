@@ -21,7 +21,7 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
-  schemas  = ["identity", "organization", "audit", "workforce", "recruiting", "intelligence"]
+  schemas  = ["identity", "organization", "audit", "workforce", "recruiting", "intelligence", "decisions"]
 }
 
 // ---------------------------------------------------------------------------
@@ -69,9 +69,13 @@ model Department {
   updatedAt   DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
   deletedAt   DateTime? @map("deleted_at") @db.Timestamptz(6)
 
-  tenant    Tenant     @relation(fields: [tenantId], references: [id])
-  positions Position[]
-  employees Employee[]
+  tenant                  Tenant             @relation(fields: [tenantId], references: [id])
+  positions               Position[]
+  employees               Employee[]
+  // GD-M38-1 Decision 15: ElevationSession.scopeDepartmentId is a real,
+  // restrictive FK into this table for DEPARTMENT-scoped elevation.
+  // Additive back-relation only — no other field on this model is touched.
+  scopedElevationSessions ElevationSession[]
 
   @@unique([tenantId, code], map: "idx_departments_tenant_code")
   @@index([tenantId], map: "idx_departments_tenant")
@@ -373,6 +377,10 @@ model Permission {
   // an uncontrolled string. Additive back-relation only — no other field on
   // this model is touched.
   elevationSessionCapabilities ElevationSessionCapability[]
+  // GD-M38-1 Decision 11: ApprovalRequirement.requiredCapabilityId is a real
+  // FK into this table for ACTION_AUTHORITY requirements (referential
+  // integrity against the live M36 catalog). Additive back-relation only.
+  approvalRequirements         ApprovalRequirement[]
 
   @@unique([resource, action])
   @@map("permissions")
@@ -449,6 +457,17 @@ enum ElevationCapabilityDecision {
   @@schema("identity")
 }
 
+// GD-M38-1 Decision 15 — M37 scope-extension enum. TENANT is the default,
+// backward-compatible value for every existing (and newly created,
+// unless explicitly scoped) ElevationSession row.
+enum ElevationSessionScopeType {
+  TENANT
+  DEPARTMENT
+  DECISION_CASE
+
+  @@schema("identity")
+}
+
 // GD-M37-1 Decision 8 — normalized elevation-request data model.
 //
 // tenantId is a bare scalar with NO Prisma relation to Tenant (matching the
@@ -500,11 +519,31 @@ model ElevationSession {
   createdAt         DateTime               @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt         DateTime               @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  capabilities ElevationSessionCapability[]
+  // ---------------------------------------------------------------------
+  // GD-M38-1 Decision 15 — additive M37 scope extension. decisionCaseId is
+  // a plain, no-FK correlation reference (mirrors every other actor/
+  // reference column above — never a cascading-delete-capable FK to a
+  // security-history-adjacent entity). scopeDepartmentId/scopeDecisionCaseId
+  // are real, restrictive (no onDelete clause) FKs, following the exact
+  // Position.department/Employee.department cross-schema-relation
+  // precedent. These fields remain entirely authorization-inert: no
+  // runtime path reads them, and isElevationLifecycleCapabilityValidAt()
+  // is unmodified by their addition.
+  // ---------------------------------------------------------------------
+  decisionCaseId      String?                   @map("decision_case_id") @db.Uuid
+  scopeType           ElevationSessionScopeType @default(TENANT) @map("scope_type")
+  scopeDepartmentId   String?                   @map("scope_department_id") @db.Uuid
+  scopeDecisionCaseId String?                   @map("scope_decision_case_id") @db.Uuid
+
+  capabilities      ElevationSessionCapability[]
+  scopeDepartment   Department?                  @relation(fields: [scopeDepartmentId], references: [id])
+  scopeDecisionCase DecisionCase?                @relation(fields: [scopeDecisionCaseId], references: [id])
 
   @@unique([tenantId, idempotencyKey], map: "idx_elevation_sessions_tenant_idempotency")
   @@index([tenantId, granteeUserId], map: "idx_elevation_sessions_tenant_grantee")
   @@index([tenantId, status], map: "idx_elevation_sessions_tenant_status")
+  @@index([scopeDepartmentId], map: "idx_elevation_sessions_scope_department")
+  @@index([scopeDecisionCaseId], map: "idx_elevation_sessions_scope_decision_case")
   // GD-M37-1 Decision 13 — "at most one non-terminal session (REQUESTED /
   // APPROVED / ACTIVE) per (tenantId, granteeUserId)" is a PARTIAL UNIQUE
   // INDEX with a WHERE clause, which Prisma's @@unique cannot express.
@@ -512,6 +551,13 @@ model ElevationSession {
   // migration SQL only. See the m37_elevation_sessions migration (follows
   // the same idiom as Offer's "one active offer per application" partial
   // index at apps/api/prisma/migrations/20260630100000_m18b_offers).
+  // GD-M38-1 Decision 15 — the scope-consistency CHECK constraint
+  // (scopeType vs. scopeDepartmentId/scopeDecisionCaseId nullability, and
+  // the DECISION_CASE-scope-must-match-decisionCaseId rule) also lives in
+  // migration SQL only — Prisma has no cross-column conditional CHECK
+  // syntax. DO NOT assume these invariants are enforced by this schema
+  // file alone; see the m38 migration and the service-layer validation in
+  // ElevationSessionService.
   @@map("elevation_sessions")
   @@schema("identity")
 }
@@ -538,6 +584,398 @@ model ElevationSessionCapability {
   @@index([elevationSessionId], map: "idx_elevation_session_capabilities_session")
   @@map("elevation_session_capabilities")
   @@schema("identity")
+}
+
+// ---------------------------------------------------------------------------
+// Schema: decisions
+// Governance authority: governance/GD-M38-1.md (M38 — Decision Case and
+// Approval Foundation). Internal-service-only, dormant, deterministic
+// foundation for tiered human approval of consequential decisions. No HTTP
+// surface, no runtime authorization or business-execution effect — an
+// APPROVED DecisionCase has zero effect on any existing endpoint or
+// business action (GD-M38-1 Decision 4). RolesGuard remains the sole
+// runtime authorization authority; nothing in this schema is read by any
+// guard, strategy, or controller.
+//
+// ApprovalRequirement and ApprovalDecision are deliberately SEPARATE
+// entities (GD-M38-1 Decision 9), not one mutable row: a requirement is an
+// immutable approval slot created when its parent ApprovalRequest is
+// created; a decision is created only when a human acts, is append-only,
+// and is immutable from creation. This is a deliberate departure from
+// ElevationSessionCapability's single-mutable-row idiom (M38's decisions
+// carry more audit-significant detail per event and must never be edited
+// in place, even before a terminal state is reached).
+//
+// PolicyEvaluation, ActionExecution, VerificationResult, AIRecommendation,
+// and AgentRun are explicitly deferred (GD-M38-1 Decision 5) — no table,
+// no placeholder, no dangling reference column for any of the five exists
+// anywhere in this schema.
+// ---------------------------------------------------------------------------
+
+// GD-M38-1 Decision 7 — exact permitted states; every other transition is
+// rejected by the service layer. DETECTED/AI_PREPARED/POLICY_CHECKED/
+// EXECUTED/VERIFIED/CLOSED are deliberately NOT implemented (no writer
+// exists in M38 for any of them).
+enum DecisionCaseStatus {
+  OPEN
+  AWAITING_APPROVAL
+  NEEDS_INFORMATION
+  APPROVED
+  REJECTED
+  CANCELLED
+
+  @@schema("decisions")
+}
+
+// GD-M38-1 Decision 8 — one ApprovalRequest represents one complete,
+// immutable approval plan for one case version.
+enum ApprovalRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  NEEDS_INFORMATION
+  SUPERSEDED
+  CANCELLED
+
+  @@schema("decisions")
+}
+
+// GD-M38-1 Decision 9 — allowed ApprovalDecision outcomes. Deliberately
+// has NO PENDING value: a decision row is created only when a human acts.
+enum ApprovalDecisionValue {
+  GRANTED
+  REJECTED
+  NEEDS_INFORMATION
+
+  @@schema("decisions")
+}
+
+// GD-M38-1 Decision 11 — the three approval tiers.
+enum ApprovalTier {
+  TIER_1
+  TIER_2
+  TIER_3
+
+  @@schema("decisions")
+}
+
+// GD-M38-1 Decision 13 — stable authority categories. Legacy role names are
+// never embedded directly into the approval engine's schema; the temporary,
+// dormant role-to-category qualification mapping lives in
+// apps/api/src/decisions/authority-category-mapping.ts (service layer
+// only), never here.
+enum AuthorityCategory {
+  ACTION_AUTHORITY
+  DEPARTMENT_OR_HIRING_AUTHORITY
+  HR_AUTHORITY
+  INDEPENDENT_OVERSIGHT_REVIEWER
+
+  @@schema("decisions")
+}
+
+// GD-M38-1 Decision 6 — governed subject types only, never a free-form
+// string. Reused identically for EvidenceItem.sourceType (Decision 14).
+// GENERAL requires a null subject/source id; every other value requires a
+// non-null one — enforced by the internal subject resolver
+// (decision-case-subject-resolver.ts), never by a database FK (a true
+// polymorphic FK spanning multiple, differently-schema'd tables is
+// unavailable in this codebase's multiSchema Prisma setup).
+enum DecisionCaseSubjectType {
+  OFFER
+  APPLICATION
+  EMPLOYEE
+  ELEVATION_SESSION
+  GENERAL
+
+  @@schema("decisions")
+}
+
+// GD-M38-1 Decision 12 — governed elevated-risk trigger types, directly
+// enumerating GD-M35-1 Decision 13's elevated-risk condition list.
+// OTHER_EXPLICITLY_CLASSIFIED exists only for a future, explicitly governed
+// addition — never a silent catch-all without an accompanying reason.
+enum DecisionCaseRiskTriggerType {
+  COMPLIANCE_OR_POLICY_EXCEPTION
+  FAILED_CONTROL_OVERRIDE
+  PRIVILEGED_OR_EMERGENCY_ACCESS
+  AUTHORIZATION_POLICY_OR_SECURITY_CONFIGURATION_CHANGE
+  SELF_PREPARED_WORKFORCE_PLAN_OR_FORECAST_ACTIVATION
+  SENSITIVE_BULK_ACTION
+  OTHER_EXPLICITLY_CLASSIFIED
+
+  @@schema("decisions")
+}
+
+// GD-M38-1 Decision 14 — governed evidence types.
+enum EvidenceType {
+  SOURCE_RECORD_REFERENCE
+  HUMAN_NOTE
+  SYSTEM_DERIVED_SUMMARY
+
+  @@schema("decisions")
+}
+
+// GD-M38-1 Decision 14 — governed evidence sensitivity classifications.
+enum EvidenceSensitivityClassification {
+  USER_ACCOUNT_IDENTITY
+  EMPLOYEE_CANDIDATE_PII
+  AGGREGATE_EXECUTIVE
+  COMPLIANCE_SENSITIVE
+  PRIVILEGED_ACCESS_EVIDENCE
+
+  @@schema("decisions")
+}
+
+// GD-M38-1 Decision 14 — exactly two provenance values; never AI. Reused
+// identically for DecisionCaseRiskTrigger.sourceOrProvenance (Decision 12
+// explicitly reuses "Decision 14's provenance categories").
+// DETERMINISTIC_SYSTEM describes exactly what M38 itself, or a future
+// deterministic service (e.g. M42's Policy Guard), produces — it is never
+// relabeled AI regardless of how sophisticated the deterministic logic
+// becomes (GD-M38-1 Decision 20).
+enum ProvenanceType {
+  HUMAN
+  DETERMINISTIC_SYSTEM
+
+  @@schema("decisions")
+}
+
+// GD-M38-1 Decision 6 / Appendix A — the case itself. tenantId is a bare
+// scalar (dominant convention). initiatedByUserId/preparedByUserId are
+// plain UUID columns with NO Prisma relation to User (actor-reference
+// idiom, GD-M37-1 Decision 15 precedent) — these are security-relevant
+// history rows whose integrity must never depend on User deletion
+// behavior. subjectId is likewise a plain UUID with no FK — see the enum
+// comment above. The GENERAL-requires-null / other-requires-non-null
+// invariant is enforced by a CHECK constraint in migration SQL only (no
+// Prisma cross-column conditional CHECK syntax exists) AND by the
+// service-layer subject resolver — never by one alone.
+model DecisionCase {
+  id                String                  @id @default(uuid()) @db.Uuid
+  tenantId          String                  @map("tenant_id") @db.Uuid
+  subjectType       DecisionCaseSubjectType @map("subject_type")
+  subjectId         String?                 @map("subject_id") @db.Uuid
+  initiatedByUserId String                  @map("initiated_by_user_id") @db.Uuid
+  preparedByUserId  String                  @map("prepared_by_user_id") @db.Uuid
+  purpose           String                  @db.Text
+  status            DecisionCaseStatus      @default(OPEN)
+  // Optional, unique WITHIN tenantId only (compound constraint below) —
+  // never globally unique (GD-M38-1 Decision 16, mirroring GD-M37-1
+  // Decision 13's identical idiom for ElevationSession.idempotencyKey).
+  idempotencyKey    String?                 @map("idempotency_key") @db.VarChar(255)
+  // Optimistic concurrency (GD-M38-1 Decision 16) — every mutating service
+  // call must match the version it read, or fail with a specific
+  // stale-version outcome; never a silent overwrite.
+  version           Int                     @default(1)
+  createdAt         DateTime                @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime                @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  evidenceItems           EvidenceItem[]
+  riskTriggers            DecisionCaseRiskTrigger[]
+  approvalRequests        ApprovalRequest[]
+  scopedElevationSessions ElevationSession[]
+
+  @@unique([tenantId, idempotencyKey], map: "idx_decision_cases_tenant_idempotency")
+  @@index([tenantId, status], map: "idx_decision_cases_tenant_status")
+  @@index([tenantId, subjectType, subjectId], map: "idx_decision_cases_tenant_subject")
+  // GD-M38-1 Decision 6 — CHECK constraint (subjectType = 'GENERAL' implies
+  // subject_id IS NULL; every other subjectType implies subject_id IS NOT
+  // NULL) lives in migration SQL only. See the m38 migration.
+  @@map("decision_cases")
+  @@schema("decisions")
+}
+
+// GD-M38-1 Decision 14 — append-only, case-scoped evidence reference. Never
+// a copy of the full source record; never an uncontrolled JSON blob.
+// sourceType/sourceId reuse DecisionCaseSubjectType's governed-enum-plus-
+// UUID, no-FK, service-resolved pattern. producedByUserId is a plain UUID
+// with no FK, populated only when provenanceType = HUMAN — a
+// DETERMINISTIC_SYSTEM-provenance item's absent producedByUserId must
+// never be reused as a human approver (GD-M38-1 Decision 14/17).
+model EvidenceItem {
+  id                        String                            @id @default(uuid()) @db.Uuid
+  tenantId                  String                            @map("tenant_id") @db.Uuid
+  decisionCaseId            String                            @map("decision_case_id") @db.Uuid
+  evidenceType              EvidenceType                      @map("evidence_type")
+  sensitivityClassification EvidenceSensitivityClassification @map("sensitivity_classification")
+  sourceType                DecisionCaseSubjectType           @map("source_type")
+  sourceId                  String?                           @map("source_id") @db.Uuid
+  provenanceType            ProvenanceType                    @map("provenance_type")
+  producedByUserId          String?                           @map("produced_by_user_id") @db.Uuid
+  capturedAt                DateTime                          @map("captured_at") @db.Timestamptz(6)
+  // PII-minimized/redacted text only — never a copy of the full source
+  // record (GD-M38-1 Decision 14).
+  summary                   String?                           @db.Text
+  // Optional integrity/version metadata where the source supports it (e.g.
+  // a source record's updatedAt at capture time) — free text, not a raw
+  // payload copy.
+  integrityMetadata         String?                           @map("integrity_metadata") @db.Text
+  createdAt                 DateTime                          @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  decisionCase       DecisionCase              @relation(fields: [decisionCaseId], references: [id])
+  approvalRequestUse ApprovalRequestEvidence[]
+
+  @@index([tenantId, decisionCaseId], map: "idx_evidence_items_tenant_case")
+  // GD-M38-1 Decision 6 (reused) — CHECK constraint (sourceType = 'GENERAL'
+  // implies source_id IS NULL; every other sourceType implies source_id IS
+  // NOT NULL) lives in migration SQL only.
+  @@map("evidence_items")
+  @@schema("decisions")
+}
+
+// GD-M38-1 Decision 12 — normalized, append-only elevated-risk trigger
+// records. Never a single requiresTier3 boolean. Supplied only through the
+// internal deterministic service, for modeling and testing — M38 performs
+// no automatic detection (M42 owns that).
+model DecisionCaseRiskTrigger {
+  id                     String                      @id @default(uuid()) @db.Uuid
+  tenantId               String                      @map("tenant_id") @db.Uuid
+  decisionCaseId         String                      @map("decision_case_id") @db.Uuid
+  triggerType            DecisionCaseRiskTriggerType @map("trigger_type")
+  reason                 String                      @db.Text
+  sourceOrProvenance     ProvenanceType              @map("source_or_provenance")
+  // Nullable, no FK (actor-reference idiom); null only when
+  // sourceOrProvenance = DETERMINISTIC_SYSTEM and no human actor applies.
+  createdByUserId        String?                     @map("created_by_user_id") @db.Uuid
+  createdAt              DateTime                    @default(now()) @map("created_at") @db.Timestamptz(6)
+  // Which ApprovalRequest version this trigger applied to (or preceded, if
+  // it caused a new version) — a plain integer snapshot, not a live FK, so
+  // this row's historical meaning survives request supersession.
+  caseVersion            Int                         @map("case_version")
+  includedInApprovalPlan Boolean                     @default(false) @map("included_in_approval_plan")
+
+  decisionCase DecisionCase @relation(fields: [decisionCaseId], references: [id])
+
+  @@index([tenantId, decisionCaseId], map: "idx_decision_case_risk_triggers_tenant_case")
+  @@map("decision_case_risk_triggers")
+  @@schema("decisions")
+}
+
+// GD-M38-1 Decision 8 — one complete, immutable approval plan per case
+// version. Only one PENDING request may exist per case at any time
+// (partial unique index, migration SQL only — see the m38 migration,
+// reusing the Offer/ElevationSession idiom a third time). The version
+// chain (version + supersedesRequestId) makes supersession and
+// resubmission explicit and auditable.
+model ApprovalRequest {
+  id                  String                @id @default(uuid()) @db.Uuid
+  tenantId            String                @map("tenant_id") @db.Uuid
+  decisionCaseId      String                @map("decision_case_id") @db.Uuid
+  version             Int
+  supersedesRequestId String?               @map("supersedes_request_id") @db.Uuid
+  status              ApprovalRequestStatus @default(PENDING)
+  createdAt           DateTime              @default(now()) @map("created_at") @db.Timestamptz(6)
+  decidedAt           DateTime?             @map("decided_at") @db.Timestamptz(6)
+
+  decisionCase DecisionCase              @relation(fields: [decisionCaseId], references: [id])
+  supersedes   ApprovalRequest?          @relation("ApprovalRequestSupersession", fields: [supersedesRequestId], references: [id])
+  supersededBy ApprovalRequest[]         @relation("ApprovalRequestSupersession")
+  requirements ApprovalRequirement[]
+  evidenceUse  ApprovalRequestEvidence[]
+  decisions    ApprovalDecision[]
+
+  // Monotonically increasing version per case (GD-M38-1 Decision 16).
+  @@unique([decisionCaseId, version], map: "idx_approval_requests_case_version")
+  @@index([tenantId, decisionCaseId], map: "idx_approval_requests_tenant_case")
+  // GD-M38-1 Decision 16 — "at most one active PENDING ApprovalRequest per
+  // DecisionCase" is a PARTIAL UNIQUE INDEX with a WHERE clause, which
+  // Prisma's @@unique cannot express. DO NOT add
+  // @@unique([tenantId, decisionCaseId]) here — it lives in migration SQL
+  // only. See the m38 migration.
+  @@map("approval_requests")
+  @@schema("decisions")
+}
+
+// GD-M38-1 Decision 9 — an immutable approval slot, created in full when
+// its parent ApprovalRequest is created (never created afterward). May
+// remain unanswered; is never itself a decision. Rows are never updated
+// after creation.
+model ApprovalRequirement {
+  id                        String            @id @default(uuid()) @db.Uuid
+  approvalRequestId         String            @map("approval_request_id") @db.Uuid
+  requiredAuthorityCategory AuthorityCategory @map("required_authority_category")
+  // Populated only for ACTION_AUTHORITY requirements (Decision 11). Real
+  // FK into the live M36 Permission catalog — never an uncontrolled string.
+  requiredCapabilityId      String?           @map("required_capability_id") @db.Uuid
+  // Nullable ordering hint, unconsumed by any M38 ordering logic beyond
+  // display/audit purposes (Decision 9 — reserved for a future tier design
+  // that requires sequential, not merely parallel, satisfaction).
+  sequenceOrder             Int?              @map("sequence_order")
+  tier                      ApprovalTier
+  createdAt                 DateTime          @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  approvalRequest    ApprovalRequest   @relation(fields: [approvalRequestId], references: [id])
+  requiredCapability Permission?       @relation(fields: [requiredCapabilityId], references: [id])
+  decision           ApprovalDecision?
+
+  // A request cannot declare the same authority category twice
+  // (GD-M38-1 Decision 16).
+  @@unique([approvalRequestId, requiredAuthorityCategory], map: "idx_approval_requirements_request_category")
+  @@index([approvalRequestId], map: "idx_approval_requirements_request")
+  @@map("approval_requirements")
+  @@schema("decisions")
+}
+
+// GD-M38-1 Decision 9 — created only when a human acts. Append-only and
+// immutable from the moment it is created; no service method may update an
+// existing decision row, under any circumstance. Has NO PENDING value.
+// approvalRequestId is a deliberate, documented denormalization of
+// approvalRequirement.approvalRequestId — required so that the
+// one-human-cannot-satisfy-multiple-requirements-on-one-request constraint
+// (Decision 16) can be expressed as a single flat unique index; the
+// service layer must always set it equal to the parent requirement's own
+// approvalRequestId.
+model ApprovalDecision {
+  id                    String                @id @default(uuid()) @db.Uuid
+  approvalRequirementId String                @unique @map("approval_requirement_id") @db.Uuid
+  approvalRequestId     String                @map("approval_request_id") @db.Uuid
+  // The deciding human — plain UUID, no FK (actor-reference idiom,
+  // GD-M37-1 Decision 15 precedent). Never a service-actor sentinel
+  // (GD-M38-1 Decision 10/17) — validated at the service layer via the
+  // same assertActorInTenant-style check GD-M37-1 established.
+  decidedByUserId       String                @map("decided_by_user_id") @db.Uuid
+  decision              ApprovalDecisionValue
+  reason                String                @db.Text
+  // Immutable text capture of what qualified this actor at decision time
+  // (e.g. the qualifying role name and/or capability key) — so historical
+  // meaning survives later role or profile migration (GD-M38-1 Decision 13).
+  qualificationSnapshot String                @map("qualification_snapshot") @db.Text
+  // A plain integer snapshot of the parent ApprovalRequest's own version at
+  // decision time — the exact ApprovalRequestEvidence freeze considered
+  // (GD-M38-1 Decision 14), not a live join.
+  evidenceSetVersion    Int                   @map("evidence_set_version")
+  decidedAt             DateTime              @default(now()) @map("decided_at") @db.Timestamptz(6)
+
+  approvalRequirement ApprovalRequirement @relation(fields: [approvalRequirementId], references: [id])
+  approvalRequest     ApprovalRequest     @relation(fields: [approvalRequestId], references: [id])
+
+  // One person cannot satisfy multiple requirements on the same request
+  // (GD-M38-1 Decision 16) — expressible as a plain Prisma @@unique because
+  // decidedByUserId is mandatory (never null) on this model, unlike M37's
+  // optional revokedByUserId-style columns.
+  @@unique([approvalRequestId, decidedByUserId], map: "idx_approval_decisions_request_decider")
+  @@index([approvalRequestId], map: "idx_approval_decisions_request")
+  @@map("approval_decisions")
+  @@schema("decisions")
+}
+
+// GD-M38-1 Decision 14 — a normalized join that FREEZES the exact evidence
+// set presented for one specific ApprovalRequest version. Follows the
+// existing RolePermission/UserRole composite-primary-key join-table idiom
+// (no synthetic id) rather than ElevationSessionCapability's synthetic-id
+// child-row idiom, since this is a pure many-to-many association, not an
+// entity with its own decision lifecycle.
+model ApprovalRequestEvidence {
+  approvalRequestId String   @map("approval_request_id") @db.Uuid
+  evidenceItemId    String   @map("evidence_item_id") @db.Uuid
+  includedAt        DateTime @default(now()) @map("included_at") @db.Timestamptz(6)
+
+  approvalRequest ApprovalRequest @relation(fields: [approvalRequestId], references: [id])
+  evidenceItem    EvidenceItem    @relation(fields: [evidenceItemId], references: [id])
+
+  @@id([approvalRequestId, evidenceItemId])
+  @@map("approval_request_evidence")
+  @@schema("decisions")
 }
 
 // ---------------------------------------------------------------------------

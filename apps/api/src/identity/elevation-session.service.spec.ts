@@ -8,7 +8,12 @@
 /* eslint-disable */
 
 import { Test, type TestingModule } from '@nestjs/testing';
-import { Prisma, ElevationSessionStatus, ElevationCapabilityDecision } from '@prisma/client';
+import {
+  Prisma,
+  ElevationSessionStatus,
+  ElevationCapabilityDecision,
+  ElevationSessionScopeType,
+} from '@prisma/client';
 
 import { PrismaService } from '../database/prisma.service';
 import { AuditService } from '../audit/audit.service';
@@ -73,11 +78,20 @@ function makeSessionRow(overrides: Record<string, unknown> = {}) {
     stepUpVerifiedAt: null,
     idempotencyKey: 'idem-key-1',
     capabilities: [makeCapabilityRow()],
+    // GD-M38-1 Decision 15 — every pre-M38 (and default) row is TENANT-scoped
+    // with both scope target fields null.
+    decisionCaseId: null,
+    scopeType: ElevationSessionScopeType.TENANT,
+    scopeDepartmentId: null,
+    scopeDecisionCaseId: null,
     createdAt: NOW,
     updatedAt: NOW,
     ...overrides,
   };
 }
+
+const DEPARTMENT_ID = '33333333-3333-3333-3333-333333333333';
+const DECISION_CASE_ID = '44444444-4444-4444-4444-444444444444';
 
 describe('ElevationSessionService', () => {
   let service: ElevationSessionService;
@@ -88,6 +102,8 @@ describe('ElevationSessionService', () => {
   let mockTx: {
     user: { findFirst: jest.Mock };
     permission: { findMany: jest.Mock };
+    department: { findFirst: jest.Mock };
+    decisionCase: { findFirst: jest.Mock };
     elevationSession: {
       create: jest.Mock;
       findFirst: jest.Mock;
@@ -109,6 +125,12 @@ describe('ElevationSessionService', () => {
       },
       permission: {
         findMany: jest.fn().mockResolvedValue([{ id: PERMISSION_ID_1, resource: 'users', action: 'create' }]),
+      },
+      department: {
+        findFirst: jest.fn().mockResolvedValue({ id: DEPARTMENT_ID }),
+      },
+      decisionCase: {
+        findFirst: jest.fn().mockResolvedValue({ id: DECISION_CASE_ID }),
       },
       elevationSession: {
         create: jest.fn().mockResolvedValue(makeSessionRow()),
@@ -289,6 +311,137 @@ describe('ElevationSessionService', () => {
         data: { capabilities: { create: unknown[] } };
       };
       expect(createCall.data.capabilities.create).toHaveLength(1);
+    });
+
+    // ------------------------------------------------------------------
+    // GD-M38-1 Decision 15 — M37 scope extension. Backward compatibility
+    // first, then the new dormant DEPARTMENT/DECISION_CASE scope paths.
+    // ------------------------------------------------------------------
+
+    it('BACKWARD COMPATIBILITY: omitting all scope fields defaults to TENANT scope with null targets', async () => {
+      const result = await service.requestElevation(baseInput);
+      expect(result.outcome).toBe('SUCCESS');
+      const createCall = mockTx.elevationSession.create.mock.calls[0]![0] as {
+        data: { scopeType: string; scopeDepartmentId: unknown; scopeDecisionCaseId: unknown; decisionCaseId: unknown };
+      };
+      expect(createCall.data.scopeType).toBe(ElevationSessionScopeType.TENANT);
+      expect(createCall.data.scopeDepartmentId).toBeNull();
+      expect(createCall.data.scopeDecisionCaseId).toBeNull();
+      expect(createCall.data.decisionCaseId).toBeNull();
+      expect(mockTx.department.findFirst).not.toHaveBeenCalled();
+      expect(mockTx.decisionCase.findFirst).not.toHaveBeenCalled();
+    });
+
+    it('BACKWARD COMPATIBILITY: existing callers passing no scope fields never trigger scope-target lookups', async () => {
+      await service.requestElevation(baseInput);
+      expect(mockTx.department.findFirst).not.toHaveBeenCalled();
+      expect(mockTx.decisionCase.findFirst).not.toHaveBeenCalled();
+    });
+
+    it('INVALID_SCOPE: explicit TENANT scope with a scopeDepartmentId set is rejected before any transaction opens', async () => {
+      const result = await service.requestElevation({
+        ...baseInput,
+        scopeType: ElevationSessionScopeType.TENANT,
+        scopeDepartmentId: DEPARTMENT_ID,
+      });
+      expect(result.outcome).toBe('INVALID_SCOPE');
+      expect(mockPrisma.$transaction).not.toHaveBeenCalled();
+    });
+
+    it('INVALID_SCOPE: explicit TENANT scope with a decisionCaseId set is rejected', async () => {
+      const result = await service.requestElevation({
+        ...baseInput,
+        scopeType: ElevationSessionScopeType.TENANT,
+        decisionCaseId: DECISION_CASE_ID,
+      });
+      expect(result.outcome).toBe('INVALID_SCOPE');
+    });
+
+    it('INVALID_SCOPE: DEPARTMENT scope without scopeDepartmentId is rejected', async () => {
+      const result = await service.requestElevation({
+        ...baseInput,
+        scopeType: ElevationSessionScopeType.DEPARTMENT,
+      });
+      expect(result.outcome).toBe('INVALID_SCOPE');
+      expect(mockPrisma.$transaction).not.toHaveBeenCalled();
+    });
+
+    it('INVALID_SCOPE: DECISION_CASE scope without decisionCaseId is rejected', async () => {
+      const result = await service.requestElevation({
+        ...baseInput,
+        scopeType: ElevationSessionScopeType.DECISION_CASE,
+      });
+      expect(result.outcome).toBe('INVALID_SCOPE');
+      expect(mockPrisma.$transaction).not.toHaveBeenCalled();
+    });
+
+    it('SUCCESS: DEPARTMENT scope with an existing, tenant-owned department', async () => {
+      mockTx.elevationSession.create.mockResolvedValue(
+        makeSessionRow({ scopeType: ElevationSessionScopeType.DEPARTMENT, scopeDepartmentId: DEPARTMENT_ID }),
+      );
+      const result = await service.requestElevation({
+        ...baseInput,
+        scopeType: ElevationSessionScopeType.DEPARTMENT,
+        scopeDepartmentId: DEPARTMENT_ID,
+      });
+      expect(result.outcome).toBe('SUCCESS');
+      expect(mockTx.department.findFirst).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { id: DEPARTMENT_ID, tenantId: TENANT_ID } }),
+      );
+      const createCall = mockTx.elevationSession.create.mock.calls[0]![0] as {
+        data: { scopeType: string; scopeDepartmentId: unknown; scopeDecisionCaseId: unknown };
+      };
+      expect(createCall.data.scopeType).toBe(ElevationSessionScopeType.DEPARTMENT);
+      expect(createCall.data.scopeDepartmentId).toBe(DEPARTMENT_ID);
+      expect(createCall.data.scopeDecisionCaseId).toBeNull();
+    });
+
+    it('SCOPE_DEPARTMENT_NOT_FOUND: DEPARTMENT scope referencing a department outside this tenant', async () => {
+      mockTx.department.findFirst.mockResolvedValue(null);
+      const result = await service.requestElevation({
+        ...baseInput,
+        scopeType: ElevationSessionScopeType.DEPARTMENT,
+        scopeDepartmentId: DEPARTMENT_ID,
+      });
+      expect(result.outcome).toBe('SCOPE_DEPARTMENT_NOT_FOUND');
+      expect(mockTx.elevationSession.create).not.toHaveBeenCalled();
+    });
+
+    it('SUCCESS: DECISION_CASE scope sets both decisionCaseId and scopeDecisionCaseId to the same value', async () => {
+      mockTx.elevationSession.create.mockResolvedValue(
+        makeSessionRow({
+          scopeType: ElevationSessionScopeType.DECISION_CASE,
+          decisionCaseId: DECISION_CASE_ID,
+          scopeDecisionCaseId: DECISION_CASE_ID,
+        }),
+      );
+      const result = await service.requestElevation({
+        ...baseInput,
+        scopeType: ElevationSessionScopeType.DECISION_CASE,
+        decisionCaseId: DECISION_CASE_ID,
+      });
+      expect(result.outcome).toBe('SUCCESS');
+      expect(mockTx.decisionCase.findFirst).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { id: DECISION_CASE_ID, tenantId: TENANT_ID } }),
+      );
+      const createCall = mockTx.elevationSession.create.mock.calls[0]![0] as {
+        data: { scopeType: string; scopeDepartmentId: unknown; scopeDecisionCaseId: unknown; decisionCaseId: unknown };
+      };
+      expect(createCall.data.scopeType).toBe(ElevationSessionScopeType.DECISION_CASE);
+      expect(createCall.data.scopeDepartmentId).toBeNull();
+      expect(createCall.data.scopeDecisionCaseId).toBe(DECISION_CASE_ID);
+      expect(createCall.data.decisionCaseId).toBe(DECISION_CASE_ID);
+    });
+
+    it('SCOPE_DECISION_CASE_NOT_FOUND: DECISION_CASE scope referencing a case outside this tenant', async () => {
+      mockTx.decisionCase.findFirst.mockResolvedValue(null);
+      const result = await service.requestElevation({
+        ...baseInput,
+        scopeType: ElevationSessionScopeType.DECISION_CASE,
+        decisionCaseId: DECISION_CASE_ID,
+      });
+      expect(result.outcome).toBe('SCOPE_DECISION_CASE_NOT_FOUND');
+      expect(mockTx.elevationSession.create).not.toHaveBeenCalled();
     });
   });
 

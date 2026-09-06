@@ -18,7 +18,12 @@
 // mutation) rolls back.
 
 import { Injectable, Logger } from '@nestjs/common';
-import { Prisma, ElevationSessionStatus, ElevationCapabilityDecision } from '@prisma/client';
+import {
+  Prisma,
+  ElevationSessionStatus,
+  ElevationCapabilityDecision,
+  ElevationSessionScopeType,
+} from '@prisma/client';
 
 import { PrismaService } from '../database/prisma.service';
 import { AuditService } from '../audit/audit.service';
@@ -55,6 +60,14 @@ export interface ElevationSessionRecord {
   denialReason: string | null;
   idempotencyKey: string;
   capabilities: ElevationSessionCapabilityRecord[];
+  // GD-M38-1 Decision 15 — additive M37 scope extension fields. Every
+  // pre-M38 session row is backfilled to scopeType TENANT with both scope
+  // target fields null, so existing callers reading this record continue
+  // to see fully backward-compatible values.
+  decisionCaseId: string | null;
+  scopeType: ElevationSessionScopeType;
+  scopeDepartmentId: string | null;
+  scopeDecisionCaseId: string | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -91,6 +104,10 @@ function toElevationSessionRecord(row: SessionWithCapabilities): ElevationSessio
       capability: joinCapability(c.permission.resource, c.permission.action),
       decision: c.decision,
     })),
+    decisionCaseId: row.decisionCaseId,
+    scopeType: row.scopeType,
+    scopeDepartmentId: row.scopeDepartmentId,
+    scopeDecisionCaseId: row.scopeDecisionCaseId,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
   };
@@ -162,6 +179,27 @@ class ActorNotFoundViolation extends Error {
   }
 }
 
+// GD-M38-1 Decision 15 — service-layer defense-in-depth for the scope
+// invariants, alongside the migration-SQL CHECK constraints. Never
+// consulted by isElevationLifecycleCapabilityValidAt() or any runtime
+// authorization path — scope remains fully authorization-inert in M38.
+// (Scope-consistency failures are returned as INVALID_SCOPE outcomes
+// directly, synchronously, before any transaction opens — see
+// requestElevation() — so no sentinel exception class is needed for them,
+// unlike the two FK-existence violations below, which are discovered only
+// inside the transaction.)
+class ScopeDepartmentNotFoundViolation extends Error {
+  constructor() {
+    super('SCOPE_DEPARTMENT_NOT_FOUND');
+  }
+}
+
+class ScopeDecisionCaseNotFoundViolation extends Error {
+  constructor() {
+    super('SCOPE_DECISION_CASE_NOT_FOUND');
+  }
+}
+
 // ---------------------------------------------------------------------------
 // requestElevation()
 // ---------------------------------------------------------------------------
@@ -173,6 +211,19 @@ export interface RequestElevationInput {
   purpose: string;
   capabilities: string[]; // Capability key values, e.g. 'users:create'
   idempotencyKey: string;
+  // -------------------------------------------------------------------
+  // GD-M38-1 Decision 15 — optional, additive M37 scope extension. Every
+  // field below defaults to fully backward-compatible TENANT-scope
+  // behavior when omitted — existing callers require zero changes.
+  // decisionCaseId is a soft correlation reference (no FK); when
+  // scopeType is DECISION_CASE it MUST be supplied and becomes the
+  // session's scopeDecisionCaseId as well (the two are required to match
+  // — GD-M38-1's "DECISION_CASE-scoped elevation uses the authorized
+  // correlating case as required").
+  // -------------------------------------------------------------------
+  scopeType?: ElevationSessionScopeType;
+  scopeDepartmentId?: string; // required iff scopeType === DEPARTMENT
+  decisionCaseId?: string; // required iff scopeType === DECISION_CASE
 }
 
 export type RequestElevationResult =
@@ -185,6 +236,9 @@ export type RequestElevationResult =
   | { outcome: 'ACTOR_NOT_FOUND'; actorRole: 'REQUESTER' | 'GRANTEE'; userId: string }
   | { outcome: 'DUPLICATE_IDEMPOTENCY_KEY' }
   | { outcome: 'GRANTEE_HAS_NON_TERMINAL_SESSION' }
+  | { outcome: 'INVALID_SCOPE'; reason: string }
+  | { outcome: 'SCOPE_DEPARTMENT_NOT_FOUND' }
+  | { outcome: 'SCOPE_DECISION_CASE_NOT_FOUND' }
   | { outcome: 'INTERNAL_ERROR' };
 
 // ---------------------------------------------------------------------------
@@ -359,6 +413,38 @@ export class ElevationSessionService {
       }
     }
 
+    // GD-M38-1 Decision 15 — scope defaults to TENANT (fully
+    // backward-compatible with every pre-M38 caller). Structural
+    // consistency is validated synchronously here (mirrors the migration's
+    // chk_elevation_sessions_scope_consistency CHECK); referenced-row
+    // existence is validated inside the transaction below.
+    const scopeType = input.scopeType ?? ElevationSessionScopeType.TENANT;
+    let scopeValidation: { scopeDepartmentId: string | null; scopeDecisionCaseId: string | null };
+    switch (scopeType) {
+      case ElevationSessionScopeType.TENANT:
+        if (input.scopeDepartmentId || input.decisionCaseId) {
+          return { outcome: 'INVALID_SCOPE', reason: 'TENANT_SCOPE_MUST_NOT_SET_SCOPE_TARGETS' };
+        }
+        scopeValidation = { scopeDepartmentId: null, scopeDecisionCaseId: null };
+        break;
+      case ElevationSessionScopeType.DEPARTMENT:
+        if (!input.scopeDepartmentId) {
+          return { outcome: 'INVALID_SCOPE', reason: 'DEPARTMENT_SCOPE_REQUIRES_SCOPE_DEPARTMENT_ID' };
+        }
+        scopeValidation = { scopeDepartmentId: input.scopeDepartmentId, scopeDecisionCaseId: null };
+        break;
+      case ElevationSessionScopeType.DECISION_CASE:
+        if (!input.decisionCaseId) {
+          return { outcome: 'INVALID_SCOPE', reason: 'DECISION_CASE_SCOPE_REQUIRES_DECISION_CASE_ID' };
+        }
+        scopeValidation = { scopeDepartmentId: null, scopeDecisionCaseId: input.decisionCaseId };
+        break;
+      default: {
+        const exhaustiveCheck: never = scopeType;
+        return { outcome: 'INVALID_SCOPE', reason: `UNSUPPORTED_SCOPE_TYPE:${String(exhaustiveCheck)}` };
+      }
+    }
+
     try {
       const created = await this.prisma.$transaction(async (tx) => {
         // GD-M37-1 Decision 7 — requester and grantee must both exist and
@@ -368,6 +454,23 @@ export class ElevationSessionService {
         // columns carry no FK to enforce it at the database layer.
         await this.assertActorInTenant(tx, input.requestedByUserId, input.tenantId, 'REQUESTER');
         await this.assertActorInTenant(tx, input.granteeUserId, input.tenantId, 'GRANTEE');
+
+        // GD-M38-1 Decision 15 — real, restrictive FK targets must exist and
+        // belong to this session's tenant before the row is created.
+        if (scopeValidation.scopeDepartmentId) {
+          const department = await tx.department.findFirst({
+            where: { id: scopeValidation.scopeDepartmentId, tenantId: input.tenantId },
+            select: { id: true },
+          });
+          if (!department) throw new ScopeDepartmentNotFoundViolation();
+        }
+        if (scopeValidation.scopeDecisionCaseId) {
+          const decisionCase = await tx.decisionCase.findFirst({
+            where: { id: scopeValidation.scopeDecisionCaseId, tenantId: input.tenantId },
+            select: { id: true },
+          });
+          if (!decisionCase) throw new ScopeDecisionCaseNotFoundViolation();
+        }
 
         const resolved = await this.resolvePermissionIds(tx, requestedCapabilities as Capability[]);
         if (resolved.missing.length > 0) {
@@ -383,6 +486,10 @@ export class ElevationSessionService {
               granteeUserId: input.granteeUserId,
               purpose,
               idempotencyKey: input.idempotencyKey.trim(),
+              decisionCaseId: input.decisionCaseId ?? null,
+              scopeType,
+              scopeDepartmentId: scopeValidation.scopeDepartmentId,
+              scopeDecisionCaseId: scopeValidation.scopeDecisionCaseId,
               capabilities: {
                 create: resolved.permissionIds.map((permissionId) => ({ permissionId })),
               },
@@ -430,6 +537,12 @@ export class ElevationSessionService {
       }
       if (error instanceof NonTerminalSessionConflictViolation) {
         return { outcome: 'GRANTEE_HAS_NON_TERMINAL_SESSION' };
+      }
+      if (error instanceof ScopeDepartmentNotFoundViolation) {
+        return { outcome: 'SCOPE_DEPARTMENT_NOT_FOUND' };
+      }
+      if (error instanceof ScopeDecisionCaseNotFoundViolation) {
+        return { outcome: 'SCOPE_DECISION_CASE_NOT_FOUND' };
       }
       this.logger.error(
         `requestElevation failed: tenantId=${input.tenantId}`,
