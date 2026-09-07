@@ -1,11 +1,13 @@
 // Reference: governance/GD-M36-1.md — Decision 11 (catalog + Appendix A),
 // "existing idempotent upsert-per-role/user pattern this decision's seed
 // extension must follow exactly" (References section)
+// Reference: governance/GD-M39-1.md — Decision 15 (62 + 2 = 64 capabilities)
 //
 // Two groups of coverage:
-//  1. Catalog-level invariants on permissions.catalog.ts itself — exactly 62
-//     unique capability keys, no duplicate mapping entries, and the 4 reserved
-//     capabilities (GD-M36-1 Decision 12) absent from the seeded mapping table.
+//  1. Catalog-level invariants on permissions.catalog.ts itself — exactly 64
+//     unique capability keys (62 M36 + 2 M39), no duplicate mapping entries,
+//     and the 4 reserved capabilities (GD-M36-1 Decision 12) absent from the
+//     seeded mapping table.
 //  2. seedPermissionsAndRolePermissions() idempotency — a mocked
 //     PermissionsSeedClient proves every write goes through upsert() keyed on
 //     the schema's natural unique constraints (never a blind create), and that
@@ -25,17 +27,17 @@ import {
 // ---------------------------------------------------------------------------
 
 describe('permissions.catalog — catalog invariants', () => {
-  it('CAPABILITIES contains exactly 62 unique capability keys', () => {
+  it('CAPABILITIES contains exactly 64 unique capability keys (62 M36 + 2 M39)', () => {
     const values = Object.values(CAPABILITIES);
-    expect(values).toHaveLength(62);
-    expect(new Set(values).size).toBe(62);
+    expect(values).toHaveLength(64);
+    expect(new Set(values).size).toBe(64);
   });
 
-  it('CAPABILITY_ROLE_MAPPINGS has exactly one entry per capability (62 total, no duplicates)', () => {
-    expect(CAPABILITY_ROLE_MAPPINGS).toHaveLength(62);
+  it('CAPABILITY_ROLE_MAPPINGS has exactly one entry per capability (64 total, no duplicates)', () => {
+    expect(CAPABILITY_ROLE_MAPPINGS).toHaveLength(64);
 
     const capabilitiesInMappings = CAPABILITY_ROLE_MAPPINGS.map((m) => m.capability);
-    expect(new Set(capabilitiesInMappings).size).toBe(62);
+    expect(new Set(capabilitiesInMappings).size).toBe(64);
   });
 
   it('every mapped capability corresponds to a key in CAPABILITIES', () => {
@@ -131,7 +133,7 @@ describe('seedPermissionsAndRolePermissions', () => {
     return client;
   }
 
-  it('upserts exactly one Permission per unique capability (62) and one RolePermission per mapping-role pair', async () => {
+  it('upserts exactly one Permission per unique capability (64) and one RolePermission per mapping-role pair (178)', async () => {
     const client = makeMockClient();
 
     const totalRolePermissionPairs = CAPABILITY_ROLE_MAPPINGS.reduce(
@@ -141,9 +143,10 @@ describe('seedPermissionsAndRolePermissions', () => {
 
     const result = await seedPermissionsAndRolePermissions(client);
 
-    expect(result.permissionsUpserted).toBe(62);
+    expect(result.permissionsUpserted).toBe(64);
+    expect(totalRolePermissionPairs).toBe(178);
     expect(result.rolePermissionsUpserted).toBe(totalRolePermissionPairs);
-    expect(client.permission.upsert).toHaveBeenCalledTimes(62);
+    expect(client.permission.upsert).toHaveBeenCalledTimes(64);
     expect(client.rolePermission.upsert).toHaveBeenCalledTimes(totalRolePermissionPairs);
   });
 

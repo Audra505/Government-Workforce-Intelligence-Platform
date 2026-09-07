@@ -50,7 +50,8 @@ export interface SeedPermissionsResult {
 }
 
 /**
- * Idempotently seeds the 62 canonical Permission rows and every authorized
+ * Idempotently seeds the 64 canonical Permission rows (62 M36 + 2 M39,
+ * GD-M39-1 Decision 15) and every authorized
  * RolePermission mapping from CAPABILITY_ROLE_MAPPINGS. Safe to call any
  * number of times, including repeatedly within the same process, against the
  * same database — every operation is an upsert keyed on the schema's existing

@@ -227,4 +227,23 @@ export enum AuditEventType {
   DECISION_CASE_APPROVED              = 'DECISION_CASE_APPROVED',
   DECISION_CASE_REJECTED              = 'DECISION_CASE_REJECTED',
   DECISION_CASE_CANCELLED             = 'DECISION_CASE_CANCELLED',
+
+  // -------------------------------------------------------------------------
+  // Audit Read, Recovery, and Integrity Foundation Events — Milestone 39
+  // (governance/GD-M39-1.md Decision 22)
+  // AUDIT_LOG_QUERIED is written via logEvent() on every audit-read API call
+  // (Decision 17). The AUDIT_WRITE_RECOVERY_* and AUDIT_CHAIN_* events are
+  // written only via AuditService.logEventStrict() (human-initiated:
+  // AUDIT_WRITE_RECOVERY_REQUEUED, AUDIT_CHAIN_REVERIFICATION_REQUESTED) or
+  // AuditService.logOperationalEvent() (worker-generated supplemental
+  // notifications: AUDIT_WRITE_RECOVERY_SUCCEEDED,
+  // AUDIT_WRITE_RECOVERY_ABANDONED, AUDIT_CHAIN_VERIFICATION_FAILED) —
+  // Decision 14's strict-versus-operational boundary.
+  // -------------------------------------------------------------------------
+  AUDIT_LOG_QUERIED                    = 'AUDIT_LOG_QUERIED',
+  AUDIT_WRITE_RECOVERY_SUCCEEDED       = 'AUDIT_WRITE_RECOVERY_SUCCEEDED',
+  AUDIT_WRITE_RECOVERY_ABANDONED       = 'AUDIT_WRITE_RECOVERY_ABANDONED',
+  AUDIT_WRITE_RECOVERY_REQUEUED        = 'AUDIT_WRITE_RECOVERY_REQUEUED',
+  AUDIT_CHAIN_VERIFICATION_FAILED      = 'AUDIT_CHAIN_VERIFICATION_FAILED',
+  AUDIT_CHAIN_REVERIFICATION_REQUESTED = 'AUDIT_CHAIN_REVERIFICATION_REQUESTED',
 }

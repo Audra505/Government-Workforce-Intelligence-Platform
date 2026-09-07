@@ -1,13 +1,15 @@
 // Reference: governance/GD-M36-1.md — Decision 15 (deterministic parity-proof design),
 // Decision 16 (permanent metadata-drift protection through M46), Appendix A
 // (73 endpoint-to-capability mappings)
+// Reference: governance/GD-M39-1.md — Decision 16 (five additive endpoints,
+// extending the registry to 78 / 9,906 comparisons / 9 canonical role sets)
 //
 // This is the parity proof GD-M36-1 requires in place of any runtime shadow
 // path: it reads REAL @RequireRoles and @RequireCapability metadata directly
-// off the 15 controller classes' prototypes (decorators write to
+// off the 16 controller classes' prototypes (decorators write to
 // descriptor.value / the class constructor, so no instantiation or dependency
 // injection is needed to read them — see interview.controller.spec.ts for the
-// existing single-method precedent this file generalizes to all 73 endpoints).
+// existing single-method precedent this file generalizes to all 78 endpoints).
 //
 // For every endpoint, this file proves two things without ever running a real
 // HTTP request or touching a database:
@@ -15,8 +17,8 @@
 //      set CAPABILITY_ROLE_MAPPINGS declares for the capability that same
 //      handler's real @RequireCapability names (core parity invariant).
 //   2. Simulated RolesGuard and CapabilityGuard decisions agree across every
-//      one of the 127 non-empty subsets of the 7 platform roles — 73 x 127 =
-//      9,271 comparisons — proving no daylight between the two authorization
+//      one of the 127 non-empty subsets of the 7 platform roles — 78 x 127 =
+//      9,906 comparisons — proving no daylight between the two authorization
 //      models exists for any combination of roles an actor could hold.
 //
 // This file is also the permanent metadata-drift guard (GD-M36-1 Decision 16,
@@ -55,6 +57,7 @@ import { HireController } from '../recruiting/hire.controller';
 import { IntelligenceController } from '../intelligence/intelligence.controller';
 import { UsersController } from '../users/users.controller';
 import { RolesController } from '../users/roles.controller';
+import { AuditEventsController } from '../audit/audit-events.controller';
 
 // ---------------------------------------------------------------------------
 // Metadata reflection helpers — mirror Reflector.getAllAndOverride(key,
@@ -100,7 +103,8 @@ function mappingFor(capability: string): CapabilityRoleMapping {
 }
 
 // ---------------------------------------------------------------------------
-// ENDPOINT_REGISTRY — the 73 GD-M36-1 Appendix A protected handlers.
+// ENDPOINT_REGISTRY — the 73 GD-M36-1 Appendix A protected handlers plus the
+// 5 GD-M39-1 Decision 16 additive handlers (78 total).
 // Only [ControllerClass, methodName] is listed; expected roles and the
 // expected capability are never hand-duplicated here — both are read live off
 // the real decorator metadata by the tests below, and compared against the
@@ -219,6 +223,18 @@ const ENDPOINT_REGISTRY: RegistryEntry[] = [
     'getUserById',
   ]),
   ...entries('RolesController', RolesController as unknown as AnyCtrl, ['getRoles']),
+  // GD-M39-1 Decision 16 — five new endpoints. listAuditEvents/
+  // getAuditEventById/getRecoveryStatus inherit the class-level
+  // [System Administrator, Compliance Officer] role set (audit:read);
+  // requeueFailedWrite/requestReverification override to
+  // [System Administrator] only (audit:recover).
+  ...entries('AuditEventsController', AuditEventsController as unknown as AnyCtrl, [
+    'listAuditEvents',
+    'getRecoveryStatus',
+    'requeueFailedWrite',
+    'requestReverification',
+    'getAuditEventById',
+  ]),
 ];
 
 // ---------------------------------------------------------------------------
@@ -247,8 +263,8 @@ const ROLE_SUBSETS = allNonEmptySubsets<string>(ALL_PLATFORM_ROLES);
 // ---------------------------------------------------------------------------
 
 describe('ENDPOINT_REGISTRY sanity', () => {
-  it('contains exactly 73 entries (GD-M36-1 confirmed inventory)', () => {
-    expect(ENDPOINT_REGISTRY).toHaveLength(73);
+  it('contains exactly 78 entries (GD-M36-1 confirmed 73 + GD-M39-1 5 new)', () => {
+    expect(ENDPOINT_REGISTRY).toHaveLength(78);
   });
 
   it('contains no duplicate [controller, method] pairs', () => {
@@ -266,7 +282,7 @@ describe('ENDPOINT_REGISTRY sanity', () => {
 // CAPABILITY_ROLE_MAPPINGS role set for that endpoint's real @RequireCapability.
 // ---------------------------------------------------------------------------
 
-describe('capability-parity — per-endpoint metadata agreement (73 endpoints)', () => {
+describe('capability-parity — per-endpoint metadata agreement (78 endpoints)', () => {
   it.each(ENDPOINT_REGISTRY.map((e) => [`${e.controllerName}.${e.methodName}`, e] as const))(
     '%s: @RequireRoles matches CAPABILITY_ROLE_MAPPINGS for its @RequireCapability',
     (_label, entry) => {
@@ -285,7 +301,7 @@ describe('capability-parity — per-endpoint metadata agreement (73 endpoints)',
 });
 
 // ---------------------------------------------------------------------------
-// Exhaustive subset-level parity: 73 endpoints x 127 role subsets = 9,271
+// Exhaustive subset-level parity: 78 endpoints x 127 role subsets = 9,906
 // comparisons between simulated RolesGuard and simulated CapabilityGuard
 // decisions. Both simulations are pure — no Reflector, no ExecutionContext,
 // no database — but mirror each guard's real decision rule exactly:
@@ -296,7 +312,7 @@ describe('capability-parity — per-endpoint metadata agreement (73 endpoints)',
 // same handler's real @RequireCapability value.
 // ---------------------------------------------------------------------------
 
-describe('capability-parity — exhaustive subset comparison (9,271 cases)', () => {
+describe('capability-parity — exhaustive subset comparison (9,906 cases)', () => {
   for (const entry of ENDPOINT_REGISTRY) {
     const roles = getEffectiveRoles(entry.Ctrl, entry.methodName)!;
     const capabilities = getEffectiveCapabilities(entry.Ctrl, entry.methodName)!;
@@ -321,7 +337,7 @@ describe('capability-parity — exhaustive subset comparison (9,271 cases)', () 
 // ---------------------------------------------------------------------------
 
 describe('capability-parity — edge cases', () => {
-  it('empty actor role set is denied by every one of the 73 endpoints under both models', () => {
+  it('empty actor role set is denied by every one of the 78 endpoints under both models', () => {
     for (const entry of ENDPOINT_REGISTRY) {
       const roles = getEffectiveRoles(entry.Ctrl, entry.methodName)!;
       const capabilities = getEffectiveCapabilities(entry.Ctrl, entry.methodName)!;
@@ -332,7 +348,7 @@ describe('capability-parity — edge cases', () => {
     }
   });
 
-  it('an unrecognized role name is denied by every one of the 73 endpoints under both models', () => {
+  it('an unrecognized role name is denied by every one of the 78 endpoints under both models', () => {
     const unknownRoleActor = ['Not A Real Role'];
     for (const entry of ENDPOINT_REGISTRY) {
       const roles = getEffectiveRoles(entry.Ctrl, entry.methodName)!;
@@ -369,9 +385,9 @@ describe('capability-parity — edge cases', () => {
 // The 7 unique legacy role-set combinations (GD-M36-1 Decision 3 / Appendix A).
 // ---------------------------------------------------------------------------
 
-describe('capability-parity — 7 unique legacy role-set combinations', () => {
-  it('UNIQUE_LEGACY_ROLE_SET_COMBINATIONS has exactly 7 entries, each pairwise distinct', () => {
-    expect(UNIQUE_LEGACY_ROLE_SET_COMBINATIONS).toHaveLength(7);
+describe('capability-parity — 9 unique legacy/M39 role-set combinations', () => {
+  it('UNIQUE_LEGACY_ROLE_SET_COMBINATIONS has exactly 9 entries, each pairwise distinct', () => {
+    expect(UNIQUE_LEGACY_ROLE_SET_COMBINATIONS).toHaveLength(9);
     const asSets = UNIQUE_LEGACY_ROLE_SET_COMBINATIONS.map((combo) => new Set(combo));
     for (let i = 0; i < asSets.length; i += 1) {
       for (let j = i + 1; j < asSets.length; j += 1) {
@@ -382,7 +398,7 @@ describe('capability-parity — 7 unique legacy role-set combinations', () => {
     }
   });
 
-  it('every one of the 73 real @RequireRoles sets matches exactly one of the 7 canonical combinations', () => {
+  it('every one of the 78 real @RequireRoles sets matches exactly one of the 9 canonical combinations', () => {
     for (const entry of ENDPOINT_REGISTRY) {
       const roles = new Set(getEffectiveRoles(entry.Ctrl, entry.methodName)!);
       const matches = UNIQUE_LEGACY_ROLE_SET_COMBINATIONS.filter(
@@ -394,7 +410,14 @@ describe('capability-parity — 7 unique legacy role-set combinations', () => {
 });
 
 // ---------------------------------------------------------------------------
-// The 11 approved duplicate list/detail capability-sharing groups.
+// The 11 approved duplicate list/detail capability-sharing groups, plus
+// GD-M39-1's two shared capabilities: audit:read (3 endpoints — list,
+// detail, recovery-status, all gated by the same capability per Decision
+// 16) and audit:recover (2 endpoints — requeue and reverify, both gated by
+// the same capability per Decision 15/16). 11 + 2 = 13 total shared
+// capabilities across the registry — audit:recover was originally missed
+// in this count during M39 validation (found by a failing
+// toHaveLength(12) assertion against the real registry; corrected here).
 // ---------------------------------------------------------------------------
 
 describe('capability-parity — 11 approved duplicate list/detail capability groups', () => {
@@ -412,7 +435,7 @@ describe('capability-parity — 11 approved duplicate list/detail capability gro
     CAPABILITIES.USERS_READ,
   ];
 
-  it('there are exactly 11 capabilities used by more than one endpoint in the registry', () => {
+  it('there are exactly 13 capabilities used by more than one endpoint in the registry (11 M36 + audit:read + audit:recover)', () => {
     const capabilityUsageCount = new Map<string, number>();
     for (const entry of ENDPOINT_REGISTRY) {
       const capability = getEffectiveCapabilities(entry.Ctrl, entry.methodName)![0];
@@ -420,13 +443,19 @@ describe('capability-parity — 11 approved duplicate list/detail capability gro
     }
 
     const sharedCapabilities = [...capabilityUsageCount.entries()].filter(([, count]) => count > 1);
-    expect(sharedCapabilities).toHaveLength(11);
+    expect(sharedCapabilities).toHaveLength(13);
 
     const sharedCapabilityNames = new Set(sharedCapabilities.map(([capability]) => capability));
-    expect(sharedCapabilityNames).toEqual(new Set(EXPECTED_SHARED_READ_CAPABILITIES));
+    expect(sharedCapabilityNames).toEqual(
+      new Set([
+        ...EXPECTED_SHARED_READ_CAPABILITIES,
+        CAPABILITIES.AUDIT_READ,
+        CAPABILITIES.AUDIT_RECOVER,
+      ]),
+    );
   });
 
-  it('every shared capability is used by exactly 2 endpoints (list + detail)', () => {
+  it('every M36 shared capability is used by exactly 2 endpoints (list + detail)', () => {
     const capabilityUsageCount = new Map<string, number>();
     for (const entry of ENDPOINT_REGISTRY) {
       const capability = getEffectiveCapabilities(entry.Ctrl, entry.methodName)![0];
@@ -436,6 +465,26 @@ describe('capability-parity — 11 approved duplicate list/detail capability gro
     for (const capability of EXPECTED_SHARED_READ_CAPABILITIES) {
       expect(capabilityUsageCount.get(capability)).toBe(2);
     }
+  });
+
+  it('audit:read (GD-M39-1) is used by exactly 3 endpoints (list, detail, recovery-status)', () => {
+    const capabilityUsageCount = new Map<string, number>();
+    for (const entry of ENDPOINT_REGISTRY) {
+      const capability = getEffectiveCapabilities(entry.Ctrl, entry.methodName)![0];
+      capabilityUsageCount.set(capability, (capabilityUsageCount.get(capability) ?? 0) + 1);
+    }
+
+    expect(capabilityUsageCount.get(CAPABILITIES.AUDIT_READ)).toBe(3);
+  });
+
+  it('audit:recover (GD-M39-1) is used by exactly 2 endpoints (requeue, reverify)', () => {
+    const capabilityUsageCount = new Map<string, number>();
+    for (const entry of ENDPOINT_REGISTRY) {
+      const capability = getEffectiveCapabilities(entry.Ctrl, entry.methodName)![0];
+      capabilityUsageCount.set(capability, (capabilityUsageCount.get(capability) ?? 0) + 1);
+    }
+
+    expect(capabilityUsageCount.get(CAPABILITIES.AUDIT_RECOVER)).toBe(2);
   });
 });
 
@@ -595,6 +644,53 @@ describe('capability-parity — domain spot-checks', () => {
 });
 
 // ---------------------------------------------------------------------------
+// GD-M39-1 Decision 24 validation-gate spot-checks: audit:read proven to
+// grant read access only; audit:recover proven required for both mutation
+// endpoints; Compliance Officer proven forbidden from both mutations at the
+// route level.
+// ---------------------------------------------------------------------------
+
+describe('capability-parity — M39 audit-events domain spot-checks', () => {
+  const READ_METHODS = ['listAuditEvents', 'getAuditEventById', 'getRecoveryStatus'];
+  const MUTATION_METHODS = ['requeueFailedWrite', 'requestReverification'];
+
+  it('the three read endpoints are gated by audit:read, not audit:recover', () => {
+    for (const methodName of READ_METHODS) {
+      const capabilities = getEffectiveCapabilities(
+        AuditEventsController as unknown as AnyCtrl,
+        methodName,
+      )!;
+      expect(capabilities).toEqual([CAPABILITIES.AUDIT_READ]);
+    }
+  });
+
+  it('both mutation endpoints are gated by audit:recover, not audit:read', () => {
+    for (const methodName of MUTATION_METHODS) {
+      const capabilities = getEffectiveCapabilities(
+        AuditEventsController as unknown as AnyCtrl,
+        methodName,
+      )!;
+      expect(capabilities).toEqual([CAPABILITIES.AUDIT_RECOVER]);
+    }
+  });
+
+  it('Compliance Officer is forbidden from both mutation endpoints at the route level', () => {
+    for (const methodName of MUTATION_METHODS) {
+      const roles = getEffectiveRoles(AuditEventsController as unknown as AnyCtrl, methodName)!;
+      expect(roles).not.toContain('Compliance Officer');
+      expect(new Set(roles)).toEqual(new Set(['System Administrator']));
+    }
+  });
+
+  it('the three read endpoints permit both System Administrator and Compliance Officer', () => {
+    for (const methodName of READ_METHODS) {
+      const roles = getEffectiveRoles(AuditEventsController as unknown as AnyCtrl, methodName)!;
+      expect(new Set(roles)).toEqual(new Set(['System Administrator', 'Compliance Officer']));
+    }
+  });
+});
+
+// ---------------------------------------------------------------------------
 // Last System Administrator / forbidden role-assignment protections — these
 // are service-layer business rules already covered by users.service.spec.ts;
 // referenced here, not duplicated, per GD-M36-1's single-source-of-truth
@@ -661,6 +757,15 @@ describe('capability-parity — permanent metadata-drift protection (through M46
   const CLASS_LEVEL_CONTROLLERS: Array<{ name: string; Ctrl: AnyCtrl }> = [
     { name: 'UsersController', Ctrl: UsersController as unknown as AnyCtrl },
     { name: 'RolesController', Ctrl: RolesController as unknown as AnyCtrl },
+    // GD-M39-1 Decision 16 — AuditEventsController has a non-empty
+    // class-level @RequireRoles (like Users/Roles) AND two methods that
+    // additionally override it at the method level (requeueFailedWrite,
+    // requestReverification). It belongs here because this describe
+    // block's checks only require (a) non-empty class-level roles and
+    // (b) every method carrying @RequireCapability — both hold regardless
+    // of the method-level role overrides, which getEffectiveRoles already
+    // resolves correctly elsewhere in this file.
+    { name: 'AuditEventsController', Ctrl: AuditEventsController as unknown as AnyCtrl },
   ];
 
   function ownMethodNames(Ctrl: AnyCtrl): string[] {

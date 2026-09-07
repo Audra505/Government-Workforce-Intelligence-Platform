@@ -58,7 +58,15 @@ export const ROLES_SA_HRD_WP_EU = [
   EXECUTIVE_USER,
 ] as const;
 
-/** All 7 unique legacy role-set combinations, for tests that enumerate them directly. */
+// GD-M39-1 Decision 15/16 — the two new canonical role-set combinations
+// M39's five audit endpoints introduce. Neither reuses an existing M36
+// combination (Compliance Officer never previously appeared paired only
+// with System Administrator, and no prior capability was System
+// Administrator-only).
+export const ROLES_SA_CO = [SYSTEM_ADMINISTRATOR, COMPLIANCE_OFFICER] as const;
+export const ROLES_SA = [SYSTEM_ADMINISTRATOR] as const;
+
+/** All 9 unique legacy/M39 role-set combinations, for tests that enumerate them directly. */
 export const UNIQUE_LEGACY_ROLE_SET_COMBINATIONS = [
   ROLES_SA_HRD,
   ROLES_SA_HRD_WP,
@@ -67,6 +75,8 @@ export const UNIQUE_LEGACY_ROLE_SET_COMBINATIONS = [
   ROLES_SA_HRD_REC,
   ROLES_SA_HRD_REC_CO,
   ROLES_SA_HRD_WP_EU,
+  ROLES_SA_CO,
+  ROLES_SA,
 ] as const;
 
 /** All 7 platform roles, for parity-suite subset enumeration. */
@@ -167,6 +177,12 @@ export const CAPABILITIES = {
   USERS_UPDATE: 'users:update',
 
   ROLES_ASSIGNABLE_READ: 'roles:assignable:read',
+
+  // GD-M39-1 Decision 15 — additive M39 capabilities. audit:read gates the
+  // three read endpoints; audit:recover gates the two mutation endpoints
+  // (requeue, reverify).
+  AUDIT_READ: 'audit:read',
+  AUDIT_RECOVER: 'audit:recover',
 } as const;
 
 export type CapabilityKey = keyof typeof CAPABILITIES;
@@ -277,6 +293,13 @@ export const CAPABILITY_ROLE_MAPPINGS: readonly CapabilityRoleMapping[] = [
   { capability: CAPABILITIES.USERS_UPDATE, roles: ROLES_SA_HRD },
 
   { capability: CAPABILITIES.ROLES_ASSIGNABLE_READ, roles: ROLES_SA_HRD },
+
+  // GD-M39-1 Decision 15 — Compliance Officer is granted audit:read because
+  // it already holds exclusively read-only capabilities across the full
+  // pre-M39 catalog (the same basis GD-M38-1 used for its dormant
+  // INDEPENDENT_OVERSIGHT_REVIEWER mapping).
+  { capability: CAPABILITIES.AUDIT_READ, roles: ROLES_SA_CO },
+  { capability: CAPABILITIES.AUDIT_RECOVER, roles: ROLES_SA },
 ];
 
 // ---------------------------------------------------------------------------

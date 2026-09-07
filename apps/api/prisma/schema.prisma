@@ -1182,10 +1182,162 @@ model AuditEvent {
   metadata   Json?    @db.JsonB
   createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
 
+  // ---------------------------------------------------------------------
+  // GD-M39-1 Decisions 5-6, 8-9 — additive M39 fields. occurredAt/
+  // retentionUntil are NOT NULL here because this reflects final schema
+  // state; the m39 migration adds them nullable, backfills every existing
+  // row, then sets NOT NULL (Decision 6's exact 5-step sequence) before
+  // installing the retention-derivation trigger. sequenceNo/recordHash/
+  // previousHash/hashVersion remain nullable permanently — legacy
+  // pre-chain rows never receive fabricated values (Decision 8).
+  // ---------------------------------------------------------------------
+  occurredAt     DateTime @map("occurred_at") @db.Timestamptz(6)
+  retentionUntil DateTime @map("retention_until") @db.Timestamptz(6)
+  sequenceNo     BigInt?  @map("sequence_no")
+  recordHash     String?  @map("record_hash") @db.VarChar(64)
+  previousHash   String?  @map("previous_hash") @db.VarChar(64)
+  hashVersion    String?  @map("hash_version") @db.VarChar(20)
+
   @@index([tenantId], map: "idx_audit_tenant")
   @@index([userId], map: "idx_audit_user")
   @@index([createdAt], map: "idx_audit_created")
+  // GD-M39-1 Decision 10, indexes 1-4.
+  @@index([tenantId, entityType, entityId], map: "idx_audit_events_tenant_entity")
+  @@index([tenantId, action], map: "idx_audit_events_tenant_action")
+  @@index([tenantId, occurredAt], map: "idx_audit_events_tenant_occurred_at")
+  @@unique([tenantId, sequenceNo], map: "idx_audit_events_tenant_sequence")
   @@map("audit_events")
+  @@schema("audit")
+}
+
+// ---------------------------------------------------------------------------
+// Schema: audit — M39 Audit Read, Recovery, and Integrity Foundation
+// Reference: governance/GD-M39-1.md — Decisions 6-13 (retention, append-only
+// trigger, hash chain, additive data model, indexes, recovery, workers)
+//
+// Three additive tables, all within the existing "audit" schema (no new
+// schema created). AuditWriteFailure/AuditWriteFailureAttempt/
+// AuditChainState carry a bare-scalar tenantId column, enforced at the
+// service layer exactly as every existing table in this codebase — no
+// cross-tenant read or write path is authorized for any of the three
+// (Decision 9). AuditWriteFailure and AuditChainState remain ordinary
+// mutable operational tables by design; only AuditWriteFailureAttempt's
+// terminal (SUCCEEDED/FAILED) rows are immutable, by service-layer
+// convention (Decision 9/12) — none of the three is covered by Decision 7's
+// append-only trigger, which applies only to audit_events.
+// ---------------------------------------------------------------------------
+
+enum AuditWriteFailureStatus {
+  PENDING
+  IN_PROGRESS
+  RETRIED
+  ABANDONED
+
+  @@schema("audit")
+}
+
+enum AuditWriteFailureAttemptStatus {
+  IN_PROGRESS
+  SUCCEEDED
+  FAILED
+
+  @@schema("audit")
+}
+
+enum AuditChainVerificationResult {
+  OK
+  BROKEN
+
+  @@schema("audit")
+}
+
+// GD-M39-1 Decision 9 — one row per originally-failed logEvent() attempt.
+// id is the eventual AuditEvent.id (client-generated at first failure) —
+// never a separate synthetic key — so a successful replay's ON CONFLICT DO
+// NOTHING insert targets the exact same row the caller would have written
+// on first-attempt success (Decision 11's idempotency guarantee).
+// userId/entityType/entityId carry NO FK, mirroring AuditEvent's own
+// FK-free actor/resource columns (cascading deletes must never corrupt
+// recoverable audit history, same rationale as AuditService's
+// SYSTEM_USER_ID/SYSTEM_TENANT_ID sentinels).
+model AuditWriteFailure {
+  id            String                  @id @db.Uuid
+  tenantId      String                  @map("tenant_id") @db.Uuid
+  userId        String                  @map("user_id") @db.Uuid
+  action        String                  @db.VarChar(100)
+  entityType    String?                 @map("entity_type") @db.VarChar(100)
+  entityId      String?                 @map("entity_id") @db.Uuid
+  result        String                  @db.VarChar(50)
+  metadata      Json?                   @db.JsonB
+  occurredAt    DateTime                @map("occurred_at") @db.Timestamptz(6)
+  // Sanitized, fixed vocabulary only — never a raw DB driver error
+  // (Decision 9/12).
+  failureReason String                  @map("failure_reason") @db.VarChar(100)
+  status        AuditWriteFailureStatus @default(PENDING)
+  attemptCount  Int                     @default(0) @map("attempt_count")
+  nextAttemptAt DateTime                @map("next_attempt_at") @db.Timestamptz(6)
+  claimedAt     DateTime?               @map("claimed_at") @db.Timestamptz(6)
+  claimedBy     String?                 @map("claimed_by") @db.VarChar(100)
+  attemptedAt   DateTime?               @map("attempted_at") @db.Timestamptz(6)
+  createdAt     DateTime                @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt     DateTime                @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  attempts AuditWriteFailureAttempt[]
+
+  // GD-M39-1 Decision 10, index 5 — supports the recovery worker's
+  // due-work claiming query (status + nextAttemptAt) and stale-claim
+  // detection (claimedAt).
+  @@index([status, nextAttemptAt, claimedAt], map: "idx_audit_write_failure_claim")
+  // GD-M39-1 Decision 10, index 6 — tenant-scoped recovery summaries.
+  @@index([tenantId, status], map: "idx_audit_write_failure_tenant_status")
+  @@map("audit_write_failures")
+  @@schema("audit")
+}
+
+// GD-M39-1 Decision 9/12 — one row per automatic recovery attempt. Terminal
+// rows (SUCCEEDED/FAILED) are immutable and never deleted, by service-layer
+// convention — no update path is authorized past a terminal status.
+model AuditWriteFailureAttempt {
+  id                String                          @id @default(uuid()) @db.Uuid
+  tenantId          String                          @map("tenant_id") @db.Uuid
+  auditWriteFailureId String                        @map("audit_write_failure_id") @db.Uuid
+  attemptNumber     Int                             @map("attempt_number")
+  claimedBy         String                          @map("claimed_by") @db.VarChar(100)
+  startedAt         DateTime                        @default(now()) @map("started_at") @db.Timestamptz(6)
+  completedAt       DateTime?                       @map("completed_at") @db.Timestamptz(6)
+  // Sanitized, fixed vocabulary only — never a raw DB driver error
+  // (Decision 12). WORKER_TIMEOUT is the governed value for a
+  // claim-expiry closure of a crashed worker's stale IN_PROGRESS attempt.
+  failureCategory   String?                         @map("failure_category") @db.VarChar(100)
+  status            AuditWriteFailureAttemptStatus  @default(IN_PROGRESS)
+
+  auditWriteFailure AuditWriteFailure @relation(fields: [auditWriteFailureId], references: [id])
+
+  // GD-M39-1 Decision 10, index 7.
+  @@unique([auditWriteFailureId, attemptNumber], map: "idx_audit_write_failure_attempt_number")
+  // GD-M39-1 Decision 10, index 8.
+  @@index([tenantId, auditWriteFailureId], map: "idx_audit_write_failure_attempt_tenant_failure")
+  @@map("audit_write_failure_attempts")
+  @@schema("audit")
+}
+
+// GD-M39-1 Decision 8/13 — one row per tenant; the chain pointer and
+// verification-scheduling state. lastVerificationResult is nullable before
+// the first verification ever runs for a tenant (Decision 9); once BROKEN,
+// nothing in M39 ever auto-clears it (Decision 13).
+model AuditChainState {
+  tenantId               String                         @id @map("tenant_id") @db.Uuid
+  lastSequence           BigInt                         @default(0) @map("last_sequence")
+  lastHash               String?                        @map("last_hash") @db.VarChar(64)
+  nextVerificationAt     DateTime                       @default(now()) @map("next_verification_at") @db.Timestamptz(6)
+  verificationClaimedAt  DateTime?                       @map("verification_claimed_at") @db.Timestamptz(6)
+  lastVerifiedAt         DateTime?                       @map("last_verified_at") @db.Timestamptz(6)
+  lastVerificationResult AuditChainVerificationResult?   @map("last_verification_result")
+  updatedAt              DateTime                        @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  // GD-M39-1 Decision 10, index 9 — supports due-tenant verification claiming.
+  @@index([nextVerificationAt], map: "idx_audit_chain_state_next_verification")
+  @@map("audit_chain_state")
   @@schema("audit")
 }
 

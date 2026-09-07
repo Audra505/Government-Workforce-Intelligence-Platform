@@ -102,12 +102,19 @@ describe('Authentication (e2e)', () => {
 
   afterAll(async () => {
     if (prisma) {
-      // Audit events have no FK to users/tenants — delete for hygiene, order does not matter
-      const userIds = [fixtureUserId, lockoutUserId].filter(Boolean);
-      if (userIds.length > 0) {
-        await prisma.auditEvent.deleteMany({ where: { userId: { in: userIds } } });
-      }
-
+      // GD-M39-1 Decision 7 installs a bounded, database-enforced
+      // append-only trigger on audit.audit_events — a DELETE against that
+      // table now fails deterministically, every time, by design (not an
+      // occasional/unexpected failure a broad .catch() should mask).
+      // Deleting fixture audit rows for hygiene is therefore no longer
+      // possible and no longer attempted here. This is safe: audit_events
+      // carries no FK to identity.users or organization.tenants (by
+      // original AUD-1300 design — see audit.service.ts), so the
+      // user/tenant deletes immediately below are never blocked by
+      // orphaned audit rows. Cross-run isolation does not depend on this
+      // cleanup either — every fixture email/tenant code below is suffixed
+      // with SUFFIX (Date.now()), so leftover audit rows from a prior run
+      // can never collide with or be matched by a later run's queries.
       if (fixtureUserId) {
         await prisma.userRole.deleteMany({ where: { userId: fixtureUserId } });
         await prisma.user.delete({ where: { id: fixtureUserId } }).catch(() => {});

@@ -32,7 +32,17 @@ import { UserIdentityChip } from '@/components/shared/user-identity-chip';
 
 const NAVY = '#0c2340';
 
-export type PlatformNavItem = 'dashboard' | 'intelligence' | 'workforce' | 'recruiting' | 'admin';
+// GD-M39-1 Decision 20 — 'oversight' is a direct, role-aware nav entry
+// (System Administrator, Compliance Officer only), never routed through
+// the generic /admin link (whose index has no shared authorization layout
+// and dead-ends Compliance Officer at /admin/departments).
+export type PlatformNavItem =
+  | 'dashboard'
+  | 'intelligence'
+  | 'workforce'
+  | 'recruiting'
+  | 'admin'
+  | 'oversight';
 
 const NAV_ITEMS: { id: PlatformNavItem; label: string; href: string }[] = [
   { id: 'dashboard',    label: 'Dashboard',    href: '/dashboard' },
@@ -40,6 +50,7 @@ const NAV_ITEMS: { id: PlatformNavItem; label: string; href: string }[] = [
   { id: 'workforce',    label: 'Workforce',    href: '/workforce/employees' },
   { id: 'recruiting',   label: 'Recruiting',   href: '/recruiting/candidates' },
   { id: 'admin',        label: 'Admin',        href: '/admin/departments' },
+  { id: 'oversight',    label: 'Audit',        href: '/oversight/audit' },
 ];
 
 export function PlatformHeader({ roles, activeItem }: { roles: string[]; activeItem: PlatformNavItem }) {
@@ -55,6 +66,7 @@ export function PlatformHeader({ roles, activeItem }: { roles: string[]; activeI
       ['System Administrator', 'HR Director', 'Recruiter', 'Compliance Officer'].includes(r)
     ),
     admin: roles.includes('System Administrator') || roles.includes('HR Director'),
+    oversight: roles.includes('System Administrator') || roles.includes('Compliance Officer'),
   };
 
   return (
