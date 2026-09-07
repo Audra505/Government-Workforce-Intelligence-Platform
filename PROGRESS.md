@@ -9,16 +9,16 @@
 
 ---
 
-Last Updated: 2026-09-06 (M39 — Audit Read, Recovery, and Integrity Foundation: GOVERNANCE DECISION COMPLETE; GD-M39-1 authorizes a defined M39 implementation scope — a tenant-scoped, capability-gated audit-read API and viewer (the first HTTP surface authorized since M36), a fixed non-configurable seven-year retention floor, a database-trigger-enforced and explicitly bounded (not absolute) append-only control, a fully deterministic per-tenant SHA-256 hash-chain tamper-evidence design, automatic database-coordinated failed-write recovery and chain-verification workers (introducing @nestjs/schedule as one new dependency), two new capabilities (audit:read, audit:recover) projecting the M36 catalog to 64 capabilities/178 role-permission mappings/78 protected endpoints/9,906 parity comparisons, and six new AuditEventType values (122→128) — for a later, separately instructed implementation task; M39 implementation has NOT started; no application, schema, seed, migration, test, configuration, dependency, or UI file changed; no runtime authorization or business-execution behavior changed; RolesGuard remains the sole runtime authority and CapabilityGuard remains unregistered, unaffected by this decision; database-role separation is explicitly excluded from M39 scope, recorded only as a named future hardening recommendation; not validated, not CI-applicable, not production-ready)
-Updated By: Claude Code (drafted governance/GD-M39-1.md per three preceding M39 implementation-readiness/alignment-correction sessions that independently re-verified the live audit footprint — 122 AuditEventType values, 91 executable audit-write call sites, zero audit-read surface, one single-role PostgreSQL setup — and the M36 authorization baseline, including reclassifying all 77 raw @RequireRoles() textual matches to confirm the existing 70-executable/73-endpoint governance baseline is correct as originally documented; applied the project owner's four final decisions verbatim — automatic (not manual-only) recovery invocation, a fixed seven-year retention floor with no archival/purge capability, deferred external tamper checkpoints, and no database-role separation in M39; added the GD-M39-1 entry to governance_history.md; this PROGRESS.md entry records governance completion only — no M39 implementation has begun or occurred)
+Last Updated: 2026-09-07 (M39 — Audit Read, Recovery, and Integrity Foundation: IMPLEMENTATION COMPLETE AND CI-CONFIRMED; implementation commit 10d352df500726fb243f8e3f6e3fcfe6617d2ca7; GitHub Actions CI run 34087291647 concluded success across Lint/Build/Unit/Migrate/Seed/E2E; a tenant-scoped, capability-gated audit-read API and viewer (the first HTTP surface implemented since M36), a fixed non-configurable seven-year retention floor, a database-trigger-enforced and explicitly bounded (not absolute) append-only control, a fully deterministic per-tenant SHA-256 hash-chain tamper-evidence design, automatic database-coordinated failed-write recovery and chain-verification workers (@nestjs/schedule), two new capabilities (audit:read, audit:recover) projecting the M36 catalog to 64 capabilities/178 role-permission mappings/78 protected endpoints/9,906 parity comparisons/9 canonical role-set combinations, and six new AuditEventType values (122→128) are all now real, running, CI-validated code; a binding project-owner clarification of Decision 21 was recorded during validation — audit-integrity degradation is explicitly non-gating for /health's HTTP status; RolesGuard remains the sole runtime authority and CapabilityGuard remains unregistered; database-role separation remains explicitly excluded from M39, recorded only as a named future hardening recommendation; see the M39 section below for full detail)
+Updated By: Claude Code (implemented, validated, corrected, committed, pushed, and CI-confirmed the M39 implementation across an implementation pass and two dedicated validation/correction passes operating within GD-M39-1's authorized scope; found and fixed a real defect during validation — the Feb-29 retention-date calculation, proven against a real PostgreSQL instance to require clamping to Feb 28 rather than JavaScript's native month-overflow behavior; added a same-id/different-content mismatch guard to close a theoretical skipDuplicates masking risk; added direct real-transaction failure-injection proof that both new human mutations (requeue, reverify) roll back completely; updated the GD-M39-1.md status and appended its Implementation Completion Record; updated the GD-M39-1 entry in governance_history.md in place; updated this file's header and M39 section)
 
 Previous Update: 2026-09-06 (M38 — Decision Case and Approval Foundation: IMPLEMENTATION COMPLETE AND CI-CONFIRMED; implementation commit 9a6d2653d9108a3e44e1b5a59121b695e950c98a; GitHub Actions CI run 34003097416 concluded success; see the M38 section below for full detail)
 
 ## Repository Status
 
-Current Phase: **Phase 4 — M34 CI-CONFIRMED and CLOSED; post-M34 dashboard analytics enhancement LOCALLY IMPLEMENTED, RUNTIME-VERIFIED, BROWSER-VERIFIED (not yet pushed); M35 Human-in-the-Loop Command Center Blueprint COMPLETE (governance/documentation only); M36 Capability-Based Authorization Foundation IMPLEMENTATION COMPLETE AND CI-CONFIRMED (c4d44f98f75137ae1d18b20ef2c7a2e20e983be2; CI run 33136786479 success) — capability catalog and endpoint-parity safeguards exist and are validated; M37 Elevation Sessions Foundation IMPLEMENTATION COMPLETE AND CI-CONFIRMED (0e3429611a648ce7d0c11fc416187aa21df58490; CI run 33995166375 success) — an internal, dormant elevation-session data model, lifecycle service, and strict-audit-write path now exist and are validated, but remain intentionally inactive; M38 Decision Case and Approval Foundation IMPLEMENTATION COMPLETE AND CI-CONFIRMED (9a6d2653d9108a3e44e1b5a59121b695e950c98a; CI run 34003097416 success) — an internal, dormant Decision Case/Approval data model, three-tier approval engine, and additive M37 scope extension now exist and are validated, but remain intentionally inactive and unconnected to any live workflow or interface; M39 Audit Read, Recovery, and Integrity Foundation GOVERNANCE DECISION COMPLETE (GD-M39-1 authorizes a defined, tenant-scoped, capability-gated audit-read API/viewer, fixed seven-year retention, bounded database-trigger append-only protection, a deterministic per-tenant hash-chain design, and automatic failed-write recovery for a later, separately instructed implementation task — implementation has NOT started; target audit-read/recovery/integrity capability remains Planned); RolesGuard remains the sole runtime authorization authority; CapabilityGuard remains unregistered; no capability enforcement is active; no elevation or approval record has any runtime effect; the seven-role user experience is unchanged; M39 implementation and all later milestones remain Planned and unauthorized**
-Overall Classification: Phase 2 COMPLETE; Post-Phase-2 milestones M13/M14/M15 CI-confirmed; Pre-Phase-3 Governance Package CI-confirmed (a5c34f1); Phase 3 started — M16 CI-confirmed; M17 CI-confirmed; M18 CI-confirmed; M19 CI-confirmed; M20 CI-confirmed (6e6777b; run 28611838113); M21 CI-confirmed (1036c92 + 3c8189d + 1e33420); browser-verified by human 2026-07-03; CLOSED; M21.5 CI-confirmed (782e35e + 1a4b64f; runs #66 + #67); M22 CI-confirmed (ee8465b); browser-verified by human 2026-07-04; CLOSED; M23 CI-confirmed (5fedb81); browser-verified by human 2026-07-06; CLOSED; M24 CI-confirmed (5f5bfa6); browser-verified by human 2026-07-11; CLOSED; M25 CI-confirmed (23d46ef); browser-verified by human 2026-07-13; CLOSED; M26 CI-confirmed (a9a6943); runtime-verified 2026-07-14; CLOSED; M27 CI-confirmed (9049fd6); runtime-verified 2026-07-14; CLOSED; M28 CI-confirmed (46ffcce); runtime-verified + human browser-verified 2026-07-14; CLOSED; M29 CI-confirmed (45efe2f); seed validated 2026-07-14; CLOSED; Phase 3 COMPLETE; Phase 4 Intelligence STARTED — M30 CI-confirmed (407195b); governance GD-M30-1.md authorized (3c9366e) and amended twice (d3a2a65, 0401672); runtime-verified + browser-verified 2026-07-16; CLOSED; M31 CI-confirmed (cbcacdb); governance GD-M31-1.md authorized (051fa8f); runtime-verified + browser-verified 2026-07-16; CI run #99 (ID 29534898812) completed / success; CLOSED; M32 CI-CONFIRMED (dad0afc; run 29654755142 completed/success); governance GD-M32-1.md authorized (e43c700) and amended with Amendment 1 (Intelligence Detail Workspace); runtime-verified + browser-verified 2026-07-18; CLOSED; M33 CI-CONFIRMED (466350f; run 29658955778 completed/success); governance GD-M33-1.md authorized (2026-07-18, pending approval, local); department-level Workforce Readiness/Attrition Risk (scoreByDepartment()) + DepartmentGapService + GET /api/v1/intelligence/department-gap + Department Gap tab; runtime-verified + browser-verified 2026-07-18; CLOSED; M34 CI-CONFIRMED (0d0ef60; run 29803545493 completed/success); governance GD-M34-1.md authorized (2026-07-19, pending approval, local); ExecutiveMetricsService (Vacancy Rate %, Coverage Rate %, Time To Fill, Hiring Velocity) + GET /api/v1/intelligence/executive-metrics + additive-only WorkforceSignalSnapshot table with DB-enforced dedup/upsert (no read endpoint) + purpose-built Executive User dashboard + platform-wide role navigation cleanup + shared PlatformHeader consolidation + a login/logout client-router-cache role-switch bug found and fixed; CLOSED; Post-M34 (not a numbered milestone) — Operational Snapshot dashboard cards enhanced with lightweight, real-data-only analytics (30-day hires/separations/net change, coverage-rate context, 30-day opened/filled/net change, oldest-critical-vacancy age and share) reusing existing RBAC boundaries and existing/extended `GET /employees` and `GET /vacancies` query filters; role consistency re-verified across all 7 fixture roles with no mismatches; LOCALLY IMPLEMENTED, RUNTIME-VERIFIED, BROWSER-VERIFIED; staged for one local commit, not pushed; OPEN pending push/CI; M35 (Human-in-the-Loop Command Center Blueprint) — GOVERNANCE/DOCUMENTATION COMPLETE (governance/GD-M35-1.md + governance/M35-COMMAND-CENTER-BLUEPRINT.md; governance_history.md indexed); no code, schema, migration, seed data, test, UI, or runtime AI change of any kind; no capability implemented, no capability validated; the target platform redesign remains Planned maturity; CLOSED as a blueprint/governance milestone; M36 (Capability-Based Authorization Foundation) — IMPLEMENTATION COMPLETE AND CI-CONFIRMED (governance/GD-M36-1.md's Implementation Completion Record; governance_history.md's GD-M36-1 entry updated in place); implementation commit c4d44f98f75137ae1d18b20ef2c7a2e20e983be2 seeds the dormant Permission/RolePermission tables with the 73-endpoint/62-unique-permission/175-RolePermission-mapping capability catalog, adds a PermissionsService, method-level @RequireCapability metadata on all 73 protected handlers, and a non-registered CapabilityGuard, proven by 9,271/9,271 deterministic parity comparisons; GitHub Actions CI run 33136786479 (exact head_sha match) concluded success across Lint/Build/Unit/Migrate/Seed/E2E; RolesGuard remains the sole runtime authorization authority; no capability enforcement is activated; no currently authorized or forbidden endpoint outcome changed; all 70 pre-existing @RequireRoles(...) occurrences, all seven legacy roles, and all existing fixture identities are unchanged; JWT/session contract and frontend are unchanged; CLOSED; M37 (Elevation Sessions Foundation) — IMPLEMENTATION COMPLETE AND CI-CONFIRMED (governance/GD-M37-1.md's Implementation Completion Record; governance_history.md's GD-M37-1 entry updated in place); implementation commit 0e3429611a648ce7d0c11fc416187aa21df58490 adds an internal, dormant, tenant-scoped ElevationSession/ElevationSessionCapability data model and lifecycle (no HTTP controller, route, API, frontend interface, feature flag, CapabilityGuard registration, RolesGuard change, or JWT claim of any kind), a 4-capability grantable allowlist (users:create, users:read, users:update, roles:assignable:read) copied verbatim from the live, independently re-verified M36 catalog — three of the four operate on sensitive User account identity data (name, email, role assignment) while none exposes Employee or Candidate PII — requester may equal grantee (self-requested elevation permitted) but the approver must always differ from both with no self-approval exception in M37 (actor tenant membership validated at the service layer since actor columns carry no FK), while the revoker need not be distinct from the other actors, a narrow strict-audit-write exception scoped to elevation transitions only (does not alter AuditService.logEvent()'s existing behavior or satisfy any part of M39), and nullable step-up-evidence fields that remain null throughout M37 (no genuine MFA/step-up mechanism exists in this repository); GitHub Actions CI run 33995166375 (exact head_sha match) concluded success across Lint/Build/Unit/Migrate/Seed/E2E; 101/101 M37-targeted tests, 60 suites/11,494 unit tests, and 14 suites/750 E2E tests passed; RolesGuard remains the sole runtime authorization authority; no elevation record has any runtime effect; M39 activation prerequisite remains unsatisfied; CLOSED; M38 (Decision Case and Approval Foundation) — IMPLEMENTATION COMPLETE AND CI-CONFIRMED (governance/GD-M38-1.md's Implementation Completion Record; governance_history.md's GD-M38-1 entry updated in place); implementation commit 9a6d2653d9108a3e44e1b5a59121b695e950c98a adds an internal, dormant Decision Case and Approval foundation (no HTTP controller, route, public API, frontend interface, Command Center UI, change to any existing business endpoint or its authorization, business-action execution, runtime-effective approval, runtime-effective elevation, new production authority profile, CapabilityGuard activation, JWT change, or AI/LLM/autonomous behavior of any kind) comprising DecisionCase, EvidenceItem, DecisionCaseRiskTrigger, ApprovalRequest, ApprovalRequirement, and ApprovalDecision (append-only, immutable, no PENDING value) and ApprovalRequestEvidence in a new "decisions" Postgres schema, all three approval tiers implemented as internal data/service rules only with routine hires/offers never requiring Tier 3 by default and bidirectional Tier 3 independence proven against a real database, temporary legacy-role-to-authority-category qualification mappings that do not activate the future Workforce Decision Owner or Independent Oversight Reviewer profiles and confirm System Administrator does not auto-qualify, and an additive, authorization-inert extension of ElevationSession (decisionCaseId, governed scopeType, real restrictive scopeDepartmentId/scopeDecisionCaseId foreign keys, isElevationLifecycleCapabilityValidAt() unchanged); PolicyEvaluation remains deferred to M42, execution/verification entities to a later milestone, and AIRecommendation/AgentRun to M44/M45 — none exist anywhere in this implementation; GitHub Actions CI run 34003097416 (exact head_sha match) concluded success across Lint/Build/Unit/Migrate/Seed/E2E; 124 M38-targeted tests, 63 suites/11,612 unit tests, and 15 suites/773 E2E tests passed; RolesGuard remains the sole runtime authorization authority; no capability enforcement is activated; no decision-case or approval record has any runtime effect; the hire-endpoint RBAC inconsistency remains unresolved and unchanged, still assigned exclusively to M40; M39's audit-read/viewer/tamper-detection/retention prerequisites remain entirely unimplemented; CLOSED; M39 (Audit Read, Recovery, and Integrity Foundation) — GOVERNANCE DECISION COMPLETE (governance/GD-M39-1.md; governance_history.md indexed); GD-M39-1 authorizes the first HTTP surface since M36 — exactly five endpoints (audit-event list/detail, recovery-status, requeue, reverify), three gated by a new audit:read capability (System Administrator, Compliance Officer) and two narrowly-scoped mutations gated by a new audit:recover capability (System Administrator only) — projecting the M36 baseline to 64 capabilities/178 role-permission mappings/78 protected endpoints/9,906 parity comparisons with all 73 pre-existing mappings unchanged; authorizes a fixed, non-configurable seven-year retention floor (no deletion, no archival movement, no purge, no RetentionPolicy table), a database-trigger-enforced append-only control explicitly bounded (never absolute immutability, never protection against the database owner/superuser, and explicitly excluding database-role separation from M39 scope), a fully deterministic per-tenant SHA-256 hash-chain tamper-evidence design, three additive tables (AuditWriteFailure, AuditWriteFailureAttempt, AuditChainState) with a complete immutable per-attempt recovery history, automatic database-coordinated recovery and chain-verification workers (@nestjs/schedule, one new dependency), and six new AuditEventType values (122→128); confirms RolesGuard remains sole runtime authority and CapabilityGuard remains unregistered; no application, schema, seed, migration, test, configuration, dependency, or UI file has been modified; M39 implementation has NOT started; OPEN pending a separate, explicit implementation instruction
-Active Sprint / Milestone: M37 — Elevation Sessions Foundation is IMPLEMENTATION COMPLETE AND CI-CONFIRMED and CLOSED; M38 — Decision Case and Approval Foundation is IMPLEMENTATION COMPLETE AND CI-CONFIRMED and CLOSED (implementation commit 9a6d2653d9108a3e44e1b5a59121b695e950c98a; CI run 34003097416); M39 — Audit Read, Recovery, and Integrity Foundation governance decision (GD-M39-1) is complete; M39 implementation has not started and is not authorized to start except by a later, separately instructed implementation task operating within GD-M39-1's scope; the pre-existing post-M34 dashboard analytics enhancement remains staged for one local commit, not pushed, unaffected by M35, M36, M37, M38, or M39
+Current Phase: **Phase 4 — M34 CI-CONFIRMED and CLOSED; post-M34 dashboard analytics enhancement LOCALLY IMPLEMENTED, RUNTIME-VERIFIED, BROWSER-VERIFIED (not yet pushed); M35 Human-in-the-Loop Command Center Blueprint COMPLETE (governance/documentation only); M36 Capability-Based Authorization Foundation IMPLEMENTATION COMPLETE AND CI-CONFIRMED (c4d44f98f75137ae1d18b20ef2c7a2e20e983be2; CI run 33136786479 success) — capability catalog and endpoint-parity safeguards exist and are validated; M37 Elevation Sessions Foundation IMPLEMENTATION COMPLETE AND CI-CONFIRMED (0e3429611a648ce7d0c11fc416187aa21df58490; CI run 33995166375 success) — an internal, dormant elevation-session data model, lifecycle service, and strict-audit-write path now exist and are validated, but remain intentionally inactive; M38 Decision Case and Approval Foundation IMPLEMENTATION COMPLETE AND CI-CONFIRMED (9a6d2653d9108a3e44e1b5a59121b695e950c98a; CI run 34003097416 success) — an internal, dormant Decision Case/Approval data model, three-tier approval engine, and additive M37 scope extension now exist and are validated, but remain intentionally inactive and unconnected to any live workflow or interface; M39 Audit Read, Recovery, and Integrity Foundation IMPLEMENTATION COMPLETE AND CI-CONFIRMED (10d352df500726fb243f8e3f6e3fcfe6617d2ca7; CI run 34087291647 success) — a tenant-scoped, capability-gated audit-read API/viewer, fixed seven-year retention, bounded database-trigger append-only protection, a deterministic per-tenant hash-chain design, automatic failed-write recovery and chain-verification workers, and a coarse, non-gating audit-integrity health signal now exist and are validated, satisfying M39's repository-level contribution to the GD-M35-1 Decision 9 audit prerequisite; RolesGuard remains the sole runtime authorization authority; CapabilityGuard remains unregistered; no capability enforcement is active; no elevation or approval record has any runtime effect; the seven-role user experience is unchanged; Independent Oversight Reviewer activation and authorization-effective elevation each still require their own separate future governance and activation decision; M40 and all later milestones remain Planned and unauthorized**
+Overall Classification: Phase 2 COMPLETE; Post-Phase-2 milestones M13/M14/M15 CI-confirmed; Pre-Phase-3 Governance Package CI-confirmed (a5c34f1); Phase 3 started — M16 CI-confirmed; M17 CI-confirmed; M18 CI-confirmed; M19 CI-confirmed; M20 CI-confirmed (6e6777b; run 28611838113); M21 CI-confirmed (1036c92 + 3c8189d + 1e33420); browser-verified by human 2026-07-03; CLOSED; M21.5 CI-confirmed (782e35e + 1a4b64f; runs #66 + #67); M22 CI-confirmed (ee8465b); browser-verified by human 2026-07-04; CLOSED; M23 CI-confirmed (5fedb81); browser-verified by human 2026-07-06; CLOSED; M24 CI-confirmed (5f5bfa6); browser-verified by human 2026-07-11; CLOSED; M25 CI-confirmed (23d46ef); browser-verified by human 2026-07-13; CLOSED; M26 CI-confirmed (a9a6943); runtime-verified 2026-07-14; CLOSED; M27 CI-confirmed (9049fd6); runtime-verified 2026-07-14; CLOSED; M28 CI-confirmed (46ffcce); runtime-verified + human browser-verified 2026-07-14; CLOSED; M29 CI-confirmed (45efe2f); seed validated 2026-07-14; CLOSED; Phase 3 COMPLETE; Phase 4 Intelligence STARTED — M30 CI-confirmed (407195b); governance GD-M30-1.md authorized (3c9366e) and amended twice (d3a2a65, 0401672); runtime-verified + browser-verified 2026-07-16; CLOSED; M31 CI-confirmed (cbcacdb); governance GD-M31-1.md authorized (051fa8f); runtime-verified + browser-verified 2026-07-16; CI run #99 (ID 29534898812) completed / success; CLOSED; M32 CI-CONFIRMED (dad0afc; run 29654755142 completed/success); governance GD-M32-1.md authorized (e43c700) and amended with Amendment 1 (Intelligence Detail Workspace); runtime-verified + browser-verified 2026-07-18; CLOSED; M33 CI-CONFIRMED (466350f; run 29658955778 completed/success); governance GD-M33-1.md authorized (2026-07-18, pending approval, local); department-level Workforce Readiness/Attrition Risk (scoreByDepartment()) + DepartmentGapService + GET /api/v1/intelligence/department-gap + Department Gap tab; runtime-verified + browser-verified 2026-07-18; CLOSED; M34 CI-CONFIRMED (0d0ef60; run 29803545493 completed/success); governance GD-M34-1.md authorized (2026-07-19, pending approval, local); ExecutiveMetricsService (Vacancy Rate %, Coverage Rate %, Time To Fill, Hiring Velocity) + GET /api/v1/intelligence/executive-metrics + additive-only WorkforceSignalSnapshot table with DB-enforced dedup/upsert (no read endpoint) + purpose-built Executive User dashboard + platform-wide role navigation cleanup + shared PlatformHeader consolidation + a login/logout client-router-cache role-switch bug found and fixed; CLOSED; Post-M34 (not a numbered milestone) — Operational Snapshot dashboard cards enhanced with lightweight, real-data-only analytics (30-day hires/separations/net change, coverage-rate context, 30-day opened/filled/net change, oldest-critical-vacancy age and share) reusing existing RBAC boundaries and existing/extended `GET /employees` and `GET /vacancies` query filters; role consistency re-verified across all 7 fixture roles with no mismatches; LOCALLY IMPLEMENTED, RUNTIME-VERIFIED, BROWSER-VERIFIED; staged for one local commit, not pushed; OPEN pending push/CI; M35 (Human-in-the-Loop Command Center Blueprint) — GOVERNANCE/DOCUMENTATION COMPLETE (governance/GD-M35-1.md + governance/M35-COMMAND-CENTER-BLUEPRINT.md; governance_history.md indexed); no code, schema, migration, seed data, test, UI, or runtime AI change of any kind; no capability implemented, no capability validated; the target platform redesign remains Planned maturity; CLOSED as a blueprint/governance milestone; M36 (Capability-Based Authorization Foundation) — IMPLEMENTATION COMPLETE AND CI-CONFIRMED (governance/GD-M36-1.md's Implementation Completion Record; governance_history.md's GD-M36-1 entry updated in place); implementation commit c4d44f98f75137ae1d18b20ef2c7a2e20e983be2 seeds the dormant Permission/RolePermission tables with the 73-endpoint/62-unique-permission/175-RolePermission-mapping capability catalog, adds a PermissionsService, method-level @RequireCapability metadata on all 73 protected handlers, and a non-registered CapabilityGuard, proven by 9,271/9,271 deterministic parity comparisons; GitHub Actions CI run 33136786479 (exact head_sha match) concluded success across Lint/Build/Unit/Migrate/Seed/E2E; RolesGuard remains the sole runtime authorization authority; no capability enforcement is activated; no currently authorized or forbidden endpoint outcome changed; all 70 pre-existing @RequireRoles(...) occurrences, all seven legacy roles, and all existing fixture identities are unchanged; JWT/session contract and frontend are unchanged; CLOSED; M37 (Elevation Sessions Foundation) — IMPLEMENTATION COMPLETE AND CI-CONFIRMED (governance/GD-M37-1.md's Implementation Completion Record; governance_history.md's GD-M37-1 entry updated in place); implementation commit 0e3429611a648ce7d0c11fc416187aa21df58490 adds an internal, dormant, tenant-scoped ElevationSession/ElevationSessionCapability data model and lifecycle (no HTTP controller, route, API, frontend interface, feature flag, CapabilityGuard registration, RolesGuard change, or JWT claim of any kind), a 4-capability grantable allowlist (users:create, users:read, users:update, roles:assignable:read) copied verbatim from the live, independently re-verified M36 catalog — three of the four operate on sensitive User account identity data (name, email, role assignment) while none exposes Employee or Candidate PII — requester may equal grantee (self-requested elevation permitted) but the approver must always differ from both with no self-approval exception in M37 (actor tenant membership validated at the service layer since actor columns carry no FK), while the revoker need not be distinct from the other actors, a narrow strict-audit-write exception scoped to elevation transitions only (does not alter AuditService.logEvent()'s existing behavior or satisfy any part of M39), and nullable step-up-evidence fields that remain null throughout M37 (no genuine MFA/step-up mechanism exists in this repository); GitHub Actions CI run 33995166375 (exact head_sha match) concluded success across Lint/Build/Unit/Migrate/Seed/E2E; 101/101 M37-targeted tests, 60 suites/11,494 unit tests, and 14 suites/750 E2E tests passed; RolesGuard remains the sole runtime authorization authority; no elevation record has any runtime effect; M39 activation prerequisite remains unsatisfied; CLOSED; M38 (Decision Case and Approval Foundation) — IMPLEMENTATION COMPLETE AND CI-CONFIRMED (governance/GD-M38-1.md's Implementation Completion Record; governance_history.md's GD-M38-1 entry updated in place); implementation commit 9a6d2653d9108a3e44e1b5a59121b695e950c98a adds an internal, dormant Decision Case and Approval foundation (no HTTP controller, route, public API, frontend interface, Command Center UI, change to any existing business endpoint or its authorization, business-action execution, runtime-effective approval, runtime-effective elevation, new production authority profile, CapabilityGuard activation, JWT change, or AI/LLM/autonomous behavior of any kind) comprising DecisionCase, EvidenceItem, DecisionCaseRiskTrigger, ApprovalRequest, ApprovalRequirement, and ApprovalDecision (append-only, immutable, no PENDING value) and ApprovalRequestEvidence in a new "decisions" Postgres schema, all three approval tiers implemented as internal data/service rules only with routine hires/offers never requiring Tier 3 by default and bidirectional Tier 3 independence proven against a real database, temporary legacy-role-to-authority-category qualification mappings that do not activate the future Workforce Decision Owner or Independent Oversight Reviewer profiles and confirm System Administrator does not auto-qualify, and an additive, authorization-inert extension of ElevationSession (decisionCaseId, governed scopeType, real restrictive scopeDepartmentId/scopeDecisionCaseId foreign keys, isElevationLifecycleCapabilityValidAt() unchanged); PolicyEvaluation remains deferred to M42, execution/verification entities to a later milestone, and AIRecommendation/AgentRun to M44/M45 — none exist anywhere in this implementation; GitHub Actions CI run 34003097416 (exact head_sha match) concluded success across Lint/Build/Unit/Migrate/Seed/E2E; 124 M38-targeted tests, 63 suites/11,612 unit tests, and 15 suites/773 E2E tests passed; RolesGuard remains the sole runtime authorization authority; no capability enforcement is activated; no decision-case or approval record has any runtime effect; the hire-endpoint RBAC inconsistency remains unresolved and unchanged, still assigned exclusively to M40; M39's audit-read/viewer/tamper-detection/retention prerequisites were unimplemented at the time M38 closed and have since been implemented — see the M39 entry immediately below; CLOSED; M39 (Audit Read, Recovery, and Integrity Foundation) — IMPLEMENTATION COMPLETE AND CI-CONFIRMED (governance/GD-M39-1.md's Implementation Completion Record; governance_history.md's GD-M39-1 entry updated in place); implementation commit 10d352df500726fb243f8e3f6e3fcfe6617d2ca7 implements the first HTTP surface since M36 — exactly five endpoints (audit-event list/detail, recovery-status, requeue, reverify), three gated by a new audit:read capability (System Administrator, Compliance Officer) and two narrowly-scoped mutations gated by a new audit:recover capability (System Administrator only) — projecting the M36 baseline to 64 capabilities/178 role-permission mappings/78 protected endpoints/78 capability mappings/73 executable @RequireRoles() occurrences/127 role subsets/9,906 parity comparisons/9 canonical role-set combinations, with all 73 pre-existing mappings unchanged; implements a fixed, non-configurable seven-year retention floor (no deletion, no archival movement, no purge, no RetentionPolicy table), a database-trigger-enforced append-only control explicitly bounded (never absolute immutability, never protection against the database owner/superuser, and explicitly excluding database-role separation from M39 scope, both re-confirmed live via direct UPDATE/DELETE rejection against a real database), a fully deterministic per-tenant SHA-256 hash-chain tamper-evidence design (proven against a real database, including a live tamper-and-detect run), three additive tables (AuditWriteFailure, AuditWriteFailureAttempt, AuditChainState) with a complete immutable per-attempt recovery history, automatic database-coordinated recovery and chain-verification workers (@nestjs/schedule, one new dependency, real-timer-fire proven in non-test runtime), a coarse, non-gating audit-integrity health signal on /health (project-owner clarification recorded under GD-M39-1 Decision 21 — a broken chain or recovery backlog reports auditIntegrity: "degraded" without ever failing the endpoint, since restarting cannot repair either condition), direct real-transaction failure-injection proof that both requeue and reverify roll back completely on a forced strict-audit-write failure, and six new AuditEventType values (122→128, 128 total); GitHub Actions CI run 34087291647 (exact head_sha match) concluded success across Lint/Build/Unit/Migrate/Seed/E2E; confirms RolesGuard remains sole runtime authority and CapabilityGuard remains unregistered; M37 ElevationSession remains entirely authorization-inert and M38 DecisionCase/ApprovalRequest/ApprovalDecision records remain entirely disconnected from any live workflow, neither modified by this implementation; frontend validation covered type-check/lint/build/route-generation/API-level E2E/code-review — no interactive browser walkthrough was performed, a disclosed non-blocking limitation; this implementation is M39's repository-level contribution to the GD-M35-1 Decision 9 audit prerequisite — Independent Oversight Reviewer activation and authorization-effective elevation each still require their own separate future governance and activation decision; CLOSED
+Active Sprint / Milestone: M37 — Elevation Sessions Foundation is IMPLEMENTATION COMPLETE AND CI-CONFIRMED and CLOSED; M38 — Decision Case and Approval Foundation is IMPLEMENTATION COMPLETE AND CI-CONFIRMED and CLOSED (implementation commit 9a6d2653d9108a3e44e1b5a59121b695e950c98a; CI run 34003097416); M39 — Audit Read, Recovery, and Integrity Foundation is IMPLEMENTATION COMPLETE AND CI-CONFIRMED and CLOSED (implementation commit 10d352df500726fb243f8e3f6e3fcfe6617d2ca7; CI run 34087291647); M39's repository-level contribution to the GD-M35-1 Decision 9 audit prerequisite is implemented and CI-confirmed; Independent Oversight Reviewer activation, authorization-effective elevation, role cutover, and any later operating-model capability each still require their own separate, future governance and activation decision; M40 — Hire-Endpoint Maker-Checker Resolution is the next governed milestone and has not started and is not authorized to start except by its own separate, explicit governance decision and implementation instruction; the pre-existing post-M34 dashboard analytics enhancement remains staged for one local commit, not pushed, unaffected by M35, M36, M37, M38, or M39
 Implementation Started: Yes (2026-06-05)
 
 ## Phase Summary
@@ -12718,163 +12718,192 @@ passing without modification.
 
 ---
 
-# M39 — Audit Read, Recovery, and Integrity Foundation (Governance Decision)
+# M39 — Audit Read, Recovery, and Integrity Foundation (Implementation Complete)
 
-> **Repository Status Classification: GOVERNANCE DECISION COMPLETE. IMPLEMENTATION NOT STARTED.**
-> This entry records the completion of `GD-M39-1`, the governance decision authorizing a
-> defined M39 implementation scope. It does NOT record any code, schema, seed, migration, test,
-> configuration, dependency, or UI change, and does NOT record any change to runtime authorization
-> or business-execution behavior. M39 implementation begins only through a later, separately
-> instructed implementation task operating within `GD-M39-1`'s authorized scope. This entry must
-> not be read, cited, or summarized as evidence that any part of M39's implementation has
-> occurred, that the audit prerequisite is operational, that Independent Oversight Reviewer or
-> authorization-effective elevation has been activated, or that database-role separation has been
-> authorized.
+> **Repository Status Classification: IMPLEMENTATION COMPLETE AND CI-CONFIRMED.**
+> This entry records that `GD-M39-1`'s authorized scope has been implemented, validated across two
+> dedicated post-implementation validation/correction passes, committed, pushed, and confirmed by
+> an exact-`head_sha` GitHub Actions CI run. It supersedes this file's own prior
+> "GOVERNANCE DECISION COMPLETE. IMPLEMENTATION NOT STARTED." classification for M39. It does NOT
+> record Independent Oversight Reviewer activation, authorization-effective elevation, role
+> cutover, `CapabilityGuard` activation, production deployment, database-role separation, or any
+> M40 or later work — none of those occurred and none is claimed here.
 
-**Date:** 2026-09-06
+**Date:** 2026-09-06 (governance decision); 2026-09-06/2026-09-07 (implementation, validation, and
+closeout)
 
-**Status:** GOVERNANCE DECISION COMPLETE. M39 implementation has NOT started. M39 remains
-unimplemented, unvalidated, not CI-confirmed, and not production-ready. No runtime authorization
-or business-execution behavior has changed. No application, schema, seed, migration, test,
-configuration, dependency, or UI file has been created or modified. No separate project-owner
-approval ceremony remains outstanding — `GD-M39-1` already reflects the project owner's final
-decisions (automatic recovery invocation, fixed seven-year retention, deferred external tamper
-checkpoints, and no database-role separation in M39). The next action is a separately instructed
-M39 implementation task governed by `GD-M39-1`.
+**Status:** IMPLEMENTATION COMPLETE AND CI-CONFIRMED. Implementation commit
+`10d352df500726fb243f8e3f6e3fcfe6617d2ca7` (`feat(audit): implement M39 audit prerequisite`).
+GitHub Actions CI run `34087291647` (workflow `CI`, exact `head_sha` match) concluded **success**
+across Lint, Build, Unit tests, Migrate database, Seed database, and E2E tests. Two dedicated
+post-implementation validation/correction passes found and fixed real defects before this closeout
+(see Validation below). M39's repository-level contribution to `GD-M35-1` Decision 9's audit
+prerequisite is implemented and CI-confirmed. Activation of the Independent Oversight Reviewer
+profile, any authorization-effective elevation, role cutover, or any later operating-model
+capability each remains **separately governed** and requires its own future governance and
+activation decision — none is authorized or claimed by this entry.
 
 ## Capability / Deliverable Alignment
 
-- **Capability:** Audit Read, Recovery, and Integrity Foundation (governance authorization only)
+- **Capability:** Audit Read, Recovery, and Integrity Foundation
 - **Deliverable relevance:** Fourth implementation milestone in the `GD-M35-1` post-M35 roadmap;
-  satisfies `GD-M35-1` Decision 9's audit prerequisite — required before Independent Oversight
-  Reviewer or authorization-effective elevation may ever be activated — only once its later,
-  separate implementation task closes; this entry records governance authorization only
-- **Current maturity classification:** **Planned** (per CLAUDE.md's Repository Maturity
-  Classification) — a governance decision exists; no Execution Plan-as-code, State Model-as-
-  seeded-data, Test Scenarios, System Loop, Failure Playbook, Environment Model, Data Lifecycle,
-  or Evolution Strategy layer has any implementation evidence yet
-- **Relevant production blueprint layers covered:** Requirements and Directives (drafted, in
-  `GD-M39-1.md`, including its Appendix A data-model/endpoint reference); Execution Plan
-  (authorized scope defined, zero steps executed)
-- **Relevant production blueprint layers still missing or incomplete:** Specs (no `AuditWriteFailure`,
-  `AuditWriteFailureAttempt`, or `AuditChainState` table exists; no `occurredAt`/`retentionUntil`/
-  `sequenceNo`/`recordHash`/`previousHash`/`hashVersion` field exists on `AuditEvent`), State Model
-  (no audit-read service, recovery worker, or chain-verification worker exists), Test Scenarios (no
-  M39 test suite exists), System Loop (no scheduler/worker infrastructure exists anywhere in this
-  repository today), Failure Playbook (the bounded recovery/tamper-evidence design is specified in
-  governance only, not implemented), Environment Model (`@nestjs/schedule` not yet a dependency),
-  Data Lifecycle (none), Evolution Strategy (M40's hire/offer integration and M39's own eventual
-  activation-prerequisite role for elevation/Independent Oversight Reviewer are documented as
-  future dependencies, not built)
+  implements `GD-M35-1` Decision 9's audit prerequisite at the repository level — a tenant-scoped
+  audit-read API, a permission-controlled audit viewer, filtering/search, actor/action/result/
+  resource/timestamp visibility, approval-and-execution correlation, tamper-detection controls,
+  retention enforcement, and observability/recovery for failed audit writes are all now real,
+  running, CI-validated code
+- **Current maturity classification:** **Integrated / Tested** (per CLAUDE.md's Repository
+  Maturity Classification) — real code exists, is exercised by 104 M39-targeted unit tests plus 29
+  M39-targeted E2E tests against a real PostgreSQL database, and is CI-confirmed; **not**
+  **Production Ready** — no interactive browser walkthrough of the viewer was performed (see
+  Validation below), and this milestone's own completion does not by itself activate any
+  production-facing profile
+- **Relevant production blueprint layers covered:** Requirements, Directives, Specs (real schema:
+  3 tables, 3 enums, 6 additive `AuditEvent` fields, 9 indexes/constraints), Execution Plan (fully
+  executed), State Model (`AuditWriteFailureStatus`/`AuditWriteFailureAttemptStatus`/
+  `AuditChainVerificationResult` enums, governed transitions, all proven against a real database),
+  Test Scenarios (unit + real-database E2E, including direct failure-injection for both new
+  mutations), System Loop (automatic `@nestjs/schedule`-based recovery and chain-verification
+  workers, proven to register and fire for real in non-test runtime), Failure Playbook (bounded
+  recovery guarantee, append-only trigger, hash-chain tamper detection, all proven against a real
+  database), Environment Model (`@nestjs/schedule` installed and generated), Data Lifecycle
+  (fixed seven-year retention, no deletion/archival/purge, proven trigger-derived)
+- **Relevant production blueprint layers still missing or incomplete:** Evolution Strategy — M40's
+  hire/offer integration remains unimplemented and unstarted; Independent Oversight
+  Reviewer/authorization-effective-elevation activation each remain a separate, future,
+  unauthorized governance and activation decision; interactive browser validation of the
+  `/oversight/audit` viewer was not performed (disclosed limitation, not a completed claim)
 
 ## What Changed
 
-**Files created:**
-- `governance/GD-M39-1.md` — governance decision: verified current-state facts (122
-  `AuditEventType` values, 91 executable audit-write call sites across 19 production files, zero
-  audit-read API/viewer/capability, zero scheduler/queue/worker infrastructure, one single-role
-  PostgreSQL setup, confirmed `updatedFields`/`fieldsChanged` metadata is field-names-only by
-  direct source trace with `separationReason` as the one confirmed PII-risk exception); an
-  independently re-verified M36 authorization baseline (62/175/73/127/9,271 unchanged; a real
-  pre-existing documentation imprecision in the "70 executable `@RequireRoles()`" figure found and
-  resolved by classifying all 77 raw textual matches individually — confirmed correct as
-  originally documented, not a repository defect); authorizes the first HTTP surface since M36 —
-  exactly five endpoints, three read-only under a new `audit:read` capability (System
-  Administrator, Compliance Officer) and two narrowly-scoped mutations under a new `audit:recover`
-  capability (System Administrator only), projecting the catalog to 64/178/78/9,906/9; a first-class
-  `occurredAt`-versus-`createdAt` distinction; a fixed, non-configurable seven-year retention floor
-  sourced from `directives/07_compliance_rules.md` (no deletion, no archival, no purge, no
-  `RetentionPolicy` table); a database-trigger-enforced, explicitly bounded append-only control
-  (never absolute immutability, never protection against the database owner or a superuser,
-  explicitly excluding database-role separation from M39 scope); a fully deterministic, versioned,
-  per-tenant SHA-256 hash-chain design; three additive tables and three governed enums with a
-  complete, immutable, append-only per-attempt recovery-history model; automatic,
-  database-coordinated recovery and chain-verification workers introducing `@nestjs/schedule` as
-  one new dependency; an extension of `logEventStrict()` to two new governed human mutations
-  alongside a new, narrow, non-recursive `logOperationalEvent()` path; correlation via existing
-  `entityType`/`entityId` fields plus tenant-scoped traversal through the real
-  `ApprovalRequest.decisionCaseId` field (no new denormalized column); a per-event-type metadata
-  response allowlist; a neutral `oversight/audit` viewer route; a coarse public-health aggregate;
-  six new `AuditEventType` values (122→128); a full implementation validation gate; 26 governance
-  decisions
+**Files modified (17):** `apps/api/package.json` (governed `@nestjs/schedule` dependency);
+`apps/api/prisma/schema.prisma` (additive: 3 tables, 3 enums, 6 `AuditEvent` fields, 9 indexes);
+`apps/api/src/app.module.ts` (`ScheduleModule.forRoot()`, audit config namespace);
+`apps/api/src/audit/audit.module.ts` (registers the new controller and worker services);
+`apps/api/src/audit/audit.service.ts` (+ `.spec.ts`, chain-writing path, dead-letter path,
+`logOperationalEvent()`, `replayFailedWrite()`, `deriveRetentionUntil()`, and the
+same-id/different-content mismatch guard); `apps/api/src/audit/enums/audit-event-type.enum.ts`
+(6 additive values, 122→128); `apps/api/src/health/health.controller.ts` (+ `.spec.ts`),
+`health.module.ts` (wire in the new non-gating indicator);
+`apps/api/src/identity/capability-parity.spec.ts` (additive: 5 new registry entries, updated
+counts, corrected shared-capability count); `apps/api/src/identity/permissions.catalog.ts` (+2
+capabilities), `permissions.seed.spec.ts`, `permissions.seed.ts` (count references updated);
+`apps/api/test/auth.e2e-spec.ts` (one now-permanently-failing, unguarded cleanup delete removed —
+the append-only trigger makes it fail deterministically; audit_events carries no FK dependency, so
+no cleanup gap resulted); `apps/web/src/components/shared/platform-header.tsx` (additive
+'oversight' nav item); `package-lock.json`.
 
-**Files modified:**
-- `governance/governance_history.md` — added the "M39 — Audit Read, Recovery, and Integrity
-  Foundation" section indexing `GD-M39-1`, following the established chronological index format;
-  no existing entry was duplicated or edited
-- `PROGRESS.md` — this entry, plus updated header lines (Last Updated, Updated By, Previous
-  Update, Current Phase, Overall Classification, Active Sprint) and one accuracy correction to the
-  M38 section's own forward-looking "Next Actions" line about M39's governance status, recording
-  governance-decision completion
+**Files created (30):** `apps/api/prisma/migrations/20260803000000_m39_audit_read_recovery_and_integrity_foundation/migration.sql`;
+`apps/api/src/audit/audit-hash.util.ts` (+ `.spec.ts`), `audit-failure-classification.ts`,
+`audit-recovery-worker.service.ts` (+ `.spec.ts`), `audit-chain-verification.service.ts`
+(+ `.spec.ts`), `audit-events.controller.ts` (+ `.spec.ts`), `audit-events.service.ts`
+(+ `.spec.ts`), `audit-response-allowlist.ts` (+ `.spec.ts`),
+`dto/list-audit-events-query.dto.ts`; `apps/api/src/config/audit.config.ts`;
+`apps/api/src/health/audit-integrity.health-indicator.ts` (the non-gating coarse ok/degraded
+indicator); `apps/api/test/audit-events.e2e-spec.ts` (real-database E2E coverage, including
+direct real-transaction failure-injection rollback proofs for both requeue and reverify, and
+real-database non-gating health-degradation proofs); `apps/web/src/app/(dashboard)/oversight/audit/`
+(list/detail pages, loading/error states); `apps/web/src/app/api/audit-events/{integrity/reverify,recovery/[id]/requeue}/route.ts`
+(the two BFF mutation proxy routes); `apps/web/src/features/oversight/` (shell, table, filters,
+recovery panel, response types).
 
-**Architectural changes:** None. No schema, endpoint, service, guard, or UI file was created,
-modified, or executed. All changes are governance/documentation text.
+**Architectural changes:** Additive only, within the existing `audit` Postgres schema. The
+application's first new HTTP surface since M36 (5 endpoints). No existing endpoint, model, or
+migration was altered or removed.
 
-**New integrations:** None.
+**New integrations:** `@nestjs/schedule` (in-process recurring timer; no external process, no new
+infrastructure dependency) — the one governed dependency addition, powering the automatic recovery
+and chain-verification workers.
 
-**Behavioral changes:** None. `RolesGuard`, `CapabilityGuard`'s registration status,
-`hire.controller.ts`, `hire.service.ts`, `offer.controller.ts`, `offer.service.ts`, every one of
-the 17 controller files, `AuditService`'s existing `logEvent()`/`logEventStrict()` methods, and
-every frontend role-consuming file remain byte-for-byte unchanged.
+**Behavioral changes:** `RolesGuard` remains the sole runtime authorization authority, applied to
+the 5 new endpoints exactly as to the 73 pre-existing ones. `CapabilityGuard` remains unregistered
+on every controller, global guard list, or bootstrap path. `hire.controller.ts`,
+`hire.service.ts`, `offer.controller.ts`, `offer.service.ts`, and every one of the 73 pre-existing
+protected endpoint mappings are byte-for-byte unchanged. `GD-M37-1`'s `ElevationSession` foundation
+remains entirely authorization-inert — no file under `apps/api/src/identity/elevation-session.service.ts`
+was modified. `GD-M38-1`'s `DecisionCase`/`ApprovalRequest`/`ApprovalDecision` records remain
+entirely disconnected from any live workflow — no file under `apps/api/src/decisions/` was
+modified. The seven-role user experience is otherwise unchanged.
 
 ## Validation
 
-- **Tests added or updated:** None. No test file was created, modified, or deleted.
-- **Verification steps performed:** Three dedicated implementation-readiness/alignment-correction
-  sessions inspecting the running codebase directly — exact call-site extraction and independent
-  cross-validation for all 91 audit-write call sites (91/91 `result:` values accounted for, 82
-  SUCCESS + 9 FAILURE, zero other values); direct source trace confirming the `updatedFields`/
-  `fieldsChanged` field-names-only PII-safety convention and the one `separationReason` exception;
-  direct inspection of `.env`/`docker-compose.yml`/`Dockerfile`/CI configuration confirming a
-  single PostgreSQL role serves as runtime, migration, and owner role simultaneously; direct
-  inspection of `apps/web`'s `admin` route segment confirming no shared authorization layout
-  exists; direct inspection confirming zero scheduler/queue/worker dependency exists anywhere;
-  individual classification of all 77 raw `@RequireRoles()` textual matches (7 comments, 70
-  executable, 73 protected endpoints), confirming the pre-existing governance baseline was already
-  accurate.
-- **Deterministic validation evidence:** Not applicable — no code exists to validate
-  deterministically. Type-check, lint, and test suite runs were not performed and are not
-  applicable to this governance-only milestone step.
-- **Integration validation status:** Not applicable — no integration exists.
-- **Known unverified areas:** None within M39 governance's own scope. The eventual implementation
-  task's full validation gate (`GD-M39-1` Decision 24) is specified but not yet exercised — that is
-  implementation-time work, not governance work.
+- **Tests added or updated:** 7 new unit spec files (104 tests) plus 1 rewritten spec
+  (`audit.service.spec.ts`, every pre-M39 test case preserved or given a demonstrably equivalent
+  replacement, verified case-by-case); `capability-parity.spec.ts` and `permissions.seed.spec.ts`
+  extended additively; 1 new real-database E2E spec (`audit-events.e2e-spec.ts`, 29 tests,
+  including 3 direct real-transaction failure-injection rollback proofs and 2 real-database
+  non-gating health-degradation proofs); `health.controller.spec.ts` extended with a real-
+  `HealthCheckService` integration block (19 tests total).
+- **Verification steps performed:** Full local unit suite (69 suites/12,501 tests) and full local
+  E2E suite (16 suites/802 tests) against a disposable local PostgreSQL database with the M39
+  migration applied — both green. Direct real-PostgreSQL proof that the fixed seven-year retention
+  derivation exactly matches PostgreSQL's own `+ INTERVAL '7 years'` arithmetic across 8 cases
+  (ordinary, Feb 29 leap-day, two month-end dates, two DST-adjacent dates, sub-second, year-end) —
+  an initial JavaScript implementation that instead overflowed Feb 29 into March 1 was found and
+  corrected. Direct real-database proof that a persisted event's recomputed hash matches its
+  stored `recordHash`. Direct real-database concurrency proof (20 parallel same-tenant writes
+  produced a gap-free, duplicate-free sequence; a concurrent second tenant unaffected). Direct
+  real-database proof that a same-id/different-content retry is rejected, not silently accepted (a
+  new `AuditEventContentMismatchError` guard, added after this risk was identified during
+  validation). Direct real-database recovery-worker and chain-verification-worker execution
+  (claim, replay, stale-claim reclaim, tamper-and-detect) plus a real Nest application boot proving
+  both workers register via `SchedulerRegistry` and fire from a real timer in non-test runtime.
+  Direct real-transaction failure-injection proof (jest spy on the app's real DI-resolved
+  `AuditService` instance; real Prisma `$transaction`; independently re-queried before/after state)
+  that both requeue and reverify roll back completely on a forced strict-audit-write failure — the
+  specific proof gap identified in the first validation pass's report, closed in the second.
+- **Deterministic validation evidence:** Full type-check, lint, and build green across every
+  workspace (api, web, config, shared, ui). `prisma validate`/`generate` clean. Migration applied
+  successfully both to a populated pre-M39 database and to a fresh from-scratch database (the
+  exact-SHA CI run). Seed run twice; idempotent (64 permissions/178 mappings/7 roles, stable).
+- **Integration validation status:** API-level integration fully validated via real HTTP requests
+  against a running NestJS application and a real PostgreSQL database. Frontend integration
+  validated via type-check, lint, build (confirmed route generation for `/oversight/audit`,
+  `/oversight/audit/[id]`, and both BFF routes), and direct code review of both BFF proxy routes.
+  **No interactive browser walkthrough of the `/oversight/audit` viewer was performed** — this is
+  a disclosed, non-blocking limitation of this implementation's validation evidence, not a
+  completed browser-validation claim.
+- **Known unverified areas:** Interactive browser/UI validation (see above). Everything else in
+  `GD-M39-1` Decision 24's validation gate is satisfied — see `GD-M39-1.md`'s Implementation
+  Completion Record for the full itemized checklist.
 
 ## Risks / Limitations
 
-- This entry and `GD-M39-1.md` describe an **authorized scope**, not running behavior. Any future
-  reader (human or agent) must not treat `GD-M39-1` as having implemented the audit-read API,
-  viewer, recovery workers, or hash-chain verification, and must not read this decision as having
-  satisfied `GD-M35-1` Decision 9's audit prerequisite — only a later, separate implementation and
-  validation pass can do that.
-- The trigger-based append-only control `GD-M39-1` Decision 7 authorizes is explicitly bounded —
-  it does not protect against the database owner, a superuser, or anyone able to disable the
-  trigger, and must never be described as absolute immutability by any future document.
+- No interactive browser walkthrough of the `/oversight/audit` viewer was performed — a known,
+  disclosed, non-blocking limitation; any future reader must not treat this entry as a completed
+  browser-validation claim.
+- The trigger-based append-only control (`GD-M39-1` Decision 7) is explicitly bounded — reconfirmed
+  live (direct `UPDATE`/`DELETE` against `audit.audit_events` both rejected) — but it does not
+  protect against the database owner, a superuser, or anyone able to disable the trigger, and must
+  never be described as absolute immutability by any future document.
 - Database-role separation between the application runtime and migration credential remains
   explicitly out of M39's scope, recorded only as a named future security-hardening recommendation
   requiring its own, separately authorized infrastructure decision.
-- The bounded failed-write-recovery guarantee `GD-M39-1` Decision 11 authorizes explicitly does not
-  claim durable recovery through a total PostgreSQL outage — this limitation is recorded, not
-  hidden, and must not be narrowed by any future document.
-- M39's own eventual completion does not by itself activate Independent Oversight Reviewer or make
-  any `ElevationSession` authorization-effective — `GD-M37-1` Decision 21's three-part gate
+- The bounded failed-write-recovery guarantee (`GD-M39-1` Decision 11) explicitly does not claim
+  durable recovery through a total PostgreSQL outage — this limitation is recorded, not hidden.
+- Audit-integrity degradation is explicitly **non-gating** for `/health`'s HTTP status (binding
+  project-owner clarification of Decision 21, recorded in `GD-M39-1.md`) — a broken chain or
+  recovery backlog reports the coarse `auditIntegrity: "degraded"` signal without ever failing the
+  endpoint, since restarting cannot repair either condition; operational alerting and the audit
+  oversight viewer, not restart behavior, carry the signal.
+- M39's completion does not by itself activate Independent Oversight Reviewer or make any
+  `ElevationSession` authorization-effective — `GD-M37-1` Decision 21's three-part gate
   (trustworthy step-up authentication, M39 operational, and a separate future activation decision)
-  remains additionally required, unaffected by this decision.
+  remains additionally required; M39 satisfies only the "M39 operational" leg of that gate.
+- A pre-existing, repository-wide `.catch(() => {})` convention for audit-event E2E cleanup exists
+  in roughly fifteen other `*.e2e-spec.ts` files, unrelated to and not introduced by M39; only the
+  one instance this implementation's own append-only trigger directly caused to fail
+  deterministically (`auth.e2e-spec.ts`) was corrected, per M39's scope boundary.
 
 ## Next Actions
 
-1. A separate, explicit implementation instruction is required before any M39 implementation work
-   begins. That instruction must operate within `GD-M39-1`'s authorized scope (the data model,
-   API/viewer design, retention and tamper-evidence design, recovery-worker design, authorization
-   design, and validation gate) and must not diverge from it without its own governance amendment.
-2. When that instruction is given, implementation proceeds per `GD-M39-1`'s sequence: additive
-   schema/migration → `AuditService` core (hash utility, chain-write logic, `logOperationalEvent()`)
-   → recovery worker → chain-verification worker → capability catalog and parity-spec extension →
-   the five-endpoint API (static-routes-before-`:id` ordering) → health-indicator wiring → viewer →
-   full validation gate → PROGRESS.md update recording real implementation and validation evidence
-   → commit → push → CI.
-3. This PROGRESS.md entry's Status remains "GOVERNANCE DECISION COMPLETE. IMPLEMENTATION NOT
-   STARTED." until that future, separate entry exists — this entry must never be silently upgraded
-   to imply implementation, validation, CI confirmation, production readiness, audit-prerequisite
-   satisfaction, Independent Oversight Reviewer activation, or database-role-separation
-   authorization occurred.
+1. M40 — Hire-Endpoint Maker-Checker Resolution is the next governed milestone. It has **not**
+   started and is **not** authorized to start except by its own separate, explicit governance
+   decision and implementation instruction, per `GD-M39-1` Decision 26.
+2. Activating Independent Oversight Reviewer as a real production profile, or making any
+   `ElevationSession` authorization-effective, each requires its own separate, future governance
+   and activation decision — neither is authorized by M39's completion.
+3. This PROGRESS.md entry's Status remains "IMPLEMENTATION COMPLETE AND CI-CONFIRMED" and must
+   never be silently upgraded to imply production deployment, Independent Oversight Reviewer
+   activation, authorization-effective elevation, role cutover, `CapabilityGuard` activation, or
+   any M40-or-later milestone's start.
